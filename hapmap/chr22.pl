@@ -267,21 +267,6 @@ foreach my $option_name (keys %state_files) {
 
 doAnalysis($executable,$arg_hash);
 
-# #to gauge efficiency of Affymetrix chip
-# $arg_hash->{genotypesfile} = "$datadir/Affygenotypes.txt";
-# $arg_hash->{resultsdir} = "Affyresults";
-# #doAnalysis($executable,$arg_hash);
-# 
-# #to gauge efficiency of Illumina 300k chip
-# $arg_hash->{genotypesfile} = "$datadir/Ill300genotypes.txt";
-# $arg_hash->{resultsdir} = "Ill300results";
-# #doAnalysis($executable,$arg_hash);
-# 
-# #to gauge efficiency of Illumina 540k chip
-# $arg_hash->{genotypesfile} = "$datadir/Ill540genotypes.txt";
-# $arg_hash->{resultsdir} = "Ill540results";
-# #doAnalysis($executable,$arg_hash);
-
 print "script ended: " . scalar(localtime()) . "\n";
 
 sub getArguments
