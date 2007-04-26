@@ -5,6 +5,7 @@
 ############################################
 ## Describe Model here                     #
 ############################################
+settings.file <-"simHapMixSettings.R" 
 
 ##where to write data files
 datadir <- "hapmixsimdata"
@@ -34,6 +35,11 @@ freq.dispersion.prior.rate <- 10
 mixture.proportions.Dirichlet.Prior.params <- rep(2, K)
 fixed.mixture.proportions <- F##set to True for mixture proportions fixed at 1/K
                               ##set to F to sample mixture proportions for each locus  
+
+##read from external file and overwrite settings above. Useful when calling from a script.
+if(file.exists(settings.file)){
+  source(settings.file)
+}
 ########################################################################
 ####################################
 ## functions required for script   #
@@ -118,6 +124,13 @@ rdirichlet <- function(params) {
 ##############################
 ## Start of script          ##
 ##############################
+if(!file.exists(datadir)){
+  if(!dir.create(datadir)){
+    print("Error: could not create ")
+    print(datadir)
+    q()
+  }
+}
 
 ## assign map distances
 x <- numeric(0)
@@ -270,3 +283,4 @@ write.table(genotypes, file=paste(datadir,"genotypes_casectrl.txt", sep="/"), se
 ##outcome <- data.frame(Outcome = sample(size=NN, x=c(0,1), replace=T))
 outcome <- data.frame(Outcome = c(rep(0, NumControls), rep(1, NumCases)))
 write.table(outcome, file=paste(datadir,"outcome.txt", sep="/"), row.names=F, col.names=T)
+
