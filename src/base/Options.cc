@@ -1,7 +1,7 @@
 /** 
  *   Options.cc 
  *   Base for classes to hold program options
- *   Copyright (c) 2006 David O'Donnell
+ *   Copyright (c) 2006, 2007 David O'Donnell
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -12,6 +12,7 @@
 
 #include "Options.h"
 #include "bcppcl/StringConvertor.h"
+#include "bcppcl/StringSplitter.h"
 #include <string>
 #include <sstream>
 
@@ -255,47 +256,78 @@ void Options::ParseOptionName(string& name){
   StringConvertor::RemoveCharFromString(name, '_');
 }
 
-///////////////////////////////////////////////////////////////////////////////
+void Options::ReportBadUserOption(ostream& os, string& line, unsigned linenum, const char* filename)const{
+  os << "** Invalid option: \"" << line << "\" on line " << linenum << " of " << filename << endl;
+}
+
+///read user options from file
 int Options::ReadArgsFromFile(const char* filename, UserOptions& opt){
   ifstream fin(filename);
   if (0 == filename || 0 == strlen(filename)) return 1;
   if (!fin.is_open()) {
-    string msg = "Cannot open file \"";
-    msg += filename;
-    msg += "\". Aborting";
-    cerr << msg << endl;
+    cerr << "Cannot open file \"" << filename << "\". Aborting" << endl;
     exit(1);
   } 
 
   std::string str;
+  bool badoptions = false;
+  unsigned linenum = 0;
   //read in line from file
   while (getline(fin,str,'\n')){// ## apparent memory leak 
+    ++linenum;
+    //ignore #comments
+     if( str.find_first_of("#") < str.length() ) 
+       str.erase( str.find_first_of("#") );
+     //skip blank lines
+     if(str.find_first_not_of(" \t\n\r") < str.length() )
+       {   
+// 	 //check there is an '=' on line
+// 	 if(str.find("=") == string::npos || ){
+// 	   ReportBadUserOption(cerr, str, linenum, filename);
+// 	   badoptions = true;
+// 	   continue;
+// 	 }
+	  //split on '='
+	 vector<string> tokens;
+	 StringSplitter::Tokenize(str, tokens, "=");
+	 //check we have 2 tokens, option name and value
+	 if(tokens.size() != 2){
+	   ReportBadUserOption(cerr, str, linenum, filename);
+	   badoptions = true;
+	   continue;
+	 }
+	 //check tokens have graphical characters (not just whitespace)
+	 string::size_type graph0 = tokens[0].find_first_not_of(" \t\n\r");
+	 string::size_type graph1 = tokens[1].find_first_not_of(" \t\n\r");
 
-    if( str.find_first_of("#") < str.length() ) str.erase( str.find_first_of("#") );//ignore #comments
-    if(str.find_first_not_of(" \t\n\r") < str.length() )//skip blank lines. 
-      {   
-	str.erase(0, str.find_first_not_of(" \t\n\r") );//trim leading whitespace
-	//trim remaining whitespace
-	str.erase( str.find_last_not_of(" \t\n\r") + 1 );//trailing whitespace
-	if( str.find_first_of(" \t\n\r") <= str.length() ){//check for any whitespace left
-	  string::size_type eq = str.find("="), pos = str.find_first_of(" \t\n\r");
-	  if( pos < eq )//check for space before '='
-	    str.erase( pos, eq - pos );//remove space before '='
-	  //str.erase( str.find_first_of(" \t\n\r"),str.find_last_of(" \t\n") - str.find_first_of(" \t\n\r") +1 );//after '='
-	  eq = str.find("=");
-	  pos = str.find_first_of(" \t\n\r", eq);//position of first space after the = 
-	  str.erase( pos, str.find_first_not_of(" \t\n", pos) - pos );//remove space after '='
-	}
-	//add line to xargv
-	string::size_type eq = str.find("=");
-	string optionName = str.substr(0, eq);
-	ParseOptionName(optionName);
-	//set map element, name  = value
-	opt[optionName] = str.substr(eq+1 );
-      }
-    str.clear();
+	 if(graph0 == string::npos || graph1 == string::npos){
+	   ReportBadUserOption(cerr, str, linenum, filename);
+	   badoptions = true;
+	   continue;
+	 }
+
+	 //strip leading whitespace
+	 tokens[0].erase(0, graph0 );
+	 tokens[1].erase(0, graph1 );
+	 //strip trailing whitespace
+	 tokens[0].erase( tokens[0].find_last_not_of(" \t\n\r") + 1 );
+	 tokens[1].erase( tokens[1].find_last_not_of(" \t\n\r") + 1 );
+	 //convert option name to required format, lowercase and no underscores
+	 ParseOptionName(tokens[0]);
+
+	 //now all whitespace has been removed, add option to map of user options
+	 opt[tokens[0]] = tokens[1];
+       }
+     //clear str ready for next time
+     str.clear();
   }
+  //close file
   fin.close();
+  //exit if any bad options found
+  //TODO?? : throw exception instead or use a different return value
+  if(badoptions) exit(1);
+
+  //all is ok, return all-clear
   return 0;
 }
 

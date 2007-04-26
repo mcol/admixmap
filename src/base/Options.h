@@ -179,6 +179,7 @@ private:
   int ReadArgsFromFile(const char* filename, map<string, string>& UserOptions);
   int assign(OptionPair& opt, const string value);
   void ParseOptionName(string& name);
+  void ReportBadUserOption(ostream& os, string& line, unsigned linenum, const char* filename)const;
 
   // UNIMPLEMENTED: to avoid use
   Options(const Options&);
