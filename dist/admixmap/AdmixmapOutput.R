@@ -1000,6 +1000,7 @@ plotArrivalRates <- function(arrival.rate.pm.file, locus.table, ps.filename){
 }
 
 ##plot map of information extracted in hapmix allelic assoc test or ancestry assoc test
+##returns average info extraction
 plotExtractedInfoMap <- function(score.table.final, locus.table, ps.filename){
   full.filename <- paste(resultsdir, score.table.final, sep="/")
   
@@ -1011,12 +1012,12 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, ps.filename){
   ##read map positions from LocusTable
   map.pos <- locus.table[,3]
   x.label <- dimnames(locus.table)[[2]][3]
-
   
   postscript(paste(resultsdir, ps.filename, sep="/"))
   plot(map.pos, percent.info, xlab=x.label, ylab="\%Info Extracted", main="Extracted Info Map",type='l')  
   dev.off()
 
+  return( mean(percent.info))
 }
 ###################################################################################
 ## start of script
@@ -1279,8 +1280,10 @@ if(!is.null(user.options$allelicassociationscorefile)
       cat(" done\n", file=outfile, append=T)
     }
     cat("plotting map of information extracted...", file=outfile, append=T)
-    plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap.ps")
+    av.percent.info <- plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap.ps")
+    ##write average information extraction to logfile
     cat(" done\n", file=outfile, append=T)
+    cat(" Average Information Extraction: ", av.percent.info, "\%\n", file=outfile, append=T)
   }
 }
 
