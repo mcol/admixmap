@@ -405,6 +405,19 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
   dev.off()
 }
 
+QQplot <- function(zscores, title, filename){
+  point.list <- zscores
+  if(length(point.list[!is.na(point.list)]) > 0){
+    ##open output file
+    postscript( paste(resultsdir, filename, sep="/" ))
+    ##qq-plot
+    point.list <- qqnorm(zscores, main = title)
+    ##add line through the points plotted
+    lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
+    dev.off()
+  }
+}
+
 ##used for allelic and haplotype association score tests
 plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
@@ -432,15 +445,8 @@ plotHWScoreTest <- function(scorefile, k) {
   scoretest <- read.table(paste(resultsdir,scorefile,sep="/"),header=TRUE, row.names="Locus")
   
   #qq plot of scores
-  point.list <- scoretest[,6]
-  if(length(point.list[!is.na(point.list)]) > 0){
-    outputfile <- paste(resultsdir, "QQPlotHWTest.ps", sep="/" )
-    postscript(outputfile)
-    title <- "QQ plot of H-W Test z-scores"
-    point.list <- qqnorm(scoretest[,6], main = title)
-    lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
-    dev.off()
-  }
+  QQplot(scoretest[,6], "QQ plot of H-W Test z-scores", paste(resultsdir, "QQPlotHWTest.ps", sep="/" ))
+  
 }
   
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
@@ -1001,22 +1007,28 @@ plotArrivalRates <- function(arrival.rate.pm.file, locus.table, ps.filename){
 
 ##plot map of information extracted in hapmix allelic assoc test or ancestry assoc test
 ##returns average info extraction
-plotExtractedInfoMap <- function(score.table.final, locus.table, ps.filename){
+plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filename, qqplot.filename){
   full.filename <- paste(resultsdir, score.table.final, sep="/")
   
   ##cat("Error: \n", file=outfile, append=T)
   
   ##read final score test table and extract PercentInfo column
-  percent.info <- read.table(full.filename, header=T)$PercentInfo  
+  final.table <- read.table(full.filename, header=T)
+  percent.info <- final.table$PercentInfo
+  zscores <- final.table$StdNormal
+  rm(final.table)
   
   ##read map positions from LocusTable
   map.pos <- locus.table[,3]
   x.label <- dimnames(locus.table)[[2]][3]
   
-  postscript(paste(resultsdir, ps.filename, sep="/"))
-  plot(map.pos, percent.info, xlab=x.label, ylab="\%Info Extracted", main="Extracted Info Map",type='l')  
+  postscript(paste(resultsdir, info.map.filename, sep="/"))
+  plot(map.pos, percent.info, xlab=x.label, ylab="\%Info Extracted", main="Extracted Info Map",type='p', pch='.')  
   dev.off()
 
+  ##QQ plot of zscores
+  QQplot(zscores, "QQ plot of z-scores in Allelic Association Test", qqplot.filename)
+  
   return( mean(percent.info))
 }
 ###################################################################################
@@ -1280,7 +1292,7 @@ if(!is.null(user.options$allelicassociationscorefile)
       cat(" done\n", file=outfile, append=T)
     }
     cat("plotting map of information extracted...", file=outfile, append=T)
-    av.percent.info <- plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap.ps")
+    av.percent.info <- plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap.ps", "QQPlotAllelicAssocTests.ps")
     ##write average information extraction to logfile
     cat(" done\n", file=outfile, append=T)
     cat(" Average Information Extraction: ", av.percent.info, "\%\n", file=outfile, append=T)
