@@ -3,6 +3,8 @@
 #include "HapMixIndividual.h"
 
 #define SCORETEST_UPDATE_EVERY 2
+int numdiploidIndivs = 0;
+
 // HapMixModel::HapMixModel(){
 
 // }
@@ -17,7 +19,8 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   const bool isWorker = Comms::isWorker();
 
   InitialiseGenome(Loci, options, data, Log);
-  A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
+  //check allelefreq files, initialises allele freqs and finishes setting up Composite Loci
+  A.Initialise(&options, &data, &Loci, Log); 
   pA = &A;//set pointer to AlleleFreqs object
 
   L = new PopHapMix(&options, &Loci);
@@ -38,23 +41,26 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   // set unannealed probs
   //if(isWorker)IC->setGenotypeProbs(&Loci, &A);
 
-  int numdiploid = 0;
+
   if(isMaster || isWorker){
     //get number of diploid individuals by summing over individuals
-    numdiploid = IC->getNumDiploidIndividuals();
+    numdiploidIndivs = IC->getNumDiploidIndividuals();
+  }
+  if(isWorker){
+    Loci.SetHMMDimensions(options.getNumberOfBlockStates(), (bool)(numdiploidIndivs !=0));
   }
 
 #ifdef PARALLEL
   //broadcast number of diploid individuals
-  MPI::COMM_WORLD.Bcast(&numdiploid, 1, MPI::INT, 0);
+  MPI::COMM_WORLD.Bcast(&numdiploidIndivs, 1, MPI::INT, 0);
 #endif
 
   if(isFreqSampler)
-    A.setSampler(options.getThermoIndicator(), (!numdiploid), 
+    A.setSampler(options.getThermoIndicator(), (!numdiploidIndivs), 
                  ( !strlen(options.getPriorAlleleFreqFilename()) && !strlen(options.getInitialAlleleFreqFilename()) ));
 
   //if there are any diploid individuals, allocate space for diploid genotype probs
-  if(numdiploid && (isFreqSampler || isWorker)){
+  if(numdiploidIndivs && (isFreqSampler || isWorker)){
     A.AllocateDiploidGenotypeProbs();
     A.SetDiploidGenotypeProbs();
   }
@@ -65,11 +71,11 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
     if(numindivs > 1){
       Log.setDisplayMode(Quiet);
       //Log << numindivs << " individuals\n";
-      if(numdiploid > 0){
-        Log << numdiploid << " diploid "; 
-        if(numdiploid < numindivs)Log<< "and ";
+      if(numdiploidIndivs > 0){
+        Log << numdiploidIndivs << " diploid "; 
+        if(numdiploidIndivs < numindivs)Log<< "and ";
       }
-      if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
+      if(numdiploidIndivs < numindivs)Log << numindivs- numdiploidIndivs<< " haploid ";
       Log << "individuals\n\n";
     }
   }
@@ -77,7 +83,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   if(isFreqSampler)A.PrintPrior(Log);
   
   if( options.getNumberOfBlockStates()>1 && isWorker) {
-    L->SetHMMStateArrivalProbs();
+    L->SetHMMStateArrivalProbs((bool)(numdiploidIndivs !=0));
   }
   
   //initialise regression objects
@@ -151,7 +157,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   if( !options->getFixedAlleleFreqs()){
     if(isFreqSampler){
       EventLogger::LogEvent(7, iteration, "SampleFreqs");
-      A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
+      A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, (numdiploidIndivs==0));
       EventLogger::LogEvent(8, iteration, "SampledFreqs");
     }
 #ifdef PARALLEL
@@ -183,7 +189,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
     //Set global StateArrivalProbs in HMM objects. Do not force setting of mixture props (if fixed)
     if( isWorker) {
-      L->SetHMMStateArrivalProbs();
+      L->SetHMMStateArrivalProbs( (numdiploidIndivs>0));
     }
 
   }

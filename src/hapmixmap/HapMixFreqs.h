@@ -37,7 +37,7 @@ public:
   ~HapMixFreqs();
   void Initialise(HapMixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
   void setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*/);
-  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
+  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool AllHaploid);
   void PrintPrior(LogWriter& Log)const;
   void SamplePriorPrecision(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2);
   void SamplePriorProportions(unsigned locus, double sumlogfreqs1, double sumlogfreqs2);

@@ -74,7 +74,7 @@ public:
   //void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   void SampleMixtureProportions(const int* SumArrivalCounts);
   
-  void SetHMMStateArrivalProbs();
+  void SetHMMStateArrivalProbs(bool diploid);
 
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream& out); 

@@ -57,7 +57,7 @@ HapMixIndividualCollection
     for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
       // _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
       //NB: first arg sets Individual's number
-      HapMixChild.push_back(new HapMixIndividual(i+1, options, Data, theta));
+      HapMixChild.push_back(new HapMixIndividual(i+1, options, Data, theta, isMaskedIndividual(i, options->getMaskedIndividuals())));
       _child[i] = HapMixChild[i];
     }
   }
@@ -79,6 +79,12 @@ HapMixIndividualCollection::~HapMixIndividualCollection(){
 //   }
 // }
 
+//indicates if an individual's genotypes have been masked
+bool HapMixIndividualCollection::isMaskedIndividual(unsigned i, const vector<unsigned>& maskedIndividuals)const{
+  const vector<unsigned>::const_iterator mi_end = maskedIndividuals.end();
+  return (find(maskedIndividuals.begin(), mi_end, i+1) != mi_end);
+
+}
 void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const options, unsigned iteration){
 
 #ifdef PARALLEL
@@ -194,32 +200,38 @@ double HapMixIndividualCollection
   //TODO: set mixture props to posterior means
 
   //SumRho = ergodic sum of global sumintensities
-  int iterations = options->getTotalSamples()-options->getBurnIn();
+  const int iterations = options->getTotalSamples()-options->getBurnIn();
+  int NumDiploid = 0;
   
+  if(Comms::isMaster() || Comms::isWorker()){
+    NumDiploid = getNumDiploidIndividuals();
+  }
+
   //update chromosomes using globalrho, for globalrho model
-  if(options->getPopulations() >1 && (options->isGlobalRho() || options->getHapMixModelIndicator()) ){
-    vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
-    if(Comms::isMaster())//master only
-      for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
+  vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
+  if(Comms::isMaster())//master only
+    for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
 #ifdef PARALLEL
-    if(!Comms::isFreqSampler()) 
-      Comms::BroadcastVector(RhoBar);
+  if(!Comms::isFreqSampler()) 
+    Comms::BroadcastVector(RhoBar);
+  //broadcast number of diploid individuals
+  MPI::COMM_WORLD.Bcast(&NumDiploid, 1, MPI::INT, 0);
 #endif
-    //set locus correlation
-    if(Comms::isWorker()){//workers only
-      Loci->SetLocusCorrelation(RhoBar);
-      if(options->getHapMixModelIndicator())
-	for( unsigned int j = 0; j < numChromosomes; j++ )
-	  //set global state arrival probs in hapmixmodel
-	  //TODO: can skip this if xonly analysis with no females
-	  //NB: assumes always diploid in hapmixmodel
-	  //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-	  Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options->isRandomMatingModel(), true);
-    }
+  //set locus correlation
+  if(Comms::isWorker()){//workers only
+    Loci->SetLocusCorrelation(RhoBar);
+    if(options->getHapMixModelIndicator())
+      for( unsigned int j = 0; j < numChromosomes; j++ )
+	//set global state arrival probs in hapmixmodel
+	//TODO: can skip this if xonly analysis with no females
+	//NB: assumes always diploid in hapmixmodel
+	//KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
+	Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options->isRandomMatingModel(),
+							  (NumDiploid)>0);
   }
   
   //set haplotype pair probs to posterior means (in parallel version, sets AlleleProbs(Freqs) to posterior means
-  if(Comms::isFreqSampler())
+  if(Comms::isFreqSampler() && NumDiploid)
     for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
       (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
   

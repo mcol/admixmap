@@ -736,12 +736,12 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
     NB: assumes always diploid
 */
 //TODO: can skip this if xonly analysis with no females
-void PopHapMix::SetHMMStateArrivalProbs(){
+void PopHapMix::SetHMMStateArrivalProbs(bool diploid){
   //set locus correlation (workers only)
   if(Comms::isWorker()){
     Loci->SetLocusCorrelation(lambda);
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ){
-      Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, 0, true/*<-diploid*/);
+      Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, 0, diploid);
     }
   }
 }

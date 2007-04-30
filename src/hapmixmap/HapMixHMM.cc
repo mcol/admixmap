@@ -20,24 +20,33 @@
 
 HapMixHMM::HapMixHMM( int inTransitions, int NumHiddenStates, const double* const f){
   SetNullValues();
-  StateArrivalProbs = 0;
-  SetDimensions(inTransitions, NumHiddenStates, f);
+  StateArrivalProbs[0] = 0;
+  StateArrivalProbs[1] = 0;
+  //  SetDimensions(inTransitions, NumHiddenStates, f);
 }
 
-void HapMixHMM::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin){
+//TODO: allocate beta here if required
+//that is, if the allelic assoc score test is on or the PPGenotypes Probs are being written
+void HapMixHMM::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin, bool diploid){
   //inTransitions = #transitions +1 = #Loci 
   K = NumHiddenStates;
   DStates = K*K;
   Transitions = inTransitions;
-  alpha = new double[Transitions*K*K];
   p = new double[Transitions];
   f = fin;
-  StateArrivalProbs = new double[Transitions * K * 2];
+  StateArrivalProbs[0] = new double[Transitions * K ];
 
-  ThetaThetaPrime = new double[Transitions * K * K];
-  //  ThetaThetaInv = new double[Transitions * K * K];
-
-  SetArraysForRecursionProbs(K);
+  if(diploid){
+    alpha = new double[Transitions*K*K];
+    StateArrivalProbs[1] = new double[Transitions * K];
+    ThetaThetaPrime = new double[Transitions * K * K];
+    //  ThetaThetaInv = new double[Transitions * K * K];
+    
+    SetArraysForRecursionProbs(K);
+  }
+  else{
+    alpha = new double[Transitions*K];
+  }
 }
 
 HapMixHMM::~HapMixHMM(){
@@ -65,11 +74,11 @@ void HapMixHMM::SetStateArrivalProbs(const double* const Theta, const int , cons
     for(int j = 0; j < K; ++j){
 
       //state arrival probs, gamete 1
-      StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * theta[t*K + j];
+      StateArrivalProbs[0][t*K + j]    = (1.0 - f[2*t]) * theta[t*K + j];
 
       if(isdiploid){
 	//state arrival probs, gamete 2
-	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta[t*K + j ];
+	StateArrivalProbs[1][t*K + j] = (1.0 - f[2*t + 1]) * theta[t*K + j ];
       }
 
     }//end loop over states
@@ -105,7 +114,7 @@ void HapMixHMM::SampleJumpIndicators(const int* const HiddenStates,  unsigned in
     for( unsigned int g = 0; g < gametes; g++ ){
       xi = true;
       if( HiddenStates[g*Transitions + t-1] == HiddenStates[g*Transitions + t] ){
-	ProbJump = StateArrivalProbs[t*K*2 + HiddenStates[t + g*Transitions]*2 + g]; 
+	ProbJump = StateArrivalProbs[g][t*K + HiddenStates[t + g*Transitions]]; 
 	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > Rand::myrand());
       }
       if( xi ){ // increment sum if jump indicator is 1
@@ -142,7 +151,7 @@ void HapMixHMM::UpdateForwardProbsDiploid(){
       //if(t==1)sumfactor2 += log(Sum);
     }
     
-    RecursionProbs(p[t], f + 2*t, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, alpha + t*DStates);
+    RecursionProbs(p[t], f + 2*t, StateArrivalProbs[0] + t*K, StateArrivalProbs[1] + t*K, alpha + (t-1)*DStates, alpha + t*DStates);
 
     if(!missingGenotypes[t]) {    
       for(int j = 0; j < DStates; ++j){
@@ -247,6 +256,7 @@ void HapMixHMM::UpdateForwardProbsHaploid(){
 void HapMixHMM::UpdateBackwardProbsHaploid(){
   if(LambdaGPI.isNull() || !theta || !f)throw ("Error: Call to HiddenMarkovModel when inputs are not set!");
   if(!beta) { // allocate diploid-sized beta array if not already done
+    //has to be diploid in case there are any diploid individuals
     beta =  new double[Transitions*K*K];
   }
   if(!LambdaBeta)

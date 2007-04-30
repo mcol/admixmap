@@ -3,7 +3,7 @@
 #include "bcppcl/misc.h"//for myexp
 
 ///allocate a HapMixChromosome. overrides base class function which allocates a (base) Chromosome
-void HapMixGenome::CreateChromosome(unsigned i, unsigned size, bool isX, unsigned cstart,  int NumHiddenStates ){
+void HapMixGenome::CreateChromosome(unsigned i, unsigned size, bool isX, unsigned cstart, int NumHiddenStates ){
   vHapMixChr.push_back(new HapMixChromosome(i, size, cstart, NumHiddenStates, isX));
   C[i] = vHapMixChr[i];
 }
@@ -17,6 +17,12 @@ void HapMixGenome::SetLocusCorrelation(const std::vector<double>& lambda){
   for( unsigned int j = 0 ; j < NumberOfChromosomes; j++ ) {
     vHapMixChr[j]->SetLocusCorrelation(lambda_iter);
     lambda_iter += C[j]->GetSize()-1;
+  }
+}
+
+void HapMixGenome::SetHMMDimensions(int NumHiddenStates, bool diploid){
+  for(vector<HapMixChromosome*>::iterator c = vHapMixChr.begin(); c != vHapMixChr.end(); ++c ){
+    (*c)->SetHMMDimensions(NumHiddenStates, diploid); 
   }
 }
 
@@ -38,4 +44,8 @@ void HapMixChromosome::SetLocusCorrelation(const std::vector<double>::const_iter
     f[2*j] = f[2*j + 1] = myexp( - lambda );
   }
 
+}
+
+void HapMixChromosome::SetHMMDimensions(int NumHiddenStates, bool diploid){
+  ((HapMixHMM*)HMM)->SetDimensions(NumberOfCompositeLoci, NumHiddenStates, f, diploid);
 }

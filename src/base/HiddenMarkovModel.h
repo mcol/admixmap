@@ -56,7 +56,7 @@ protected:
   //L x K x K arrays
   double *alpha, *beta, *LambdaBeta;
   double *p;
-  double* StateArrivalProbs;
+  double* StateArrivalProbs[2];
   double* ThetaThetaPrime;
   double* ThetaThetaInv;
 
@@ -77,9 +77,9 @@ protected:
 
   void SetArraysForRecursionProbs(unsigned K);
   void SetNullValues();
-  void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
+  void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs0,const double* const stateArrivalProbs1,
 		      const double* const oldProbs, double *newProbs); 
-  void RecursionProbs2(const double ff, const double f[2], const double* const stateArrivalProbs, 
+  void RecursionProbs2(const double ff, const double f[2], const double* const stateArrivalProbs0,const double* const stateArrivalProbs1, 
 		       const double* const oldProbs, double *newProbs);
 
 private:
@@ -90,7 +90,7 @@ private:
   double *Expectation1;
   double *cov;
 
-  virtual void SetDimensions( int inTransitions, int pops, const double* const fin);
+  virtual void SetDimensions( int inTransitions, int pops, const double* const fin, bool diploid);
 
   // UNIMPLEMENTED
   // to avoid use

@@ -92,7 +92,7 @@ void HapMixFreqs::setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*
       }
       //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
       //allocate HapPairProbs and calculate them using AlleleProbs
-      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
+      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i], AllHaploid);
       
     }//end comp locus loop
   }
@@ -273,7 +273,7 @@ void HapMixFreqs::OpenOutputFile(const char* filename){
 }
 
 /// samples allele frequencies and prior parameters.
-void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
+void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool AllHaploid){
   
   // Sample allele frequencies conditional on Dirichlet priors 
   // then use AlleleProbs to set HapPairProbs in CompositeLocus
@@ -319,7 +319,8 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 #ifndef PARALLEL
     //no need to update alleleprobs, they are the same as Freqs
     //set HapPair probs using updated alleleprobs
-    (*Loci)(i)->SetHapPairProbs();
+    if(!AllHaploid)//skip if all haploid data
+      (*Loci)(i)->SetHapPairProbs();
 #endif
   }
   

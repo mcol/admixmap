@@ -22,6 +22,9 @@ class HapMixHMM :public HiddenMarkovModel{
 public:
   HapMixHMM( int inTransitions, int pops, const double* const f);
   ~HapMixHMM();
+
+  void SetDimensions( int inTransitions, int pops, const double* const fin, bool diploid);
+
   void SetGenotypeProbs(const double* const lambdain, const bool* const missing);
 
   void SetGenotypeProbs(const GenotypeProbIterator& lambdain, const bool* const missing);
@@ -34,7 +37,7 @@ public:
 private:
   GenotypeProbIterator LambdaGPI;
 
-  void SetDimensions( int inTransitions, int pops, const double* const fin);
+
   //overloaded update functions
   void UpdateForwardProbsDiploid();
   void UpdateForwardProbsHaploid();

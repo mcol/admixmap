@@ -12,7 +12,7 @@
 class HapMixChromosome : public Chromosome{
 public:
   HapMixChromosome(int n, int size, int start, int inNumHiddenStates, bool isx);
-
+  void SetHMMDimensions(int NumHiddenStates, bool diploid);
   void SetLocusCorrelation(const std::vector<double>::const_iterator lambda);
 private:
   // UNIMPLEMENTED
@@ -27,6 +27,7 @@ private:
 class HapMixGenome : public Genome{
 public:
   void SetLocusCorrelation(const std::vector<double>& lambda);
+  void SetHMMDimensions(int NumHiddenStates, bool diploid);
 
   HapMixChromosome* getHapMixChromosome(unsigned c);
 private:

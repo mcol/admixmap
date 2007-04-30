@@ -43,20 +43,15 @@ struct phps_t_cmp {
 
 /** Unordered genotype probabilities */
 struct ungp_t {
-  int phpp0; //< probability of unordered genotype 0 (0, 0)
-  int phpp1; //< probability of unordered genotype 1 (1, 0), (0, 1)
-  int phpp2; //< probability of unordered genotype 2 (1, 1)
+  int phpp0; //< probability of unordered genotype 0 (1, 1)
+  int phpp1; //< probability of unordered genotype 1 (1, 2), (2, 1)
+  int phpp2; //< probability of unordered genotype 2 (2, 2)
 };
 
 map<int, int> HapMixIndividual::ord2unord;
 
-// No default constructor
-//HapMixIndividual::HapMixIndividual(){
-//
-//}
-
 //Note: assuming SetStaticMembers is called first
-HapMixIndividual::HapMixIndividual(int number, const Options* const options, InputData* const Data, const double* GlobalTheta){
+HapMixIndividual::HapMixIndividual(int number, const Options* const options, InputData* const Data, const double* GlobalTheta, bool isMasked){
 
   GenotypesMissing = new bool*[numChromosomes];
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -93,12 +88,16 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, Inp
   //the genotypes are deleted as they are no longer needed 
   if( options->getHWTestIndicator())SetMissingGenotypes();
   
-  // Allocate space for unordered genotype probs
-  // They have form of vector of vectors of vectors of doubles.
-  // FIXME: allocation condition
-  // UnorderedProbs should be allocated also for individuals who are
-  // case/control. How to check if an individual is case/control?
-  if(true or (options->getHapMixModelIndicator() && options->getTestForAllelicAssociation())){
+  /* Allocate space for unordered genotype probs
+     They have form of vector of vectors of vectors of doubles.
+     condition is : if genotypes have been masked (because then we are using UnorderedProbs to output posterior predictive Genotype Probs)
+                    OR this is a case or control and the score test is on (only cases and controls are included in the score test)
+                    OR there are no cases or controls and the score test is on (in this case, all individuals are included in the score test).
+  */
+  if(isMasked || ( options->getTestForAllelicAssociation() && 
+		   (Data->IsCaseControl(number) || !Data->getNumberOfCaseControlIndividuals())
+		   )
+     ){
     vector<double> v1 = vector<double>(1);
     vector<vector<double> > v3 = vector<vector<double> >(3, v1);
     UnorderedProbs = vector<vector<vector<double> > >(numCompositeLoci, v3);
@@ -107,7 +106,7 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, Inp
      * Initialize values for observed genotypes. Information
      * is read from PossibleHapPairs and decoded into probabilities.
      * 
-     * In other words, we're infering unordered genotype probabilities
+     * In other words, we're inferring unordered genotype probabilities
      * from PossibleHapPairs.
      */
 #define SET_UNORD_PROBS(LOCUS_NO, V0, V1, V2) \

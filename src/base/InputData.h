@@ -99,6 +99,7 @@ public:
   const std::string& getUnitOfDistanceAsString()const;
   void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
   bool GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, std::vector<unsigned short>* genotypes, bool** Missing);
+  bool IsCaseControl(int i)const;
 
   void CheckForMonomorphicLoci(LogWriter& Log)const;
 private:    

@@ -26,7 +26,7 @@ class HapMixIndividual : public Individual
 {
 public:
   HapMixIndividual();
-  HapMixIndividual(int number, const Options* const options, InputData* const Data, const double* GlobalTheta);
+  HapMixIndividual(int number, const Options* const options, InputData* const Data, const double* GlobalTheta, bool isMasked);
   ~HapMixIndividual();
   static void SetGenotypeProbs(HapMixGenome* const G, const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs);
   void SetMissingGenotypes();

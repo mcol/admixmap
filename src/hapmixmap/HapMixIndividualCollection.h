@@ -52,6 +52,7 @@ private:
 
   std::vector<HapMixIndividual*> HapMixChild; 
 
+  bool isMaskedIndividual(unsigned i, const vector<unsigned>& maskedIndividuals)const;
   //default c'tor not implemented
   HapMixIndividualCollection();
 

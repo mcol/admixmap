@@ -170,7 +170,7 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
   delete[] hA;
 }
 
-void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
+void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs, bool AllHaploid){
   AlleleProbs = AFreqs;//set AlleleProbs to point to allele freqs in AlleleFreqs
   AlleleProbsMAP = 0; //AFreqs;
   SumAlleleProbs = const_cast<double*>(AlleleProbs);
@@ -179,9 +179,11 @@ void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
     fill(SumAlleleProbs, SumAlleleProbs+Populations*NumberOfStates, 0.0);
   }
 #ifndef PARALLEL
-  //set size of array of haplotype pair probs
-  HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  SetHapPairProbs();
+  if(!AllHaploid){//some diploid data, need HapPairProbs
+    //set size of array of haplotype pair probs
+    HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
+    SetHapPairProbs();
+  }
 #endif
 }
 

@@ -743,9 +743,13 @@ const
   CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i, geneticData_[i][0]);
 }
 
+bool InputData::IsCaseControl(int i)const{
+  return (bool)(i > getNumberOfIndividuals() - getNumberOfCaseControlIndividuals() );
+}
+
 ///fills a hapmix individual's genotype vector
 bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vector<unsigned short>* genotypes, bool** Missing){
-  const bool isCaseControl = (bool)(i > getNumberOfIndividuals() - getNumberOfCaseControlIndividuals() );
+  const bool isCaseControl = IsCaseControl(i);
 
   unsigned long numhaploid = 0, numdiploid = 0, numhaploidX = 0, numdiploidX = 0;
   //unsigned numCompositeLoci = Loci.GetNumberOfCompositeLoci();

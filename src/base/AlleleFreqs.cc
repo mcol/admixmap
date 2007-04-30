@@ -118,7 +118,7 @@ void AlleleFreqs::Initialise(Options* const options, InputData* const data, Geno
       //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
       //initialise AlleleProbsMAP pointer to 0
       //allocate HapPairProbs and calculate them using AlleleProbs
-      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
+      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i], false);
       //If using Chib algorithm, allocate HapPairProbsMAP and copy values in HapPairProbs
       if(MAP) {
         //set AlleleProbsMAP in Composite Locus to point to AlleleFreqsMAP

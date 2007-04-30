@@ -21,7 +21,8 @@ void HiddenMarkovModel::SetNullValues(){
   beta = 0;
   LambdaBeta = 0;
   p = 0;
-  StateArrivalProbs = 0;
+  StateArrivalProbs[0] = 0;
+  StateArrivalProbs[1] = 0;
   ThetaThetaPrime = 0;
   ThetaThetaInv = 0;
   colProb = 0;
@@ -45,7 +46,7 @@ HiddenMarkovModel::HiddenMarkovModel()
 ///constructor with arguments
 HiddenMarkovModel::HiddenMarkovModel( int inTransitions, int pops, const double* const fin) {
   SetNullValues();
-  SetDimensions(inTransitions, pops, fin);
+  SetDimensions(inTransitions, pops, fin, true);
 }
 
 HiddenMarkovModel::~HiddenMarkovModel()
@@ -54,7 +55,8 @@ HiddenMarkovModel::~HiddenMarkovModel()
   delete[] alpha;
   delete[] beta;
   delete[] LambdaBeta;
-  delete[] StateArrivalProbs;
+  delete[] StateArrivalProbs[0];
+  delete[] StateArrivalProbs[1];
   delete[] ThetaThetaPrime;
   delete[] ThetaThetaInv;
   delete[] rowProb;
@@ -65,7 +67,7 @@ HiddenMarkovModel::~HiddenMarkovModel()
 }
 
 ///allocate arrays and set f pointer
-void HiddenMarkovModel::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin)
+void HiddenMarkovModel::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin, bool)
 {
   //inTransitions = #transitions +1 = #Loci 
   //pops = #populations
@@ -75,7 +77,8 @@ void HiddenMarkovModel::SetDimensions( int inTransitions, int NumHiddenStates, c
   alpha = new double[Transitions*K*K];
   p = new double[Transitions];
   f = fin;
-  StateArrivalProbs = new double[Transitions * K * 2];
+  StateArrivalProbs[0] = new double[Transitions * K ];
+  StateArrivalProbs[1] = new double[Transitions * K ];
   ThetaThetaPrime = new double[K*K];
   ThetaThetaInv = new double[K*K];
 
@@ -122,9 +125,9 @@ void HiddenMarkovModel::SetStateArrivalProbs(const double* const Theta, const in
   //required only for diploid updates
   for(int t = 1; t < Transitions; t++ ){        
     for(int j = 0; j < K; ++j){
-      StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * theta[j];
+      StateArrivalProbs[0][t*K + j]    = (1.0 - f[2*t]) * theta[j];
       if(isdiploid)
-	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta[K*Mcol +j ];
+	StateArrivalProbs[1][t*K + j] = (1.0 - f[2*t + 1]) * theta[K*Mcol +j ];
     }
     p[t] = f[2*t] * f[2*t + 1];
   }
@@ -144,7 +147,7 @@ void HiddenMarkovModel::SampleJumpIndicators(const int* const LocusAncestry, con
     for( unsigned int g = 0; g < gametes; g++ ){
       xi = true;
       if( LocusAncestry[g*Transitions + t-1] == LocusAncestry[g*Transitions + t] ){
-	ProbJump = StateArrivalProbs[t*K*2 + LocusAncestry[t + g*Transitions]*2 + g];  
+	ProbJump = StateArrivalProbs[g][t*K + LocusAncestry[t + g*Transitions]];  
 	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > Rand::myrand());
       } 
       if( xi ){ // increment sumlocusancestry if jump indicator is 1
@@ -215,8 +218,8 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isdiploid)
       State = 0;
       for(int i1 = 0; i1 < K; ++i1)for(int i2 = 0; i2 < K; ++i2) {
 	V[State] = 
-	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * 
-	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
+	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[0][(t+1)*K + j1] ) * 
+	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[1][(t+1)*K + j2] );
 	V[State] *= alpha[t*DStates + i1*K + i2];
 	++State;
       }
@@ -232,7 +235,7 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isdiploid)
     for( int t =  Transitions - 2; t >= 0; t-- ){
 	//for(int j = 0; j < K; j++)V[j] = (j == C[t+1])*f[2*t+1]+theta[C[t+1]]*(1.0 - f[2*t]);
 	for(int state = 0; state < K; state++)
-	    V[state] = (state == SStates[t+1]) * f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + SStates[t+1]*2  ];
+	    V[state] = (state == SStates[t+1]) * f[2*t+2] + StateArrivalProbs[0][(t+1)*K + SStates[t+1]  ];
 	for( int state = 0; state < K; state++ ) 
 	    V[state] *= alpha[t*K + state];
 	SStates[t] = Rand::SampleFromDiscrete( V, K );
@@ -312,7 +315,7 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
       sumfactor += log(Sum);
     }
     
-    RecursionProbs(p[t], f + 2*t, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, alpha + t*DStates);
+    RecursionProbs(p[t], f + 2*t, StateArrivalProbs[0] + t*K, StateArrivalProbs[1] + t*K, alpha + (t-1)*DStates, alpha + t*DStates);
     
     for(int j = 0; j < DStates; ++j){
       if(!missingGenotypes[t]) {
@@ -352,7 +355,7 @@ void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
       LambdaBeta[j] *= scaleFactor;
     }
     
-    RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
+    RecursionProbs(p[t+1], f2, StateArrivalProbs[0]+(t+1)*K, StateArrivalProbs[1]+(t+1)*K, LambdaBeta, beta+ t*DStates);
     for(int j = 0; j < DStates; ++j){ // vectorization successful
       beta[t*DStates + j] *= ThetaThetaInv[j];
     }
@@ -423,9 +426,10 @@ void HiddenMarkovModel::UpdateBackwardProbsHaploid(){
 // argument oldProbs is square array of size K * K
 // for forward recursions, pass alpha_t and multiply newProbs by emission probs lambda_t 
 // for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
-void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2], const double* const stateArrivalProbs, 
-			 const double* const oldProbs, double *newProbs) {
-  if(K==2) RecursionProbs2(ff, f2, stateArrivalProbs, oldProbs, newProbs);
+void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2], const double* const stateArrivalProbs0, 
+				       const double* const stateArrivalProbs1, 
+				       const double* const oldProbs, double *newProbs) {
+  if(K==2) RecursionProbs2(ff, f2, stateArrivalProbs0, stateArrivalProbs1, oldProbs, newProbs);
   else {
     int j0K = 0;
     for( int j0 = 0; j0 <  K; ++j0 ) {
@@ -438,8 +442,8 @@ void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2], cons
     }
     // calculate expectations of indicator variables for each ancestry state on each gamete
     for( int j0 = 0; j0 <  K; ++j0 ) {
-      Expectation0[j0] = f2[0]*rowProb[j0] + stateArrivalProbs[j0*2];
-      Expectation1[j0] = f2[1]*colProb[j0] + stateArrivalProbs[j0*2 + 1];
+      Expectation0[j0] = f2[0]*rowProb[j0] + stateArrivalProbs0[j0];
+      Expectation1[j0] = f2[1]*colProb[j0] + stateArrivalProbs1[j0];
     }
 
     // calculate expectation of product as covariance plus product of expectations
@@ -454,8 +458,9 @@ void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2], cons
   }//end else
 }
  
-void HiddenMarkovModel::RecursionProbs2(const double ff, const double f2[2], const double* const stateArrivalProbs, 
-			  const double* const oldProbs, double *newProbs) {
+void HiddenMarkovModel::RecursionProbs2(const double ff, const double f2[2], const double* const stateArrivalProbs0, 
+					const double* const stateArrivalProbs1, 
+					const double* const oldProbs, double *newProbs) {
   // version for 2 subpopulations
   double row0Prob;
   double col0Prob;
@@ -465,8 +470,8 @@ void HiddenMarkovModel::RecursionProbs2(const double ff, const double f2[2], con
   row0Prob = ( oldProbs[0] + oldProbs[2] );
   col0Prob = ( oldProbs[0] + oldProbs[1] );
   // calculate expectations of indicator variables for ancestry=0 on each gamete
-  Exp0 = f2[0]*row0Prob + stateArrivalProbs[0]; // paternal gamete
-  Exp1 = f2[1]*col0Prob + stateArrivalProbs[1]; // maternal gamete
+  Exp0 = f2[0]*row0Prob + stateArrivalProbs0[0]; // paternal gamete
+  Exp1 = f2[1]*col0Prob + stateArrivalProbs1[0]; // maternal gamete
   // calculate covariance of indicator variables as ff * deviation from product of row and col probs
   newProbs[0] = Exp0 * Exp1 + ff * ( oldProbs[0] - row0Prob * col0Prob );; 
   newProbs[1] = Exp0 - newProbs[0]; //prob paternal ancestry=1, maternal=0 

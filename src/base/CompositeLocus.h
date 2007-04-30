@@ -35,7 +35,7 @@ public:
   void SetNumberOfAllelesOfLocus( int, int );
   void AddLocus( int, std::string );
   void SetHapPairProbs();
-  void InitialiseHapPairProbs(const double* const allelefreqs);
+  void InitialiseHapPairProbs(const double* const allelefreqs, bool AllHaploid);
   void InitialiseHapPairProbsMAP();
   void SetHapPairProbsMAP();
   void setAlleleProbsMAP(const double* const Freqs);
