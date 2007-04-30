@@ -9,7 +9,7 @@ Copyright (c) David O'Donnell 2007
 #include "Formatting.h"
 #include <fstream>
 #include <sstream>
-#include "ranker.h"
+#include "bcppcl/ranker.h"
 #include "gsl/gsl_permutation.h"
 #include "bcppcl/StringSplitter.h"
 
