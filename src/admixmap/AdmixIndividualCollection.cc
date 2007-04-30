@@ -67,15 +67,23 @@ AdmixIndividualCollection::AdmixIndividualCollection(const AdmixOptions* const o
     }     
     ++i0;
     --size;
+    if(!TestInd[0]->isHaploidIndividual())++NumDiploidIndividuals;
   }
 
   if(worker_rank < (int)size){
     AdmixedChild = new AdmixedIndividual*[size];
     for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
       AdmixedChild[i] = new AdmixedIndividual(i+i0+1, options, Data, false);
+      if(!AdmixedChild[i]->isHaploidIndividual())
+	++NumDiploidIndividuals;
     }
   }
   _child = (Individual**)AdmixedChild;
+
+#ifdef PARALLEL
+    Comms::Reduce(&NumDiploidIndividuals);
+#endif
+
 }
 
 // ************** DESTRUCTOR **************
@@ -436,7 +444,6 @@ const double* AdmixIndividualCollection::getSumLogTheta()const{
 const chib* AdmixIndividualCollection::getChib()const{
   return &MargLikelihood;
 }
-
 // ************** OUTPUT **************
 
 

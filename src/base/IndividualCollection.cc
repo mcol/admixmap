@@ -32,6 +32,9 @@ void IndividualCollection::SetNullValues(){
   _child = 0;
   SumLogLikelihood = 0.0;
   ReportedAncestry = 0;
+  NumInd = 0;
+  size = 0;
+  NumDiploidIndividuals = 0;
 }
 
 IndividualCollection::IndividualCollection(const Options* const options, const InputData* const Data, Genome* Loci) {
@@ -53,15 +56,8 @@ IndividualCollection::IndividualCollection(const Options* const options, const I
 #endif
 }
 
-int IndividualCollection::getNumDiploidIndividuals(){
-  int numdiploid = 0;
-    for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
-      if(!_child[i]->isHaploidIndividual())++numdiploid;
-    }
-#ifdef PARALLEL
-    Comms::Reduce(&numdiploid);
-#endif
-    return numdiploid;
+int IndividualCollection::getNumDiploidIndividuals()const{
+  return NumDiploidIndividuals;
 }
 
 // ************** DESTRUCTOR **************

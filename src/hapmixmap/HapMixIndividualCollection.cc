@@ -27,12 +27,7 @@ HapMixIndividualCollection
   GlobalSumArrivalCounts = 0;
   ConcordanceCounts = new int[NumCompLoci*2*(options->getNumberOfBlockStates())];
   SumArrivalCounts = new int[NumCompLoci*options->getNumberOfBlockStates()];
-#ifdef PARALLEL
-  if(Comms::isMaster()){
-    GlobalConcordanceCounts = new int[NumCompLoci*2*(options->getNumberOfBlockStates())];
-    GlobalSumArrivalCounts = new int[NumCompLoci*options->getNumberOfBlockStates()];
-  }
-#endif
+
   Populations = options->getPopulations();
   NumInd = Data->getNumberOfIndividuals();//number of individuals, including case-controls
   size = NumInd;
@@ -47,6 +42,11 @@ HapMixIndividualCollection
   if(global_rank >1)
     worker_rank = workers.Get_rank();
   else worker_rank = size;//so that non-workers will not loop over Individuals
+
+  if(Comms::isMaster()){
+    GlobalConcordanceCounts = new int[NumCompLoci*2*(options->getNumberOfBlockStates())];
+    GlobalSumArrivalCounts = new int[NumCompLoci*options->getNumberOfBlockStates()];
+  }
 #endif
   
   //  Individual::SetStaticMembers(Loci, options);
@@ -58,9 +58,15 @@ HapMixIndividualCollection
       // _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
       //NB: first arg sets Individual's number
       HapMixChild.push_back(new HapMixIndividual(i+1, options, Data, theta, isMaskedIndividual(i, options->getMaskedIndividuals())));
+      //TODO: next line will cause lots of problems for parallel version
       _child[i] = HapMixChild[i];
+      if(!_child[i]->isHaploidIndividual())
+	++NumDiploidIndividuals;
     }
   }
+#ifdef PARALLEL
+    Comms::Reduce(&NumDiploidIndividuals);
+#endif
   if(options->OutputCGProbs())GPO.Initialise(options->GetNumMaskedIndividuals(), options->GetNumMaskedLoci());
 }
 

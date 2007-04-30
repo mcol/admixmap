@@ -49,7 +49,7 @@ public:
                               bool anneal);
 
   int getSize()const;
-  int getNumDiploidIndividuals();
+  int getNumDiploidIndividuals()const;
   virtual int getNumberOfIndividualsForScoreTests()const{return getSize();}
   virtual unsigned int getFirstScoreTestIndividualNumber()const{return 0;};
 
@@ -89,6 +89,7 @@ public:
 
 protected:
   unsigned int NumInd, size;
+  unsigned NumDiploidIndividuals;
   int Populations, NumCompLoci;
   int worker_rank, NumWorkers;
   virtual void SetNullValues();
