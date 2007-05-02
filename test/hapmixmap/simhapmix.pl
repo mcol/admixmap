@@ -9,7 +9,7 @@ my $samples  = 25;
 my $burnin = 5;
 my $every = 1;
 my $executable = '';
-my $rscript = "../../dist/admixmap/AdmixmapOutput.R";
+my $rscript = "../../dist/AdmixmapOutput.R";
 
 my $serial_executable = "$ENV{'HOME'}/usr/bin/hapmixmap";
 my $parallel_executable = "$ENV{'HOME'}/usr/bin/hapmixmap-para";

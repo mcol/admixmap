@@ -20,7 +20,7 @@ admixmap-bindist:
 	cp -f src/admixmap/admixmap$(EXEEXT) dist/admixmap/admixmap
 	cp -uf $(top_srcdir)/dist/admixmap/README.txt dist/admixmap/admixmap
 	cp -uf $(top_srcdir)/dist/admixmap/COPYING.txt dist/admixmap/admixmap
-	cp -uf $(top_srcdir)/dist/admixmap/AdmixmapOutput.R dist/admixmap/admixmap
+	cp -uf $(top_srcdir)/dist/AdmixmapOutput.R dist/admixmap/admixmap
 	cp -uf $(top_srcdir)/dist/admixmap/admixmap.pl dist/admixmap/admixmap
 	cp -uf $(top_srcdir)/dist/doanalysis.pl dist/admixmap/admixmap
 	cp -uf $(top_srcdir)/dist/admixmap/testArguments.txt dist/admixmap/admixmap
@@ -43,7 +43,7 @@ hapmixmap-bindist:
 	cp -f src/hapmixmap/hapmixmap$(EXEEXT) dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/hapmixmap/README.txt dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/admixmap/COPYING.txt dist/hapmixmap/hapmixmap
-	cp -uf $(top_srcdir)/dist/admixmap/AdmixmapOutput.R dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/AdmixmapOutput.R dist/hapmixmap/hapmixmap
 #	cp -uf $(top_srcdir)/test/hapmixmap/hapmixmap.pl dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/doanalysis.pl dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/hapmixmap/options.txt dist/hapmixmap/hapmixmap
@@ -67,7 +67,7 @@ admixmap-srcdist: dist
 #copy other files
 	cp -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/*.txt packages/admixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/INSTALL packages/admixmap
-	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/AdmixmapOutput.R packages/admixmap
+	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/AdmixmapOutput.R packages/admixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/admixmap.pl packages/admixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/doanalysis.pl packages/admixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/testArguments.txt packages/admixmap
@@ -97,7 +97,7 @@ hapmixmap-srcdist: dist
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/README.txt packages/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/COPYING.txt packages/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/INSTALL packages/hapmixmap
-	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/AdmixmapOutput.R packages/hapmixmap
+	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/AdmixmapOutput.R packages/hapmixmap
 #	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/hapmixmap.pl packageshapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/doanalysis.pl packages/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/options.txt packages/hapmixmap

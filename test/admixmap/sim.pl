@@ -1,7 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
 
-my $executable = './admixmap';
+my $function_file = "../../dist/doanalysis.pl";#"$ENV{'HOME'}/genepi/trunk/dist/doanalysis.pl";
+require $function_file or die("cannot find doanalysis.pl");
+
+my $executable = 'admixmap';
+my $rscript = "../../dist/AdmixmapOutput.R";
+
 my $arg_hash = {
 #data files
     genotypesfile                   => 'simdata/genotypes.txt',
@@ -40,42 +45,5 @@ my $arg_hash = {
     residualallelicassocscorefile    => 'residualLDscoretest.txt'
 };
 
-doAnalysis($executable,$arg_hash);
+doAnalysis($executable, $rscript, $arg_hash);
 
-sub getArguments
-{
-    my $hash = $_[0];
-#    my $arg = '';
-#    foreach my $key (keys %$hash){
-#	$arg .= ' --'. $key .'='. $hash->{$key};
-#    }
-#    return $arg;
-    my $filename = 'perlargs.txt';
-    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
-    foreach my $key (keys %$hash){
-      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
-    }
-    close OPTIONFILE;
-    return " ".$filename;
-}
-
-sub doAnalysis {
-    my ($prog,$args) = @_;
-    my $command = $prog.getArguments($args);
-    $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    my $status = system($command);
-
-    # Comment out the remaining lines to run admixmap without R script
-    if( $status == 0)
-      {
-	my $rcmd = "R CMD";
-	if($^O eq "MSWin32") {
-	  $rcmd = "Rcmd";
-	}
-	print "Starting R script to process output\n";
-	system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
-	print "R script completed\n\n";
-      }else{
-	print "Warning: admixmap has not run successfully, R script will not be run.\n\n"
-      }
-}
