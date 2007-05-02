@@ -91,7 +91,7 @@ public:
   const vector<double>& getSumLogRho()const{return SumLogLambda;};
   void OutputArrivalRates(const char* filename)const;
   void OutputMixtureProps(const char* filename)const;
-  void OutputLambdaPosteriorMeans(const char* filename, int samples)const;
+  void OutputArrivalRatePosteriorMeans(const char* filename, int samples, const string& distanceUnit)const;
   
 private:
   unsigned K;///< number of subpopulations / block states

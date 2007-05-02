@@ -38,7 +38,7 @@ HapMixOptions::HapMixOptions(int argc,  char** argv, bool PrintOptionList){
 
 void HapMixOptions::SetDefaultValues(){
   NumBlockStates = 8;
-  FreqPrecisionHierModel = true;
+  FreqPrecisionHierModel = false;
   FixedMixtureProps = false;
   FixedMixturePropsPrecision = true;
   MixturePropsPrecision = 0.0;
@@ -59,7 +59,7 @@ void HapMixOptions::SetDefaultValues(){
   useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
   useroptions["finalarrivalratefile"] = FinalLambdaFilename;
   useroptions["finalmixturepropsfile"] = FinalMixturePropsFilename;
-  useroptions["freqprecisionhiermodel"] = "1";
+  useroptions["freqprecisionhiermodel"] = "0";
   useroptions["fixedmixtureprops"] = "1";
   useroptions["fixedmixturepropsprecision"] = "1";
 }

@@ -674,11 +674,21 @@ void PopHapMix::OutputMixtureProps(const char* filename)const{
   }
 }
 
-void PopHapMix::OutputLambdaPosteriorMeans(const char* filename, int samples)const{
+///output posterior means of arrival rates per unit distance, as R object
+void PopHapMix::OutputArrivalRatePosteriorMeans(const char* filename, int samples, const string& distanceUnit)const{
   ofstream outfile(filename);
-  for(vector<double>::const_iterator i = SumLogLambda.begin(); i < SumLogLambda.end(); ++i)
-      outfile << exp(*i / samples) << endl;
+  if(!outfile.is_open()){
+    cerr << "Error: cannot open " << filename << endl;
+  }
+  else{
+    outfile << "structure(c(" << exp(SumLogLambda[0] / (double)samples) / hargs.distances[0];
+    unsigned d = 1;//to index distances
+    for(vector<double>::const_iterator i = SumLogLambda.begin()+1; i < SumLogLambda.end(); ++i, ++d)
+      //distances are stored in hargs
+      outfile << "," << exp(*i / samples) /hargs.distances[d];
+    outfile << "), .Dim=c(" << SumLogLambda.size() << ", 1), .Dimnames=list(NULL, \"ArrivalRatePer" << distanceUnit << "\"))";
     outfile.close();
+  }
 }
 
 ///sample mixture proportions with conjugate update

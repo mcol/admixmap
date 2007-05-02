@@ -147,27 +147,28 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
       EtaRatePriorShape = params[1];
       EtaRatePriorRate = params[2];
     }
-    else//set defaults
-      {
-        EtaShape = 10.0;
-        EtaRatePriorShape = 10.0;
-        EtaRatePriorRate = 100.0;
-      }
+    else{//use defaults
+      EtaShape = 0.25;
+      EtaRatePriorShape = 10.0;
+      EtaRatePriorRate = 10.0;
+    }
+    EtaRate = EtaRatePriorShape / EtaRatePriorRate;
   }
   else{//no hierarchical model on precision
-      EtaRatePriorRate = 100.0;    
-      if(params.size()>=2) {//user-specified prior
-        EtaShape = params[0];
-        EtaRatePriorShape = params[1];
-      }
-      else//set defaults
-        {
-          EtaShape = 10.0;
-          EtaRatePriorShape = 10.0;
-        }
+    //the values of these 2 should be irrelevant
+    EtaRatePriorRate = 10.0;    
+    EtaRatePriorShape = 10.0;
+
+    if(params.size()>=2) {//user-specified prior
+      EtaShape = params[0];
+      EtaRate = params[1];
+    }
+    else{//use defaults
+      EtaShape = 0.25;
+      EtaRate = 1.0;
+    }
   }
 
-  EtaRate = EtaRatePriorShape / EtaRatePriorRate;
   HapMixMuArgs.K = Populations;
   //initialise sampler for freq precision Dirichlet prior proportions, bounded by 0 and 1
   MuSampler.Initialise(true, true, 1.0, 0.0, fmu_hapmix, dfmu_hapmix );

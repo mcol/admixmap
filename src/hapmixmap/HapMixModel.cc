@@ -323,7 +323,8 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
       Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), true);
     }
     //output posterior means of lambda (expected number of arrivals)
-    L->OutputLambdaPosteriorMeans(options.getArrivalRateOutputFilename(), options.getTotalSamples()-options.getBurnIn());
+    L->OutputArrivalRatePosteriorMeans(options.getArrivalRateOutputFilename(), options.getTotalSamples()-options.getBurnIn(), 
+				       data.getUnitOfDistanceAsString());
     //output final values of arrival rates and their prior params
     L->OutputArrivalRates(options.getFinalLambdaFilename());
     //output final values of mixture proportions

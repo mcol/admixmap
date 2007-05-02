@@ -1,3 +1,4 @@
+// *-*-C++-*-*
 #ifndef GENETICDISTANCEUNIT_H_
 #define GENETICDISTANCEUNIT_H_
 

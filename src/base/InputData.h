@@ -136,6 +136,8 @@ private:
   bool IsPedFile;
   std::vector<bool> isCaseControlSNP;
   std::vector<unsigned> alleleCounts[2];///< counts of alleles in hapmix genotypesfile, to check for monomorphic loci
+  GeneticDistanceUnit distanceUnit;
+
 
   void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
   void ReadPopulationLabels(Options *options);
@@ -143,6 +145,7 @@ private:
   void CheckGeneticData(Options *options)const;
   void checkLocusFile(int sexColumn, double threshold, bool);
   unsigned determineNumberOfCompositeLoci()const;
+  GeneticDistanceUnit DetermineUnitOfDistance();
   void CheckAlleleFreqs(Options *options, LogWriter &Log);
   void CheckOutcomeVarFile(Options * const options, LogWriter &Log);
   void CheckCoxOutcomeVarFile(LogWriter &log)const;

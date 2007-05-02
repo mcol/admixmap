@@ -1,6 +1,5 @@
 # rm(list = ls())  ## remove (almost) everything in the working environment.
 library(MASS)
-## script should be invoked from folder one level above subfolder specified by resultsdir
 ## to run this script from an R console session, set environment variable RESULTSDIR
 ## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
 message <- "\n\nStarting R script\n";
@@ -993,7 +992,7 @@ plotArrivalRates <- function(arrival.rate.pm.file, locus.table, ps.filename){
   ##cat("Error: \n", file=outfile, append=T)
   
   ##read arrival rate posterior means
-  ar.pm <- scan(full.filename)
+  ar.pm <- dget(full.filename)
   
   ##read map positions from LocusTable
   map.pos <- locus.table[,3]
@@ -1001,7 +1000,7 @@ plotArrivalRates <- function(arrival.rate.pm.file, locus.table, ps.filename){
 
   
   postscript(paste(resultsdir, ps.filename, sep="/"))
-  plot(map.pos[-1], ar.pm, xlab=x.label, ylab="Arrival Rates", main="Arrival Rate Map",type='l')  
+  plot(map.pos[-1], ar.pm, xlab=x.label, ylab=dimnames(ar.pm)[[2]], main="Arrival Rate Map",type='l')  
   dev.off()
 }
 
@@ -1016,6 +1015,9 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filena
   final.table <- read.table(full.filename, header=T)
   percent.info <- final.table$PercentInfo
   zscores <- final.table$StdNormal
+  Av.missing1 <- mean(final.table$Missing1)
+  Av.missing2 <- mean(final.table$Missing2)
+  Av.percent.info <- mean(percent.info)
   rm(final.table)
   
   ##read map positions from LocusTable
@@ -1023,13 +1025,13 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filena
   x.label <- dimnames(locus.table)[[2]][3]
   
   postscript(paste(resultsdir, info.map.filename, sep="/"))
-  plot(map.pos, percent.info, xlab=x.label, ylab="\%Info Extracted", main="Extracted Info Map",type='p', pch='.')  
+  plot(map.pos, percent.info, xlab=x.label, ylab="\%Info Extracted", main="Extracted Info Map",type='l')  
   dev.off()
 
   ##QQ plot of zscores
   QQplot(zscores, "QQ plot of z-scores in Allelic Association Test", qqplot.filename)
   
-  return( mean(percent.info))
+  return(list(Av.percent.info, Av.missing1, Av.missing2) )
 }
 ###################################################################################
 ## start of script
@@ -1295,7 +1297,9 @@ if(!is.null(user.options$allelicassociationscorefile)
     av.percent.info <- plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap.ps", "QQPlotAllelicAssocTests.ps")
     ##write average information extraction to logfile
     cat(" done\n", file=outfile, append=T)
-    cat(" Average Information Extraction: ", av.percent.info, "\%\n", file=outfile, append=T)
+    cat(" Average Information Extraction: ", av.percent.info[[1]], "\%\n", file=outfile, append=T)
+    cat(" Average Information Component1: ", av.percent.info[[2]], "\%\n", file=outfile, append=T)
+    cat(" Average Information Component2: ", av.percent.info[[3]], "\%\n", file=outfile, append=T)
   }
 }
 

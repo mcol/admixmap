@@ -141,6 +141,7 @@ void InputData::readData(Options *options, LogWriter &Log)
   }
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumCompositeLoci = determineNumberOfCompositeLoci();
+  distanceUnit = DetermineUnitOfDistance();
   if(Comms::isWorker()) {
     NumIndividuals = geneticData_.size() - 1;
   } 
@@ -289,17 +290,22 @@ void InputData::CheckGeneticData(Options *options)const{
   }
 }
 
-GeneticDistanceUnit InputData::getUnitOfDistance()const{
+///determine unit of distance from locus file header. Defaults to Morgans if not specified.
+GeneticDistanceUnit InputData::DetermineUnitOfDistance(){
   GeneticDistanceUnit u = Morgans;//default, usual for admixture mapping
   string distance_header = locusData_[0][2];
   if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
      || distance_header.find("cM")!=string::npos) 
     u = centimorgans;
-  if(distance_header.find("mb")!=string::npos || distance_header.find("Mb")!=string::npos 
+  else if(distance_header.find("mb")!=string::npos || distance_header.find("Mb")!=string::npos 
      || distance_header.find("MB")!=string::npos) 
     u = megabases;
   
   return u;
+}
+
+GeneticDistanceUnit InputData::getUnitOfDistance()const{
+  return distanceUnit;
 }
 const string& InputData::getUnitOfDistanceAsString()const{
   return GeneticDistanceUnitString[getUnitOfDistance()];
