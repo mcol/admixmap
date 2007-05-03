@@ -278,7 +278,7 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions* co
       }
       
       // ** Run HMM forward recursions, if required, and sample locus ancestry
-      _child[i]->SampleLocusAncestry(options);
+      _child[i]->SampleHiddenStates(options);
       // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
       AdmixedChild[i]->SampleJumpIndicators(!options->isGlobalRho());
     
@@ -327,7 +327,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
 				beta, poptheta, options, alpha, 0.0, 
 				dispersion, ancestryAssocTest, true, anneal);
       // ** Run HMM forward recursions and Sample Locus Ancestry
-      if(Populations >1)TestInd[i]->SampleLocusAncestry(options);
+      if(Populations >1)TestInd[i]->SampleHiddenStates(options);
       // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
       if(Populations >1)TestInd[i]->SampleJumpIndicators(!options->isGlobalRho());
       // ** Sample individual- or gamete-specific sumintensities

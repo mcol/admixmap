@@ -31,6 +31,7 @@
 #include "Comms.h"
 #include "Annealer.h"
 
+//prototypes for miscellaneous functions
 void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles=true);
 
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
@@ -56,10 +57,10 @@ public:
   void TestIndivRun(Options& options, InputData& data, LogWriter& Log,  
 		    int NumAnnealedRuns);
 
-  void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
-	       Options & options, InputData & data, LogWriter& Log, 
-	       double & SumEnergy, double & SumEnergySq, 
-	       bool AnnealedRun);
+  virtual void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+		       Options & options, InputData & data, LogWriter& Log, 
+		       double & SumEnergy, double & SumEnergySq, 
+		       bool AnnealedRun) = 0;
   
   virtual void SubIterate(int iteration, const int& burnin, Options & options, InputData & data, 
                           LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
@@ -85,12 +86,12 @@ public:
   
 protected:
   void InitialiseGenome(Genome& G, const Options& options, InputData& data, LogWriter& Log);
-  virtual void UpdateParameters(int iteration, const Options *options, 
-                                LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal) = 0;
   //virtual void OutputParameters(int iteration, const Options *options, LogWriter& Log) = 0;
 
   void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq);
 
+  void GetEnergy(const double* Coolnesses, unsigned coolness, const Options & options, double & SumEnergy, double & SumEnergySq, 
+		 double& AISz, bool AnnealedRun, int iteration);
   AlleleFreqs* pA;
   IndividualCollection *IC;
   vector<Regression*> R;//vector of regression pointers
@@ -99,10 +100,10 @@ protected:
 
   HWTest HWtest;
   ScoreTests Scoretests;
+  double AISsumlogz; //for computing marginal likelihood by Annealed Importance Sampling
 private:
   std::ofstream loglikelihoodfile;
   Annealer A;
-  double AISsumlogz; //for computing marginal likelihood by Annealed Importance Sampling
 
   void Start(Options& options, InputData& data, LogWriter& Log, int NumAnnealedRuns);
   void Finish(Options& options, InputData& data, LogWriter& Log);

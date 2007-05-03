@@ -236,15 +236,17 @@ bool Individual::isHaploidIndividual()const{
 // store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
 double Individual::getLogLikelihood( const Options* const options, const bool forceUpdate, const bool store) {
 
-  if (!logLikelihood.ready || forceUpdate) {
-    logLikelihood.tempvalue = getLogLikelihood(options, Theta, _rho, true);
+  if(!forceUpdate && logLikelihood.ready)
+    return logLikelihood.value;
+  else{
+    logLikelihood.tempvalue = getLogLikelihood(options, Theta, _rho, (forceUpdate || !logLikelihood.HMMisOK));
     if(store) {  
       logLikelihood.value = logLikelihood.tempvalue; 
-      logLikelihood.ready = false; //true;
-      logLikelihood.HMMisOK = false; //true; //because forward probs now correspond to current parameter values 
+      logLikelihood.ready = true;
+      logLikelihood.HMMisOK = true; //because forward probs now correspond to current parameter values 
     }                               //and call to UpdateHMM has set this to false
     return logLikelihood.tempvalue;   
-  } else return logLikelihood.value; // nothing was changed
+  }
 }
 
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
@@ -257,7 +259,7 @@ double Individual::getLogLikelihood(const Options* const options, const double* 
     }
     LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
   }
-  return LogLikelihood; // if HMM update not required, can just use stored log-likelihood  
+  return LogLikelihood; 
 }
 
 void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Metropolis proposal is accepted
@@ -277,7 +279,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const Options* const options
 }
 
 //************** Updating (Public) **********************************************************
-void Individual::SampleLocusAncestry(const Options* const options){
+void Individual::SampleHiddenStates(const Options* const options){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome *C = Loci->getChromosome(j);
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
@@ -288,6 +290,7 @@ void Individual::SampleLocusAncestry(const Options* const options){
     // sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
     C->HMM->SampleHiddenStates(LocusAncestry[j], (!isHaploid && (!Loci->isXChromosome(j) || SexIsFemale)));
   } //end chromosome loop
+  logLikelihood.HMMisOK = true;
 }
 
 #ifdef PARALLEL

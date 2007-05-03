@@ -269,7 +269,7 @@ void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const ,
   }
 
   C->HMM->SetGenotypeProbs( GPI, GenotypesMissing[j]);
-  logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
+  logLikelihood.HMMisOK = false;
 }
 
 /** 
@@ -281,19 +281,26 @@ void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const ,
     unchanged state probs from HMM
  */
 
-void HapMixIndividual::calculateUnorderedGenotypeProbs(void){
-  unsigned int numberCompositeLoci = Loci->GetNumberOfCompositeLoci();
-  for(unsigned int j = 0; j < numberCompositeLoci; ++j) {
-    // if genotype is missing, calculate
-    if (GenotypeIsMissing(j)) {
-      calculateUnorderedGenotypeProbs(j);
+void HapMixIndividual::calculateUnorderedGenotypeProbs(const Options* const options){
+  unsigned locus = 0; 
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    //update HMM if required
+     if( !logLikelihood.HMMisOK ) {
+       UpdateHMMInputs(j, options, Theta, _rho);
+     } 
+    for(unsigned jj = 0; jj < Loci->GetSizeOfChromosome(j); ++jj){
+      // if genotype is missing, calculate
+      if (GenotypeIsMissing(locus)) {
+	calculateUnorderedGenotypeProbs(locus);
+      }
+      /*
+       * If it's non-missing, its UnorderedGenotypeProbs were
+       * inferred in the constructor.
+       */
     }
-    /*
-     * If it's non-missing, its UnorderedGenotypeProbs were
-     * inferred in HapMixIndividual constructor.
-     */
+    ++locus;
   }
-  return;
+    logLikelihood.HMMisOK = true;
 }
 
 /**
@@ -307,7 +314,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 //    throw(s);
 //  }
 //  if (!GenotypeIsMissing(j)) {
-//    throw string("HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned): Thou shalt not call this function for a non-missing genotype.");
+//    throw string("HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned): cannot call this function for a non-missing genotype.");
 //  }
 //  if (not (Loci->GetNumberOfStates(j) == 2)) {
 //    throw string("Trying to calculate UnorderedProbs but Loci->GetNumberOfStates(j) != 2");
@@ -315,10 +322,9 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 //  }
   int anc[2];
   
-  bcppcl::pvector<double> orderedStateProbs = getStateProbs(
-      not this->isHaploidIndividual(),
-      Loci->getChromosomeNumber(j),
-      Loci->getRelativeLocusNumber(j));
+  bcppcl::pvector<double> orderedStateProbs = getStateProbs( !isHaploid && (j!=X_posn || SexIsFemale),
+							     Loci->GetChrNumOfLocus(j),
+							     Loci->getRelativeLocusNumber(j));
 
   // set UnorderedProbs[j][*][0] to 0;
   for (vector<vector<double> >::iterator gi = UnorderedProbs[j].begin();

@@ -359,7 +359,7 @@ double IndividualCollection::getLogLikelihood(const Options* const options, bool
   double LogLikelihood = 0.0;
   for(unsigned i = worker_rank; i < size; i+= NumWorkers) {
     LogLikelihood += _child[i]->getLogLikelihood(options, forceupdate, true); // store result if updated
-    _child[i]->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
+    _child[i]->HMMIsBad(false); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
   }
 #ifdef PARALLEL
   //send total to master

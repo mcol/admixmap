@@ -1,6 +1,6 @@
 AC_PREREQ(2.59)
 
-AC_INIT([admixmap],[3.6])
+AC_INIT([admixmap],[3.7])
 
 #put auxiliary files here
 AC_CONFIG_AUX_DIR(config)

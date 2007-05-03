@@ -1,3 +1,16 @@
+/* 
+ *   HAPMIXMAP
+ *   HapMixModel.h
+ *   
+ *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
+
 #include "HapMixModel.h"
 #include "EventLogger.hh"
 #include "HapMixIndividual.h"
@@ -95,11 +108,38 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
     MHTest.Initialise(options.getPopulations(), &Loci, options.getMHTestFilename(), Log);
 }
 
+void HapMixModel::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+			  Options & options, InputData & data, LogWriter& Log, 
+			  double & SumEnergy, double & SumEnergySq, 
+			  bool AnnealedRun){
+  const bool isMaster = Comms::isMaster();
+
+  double AISz = 0.0;
+  if(isMaster && !AnnealedRun) cout << endl;
+
+  for( int iteration = 0; iteration <= samples; iteration++ ) {
+     //Write Iteration Number to screen
+    if( isMaster && !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
+      WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
+    }
+
+    //Sample Parameters
+    UpdateParameters(iteration, &options, Log, data.GetPopLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
+    SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
+	       AnnealedRun);
+	
+  }// end loop over iterations
+  //use Annealed Importance Sampling to calculate marginal likelihood
+  if(coolness>0) AISsumlogz += log(AISz /= (double)(samples-burnin));
+
+}
 void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogWriter&, 
-                                   const Vector_s&, const double* , double coolness, bool anneal){
+                                   const Vector_s&, const double* Coolnesses, unsigned coolness_index, bool anneal, 
+				   double & SumEnergy, double & SumEnergySq, double& AISz){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
+  const double coolness = Coolnesses[coolness_index];
   //cast Options pointer to HapMixOptions for access to HAPMIXMAP options
   const HapMixOptions* options = (const HapMixOptions*) _options;
 
@@ -112,6 +152,9 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   if(isMaster || isWorker){
     HMIC->SampleHiddenStates(options, iteration);
   }
+  //accumulate energy
+  if( (isMaster || isWorker) && iteration > options->getBurnIn()) 
+    GetEnergy(Coolnesses, coolness_index, *_options, SumEnergy, SumEnergySq, AISz, anneal, iteration );
 
   if(isWorker || isFreqSampler){
     IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 

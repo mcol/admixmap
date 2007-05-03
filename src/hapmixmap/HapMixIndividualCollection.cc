@@ -105,9 +105,9 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
   const vector<unsigned>::const_iterator mi_end = maskedIndividuals.end();
 
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
-    // ** Run HMM forward recursions and sample hidden states
-    _child[i]->SampleLocusAncestry(options);
 
+    /*do calculating of ordered probs first because it requires both forward and backward HMM updates
+      and these can be done in parallel on a dual-core processor */
     if (
 	(//If it's after the burnin 
 	 (int)iteration > options->getBurnIn()
@@ -123,12 +123,20 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
 	|| (find(mi_begin, mi_end, i+1) != mi_end)
 	)
     {
-     HapMixChild[i]->calculateUnorderedGenotypeProbs();
+     HapMixChild[i]->calculateUnorderedGenotypeProbs(options);
     } 
+    // ** Run HMM forward recursions and sample hidden states
+    _child[i]->SampleHiddenStates(options);
+
+    //calculate and store loglikelihoods, ready for energy accumulation
+    _child[i]->getLogLikelihood(options, false, true);
 
     //accumulate sufficient statistics for update of arrival rates and mixture proportions
     HapMixChild[i]->AccumulateConcordanceCounts(ConcordanceCounts);
     HapMixChild[i]->SampleJumpIndicators(SumArrivalCounts);
+
+    //set HMMisBad before moving to the next individual, but keep stored loglikelihood
+    _child[i]->HMMIsBad(false); 
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, 0, "Sampledancestry");

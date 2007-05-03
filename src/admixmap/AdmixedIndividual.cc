@@ -512,7 +512,7 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
       for(unsigned Estepiters = 0; Estepiters < (unsigned)NumEstepiters ; ++Estepiters) {
 	if(NumHiddenStates >1){
 	  ResetSufficientStats();
-	  SampleLocusAncestry(options);
+	  SampleHiddenStates(options);
 	  SampleJumpIndicators((!options->isGlobalRho()));
 	}
 	vector<unsigned> SumN = getSumNumArrivals();
@@ -618,6 +618,9 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
   }
   // compute log likelihood at posterior modes
   loglikhat = getLogLikelihood(options, thetahat, rhohat, true); //this value will be used in chib numerator
+  logLikelihood.HMMisOK = true;
+  logLikelihood.ready = true;
+  logLikelihood.value = loglikhat;
 }
 
 

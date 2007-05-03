@@ -35,7 +35,7 @@ public:
   void SampleJumpIndicators(int* SumArrivalCounts);
 
   void AccumulateConcordanceCounts(int* ConcordanceCounts)const;
-  void calculateUnorderedGenotypeProbs(void);
+  void calculateUnorderedGenotypeProbs(const Options* const options);
   const bcppcl::pvector<double>& getStateProbs(const bool, int, int) const;
   void calculateUnorderedGenotypeProbs(unsigned);
   const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) const;

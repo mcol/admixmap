@@ -58,7 +58,7 @@ public:
   void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
   int GetLocusAncestry(int, int, int)const;
    
-  void SampleLocusAncestry(const Options* const options);
+  void SampleHiddenStates(const Options* const options);
 
 #ifdef PARALLEL
   void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,

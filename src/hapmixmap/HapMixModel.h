@@ -28,6 +28,10 @@ public:
   ~HapMixModel();
   void Initialise(HapMixOptions & options, InputData& data,  LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
+  void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+	       Options & options, InputData & data, LogWriter& Log, 
+	       double & SumEnergy, double & SumEnergySq, 
+	       bool AnnealedRun);
   void SubIterate(int iteration, const int& burnin, Options& options, InputData & data, 
 		  LogWriter& Log, double& SumEnergy, double& SumEnergySq, 
 		  bool AnnealedRun);
@@ -45,8 +49,9 @@ private:
   MantelHaenszelTest MHTest;
   HapMixIndividualCollection* HMIC;
 
-  void UpdateParameters(int iteration, const Options *options, 
-			LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal);
+  void UpdateParameters(int iteration, const Options * _options, LogWriter&, 
+			const Vector_s&, const double* Coolnesses, unsigned coolness_index, bool anneal, 
+			double & SumEnergy, double & SumEnergySq, double& AISz);
   void OutputParameters(int iteration, const Options *options, LogWriter& Log);
   void InitializeErgodicAvgFile(const Options* const options, LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);

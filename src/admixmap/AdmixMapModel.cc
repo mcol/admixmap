@@ -1,3 +1,16 @@
+/* 
+ *   ADMIXMAP
+ *   AdmixMapModel.cc
+ *   
+ *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
+
 #include "AdmixMapModel.h"
 
 // AdmixMapModel::AdmixMapModel(){
@@ -54,6 +67,43 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWrite
   if (options.getNumberOfOutcomes()>0 && (isMaster || isWorker)){
     InitialiseRegressionObjects(options, data, Log);
   }
+}
+
+void AdmixMapModel::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+			    Options & options, InputData & data, LogWriter& Log, 
+			    double & SumEnergy, double & SumEnergySq,  bool AnnealedRun) {
+  const bool isMaster = Comms::isMaster();
+  //const bool isFreqSampler = Comms::isFreqSampler();
+  const bool isWorker = Comms::isWorker();
+
+  //Accumulate Energy
+  double AISz = 0.0;
+  if(isMaster && !AnnealedRun) cout << endl;
+
+  for( int iteration = 0; iteration <= samples; iteration++ ) {
+    if( (isMaster || isWorker) && iteration > burnin) {
+      if( !options.getTestOneIndivIndicator() ) {
+	GetEnergy(Coolnesses, coolness, options, SumEnergy, SumEnergySq, AISz, AnnealedRun, iteration );
+      }
+    } else {  
+      IC->accumulateEnergyArrays(&options);
+    }
+  
+
+     //Write Iteration Number to screen
+    if( isMaster && !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
+      WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
+    }
+
+    //Sample Parameters
+    UpdateParameters(iteration, &options, Log, data.GetPopLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
+    SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
+	       AnnealedRun);
+	
+  }// end loop over iterations
+  //use Annealed Importance Sampling to calculate marginal likelihood
+  if(coolness>0) AISsumlogz += log(AISz /= (double)(samples-burnin));
+
 }
 
 void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, LogWriter& Log, 

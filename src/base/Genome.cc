@@ -338,13 +338,9 @@ int Genome::GetNumberOfStates()const
 #endif
 }
 
+/// Get a chromosome number by absolute locus number
 unsigned Genome::GetChrNumOfLocus(unsigned locus){
   return LocusTable[locus][0];
-}
-
-/// Get a chromosome number by absolute locus number
-int Genome::getChromosomeNumber(int j)const{
-  return LocusTable[j][0];
 }
 
 /// Get a chromosome-relative locus number by absolute locus number

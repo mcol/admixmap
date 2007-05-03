@@ -1,3 +1,15 @@
+/* 
+ *   Model.cc
+ *   Abstract base class for top-level model objects
+ *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
+
 #include "Model.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -135,57 +147,25 @@ void Model::TestIndivRun(Options& options, InputData& data, LogWriter& Log,
 
   Finish(options, data, Log);    
 }
-void Model::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
-		    Options & options, InputData & data, LogWriter& Log, 
-		    double & SumEnergy, double & SumEnergySq, 
-		    bool AnnealedRun) {
-  const bool isMaster = Comms::isMaster();
-  //const bool isFreqSampler = Comms::isFreqSampler();
-  const bool isWorker = Comms::isWorker();
 
-  //Accumulate Energy
-  double Energy = 0.0;
-  double AISz = 0.0;
-  if(isMaster && !AnnealedRun) cout << endl;
+void Model::GetEnergy(const double* Coolnesses, unsigned coolness, const Options & options, double & SumEnergy, double & SumEnergySq, 
+		      double& AISz, bool AnnealedRun, int iteration){
+  //accumulate energy as minus loglikelihood, calculated using unannealed genotype probs
 
-  for( int iteration = 0; iteration <= samples; iteration++ ) {
-    if( (isMaster || isWorker) && iteration > burnin) {
-      //accumulate energy as minus loglikelihood, calculated using unnanealed genotype probs
-      if( !options.getTestOneIndivIndicator() ) {
-	Energy = IC->getEnergy(&options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
-
- 	if(isMaster){
-	  SumEnergy += Energy;
-	  SumEnergySq += Energy*Energy;
-	  if(coolness>0)AISz += exp((Coolnesses[coolness]-Coolnesses[coolness-1])*(-Energy));
-	  // write to file if not AnnealedRun
-	  if(!AnnealedRun){
-	    loglikelihoodfile << iteration<< "\t" << Energy <<endl;
-	      if(options.getDisplayLevel()>2 && !(iteration%options.getSampleEvery()))cout << Energy << "\t";
-	  }
-	}
-      } else {  
-	IC->accumulateEnergyArrays(&options);
-      }
+  double Energy = IC->getEnergy(&options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
+  
+  if(Comms::isMaster()){
+    SumEnergy += Energy;
+    SumEnergySq += Energy*Energy;
+    if(coolness>0)AISz += exp((Coolnesses[coolness]-Coolnesses[coolness-1])*(-Energy));
+    // write to file if not AnnealedRun
+    if(!AnnealedRun){
+      loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+      if(options.getDisplayLevel()>2 && !(iteration%options.getSampleEvery()))cout << Energy << "\t";
     }
-
-     //Write Iteration Number to screen
-    if( isMaster && !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
-      WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
-    }
-
-    //Sample Parameters
-    UpdateParameters(iteration, &options, Log, data.GetPopLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
-    SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
-	       AnnealedRun);
-	
-  }// end loop over iterations
-  //use Annealed Importance Sampling to calculate marginal likelihood
-  if(coolness>0) AISsumlogz += log(AISz /= (double)(samples-burnin));
-
+  }
+  
 }
-
-
 void Model::ResetStepSizeApproximators(int resetk){
   IC->resetStepSizeApproximators(resetk); 
   pA->resetStepSizeApproximator(resetk);

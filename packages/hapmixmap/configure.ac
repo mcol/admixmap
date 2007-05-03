@@ -1,6 +1,6 @@
 AC_PREREQ(2.59)
 
-AC_INIT([hapmixmap],[0.7])
+AC_INIT([hapmixmap],[0.8])
 
 #put auxiliary files here
 AC_CONFIG_AUX_DIR(config)

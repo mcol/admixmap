@@ -30,6 +30,10 @@ public:
     ~AdmixMapModel();
   void Initialise(AdmixOptions & options, InputData& data,  LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
+  void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+	       Options & options, InputData & data, LogWriter& Log, 
+	       double & SumEnergy, double & SumEnergySq, 
+	       bool AnnealedRun);
   void SubIterate(int iteration, const int & burnin,
                   Options & options, InputData & data, LogWriter& Log, 
                   double & SumEnergy, double & SumEnergySq, 

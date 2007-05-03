@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   Genome.h
  *   header file for Genome class (formerly known as GeneticArray)
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -35,7 +35,6 @@ public:
   void Initialise(const InputData* const data_, int populations, LogWriter &Log);
 
   const vector<int> GetChrmAndLocus(int) const;
-  int getChromosomeNumber(int) const;
   int getRelativeLocusNumber(int) const;
 
   const std::vector<  std::vector< int > >GetChrmAndLocus( )const;
