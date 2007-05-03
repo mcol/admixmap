@@ -6,7 +6,6 @@ DataFormatter_SOURCES = \
   FormatPhasedData.cpp \
   GenotypeEncoder.cpp \
   Formatting.h \
-  ranker.h \
   $(BAYESLIB_PATH)/utils/StringSplitter.cc
 
 FUD_SOURCES = FormatUnphasedData.cpp
