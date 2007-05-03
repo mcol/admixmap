@@ -1290,7 +1290,8 @@ if(!is.null(user.options$allelicassociationscorefile)
       lambda <- c(NA, dget(paste(resultsdir,
   user.options$arrivalrateposteriormeanfile, sep="/"))) # dget not scan
       eta <- c(scan(paste(resultsdir, user.options$allelefreqprecisionposteriormeanfile, sep="/")))
-      scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T), lambda, eta)
+      scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T),
+                                          ArrivalRate=lambda, FreqPrecision=eta)
       write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=F, col.names=T)
       cat(" done\n", file=outfile, append=T)
     }
