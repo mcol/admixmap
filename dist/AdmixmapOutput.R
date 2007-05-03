@@ -1287,7 +1287,8 @@ if(!is.null(user.options$allelicassociationscorefile)
   if(user.options$hapmixmodel == 1){
     if(!is.null(user.options$arrivalrateposteriormeanfile) && !is.null(user.options$allelefreqprecisionposteriormeanfile)){
       cat("appending posterior means of arrival rates and freq precision to score table...", file=outfile, append=T)
-      lambda <- c(NA, scan(paste(resultsdir, user.options$arrivalrateposteriormeanfile, sep="/")))
+      lambda <- c(NA, dget(paste(resultsdir,
+  user.options$arrivalrateposteriormeanfile, sep="/"))) # dget not scan
       eta <- c(scan(paste(resultsdir, user.options$allelefreqprecisionposteriormeanfile, sep="/")))
       scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T), lambda, eta)
       write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=F, col.names=T)
