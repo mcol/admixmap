@@ -40,6 +40,7 @@ PopHapMix::PopHapMix( HapMixOptions* op, HapMixGenome* loci)
   SumTheta = 0;
   SumThetaSq = 0;
   eta = 0.0;
+  fixRateParameter = false;
 }
 
 void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
@@ -181,10 +182,16 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   //if(Comms::isMaster())SumLogLambda.push_back(0.0);
   //set priors
   const vector<double>& priorparams = options->getLambdaPrior();
-    
-  LambdaArgs.beta_shape = priorparams[2];
-  LambdaArgs.beta_rate = priorparams[3];
-  LambdaArgs.beta = priorparams[2]/priorparams[3];//initialise beta at prior mean
+  if(priorparams.size()==3){
+    fixRateParameter = true;
+    LambdaArgs.beta = priorparams[2];
+  }
+  else{
+    fixRateParameter = false;
+    LambdaArgs.beta_shape = priorparams[2];
+    LambdaArgs.beta_rate = priorparams[3];
+    LambdaArgs.beta = priorparams[2]/priorparams[3];//initialise beta at prior mean
+  }
   unsigned numIntervals = L-Loci->GetNumberOfChromosomes(); 
   lambda.assign(numIntervals, 0);
   //TODO: if distance is too large, leave lambda at zero and do not sample (as if a new chromosome)
@@ -212,8 +219,15 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   LambdaArgs.h = hargs.shape / hargs.rate; // initialise h at prior mean 
   
   //write prior to screen and log
-  Log << Quiet << "Gamma(h, beta) distribution on number of arrivals per Mb. \nGamma( " << hargs.shape << ", " << hargs.rate << " ) prior on h and "
-      << "Gamma( " << LambdaArgs.beta_shape << ", " << LambdaArgs.beta_rate << " ) prior on beta\n";
+  Log << Quiet << "Gamma(h, ";
+  if(fixRateParameter)
+    Log << LambdaArgs.beta;
+  else
+    Log << "beta";
+  Log << ") distribution on number of arrivals per Mb. \nGamma( " << hargs.shape << ", " << hargs.rate << " ) prior on h";
+  if(!fixRateParameter)
+    Log << " and Gamma( " << LambdaArgs.beta_shape << ", " << LambdaArgs.beta_rate << " ) prior on beta";
+  Log << "\n";
   
   //Hamiltonian sampler
   for(unsigned j = 0; j < numIntervals; ++j){
@@ -352,8 +366,9 @@ void PopHapMix::SampleArrivalRate(const int* ConcordanceCounts, bool accumulateL
 #endif    
 
   if(Comms::isMaster()){
-      //SamplehRandomWalk();
-      Sampleh_ARS();
+    //SamplehRandomWalk();
+    Sampleh_ARS();
+    if(!fixRateParameter)
       SampleRateParameter();
   }
 }
@@ -412,17 +427,16 @@ void PopHapMix::Sampleh_ARS(){
 
 void PopHapMix::SampleRateParameter(){
   try{
-//sample rate parameter with conjugate update
-       const double pshape = LambdaArgs.beta_shape + LambdaArgs.h*Loci->GetLengthOfGenome();
-       const double prate = LambdaArgs.beta_rate + LambdaPriorArgs.sumlambda;
-       LambdaArgs.beta = Rand::gengam(pshape, prate);
-       hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
-   }
-   catch(string s){
-     string err = "Error encountered while sampling lambda rate parameter:\n" + s;
-     throw(err);
-   }
-
+    //sample rate parameter with conjugate update
+    const double pshape = LambdaArgs.beta_shape + LambdaArgs.h*Loci->GetLengthOfGenome();
+    const double prate = LambdaArgs.beta_rate + LambdaPriorArgs.sumlambda;
+    LambdaArgs.beta = Rand::gengam(pshape, prate);
+    hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
+  }
+  catch(string s){
+    string err = "Error encountered while sampling lambda rate parameter:\n" + s;
+    throw(err);
+  }
 }
 
 ///energy function for sampling locus-specific lambda, expected #arrivals
@@ -546,9 +560,10 @@ void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
       outputstream << "MixtureProps.Precision\t";
     if(!options->getFixedMixtureProps())
       outputstream << "MixtureProps.Sample.Precision\t";
-    outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t"
-		 << "Arrivals.per"<< distanceUnit << ".rateParam\t"
-		 << "Arrivals.per"<< distanceUnit << ".Mean"
+    outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t";
+    if(!fixRateParameter)
+      outputstream << "Arrivals.per"<< distanceUnit << ".rateParam\t";
+    outputstream << "Arrivals.per"<< distanceUnit << ".Mean"
 		 << endl;
   }
 }
@@ -582,9 +597,11 @@ void PopHapMix::OutputParams(ostream& out){
  
   out
     //lambda prior parameters
-    << LambdaArgs.h << "\t" << LambdaArgs.beta << "\t"
-    //expected number of arrivals per unit distance
-    << LambdaArgs.h / LambdaArgs.beta << "\t" ;
+    << LambdaArgs.h << "\t";
+  if(!fixRateParameter) 
+    out<< LambdaArgs.beta << "\t";
+  //expected number of arrivals per unit distance
+  out << LambdaArgs.h / LambdaArgs.beta << "\t" ;
 }
 
 //output mixture proportions averaged over loci

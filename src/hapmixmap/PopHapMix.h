@@ -109,6 +109,7 @@ private:
   h_args hargs;
   StepSizeTuner hTuner;  
   AdaptiveRejection hARS;
+  bool fixRateParameter;///< indicates whether to fix the lambda rate parameter
 
   double* MixtureProps;///<global admixture proportions
   double* MixturePropsPrior;///<parameters of Dirichlet prior on MixureProps

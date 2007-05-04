@@ -313,6 +313,11 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     badOptions = true;
   }
 
+  if(lambdaprior.size()<3 || lambdaprior.size()>4){
+    Log << "ERROR: 'arrivalrateprior' should have 3 or 4 elements\n";
+    badOptions = true;
+  }
+
   if(FixedMixtureProps){
     if(!FixedMixturePropsPrecision){
       useroptions.erase("mixturepropsprecisionprior");
