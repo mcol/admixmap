@@ -115,8 +115,8 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
 	 && isCaseControl(i)
 	 // and if the score tests are switched on
 	 && options->getTestForAllelicAssociation()
-	 // FIXME: The next condition shouldn't be necessary, but it is.
-	 && (not _child[i]->isHaploidIndividual())
+	 // and the individual is diploid
+	 && (! _child[i]->isHaploidIndividual())
 	 )
 	//or it's a masked individual
 	// maskedIndividuals indices are 1-based, offset of 1 is needed

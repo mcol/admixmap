@@ -272,15 +272,7 @@ void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const ,
   logLikelihood.HMMisOK = false;
 }
 
-/** 
-    function to calculate genotype probs as an average
-    over conditional probs of hidden states.
-    
-    call this function from IndividualCollection.cc just after SampleLocusAncestry
-    call new function in Chromosome to get state probs
-    unchanged state probs from HMM
- */
-
+/// calculate genotype probs as an average over conditional probs of hidden states.
 void HapMixIndividual::calculateUnorderedGenotypeProbs(const Options* const options){
   unsigned locus = 0; 
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -288,7 +280,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(const Options* const opti
      if( !logLikelihood.HMMisOK ) {
        UpdateHMMInputs(j, options, Theta, _rho);
      } 
-    for(unsigned jj = 0; jj < Loci->GetSizeOfChromosome(j); ++jj){
+     for(unsigned jj = 0; jj < Loci->GetSizeOfChromosome(j); ++jj, ++locus){
       // if genotype is missing, calculate
       if (GenotypeIsMissing(locus)) {
 	calculateUnorderedGenotypeProbs(locus);
@@ -298,19 +290,15 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(const Options* const opti
        * inferred in the constructor.
        */
     }
-    ++locus;
   }
-    logLikelihood.HMMisOK = true;
+  logLikelihood.HMMisOK = true;
 }
 
-/**
-   Same as Individual::calculateUnorderedProbs(void),
-   but for j^th locus only
- */
+/// Same as calculateUnorderedProbs(void), but for j^th locus only
 void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
   // The following checks are turned off because of speed concerns
 //  if (isHaploidIndividual()) {
-//    string s = "Individual::calculateUnorderedGenotypeProbs(int j) not implemented for haploid individuals";
+//    string s = "HapMixIndividual::calculateUnorderedGenotypeProbs(int j) not implemented for haploid individuals";
 //    throw(s);
 //  }
 //  if (!GenotypeIsMissing(j)) {
@@ -339,9 +327,8 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
   
   /* Possible optimization: if the probability of the state
    * (orderedStateProbs[ospIdx]) is close to zero, it might have
-   * a very little effect on the results, so this state could
-   * be skipped. Unfortunately, threshold of 1e-7 is
-   * still too high.
+   * a very little effect on the results, this state could
+   * be skipped. A threshold of 1e-7 is too high.
    */
   
 //  orderedStateProbs.snapToZero();
@@ -349,7 +336,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
   for (anc[0] = 0; anc[0] < NumHiddenStates; ++anc[0]) {
   	/*
   	 * Calculating first index of ordered state probabilities.
-  	 * It will be incremented in the innter loop after each iteration.
+  	 * It will be incremented in the inner loop after each iteration.
   	 */
   	ospIdx = anc[0] * NumHiddenStates;
     for (anc[1] = 0; anc[1] < NumHiddenStates; ++anc[1], ++ospIdx) {
@@ -373,12 +360,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
       /*
        * multiply result by conditional probs of anc and accumulate
        * result in array genotype probs (size 3 x number of loci)
-       * `ogpi' stands for ordered genotype probabilities index
-       * 
-       * Increment ogpi by 3 to skip the middle two elements:
-       * (p0,  p1,   p2,   p3)
-       *  get  skip  skip  get
-       */
+        */
       UnorderedProbs[j][0][0] +=
       			orderedGenotypeProbs[0] * orderedStateProbs[ospIdx];
       UnorderedProbs[j][2][0] +=
@@ -391,7 +373,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
    * (up0,   up1,         up2)
    *  calc.  complement   calc.
    */
-	UnorderedProbs[j][1][0] = 1.0 - UnorderedProbs[j][0][0] - UnorderedProbs[j][2][0];
+  UnorderedProbs[j][1][0] = 1.0 - UnorderedProbs[j][0][0] - UnorderedProbs[j][2][0];
 }
 
 /** Get probabilities of hidden states from HMM */
