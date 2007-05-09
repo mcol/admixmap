@@ -9,6 +9,11 @@
  * where # is a number from 1 to 22, and all be located
  * in the data directory
  *
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ *
  * Copyright (c) David O'Donnell 2006
  *
  */

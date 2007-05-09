@@ -1,14 +1,21 @@
 /**
- * prog to convert  **phased** hapmap data to HAPMIXMAP format
- * supply chromosome number as arg. 0 (default) means all.  also requires 
- * data directory (Eur, Afr or Asian).  Optionally supply genotypes file 
- * and locus file names (default to genotypes.txt) loci.txt
+ * FormatPhasedData.cpp
+ * main source file for FPHD (Format Phased HapMap Data) 
+ *
+ * This program converts  **phased** hapmap data to HAPMIXMAP format.
+ * Optionally formats a case-control genotypes file 
+ *
  * NB: input data file must be named:
  * "chr#_phased.txt",
  * "chr#_sample.txt" and
  * "chr#_legend.txt",
  *
- * where # is a number from 1 to 22, and all be located in the data directory
+ * where # is a number from 1 to 22, and all be located in the same directory
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  *
  * Copyright (c) David O'Donnell 2006, 2007
  */
@@ -20,40 +27,15 @@
 #include <string>
 #include <sstream>
 #include <map>
-#include <getopt.h>
+#include "FPHDOptions.h"
+#include "GenotypeEncoding.h"
 
-#include "Formatting.h"
-
-#define MAXCHROMOSOMES 22//maximum number of chromosomes
 unsigned NUMALLELES = 2;
-bool beVerbose = false;
 
 using namespace::std;
 
-void PrintHelpText(char **argv)
-{
-  cout << "----------------------------------------------------------------------------"
-       << endl
-       << "This program converts phased HapMap data to HAPMIXMAP format" << endl
-       << "Copyright (c) David O'Donnell 2007" << endl
-       << "All parts of this program are freely distributable" << endl << endl
-       << "Usage: " << argv[0] << " -c<chr> [options]" << endl << endl
-       << "Options: " << endl
-       << "-c<chr>            - chromosome number. -c0 converts all chromosomes." << endl
-       << "-v                - be verbose" << endl
-       << "-p <prefix>        - prefix where HapMap files are located, defaults to '.'" << endl 
-       << "-g <genotypesfile> - output genotypes file, defaults to 'genotypes.txt'" << endl
-       << "-l <locusfile>     - output locus file, defaults to loci.txt" << endl
-       << "-n <numloci>       - maximum number of loci to use per chromosome. Ignored with -i" << endl
-       << "-i <input case-control file> - raw case-control genotypes file. "
-       << "File will be formatted and used to restrict the range of HapMap loci output." << endl
-       << "-o <output case-control-file>  - valid only with -i, defaults to 'CaseControlGenotypes.txt'." << endl
-       << "Note that HapMap input files must be named 'chrN_phased.txt', 'chrN_sample.txt'" << endl
-       << "and 'chrN_legend.txt', where N is an integer from 1 to 22"
-       << endl << endl;
-}
 
-void WriteLocusFile(HapMapLegend& Legend, ofstream& locusfile, unsigned first, unsigned last){
+void WriteLocusFile(HapMapLegend& Legend, ofstream& locusfile, unsigned first, unsigned last, bool beVerbose){
 
   unsigned long prev = 0, position = 0;
   for(unsigned locus = first; locus <= last; ++locus){
@@ -81,97 +63,18 @@ void WriteLocusFile(HapMapLegend& Legend, ofstream& locusfile, unsigned first, u
 int main(int argc, char **argv)
 {
   if (argc < 3) {
-    PrintHelpText(argv);
+    FPHDOptions::PrintHelpText();
     exit(0);
   }
-  int ich;
-  unsigned FirstChr = 0;          //chromosome number
-  string popprefix = ".";
+
   ofstream genotypesfile;
   ofstream locusfile;
-  char* incasecontrolfilename = 0;
-  char* outcasecontrolfilename = 0;
-  unsigned long userloci = 1000000000;  //some number > number of HapMap loci
-  bool LimitLoci = false;
+  FPHDOptions options(argc, argv, genotypesfile, locusfile);
   vector<unsigned> first;//first locus to print on each chr
   vector<unsigned> last; //last    "      "      "     "
-
-  while ((ich = getopt(argc, argv, "hc:g:l:p:i:o:n:qv")) != EOF) {
-    switch (ich) {
-    case 'h':{
-      PrintHelpText(argv);
-    }
-    case 'c':{
-      FirstChr = atoi(optarg);
-      break;
-    }
-    case 'p':{
-      popprefix = optarg;
-      break;
-    }
-    case 'g':{
-      genotypesfile.open(optarg);
-      if (!genotypesfile.is_open()) {
-        cout << "Error: cannot open genotypesfile\n";
-        exit(1);
-      }
-      cout << "Writing genotypes to " << optarg << endl;
-      break;
-    }
-    case 'l':{
-      locusfile.open(optarg);
-      if (!locusfile.is_open()) {
-        cout << "Error: cannot open locusfile\n";
-        exit(1);
-      }
-      cout << "Writing locusfile to " << optarg << endl;
-      break;
-    }
-    case 'i':{
-      incasecontrolfilename = optarg;
-      break;
-    }
-    case 'o':{
-      outcasecontrolfilename = optarg;
-      break;
-    }
-
-    case 'n':{                 //number of loci
-      const unsigned temp = atoi(optarg);
-      if (temp > 0){
-        userloci = temp - 1;
-        LimitLoci = true;
-      }
-      break;
-    }
-    case 'v':{                 //verbose mode
-      beVerbose = true;
-      break;
-    }
-    default:{
-      cout << "Invalid args specified: " << ich << endl;
-      exit(1);
-    }
-
-    }
-  }
-  if (!genotypesfile.is_open())
-    genotypesfile.open("genotypes.txt");
-  if (!locusfile.is_open())
-    locusfile.open("loci.txt");
-  //set default ouput ccgenotypesfilename if none specified
-  if(incasecontrolfilename && !outcasecontrolfilename)
-    outcasecontrolfilename = "CaseControlGenotypes.txt";
-  //ofstream outcomefile("outcome_halfmissing.txt");
-
   double position = 0.0, prev = 0.0;
   string scrap;
-  // unsigned chromosome = 0;
-  unsigned lastchr = MAXCHROMOSOMES;
-  if (FirstChr == 0)//all chromosomes (-c0 option)
-    FirstChr = 1;
-  else//only one chromosome
-    lastchr = FirstChr;
+
   vector < unsigned long >NUMLOCI;
   unsigned long TOTALLOCI = 0;
 
@@ -181,8 +84,8 @@ int main(int argc, char **argv)
   locusfile << setiosflags(ios::fixed) << setprecision(8);
 
   ifstream legendfile;
-  for (unsigned chr = FirstChr; chr <= lastchr; ++chr) {
-    cout << "\nChromosome " << chr << "  " << endl;
+  for (unsigned chr = options.getFirstChr(); chr <= options.getLastChr(); ++chr) {
+    cout << "\nprocessing chromosome " << chr << "  " << endl;
     stringstream ss;
 
     /// unzip data
@@ -192,7 +95,7 @@ int main(int argc, char **argv)
       //ss.clear();
       ///open HapMap legend file
       /// NB: files should be named chr1_legend, chr2_legend etc
-      ss << popprefix << "/chr" << chr << "_legend.txt";
+      ss << options.getPrefix() << "/chr" << chr << "_legend.txt";
       legendfile.clear();         //to clear fail status at eof
       legendfile.open(ss.str().c_str());
       if (!legendfile.is_open()) {
@@ -201,37 +104,37 @@ int main(int argc, char **argv)
       }
       HapMapLegend Legend(legendfile);
 
-      if(incasecontrolfilename){
-        EncodeGenotypes(Legend, incasecontrolfilename, outcasecontrolfilename);
-        if(beVerbose)
+      if(options.WriteCCFile()){
+        EncodeGenotypes(Legend, options.getInCCFilename(), options.getOutCCFilename());
+        if(options.Verbose())
           cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
                << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
 
-        Legend.OffsetLimits();
-        if(beVerbose)
+        Legend.OffsetLimits(options.getFlankLength());
+        if(options.Verbose())
           cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
                << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
       }
       //TODO:message saying outputting to this file
 
-      if(!incasecontrolfilename && LimitLoci){
+      if(!options.WriteCCFile() && options.LimitedLoci()){
         first.push_back(0);
-        last.push_back(userloci);
+        last.push_back(options.getNumUserLoci());
       }
       else{
         first.push_back(Legend.getFirstIndex());
         last.push_back(Legend.getLastIndex());
       }
-      WriteLocusFile(Legend, locusfile, first[chr - FirstChr], last[chr - FirstChr]);
+      WriteLocusFile(Legend, locusfile, first[chr - options.getFirstChr()], last[chr - options.getFirstChr()], options.Verbose());
       legendfile.close();
 
       //Write genotypesfile header
-      for(unsigned i = first[chr - FirstChr]; i <= last[chr - FirstChr];++i)
+      for(unsigned i = first[chr - options.getFirstChr()]; i <= last[chr - options.getFirstChr()];++i)
         genotypesfile << "\t" << Legend.getRSNumber(i);
 
-      cout << endl << last[chr - FirstChr] - first[chr - FirstChr] +1 << " Loci ";
+      cout << endl << last[chr - options.getFirstChr()] - first[chr - options.getFirstChr()] +1 << " Loci ";
       NUMLOCI.push_back(Legend.size());   //count number of loci
-      TOTALLOCI += last[chr - FirstChr] - first[chr - FirstChr] +1;//Legend.size();
+      TOTALLOCI += last[chr - options.getFirstChr()] - first[chr - options.getFirstChr()] +1;//Legend.size();
       Legend.clear();
   }                             //end chr loop
   locusfile.close();
@@ -255,7 +158,7 @@ int main(int argc, char **argv)
   //open first phased file to use to loop through gametes
   //NOTE: assuming the same set of individuals for all chromosomes
   stringstream ss;
-  ss << popprefix << "/chr" << FirstChr << "_phased.txt";
+  ss << options.getPrefix() << "/chr" << options.getFirstChr() << "_phased.txt";
   ifstream phasedfile(ss.str().c_str());
   if (!phasedfile.is_open()) {
     cout << "Could not open phased file " << ss.str() << endl;
@@ -263,7 +166,7 @@ int main(int argc, char **argv)
   }
   ss.clear();
   ss.str("");
-  ss << popprefix << "/chr" << FirstChr << "_sample.txt";
+  ss << options.getPrefix() << "/chr" << options.getFirstChr() << "_sample.txt";
   ifstream samplefile(ss.str().c_str());
   if (!samplefile.is_open()) {
     cout << "Could not open sample file " << ss.str() << endl;
@@ -275,8 +178,8 @@ int main(int argc, char **argv)
   ifstream phasedfile2;
   phasedfile >> allele;
   while (!phasedfile.eof()) {
-    if (beVerbose)
-      cout << "\nChromosome " << FirstChr << "  " << flush;
+    if (options.Verbose())
+      cout << "\nChromosome " << options.getFirstChr() << "  " << flush;
     string suffix;
     if (!(gamete % 2)){
       samplefile >> ID >> scrap;
@@ -284,25 +187,25 @@ int main(int argc, char **argv)
     }
     else
       suffix = "_2";
-    if (beVerbose)
+    if (options.Verbose())
       cout << "\n" << gamete + 1 << " " << ID + suffix << " " << flush;
     //write indiv id and sex
     genotypesfile << ID  + suffix << "\t";        // << sex[indiv] <<"\t";
     //write genotypes for first chromosome
     for (unsigned j = 0; j < NUMLOCI[0]; ++j) {
 
-      //if (j < userloci)
+      //if (j < options.getNumUserLoci())
       if(j >= first[0] && j<=last[0])
         genotypesfile << allele + 1 << " ";
       phasedfile >> allele;
     }
     //now loop through other chromosomes 
-    for (unsigned chr = FirstChr + 1; chr <= lastchr; ++chr) {
-      if (beVerbose)
+    for (unsigned chr = options.getFirstChr() + 1; chr <= options.getLastChr(); ++chr) {
+      if (options.Verbose())
         cout << "\nChromosome " << chr << "  " << flush;
 
       //        ss.clear();
-      //        ss << popprefix<< "/chr" << chr << "_sample.txt";
+      //        ss << options.getPrefix()<< "/chr" << chr << "_sample.txt";
       //        ifstream samplefile(ss.str().c_str());
       //        if(!samplefile.is.open()){
       //         cout << "Could not open sample file " << ss.str() <<endl;
@@ -311,7 +214,7 @@ int main(int argc, char **argv)
 
       //open next phased file
       ss.clear();
-      ss << popprefix << "/chr" << chr << "_phased.txt";
+      ss << options.getPrefix() << "/chr" << chr << "_phased.txt";
       phasedfile2.clear();
       phasedfile2.open(ss.str().c_str());
       if (!phasedfile2.is_open()) {
@@ -319,10 +222,10 @@ int main(int argc, char **argv)
         exit(1);
       }
       //write genotypes for this chromosome
-      for (unsigned j = 0; j < NUMLOCI[chr - FirstChr]; ++j) {
+      for (unsigned j = 0; j < NUMLOCI[chr - options.getFirstChr()]; ++j) {
         phasedfile2 >> allele;
-        //if (j < userloci)
-        if(j >= first[chr - FirstChr] && j <= last[chr - FirstChr])
+        //if (j < options.getNumUserLoci())
+        if(j >= first[chr - options.getFirstChr()] && j <= last[chr - options.getFirstChr()])
           genotypesfile << allele + 1;
       }
       phasedfile2.close();

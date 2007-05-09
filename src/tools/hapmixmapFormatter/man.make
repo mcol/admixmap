@@ -1,7 +1,7 @@
-EXEC_NAME=DataFormatter
+EXEC_NAME=FPHD
 CC =g++
 CXXFLAGS =-O3
-BAYESLIB_PATH =../../bayeslib
+BAYESLIB_PATH =../../bcppcl
 INCLUDES =-I$(BAYESLIB_PATH)/utils#for StringSplitter
 
 #TODO: only requires gsl_permutation.la sublibrary of gsl so wasteful to lik against entire gsl and cblas
@@ -10,7 +10,7 @@ INCLUDES =-I$(BAYESLIB_PATH)/utils#for StringSplitter
 
 SUFFIXES =.cc.cpp
 
-objects =FormatPhasedData.o GenotypeEncoder.o $(BAYESLIB_PATH)/utils/StringSplitter.o
+objects =FormatPhasedData.o GenotypeEncoding.o FPHDOptions.o HapMapLegend.o $(BAYESLIB_PATH)/utils/StringSplitter.o
 
 all: $(objects)
 	$(CXX) $(CXXFLAGS) -o$(EXEC_NAME) $(objects) $(LIBS) -lgsl -lgslcblas
