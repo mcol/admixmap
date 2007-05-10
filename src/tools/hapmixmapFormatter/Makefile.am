@@ -9,15 +9,14 @@ FPHD_SOURCES = \
   HapMapLegend.cpp \
   HapMapLegend.h \
   FPHDOptions.cpp \
-  FPHDOptions.h \
-  $(BAYESLIB_PATH)/utils/StringSplitter.cc
+  FPHDOptions.h
 
 FUD_SOURCES = FormatUnphasedData.cpp
 
-#TODO: only requires gsl_permutation.la sublibrary of gsl so wasteful to link against entire gsl and cblas
-FPHD_LDADD=-lgsl -lgslcblas
+#TODO: only requires gsl_permutation.la sublibrary of gsl so wasteful to link against entire gsl
+FPHD_LDADD=-lbcppcl -lgsl
 
-EXTRA_DIST = repairSecondColumn.pl
+EXTRA_DIST = repairSecondColumn.pl getdata.pl README.txt
 
 #.cpp.o:
 #$(CXX) $(AM_CXXFLAGS) $(AM_CPPFLAGS) -c $< -o $@

@@ -1,4 +1,4 @@
-SUBDIRS = base hapmixmap
+SUBDIRS = base hapmixmap hapmixmapFormatter
 
 ACLOCAL_AMFLAGS = -I m4
 #use -Wno-syntax if Automake is >= v1.10 to suppress "underquoted" warnings

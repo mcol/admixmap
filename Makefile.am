@@ -50,7 +50,7 @@ hapmixmap-bindist:
 	cp -uf $(top_srcdir)/dist/hapmixmap/options.txt dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/hapmixmap/tutorial.pl dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/hapmixmap/tutorial.html dist/hapmixmap/hapmixmap
-#	cp -uf $(top_srcdir)/dist/hapmixmap/*.conf dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/hapmixmap/*.conf dist/hapmixmap/hapmixmap
 	mkdir dist/hapmixmap/hapmixmap/data
 	cp -uf $(top_srcdir)/dist/hapmixmap/data/*.txt dist/hapmixmap/hapmixmap/data
 	@echo ==================================================
@@ -94,17 +94,19 @@ hapmixmap-srcdist: dist
 	cp -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@/src/hapmixmap $(PKGDIR)/hapmixmap
 	cp -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@/src/base $(PKGDIR)/hapmixmap
 	cp -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@/src/m4 $(PKGDIR)/hapmixmap
+#formatter files
+	cp -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@/src/tools/hapmixmapFormatter $(PKGDIR)/hapmixmap
 #copy other files
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/README.txt $(PKGDIR)/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/COPYING.txt $(PKGDIR)/hapmixmap
-	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/INSTALL packages/hapmixmap
+	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/INSTALL $(PKGDIR)/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/AdmixmapOutput.R $(PKGDIR)/hapmixmap
 #	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/hapmixmap.pl $(PKGDIR)/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/doanalysis.pl $(PKGDIR)/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/options.txt $(PKGDIR)/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/tutorial.pl $(PKGDIR)/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/tutorial.html $(PKGDIR)/hapmixmap
-#	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/*.conf $(PKGDIR)/hapmixmap
+	cp -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/*.conf $(PKGDIR)/hapmixmap
 	cp -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/data $(PKGDIR)/hapmixmap
 #delete temporaries
 	rm -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@

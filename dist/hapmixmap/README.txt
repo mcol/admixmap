@@ -1,47 +1,60 @@
 HAPMIXMAP running instructions.
 
-Prerequisites:
- * R, available from http://www.r-project.org/
-Useful, but not essential:
- * Perl. Windows version available from http://www.activestate.com/Products/ActivePerl/
+1. Introduction
+-------------------------------
+HAPMIXMAP is a program for modelling extended haplotypes in genetic association studies. It is mainly intended to model HapMap haplotypes using tag SNP genotype data. It is released under a GPL (GNU public licence). See the file COPYING for details.
 
-Once you have the prerequisites installed:
+2. Requirements
+-------------------------------
+hapmixmap requires R to be installed on your computer. R is a free statistical analysis program that can be downloaded from http://www.r-project.org. 
 
-In Windows:
-1. Unzip the .zip file into some directory, for example C:\hapmixmap
-2. Go to Start -> Run
-3. Type "cmd" (without quotes) and press ENTER.
-4. Type "cd hapmixmap" (without quotes) and press ENTER.
+You will need to add the path for R to your environment variable PATH. 
 
-In Linux:
-1. Decompress the .tar.gz file somewhere convenient: tar -xzf hapmixmap.tar.gz
-2. cd hapmixmap
+In Windows XP, go to Start-Control Panel-System. On the Advanced tab, click on Environment Variables. Select the PATH variable and click on Edit. Add the path of the R bin directory to the end of the path variable. This is usually something like ";C:\Program Files\R\bin".
 
+In Linux/Unix use the command  "export PATH=$PATH:<path to R bin directory>". For convenience, this should be in the script that loads on login. 
 
-You are now ready to run the program. If you have perl, use the perl script provided, which will run
-the analysis for you.  The analysis consists of 2 steps:
-1. Training with HapMap data only
-2. Run with both HapMap data and case-control data and evaluate score test.
+Use of the Perl script requires Perl to be installed. It can be downloaded from http://www.perl.com/download.csp. 
 
-Each step can be resumed, to extend the number of iterations, after it is completed.
-After each step, an R script is run to process the output.
+3. Contents
+------------
+Distributed with the hapmixmap executable are the following:
+  options.txt: a template options file with all possible options listed
+  AdmixmapOutput.R: an R script to analyze the output. (Yes, it is the same as the one that goes with ADMIXMAP)
+  README.txt:    this file.
+  COPYING:       a copy of the GNU Public Licence (GPL).
+  INSTALL:       instructions on installing from source
+  data:          a directory with tutorial data
+  tutorial.pl:   a perl script for the tutorial
+  doanalysis.pl: a script required by the tutorial script
+  training-initial.conf, training-resume.conf, testing.conf: 
+                 options files for the tutorial
+  FPHD:          a program to format HapMap data and case-control genotypes files
+  getdata.pl:    a perl script to download data from HapMap and run the FPHD program  
 
-To do step 1, type:                  perl tutorial.pl --train.
-To resume a training run, type: perl tutorial.pl --train --resume
-To do step 2, type:                  perl tutorial.pl --test
-To resume a test run, type:      perl tutorial.pl --test --resume
+4. Installing and Running
+-------------------------------
+To install from source, please refer to the INSTALL file.
 
-You can also combine the two steps into one by typing: perl tutorial.pl --train --test.
+Copy the package to a suitable location. Unzip/unpack the package. Navigate to the hapmixmap directory.
+In Windows, unzip the package hapmixmap-x.xx.zip (in, say C:\hapmixmap). In a command window (Start->Run->cmd), navigate to the hapmixmap directory (cd c:\hapmixmap)
 
-If you do not have perl or prefer to run the program from the command-line, you can do so as follows:
-To do step 1, type:                  ./hapmixmap training-initial.conf
-To resume a training run, type: ./hapmixmap training-resume.conf
-To do step2, type:                  ./hapmixmap testing.conf
+The recommended way to run the program is through a Perl script. There is an example for the tutorial included with this distribution.
 
-If you do this, you will have to run the R script afterwards. First set the RESULTSDIR environment variable:
-In Windows, type: set RESULTSDIR=Results
-In Linux/UNIX, type: export RESULTSDIR=Results
+Alternatively, the options may be entered on the command line (not recommended) or supplied in a text file. A template options text file,
+options.txt, is supplied with this distribution.
+To run using  options in a text file, navigate to the hapmixmap directory and type
+./hapmixmap (or just hapmixmap in Windows) followed by the name of the options file.
+Note: Do not use the name 'args.txt' for an options file as this is written to by the program.
 
-Then to run the script:
-R CMD BATCH --vanilla AdmixmapOutput.R Rlog.txt
+Consult the documentation for details of the options.
+Consult the tutorial documentation for more details on running the program.
 
+You will know when the program has finished running when you see the word
+Finished
+followed by a line of *s
+
+Troubleshooting
+-----------------------
+If you think you have found a bug or encounter any problems running the program or if it crashes or exits with an error message, contact the program authors. 
+Contact information is available in the manual. If you specify invalid options or there is a problem in one of the data files, you should see a message stating what is wrong. To help diagnose any problem, please supply either the logfile or screen output as well as a list of the options you specified. We may also need a copy of the data in order to replicate the problem. If a problem occurs while running the R script, please supply the file Rlog.txt so we can see where.

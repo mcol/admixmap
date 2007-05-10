@@ -62,6 +62,7 @@ AC_CXX_ENABLE_PROFILE
 AC_CONFIG_FILES([Makefile 
                  base/Makefile
                  hapmixmap/Makefile
+                 hapmixmapFormatter/Makefile
 	])
 AC_OUTPUT
 
