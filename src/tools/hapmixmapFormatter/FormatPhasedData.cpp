@@ -40,7 +40,7 @@ void WriteLocusFile(HapMapLegend& Legend, ofstream& locusfile, unsigned first, u
   unsigned long prev = 0, position = 0;
   for(unsigned locus = first; locus <= last; ++locus){
     if (beVerbose)
-      cout << "\rLocus    " << locus + 1 << flush;
+      cout << "\r" << locus + 1 << " loci" << flush;
 
     prev = position;
     position = Legend[locus].position;
@@ -58,6 +58,8 @@ void WriteLocusFile(HapMapLegend& Legend, ofstream& locusfile, unsigned first, u
 
     }//end if position-prev >0
   }
+  if (beVerbose)
+    cout << endl;
 }
 
 int main(int argc, char **argv)
@@ -70,117 +72,107 @@ int main(int argc, char **argv)
   ofstream genotypesfile;
   ofstream locusfile;
   FPHDOptions options(argc, argv, genotypesfile, locusfile);
-  vector<unsigned> first;//first locus to print on each chr
-  vector<unsigned> last; //last    "      "      "     "
+  unsigned first;//first locus to print on each chr
+  unsigned last; //last    "      "      "     "
   double position = 0.0, prev = 0.0;
   string scrap;
 
-  vector < unsigned long >NUMLOCI;
+  unsigned long NUMLOCI;
   unsigned long TOTALLOCI = 0;
 
-  // ************************** PHASE 1: write locus file and header of genotypesfile, count number of loci  *********************
+  if(options.Verbose()){
+    cout << "******************************" << endl
+	 << "Beginning formatting" << endl;
+  }
+
+  // *** PHASE 1: write locus file and header of genotypesfile, count number of loci  ***
   genotypesfile << "\"Gameteid\"";
   locusfile << "\"SNPid\"\t\"NumAlleles\"\t\"DistanceinMb\"\n"; //locusfile header
   locusfile << setiosflags(ios::fixed) << setprecision(8);
 
   ifstream legendfile;
-  for (unsigned chr = options.getFirstChr(); chr <= options.getLastChr(); ++chr) {
-    cout << "\nprocessing chromosome " << chr << "  " << endl;
+  if(options.Verbose())
+    cout << "\nprocessing chromosome " << options.getChrNum() << "  " << endl;
+
+  string prefix;
+  {
     stringstream ss;
+    ss << options.getPrefix() << "/chr" << options.getChrNum();
+    prefix = ss.str();
+  }
 
-    /// unzip data
-      //ss << "gzip -d chr" << chr << ".gz";
-      //cout << "\nUnzipping..."<<flush;
-      //system(ss.str().c_str());
-      //ss.clear();
-      ///open HapMap legend file
-      /// NB: files should be named chr1_legend, chr2_legend etc
-      ss << options.getPrefix() << "/chr" << chr << "_legend.txt";
-      legendfile.clear();         //to clear fail status at eof
-      legendfile.open(ss.str().c_str());
-      if (!legendfile.is_open()) {
-        cout << "Could not open legend file " << ss.str() << endl;
-        exit(1);
+  //open HapMap legend file
+  legendfile.clear();         //to clear fail status at eof
+  legendfile.open((prefix + "_legend.txt").c_str());
+  if (!legendfile.is_open()) {
+    cout << "Could not open legend file " << prefix << "_legend.txt" << endl;
+    exit(1);
       }
-      HapMapLegend Legend(legendfile);
-
-      if(options.WriteCCFile()){
-        EncodeGenotypes(Legend, options.getInCCFilename(), options.getOutCCFilename());
-        if(options.Verbose())
-          cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
-               << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
-
-        Legend.OffsetLimits(options.getFlankLength());
-        if(options.Verbose())
-          cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
-               << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
-      }
-      //TODO:message saying outputting to this file
-
-      if(!options.WriteCCFile() && options.LimitedLoci()){
-        first.push_back(0);
-        last.push_back(options.getNumUserLoci());
-      }
-      else{
-        first.push_back(Legend.getFirstIndex());
-        last.push_back(Legend.getLastIndex());
-      }
-      WriteLocusFile(Legend, locusfile, first[chr - options.getFirstChr()], last[chr - options.getFirstChr()], options.Verbose());
-      legendfile.close();
-
-      //Write genotypesfile header
-      for(unsigned i = first[chr - options.getFirstChr()]; i <= last[chr - options.getFirstChr()];++i)
-        genotypesfile << "\t" << Legend.getRSNumber(i);
-
-      cout << endl << last[chr - options.getFirstChr()] - first[chr - options.getFirstChr()] +1 << " Loci ";
-      NUMLOCI.push_back(Legend.size());   //count number of loci
-      TOTALLOCI += last[chr - options.getFirstChr()] - first[chr - options.getFirstChr()] +1;//Legend.size();
-      Legend.clear();
-  }                             //end chr loop
+  HapMapLegend Legend(legendfile);
+  
+  if(options.WriteCCFile()){
+    if(options.Verbose())
+      cout << "Writing case-control genoypes to " << options.getOutCCFilename() << endl;
+    EncodeGenotypes(Legend, options.getInCCFilename(), options.getOutCCFilename());
+    if(options.Verbose())
+      cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
+	   << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
+    
+    Legend.OffsetLimits(options.getFlankLength());
+    if(options.Verbose())
+      cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
+	   << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
+  }
+  
+  if(!options.WriteCCFile() && options.LimitedLoci()){
+    first = 0;
+    last = options.getNumUserLoci();
+  }
+  else{
+    first = Legend.getFirstIndex();
+    last = Legend.getLastIndex();
+  }
+  WriteLocusFile(Legend, locusfile, first, last, options.Verbose());
+  legendfile.close();
+  
+  //Write genotypesfile header
+  for(unsigned i = first; i <= last; ++i)
+    genotypesfile << "\t" << Legend.getRSNumber(i);
+  
+  NUMLOCI = Legend.size();   //count number of loci
+  TOTALLOCI += last - first +1;//Legend.size();
+  Legend.clear();
+  
   locusfile.close();
-  cout << "\nFinished writing locusfile. " << TOTALLOCI << " loci" << endl;
-  cout << endl;
-  //}
-
+  if(options.Verbose())
+    cout << "Finished writing locusfile. " << TOTALLOCI << " loci" << endl << endl;
+  
   genotypesfile << endl;
 
   // ************************** PHASE 2: Write genotypesfile  *********************
-  //TODO; tidy this section by moving some code into functions
-
-  //Note: sample file is arranged with founders first, then children
+  //Note: sample file is arranged with founders first, then children.
   //children are omitted from phased file
   string ID;
-  //       if(indiv%2) outcomefile << "#\n";
-  //       else outcomefile << 9 << endl;
 
-  unsigned abslocus = 0;
-
-  //open first phased file to use to loop through gametes
-  //NOTE: assuming the same set of individuals for all chromosomes
-  stringstream ss;
-  ss << options.getPrefix() << "/chr" << options.getFirstChr() << "_phased.txt";
-  ifstream phasedfile(ss.str().c_str());
+  //open phased file to use to loop through gametes
+  ifstream phasedfile((prefix + "_phased.txt").c_str());
   if (!phasedfile.is_open()) {
-    cout << "Could not open phased file " << ss.str() << endl;
+    cout << "Could not open phased file " << prefix << "_phased.txt" << endl;
     exit(1);
   }
-  ss.clear();
-  ss.str("");
-  ss << options.getPrefix() << "/chr" << options.getFirstChr() << "_sample.txt";
-  ifstream samplefile(ss.str().c_str());
+  ifstream samplefile((prefix + "_sample.txt").c_str());
   if (!samplefile.is_open()) {
-    cout << "Could not open sample file " << ss.str() << endl;
+    cout << "Could not open sample file " << prefix << "_sample.txt" << endl;
     exit(1);
   }
 
   int gamete = 0;
   int allele = 0;
-  ifstream phasedfile2;
   phasedfile >> allele;
   while (!phasedfile.eof()) {
-    if (options.Verbose())
-      cout << "\nChromosome " << options.getFirstChr() << "  " << flush;
-    string suffix;
+    //if (options.Verbose())
+    //cout << "\nChromosome " << options.getChrNum() << "  " << flush;
+    string suffix;//to give gametes unique IDs
     if (!(gamete % 2)){
       samplefile >> ID >> scrap;
       suffix = "_1";
@@ -188,47 +180,16 @@ int main(int argc, char **argv)
     else
       suffix = "_2";
     if (options.Verbose())
-      cout << "\n" << gamete + 1 << " " << ID + suffix << " " << flush;
+      cout << "\r" << gamete + 1 << " " << " gametes" << " " << flush;
     //write indiv id and sex
     genotypesfile << ID  + suffix << "\t";        // << sex[indiv] <<"\t";
     //write genotypes for first chromosome
-    for (unsigned j = 0; j < NUMLOCI[0]; ++j) {
+    for (unsigned j = 0; j < NUMLOCI; ++j) {
 
       //if (j < options.getNumUserLoci())
-      if(j >= first[0] && j<=last[0])
+      if(j >= first && j<=last)
         genotypesfile << allele + 1 << " ";
       phasedfile >> allele;
-    }
-    //now loop through other chromosomes 
-    for (unsigned chr = options.getFirstChr() + 1; chr <= options.getLastChr(); ++chr) {
-      if (options.Verbose())
-        cout << "\nChromosome " << chr << "  " << flush;
-
-      //        ss.clear();
-      //        ss << options.getPrefix()<< "/chr" << chr << "_sample.txt";
-      //        ifstream samplefile(ss.str().c_str());
-      //        if(!samplefile.is.open()){
-      //         cout << "Could not open sample file " << ss.str() <<endl;
-      //         exit(1); 
-      //        }
-
-      //open next phased file
-      ss.clear();
-      ss << options.getPrefix() << "/chr" << chr << "_phased.txt";
-      phasedfile2.clear();
-      phasedfile2.open(ss.str().c_str());
-      if (!phasedfile2.is_open()) {
-        cout << "Could not open phased file " << ss.str() << endl;
-        exit(1);
-      }
-      //write genotypes for this chromosome
-      for (unsigned j = 0; j < NUMLOCI[chr - options.getFirstChr()]; ++j) {
-        phasedfile2 >> allele;
-        //if (j < options.getNumUserLoci())
-        if(j >= first[chr - options.getFirstChr()] && j <= last[chr - options.getFirstChr()])
-          genotypesfile << allele + 1;
-      }
-      phasedfile2.close();
     }
     ++gamete;
     genotypesfile << endl;
@@ -236,6 +197,14 @@ int main(int argc, char **argv)
   phasedfile.close();
   genotypesfile.close();
   //  outcomefile.close();
-  cout << endl << "Finished writing genotypesfile" << endl;
-  cout << gamete << " gametes" << endl;
+  if(options.Verbose()){
+    cout << endl << "Finished writing genotypesfile" << endl;
+    //cout << gamete << " gametes" << endl;
+  }
+
+  if(options.Verbose()){
+    cout << "Formatting complete" << endl
+	 << "******************************" << endl;
+  }
+  return 0;
 }

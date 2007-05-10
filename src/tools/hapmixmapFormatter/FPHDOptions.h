@@ -23,8 +23,7 @@ class FPHDOptions{
   bool Verbose()const;
   bool LimitedLoci()const;
   const std::string& getPrefix()const;
-  unsigned getFirstChr()const;
-  unsigned getLastChr()const;
+  unsigned getChrNum()const;
   unsigned long getNumUserLoci()const;
   bool WriteCCFile()const;
   const char* getInCCFilename()const;
@@ -35,8 +34,8 @@ class FPHDOptions{
   bool beVerbose;
   std::string prefix;
   bool LimitLoci;
-  unsigned FirstChr;//chromosome number
-  unsigned lastchr;
+  unsigned Chr;//chromosome number
+
   char* incasecontrolfilename;
   char* outcasecontrolfilename;
   unsigned long userloci;

@@ -44,6 +44,9 @@ my $dataprefix = "HapMapData$slash$POP";
 my $formatter_exec = "FPHD";
 my $HelpNeeded = 0;
 
+if(length(@ARGV) == 0){
+  $HelpNeeded = 1;
+}
 GetOptions(
 "h"               => \$HelpNeeded,
 "v"               => \$Verbose,
@@ -74,7 +77,8 @@ if($HelpNeeded){
 print "\nUsage: getdata.pl <args> [options]\n\n";
 print "Required arguments:\n";
 print "-c=<1...22>             set chromosome number\n";
-print "-p=<CEU|YRI|JPT+CHB|AS> set population. CEU = European; YRI = African; As = JPT+CHB = Asian\n";
+print "-p=<CEU|YRI|JPT+CHB|AS> set population. CEU = European; YRI = African;\n";
+print "                                        AS = JPT+CHB = Asian\n";
 print "\nOptions:\n";
 print "-h                      print this help message and exit\n";
 print "-v                      be verbose\n";
@@ -91,7 +95,7 @@ print "-g=<>                   name of case-control genotypes file to format\n";
 print "-ccgfile=<>             name of formatted case-control genotypes file to write\n";
 print "-flank=F                size of flanking region in Kb\n";
 print "-loci=n                 maximum number of loci per chromosome \n";
-print "                       (valid only if no case-control file specified)\n";
+print "                        (valid only if no case-control file specified)\n";
 exit;
 }
 
@@ -164,7 +168,7 @@ if ($Download){
 }
 ## 2: Format files
 if( $Format){
-  if(!$Quiet){print "Formatting data\n";}
+#  if(!$Quiet){print "Formatting data\n";}
 
   my $cmd = "$formatter_exec -c$CHR -p$dataprefix";
   if($genotypesfile){$cmd = $cmd . " -g$genotypesfile";}
@@ -181,12 +185,12 @@ if( $Format){
   #print "$cmd";
   my $status = system($cmd);
   if($status == 0){
-   if(!$Quiet){print "Formatting complete\n"; }
+ #  if(!$Quiet){print "Formatting complete\n"; }
   }  else{
    print "Formatter exited with status $status\n";
   }
 }
 
-if(!$Quiet){
+#if(!$Quiet){
   print "\nscript complete\n\n"
-}
+#}

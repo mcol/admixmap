@@ -14,11 +14,10 @@
 #include <iostream>
 #include <getopt.h>
 
-
-using std::endl;
-using std::cout;
 #define MAXCHROMOSOMES 22//maximum number of chromosomes
 #define PROGNAME "FPHD"
+
+using namespace::std;
 
 FPHDOptions::FPHDOptions(int argc, char*const* argv, std::ofstream& genotypesfile, std::ofstream& locusfile){
   //set defaults
@@ -28,28 +27,27 @@ FPHDOptions::FPHDOptions(int argc, char*const* argv, std::ofstream& genotypesfil
   outcasecontrolfilename = 0;
   userloci = 1000000000;  //some number > number of HapMap loci
   LimitLoci = false;
-  FirstChr = 0;
+  Chr = 0;
   flankLength = 1e5;//10Kb
 
   ParseOptions(argc, argv, genotypesfile, locusfile);
-  if (FirstChr == 0){//all chromosomes (-c0 option)
-    FirstChr = 1;
-    lastchr = MAXCHROMOSOMES;
+  if (Chr <= 0 || Chr > MAXCHROMOSOMES){
+    cerr << "ERROR: Invalid chromosome number: " << Chr << endl;
+    exit(1);
   }
-  else//only one chromosome
-    lastchr = FirstChr;
 
 }
 
 void FPHDOptions::ParseOptions(int argc, char*const* argv, std::ofstream& genotypesfile, std::ofstream& locusfile){
   int ich;
+  char *genotypesfilename, *locusfilename;
   while ((ich = getopt(argc, argv, "hc:g:l:p:i:o:n:f:qv")) != EOF) {
     switch (ich) {
     case 'h':{
       PrintHelpText();
     }
     case 'c':{
-      FirstChr = atoi(optarg);
+      Chr = atoi(optarg);
       break;
     }
     case 'p':{
@@ -62,7 +60,7 @@ void FPHDOptions::ParseOptions(int argc, char*const* argv, std::ofstream& genoty
         cout << "Error: cannot open genotypesfile\n";
         exit(1);
       }
-      cout << "Writing genotypes to " << optarg << endl;
+      genotypesfilename = optarg;
       break;
     }
     case 'l':{
@@ -71,7 +69,7 @@ void FPHDOptions::ParseOptions(int argc, char*const* argv, std::ofstream& genoty
         cout << "Error: cannot open locusfile\n";
         exit(1);
       }
-      cout << "Writing locusfile to " << optarg << endl;
+      locusfilename = optarg;
       break;
     }
     case 'i':{
@@ -114,7 +112,13 @@ void FPHDOptions::ParseOptions(int argc, char*const* argv, std::ofstream& genoty
   //set default ouput ccgenotypesfilename if none specified
   if(incasecontrolfilename && !outcasecontrolfilename)
     outcasecontrolfilename = "CaseControlGenotypes.txt";
-  //ofstream outcomefile("outcome_halfmissing.txt");
+
+  if(beVerbose){
+    cout << "Writing genotypes to " << genotypesfilename << endl;
+    cout << "Writing locusfile to " << locusfilename << endl;
+    if(incasecontrolfilename)
+      cout << "Writing case-control genotypes to " << outcasecontrolfilename << endl; 
+  }
 }
 
 void FPHDOptions::PrintHelpText(){
@@ -125,7 +129,7 @@ void FPHDOptions::PrintHelpText(){
        << "All parts of this program are freely distributable" << endl << endl
        << "Usage: " << PROGNAME << " -c<chr> [options]" << endl << endl
        << "Options: " << endl
-       << "-c<chr>            - chromosome number. -c0 converts all chromosomes." << endl
+       << "-c<chr>            - chromosome number" << endl
        << "-v                 - be verbose" << endl
        << "-p <prefix>        - prefix where HapMap files are located, defaults to '.'" << endl 
        << "-g <genotypesfile> - output genotypes file, defaults to 'genotypes.txt'" << endl
@@ -154,12 +158,10 @@ bool FPHDOptions::LimitedLoci()const{
 const std::string& FPHDOptions::getPrefix()const{
   return prefix;
 }
-unsigned FPHDOptions::getFirstChr()const{
-  return FirstChr;
+unsigned FPHDOptions::getChrNum()const{
+  return Chr;
 }
-unsigned FPHDOptions::getLastChr()const{
-  return lastchr;
-}
+
 unsigned long FPHDOptions::getNumUserLoci()const{
   return userloci;
 }
