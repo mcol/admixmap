@@ -6,5 +6,5 @@
 hapmixmap training-initial.conf
 hapmixmap training-resume.conf
 hapmixmap -ftesting.conf \
-	--ccgenotypesfile=data/CaseControlGenotypes_2_genotypes.txt \
-	--outcomevarfile=data/CaseControlGenotypes_2_outcome.txt
+	--ccgenotypesfile=data/CaseControlGenotypes2.txt \
+	--outcomevarfile=data/CaseControlOutcome2.txt
