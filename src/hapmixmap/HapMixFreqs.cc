@@ -148,8 +148,8 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
       EtaRatePriorRate = params[2];
     }
     else{//use defaults
-      EtaShape = 0.25;
-      EtaRatePriorShape = 10.0;
+      EtaShape = 1.0;//0.25;
+      EtaRatePriorShape = 40.0;//10.0;
       EtaRatePriorRate = 10.0;
     }
     EtaRate = EtaRatePriorShape / EtaRatePriorRate;
@@ -164,8 +164,8 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
       EtaRate = params[1];
     }
     else{//use defaults
-      EtaShape = 0.25;
-      EtaRate = 1.0;
+      EtaShape = 1.0;
+      EtaRate = 4.0;
     }
   }
 
