@@ -69,15 +69,16 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
 	*outputstream << double2R(-log10(pvalue));
     }
     else{ // %info is <10
-      if(final)//2 NAs in final table
+      if(final)//2 NAs in final table (z-score, p-value)
 	*outputstream << "NA" << sep << "NA";
-      else//1 NA in cumulative output
+      else//1 NA in cumulative output (log p-value)
 	*outputstream << "NA";
     }
 
   }// negative CI or MissingInfo > CompleteInfo
-  else{
-    if(final)*outputstream << "NA" << sep << "NA";
+  else{                       //%Info        z-score
+    if(final)*outputstream << "NA" << sep << "NA" << sep;
+    //NA for (log)p-value
     *outputstream << "NA" ;
   }
   //*outputstream << endl;
