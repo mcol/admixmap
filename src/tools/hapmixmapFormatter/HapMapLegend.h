@@ -41,6 +41,9 @@ public:
     RSmap.clear();
     LocusVector.clear();
   };
+  bool isInHapMap(const std::string s)const{
+    return (RSmap.find(s) != RSmap.end());
+  }
   const LocusInfo& operator[](unsigned long i){
     return LocusVector[i];
   }

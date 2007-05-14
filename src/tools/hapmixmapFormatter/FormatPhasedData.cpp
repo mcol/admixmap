@@ -113,9 +113,10 @@ int main(int argc, char **argv)
   if(options.WriteCCFile()){
     if(options.Verbose())
       cout << "Writing case-control genoypes to " << options.getOutCCFilename() << endl;
-    EncodeGenotypes(Legend, options.getInCCFilename(), options.getOutCCFilename());
+    unsigned NumTypedInd = EncodeGenotypes(Legend, options.getInCCFilename(), options.getOutCCFilename());
     if(options.Verbose())
-      cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
+      cout << NumTypedInd << " case-control individuals" << endl
+	   << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
 	   << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
     
     Legend.OffsetLimits(options.getFlankLength());
