@@ -89,7 +89,6 @@ public:
   const char *getHWTestFilename() const;
 
   //score test indicators 
-  bool getScoreTestIndicator() const;
   bool getTestForAllelicAssociation() const;
   void setTestForAllelicAssociation(bool); 
   bool getTestForResidualAllelicAssoc()const; 
@@ -135,7 +134,6 @@ protected:
   int TargetIndicator;
   bool fixedallelefreqs;
   bool OutputAlleleFreq;
-  bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
   bool TestForAllelicAssociation;
   bool TestForResidualAllelicAssoc;
   bool HWTest;

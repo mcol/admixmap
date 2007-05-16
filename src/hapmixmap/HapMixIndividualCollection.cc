@@ -76,14 +76,13 @@ HapMixIndividualCollection::~HapMixIndividualCollection(){
   delete[] GlobalConcordanceCounts;
 #endif
 }
-// Individual* HapMixIndividualCollection::getIndividual(int num)const
-// {
-//   if (num < (int)size){
-//     return _child[num];
-//   } else {
-//     return 0;
-//   }
-// }
+const HapMixIndividual* HapMixIndividualCollection::getHapMixIndividual(int num)const{
+  if (num < (int)size){
+    return HapMixChild[num];
+  } else {
+    throw string("ERROR in HMIC::getHapMixIndividual: index out of range");
+  }
+}
 
 //indicates if an individual's genotypes have been masked
 bool HapMixIndividualCollection::isMaskedIndividual(unsigned i, const vector<unsigned>& maskedIndividuals)const{
@@ -190,7 +189,7 @@ void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMix
       unsigned i = 0;
       for(vu_ci indiv_i = MaskedIndividuals.begin(); indiv_i!= MaskedIndividuals.end(); ++i, ++indiv_i) {
         if(*indiv_i <= size) {
-          GPO.Update(i, j, _child[(*indiv_i) - 1]->getUnorderedProbs((*locus_i) - 1));
+          GPO.Update(i, j, HapMixChild[(*indiv_i) - 1]->getUnorderedProbs((*locus_i) - 1));
         }
       }
     }

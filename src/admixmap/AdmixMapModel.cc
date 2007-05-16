@@ -192,7 +192,8 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, Log
 #ifdef PARALLEL
       MPE_Log_event(21, iteration, "ResLDTestStart");
 #endif
-      Scoretests.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs());
+      ResidualAllelicAssocScoreTest.Reset();
+      ResidualAllelicAssocScoreTest.Update(A.GetAlleleFreqs(), options->getHapMixModelIndicator());
 #ifdef PARALLEL
       MPE_Log_event(22, iteration, "ResLDTestEnd");
 #endif
@@ -337,6 +338,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 	  }
 	  //Score Test output
 	  if( options.getScoreTestIndicator() )  Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), false);
+	  ResidualAllelicAssocScoreTest.Output(false, data.getLocusLabels());
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
     } // end "if not AnnealedRun" block
@@ -438,12 +440,17 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
   if( options.getHWTestIndicator() )
     HWtest.Output(data.getLocusLabels()); 
 
-  if( options.getScoreTestIndicator() && Comms::isMaster() ) {
-    //finish writing score test output as R objects
-    Scoretests.ROutput();
-    //write final tables
-    Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), true);
+  if(Comms::isMaster()){
+    if( options.getScoreTestIndicator() ) {
+      //finish writing score test output as R objects
+      Scoretests.ROutput();
+      //write final tables
+      Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), true);
+    }
+    ResidualAllelicAssocScoreTest.ROutput();
+    ResidualAllelicAssocScoreTest.Output(true, data.getLocusLabels());
   }
+
   //output to likelihood ratio file
   if(options.getTestForAffectedsOnly())
     Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), 
@@ -456,10 +463,12 @@ void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, Lo
 
   //cast Options object to AdmixOptions for access to ADMIXMAP options
   AdmixOptions& options = (AdmixOptions&) _options;
-  if( options.getScoreTestIndicator() && (isMaster || isWorker)){
-    Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
+  if(isMaster || isWorker){
+    if( options.getScoreTestIndicator() ){
+      Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
+    }
+    ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci, Log);
   }
-
   //if(isMaster){
   if( options.getTestForDispersion() ){
     DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    

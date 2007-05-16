@@ -22,6 +22,7 @@
 #include "HapMixFreqs.h"
 #include "HapMixIndividualCollection.h"
 #include "MantelHaenszelTest.h"
+#include "HapMixAllelicAssocTest.h"
 
 class HapMixModel : public Model{
 public:
@@ -47,6 +48,7 @@ private:
   PopHapMix* L;
   HapMixFreqs A;
   MantelHaenszelTest MHTest;
+  HapMixAllelicAssocTest AllelicAssocTest;
   HapMixIndividualCollection* HMIC;
 
   void UpdateParameters(int iteration, const Options * _options, LogWriter&, 

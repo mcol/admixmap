@@ -18,7 +18,12 @@ DispersionTest.cc DispersionTest.h \
 IndAdmixOutputter.cc IndAdmixOutputter.h \
 MisSpecAlleleFreqTest.cc MisSpecAlleleFreqTest.h \
 PopAdmix.cc PopAdmix.h \
-StratificationTest.cc StratificationTest.h
+StratificationTest.cc StratificationTest.h \
+AffectedsOnlyTest.cc AffectedsOnlyTest.h \
+AdmixtureAssocTest.cc AdmixtureAssocTest.h \
+AllelicAssocTest.cc AllelicAssocTest.h \
+AllelicAssocSubTest.cc AllelicAssocSubTest.h \
+ScoreTests.cc ScoreTests.h 
 
 admixmap_LDADD=$(top_builddir)/$(subdir)/../base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
 

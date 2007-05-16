@@ -6,8 +6,6 @@
  *   (3) Score test for admixture association (admixturescoretest)
  *   (4) Score test for linkage with locus ancestry
  *   (5) Affecteds-only score test for linkage with locus ancestry
- *   (6) Score test for residual allelic association between adjacent pairs of linked loci
- *   (7) hapmix allelic assoc test (using CopyNumberAssocTest)
  *
  *   Copyright (c) 2005 - 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -75,19 +73,8 @@ void ScoreTests::Initialise(Options* op, const IndividualCollection* const indiv
     | Allelic association  |
     -----------------------*/
   if( options->getTestForAllelicAssociation() ){
-    if(options->getHapMixModelIndicator()){//use new test, with conditional distribution
-      HapMixAllelicAssocTest.Initialise(options->getAllelicAssociationScoreFilename(), 1, L, Log, false);
-    }
-    else{//use original allelic assoc test
-      AllelicAssociationTest.Initialise(op, indiv, Loci, Log);
-    }
+    AllelicAssociationTest.Initialise(op, indiv, Loci, Log);
   }  
-
-  /*--------------------------------
-    | Residual Allelic association  |
-    -------------------------------*/
-  ResidualAllelicAssocScoreTest.Initialise(op, indiv, Loci, Log);
-
 }
 
 /**
@@ -97,8 +84,6 @@ void ScoreTests::Initialise(Options* op, const IndividualCollection* const indiv
 void ScoreTests::Reset(){
   AdmixtureAssocScoreTest.Reset();  
   AllelicAssociationTest.Reset();
-  ResidualAllelicAssocScoreTest.Reset();
-  HapMixAllelicAssocTest.Reset();
   
 }
 void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
@@ -120,13 +105,7 @@ void ScoreTests::Update(const vector<Regression* >& R)
     const double dispersion = R[0]->getDispersion();
     
     //NOTE: in future this loop will be outside score tests classes so the indiv indices can be controlled outside
-    //eg if(hapmixmodel && casecontrolanalysis && i>NumIndividuals)update allelic assoc test
     const int offset = individuals->getFirstScoreTestIndividualNumber();
-
-    if(options->getHapMixModelIndicator() && options->getTestForAllelicAssociation())
-      for( int i = worker_rank ; i < NumberOfIndividuals; i+=NumWorkers ){
-	HapMixAllelicAssocTest.UpdateB(R[0]->DerivativeInverseLinkFunction(i), dispersion, 0);
-      }
 
     for( int i = worker_rank ; i < NumberOfIndividuals; i+=NumWorkers ){
       
@@ -143,23 +122,7 @@ void ScoreTests::Update(const vector<Regression* >& R)
       }
       //allelic association
       if( options->getTestForAllelicAssociation() )
-	if(options->getHapMixModelIndicator()){
-	  // vector<double>OrderedProbs(4);
-	  vector<vector<double> > UnorderedProbs(3, vector<double>(1));
-	  
-	  unsigned int numberCompositeLoci = Lociptr->GetNumberOfCompositeLoci();
-	  for(unsigned int j = 0; j < numberCompositeLoci; j++ ) {
-	    // SNPs only
-	    if (Lociptr->GetNumberOfStates(j) == 2) {
-	      //        ind->calculateUnorderedProbs(j);
-	      UnorderedProbs = ind->getUnorderedProbs(j); 
-	      // from this line onward, code does not change - rest of score test update remains same
-	      HapMixAllelicAssocTest.Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
-	    }
-	  }
-	}
-	else
-	  AllelicAssociationTest.Update( ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
+	AllelicAssociationTest.Update( ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
     }
   }
   
@@ -188,53 +151,23 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	AffectedsOnlyScoreTest.Accumulate();
       }
       if(options->getTestForAllelicAssociation()){
-	/*------------------------------------
-	  |hapmixmodel allelic assoc test      |
-	  ------------------------------------*/ 
-	if(options->getHapMixModelIndicator()){
-	  HapMixAllelicAssocTest.Accumulate();
-	}
-      
 	/*-------------------------------------
 	  | Allelic and haplotype association  |
 	  -------------------------------------*/
-	else{
-	  AllelicAssociationTest.Accumulate();
-	}
+	AllelicAssociationTest.Accumulate();
       }
     
   }//end if rank==0
 }
 
-void ScoreTests::UpdateScoresForResidualAllelicAssociation(const FreqArray& AlleleFreqs){
-  ResidualAllelicAssocScoreTest.Update(AlleleFreqs, options->getHapMixModelIndicator());
-}
-
-
-// }
 // ********** OUTPUT **********************************************************
 
 void ScoreTests::Output(const Vector_s& PLabels, const Vector_s& LocusLabels, bool final){
-  //PopLabels = PLabels;
-
   //Allelic association
   if( options->getTestForAllelicAssociation() )    {
-    if(options->getHapMixModelIndicator()){
-      string filename; //ignored if !final
-      if(final){
-	filename = (options->getResultsDir());
-	filename.append("/AllelicAssocTestsFinal.txt");
-      }
-      //else outfile = &allelicAssocScoreStream;
-      HapMixAllelicAssocTest.Output(PLabels, *Lociptr, final, filename.c_str());
-    }//end hapmixmodel test
-    else{
-      AllelicAssociationTest.Output(LocusLabels, final);
-    }//end if not hapmixmodel
-
+    AllelicAssociationTest.Output(LocusLabels, final);
   }//end if allelic assoc test  
 
-  
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
     const char* finalfilename = 0;
@@ -256,9 +189,6 @@ void ScoreTests::Output(const Vector_s& PLabels, const Vector_s& LocusLabels, bo
     AffectedsOnlyScoreTest.Output(PLabels, *Lociptr, final, finalfilename);
   }
   
-  //residual allelic association
-  ResidualAllelicAssocScoreTest.Output(final, LocusLabels);
-  
   //admixture association
   if( !final && options->getTestForAdmixtureAssociation() ){
     AdmixtureAssocScoreTest.Output();
@@ -272,13 +202,7 @@ void ScoreTests::ROutput(){
    * R object previously written to allelicAssocScoreStream
    */
   if(options->getTestForAllelicAssociation()){
-    if(options->getHapMixModelIndicator()){
-      HapMixAllelicAssocTest.ROutput();
-    }
-    else{
       AllelicAssociationTest.ROutput();
-
-    }
   }  
   
   /**
@@ -296,13 +220,6 @@ void ScoreTests::ROutput(){
   if (options->getTestForAffectedsOnly()){
     AffectedsOnlyScoreTest.ROutput();
   }
-
-  /**
-   * writes out the dimensions and labels of the 
-   * R-matrix previously written to ResAlleleScoreFile
-   */
-  ResidualAllelicAssocScoreTest.ROutput();
-
 }
 
 AffectedsOnlyTest& ScoreTests::getAffectedsOnlyTest(){

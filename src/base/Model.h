@@ -26,7 +26,7 @@
 #include "InputData.h"
 #include "IndividualCollection.h"
 #include "Chromosome.h"
-#include "ScoreTests.h"
+#include "ResidualLDTest.h"
 #include "HWTest.h"
 #include "Comms.h"
 #include "Annealer.h"
@@ -99,7 +99,7 @@ protected:
   std::ofstream avgstream; //output to ErgodicAverageFile
 
   HWTest HWtest;
-  ScoreTests Scoretests;
+  ResidualLDTest ResidualAllelicAssocScoreTest;
   double AISsumlogz; //for computing marginal likelihood by Annealed Importance Sampling
 private:
   std::ofstream loglikelihoodfile;

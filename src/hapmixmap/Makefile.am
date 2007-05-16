@@ -15,7 +15,8 @@ hapmixmap.cc \
 HapMixModel.cc HapMixModel.h \
 HapMixOptions.cc HapMixOptions.h \
 MantelHaenszelTest.cc MantelHaenszelTest.h \
-PopHapMix.cc PopHapMix.h 
+PopHapMix.cc PopHapMix.h \
+HapMixAllelicAssocTest.cc HapMixAllelicAssocTest.h
 
 parallel_SOURCES = 
 

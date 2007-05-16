@@ -33,7 +33,7 @@ public:
   const int* getConcordanceCounts()const;
   ///returns sufficient statistics for update of mixture proportions
   const int* getSumArrivalCounts()const;
-  //Individual* getIndividual(int)const;
+  const HapMixIndividual* getHapMixIndividual(int num)const;
   ///determines if individual i is a case/control ie its genotype came from ccgenotypesfile
   bool isCaseControl(unsigned i)const;
   int getNumberOfIndividualsForScoreTests()const;

@@ -393,8 +393,6 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
       Log << "Default priors will be set for the allele frequencies\n";
       }
   
-  ScoreTestIndicator = (TestForAllelicAssociation || TestForResidualAllelicAssoc);
-
   if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
     // if not specified as an option

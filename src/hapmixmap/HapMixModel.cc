@@ -179,15 +179,13 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
     //score tests
   if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){
     //update score tests every SCORETEST_UPDATE_EVERY iterations after burn-in
-    if( options->getScoreTestIndicator() && !(iteration%SCORETEST_UPDATE_EVERY) ){
-      EventLogger::LogEvent(21, iteration, "ScoreTestUpdatestart");
-      //TODO: broadcast dispersion in linear regression
-      Scoretests.Update(R);//score tests evaluated for first outcome var only
-      EventLogger::LogEvent(22, iteration, "ScoreTestUpdateEnd");
+    if( options->getTestForAllelicAssociation()&& !(iteration%SCORETEST_UPDATE_EVERY) ){
+      AllelicAssocTest.Update(HMIC, R[0], Loci);
     }
-    if(options->getTestForResidualAllelicAssoc()){
+    if(options->getTestForResidualAllelicAssoc()&& !(iteration%SCORETEST_UPDATE_EVERY)){
       EventLogger::LogEvent(21, iteration, "ResLDTestStart");
-      Scoretests.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs());
+      ResidualAllelicAssocScoreTest.Reset();
+      ResidualAllelicAssocScoreTest.Update(A.GetAlleleFreqs(), options->getHapMixModelIndicator());
       EventLogger::LogEvent(22, iteration, "ResLDTestEnd");
     }
   }
@@ -296,7 +294,12 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _optio
           avgstream << endl;
         }
         //Score Test output
-        if( options.getScoreTestIndicator() )  Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), false);
+	ResidualAllelicAssocScoreTest.Output(false, data.getLocusLabels());
+	if( options.getTestForAllelicAssociation() )    {
+	  string filename; //ignored if !final
+	  AllelicAssocTest.Output(data.GetPopLabels(), Loci, false, filename.c_str());
+	}
+
         if(options.getMHTest() && Comms::isMaster()){
           MHTest.Output(options.getMHTestFilename(), data.getLocusLabels(), false);
         }
@@ -359,12 +362,17 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
   }
   //Write final score test tables  
   if(Comms::isMaster()){
-    if( options.getScoreTestIndicator() ) {
-      //finish writing score test output as R objects
-      Scoretests.ROutput();
-      //write final tables
-      Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), true);
+    ResidualAllelicAssocScoreTest.ROutput();
+    ResidualAllelicAssocScoreTest.Output(true, data.getLocusLabels());
+
+    if( options.getTestForAllelicAssociation() )    {
+      string filename; //ignored if !final
+      filename = (options.getResultsDir());
+      filename.append("/AllelicAssocTestsFinal.txt");
+      AllelicAssocTest.Output(data.GetPopLabels(), Loci, true, filename.c_str());
+      AllelicAssocTest.ROutput();
     }
+
     //output posterior means of lambda (expected number of arrivals)
     L->OutputArrivalRatePosteriorMeans(options.getArrivalRateOutputFilename(), options.getTotalSamples()-options.getBurnIn(), 
 				       data.getUnitOfDistanceAsString());
@@ -404,9 +412,11 @@ void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWr
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
-
-  if( options.getScoreTestIndicator() && (isMaster || isWorker)){
-    Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
+  if(isMaster || isWorker){
+    if( options.getTestForAllelicAssociation() ){
+      AllelicAssocTest.Initialise(options.getAllelicAssociationScoreFilename(), 1, Loci.GetNumberOfCompositeLoci(), Log, false);
+    }
+    ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci, Log);
   }
   if(isMaster)
     InitializeErgodicAvgFile(&options, Log, data.GetPopLabels(), data.getCovariateLabels());

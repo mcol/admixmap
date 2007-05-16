@@ -24,6 +24,7 @@
 #include "MisSpecAlleleFreqTest.h"
 #include "AdmixIndividualCollection.h"
 #include "DispersionFreqs.h"
+#include "ScoreTests.h"
 
 class AdmixMapModel : public Model{
 public:
@@ -55,6 +56,7 @@ private:
   StratificationTest StratTest;
   DispersionTest DispTest;
   MisSpecAlleleFreqTest AlleleFreqTest;
+  ScoreTests Scoretests;
 
   void UpdateParameters(int iteration, const Options *options, 
 			LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal);

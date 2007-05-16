@@ -54,7 +54,6 @@ void Options::SetDefaultValues(){
   fixedallelefreqs = false;
   NumberOfOutcomes = -1;
   RegType = None;
-  ScoreTestIndicator = false; //indicator for any of the score tests in ScoreTests class
   TestForAllelicAssociation = false;
   TestForResidualAllelicAssoc = false;
   OutputAlleleFreq = false;
@@ -166,10 +165,6 @@ int Options::getTargetIndicator() const
   return TargetIndicator;
 }
 
-bool Options::getScoreTestIndicator() const
-{
-  return ScoreTestIndicator;
-}
 bool Options::getOutputAlleleFreq() const
 {
   return OutputAlleleFreq;

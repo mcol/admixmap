@@ -21,23 +21,16 @@
 #include "AllelicAssocTest.h"
 #include "AffectedsOnlyTest.h" 
 #include "CopyNumberAssocTest.h"
-#include "ResidualLDTest.h"
 
 class FreqArray;
 
 /**
-   Class to implement various score tests. 
- *   Class implements the following score tests:
-
+ * Class acts as a wrapper for the following tests:
  *   (1) Score test for allelic association
  *   (2) Score test for within-halpotype association
- *
- * Also acts as a wrapper for the following tests:
  *   (3) Score test for admixture association (admixturescoretest)
  *   (4) Score test for linkage with locus ancestry
  *   (5) Affecteds-only score test for linkage with locus ancestry
- *   (6) Score test for residual allelic association between adjacent pairs of linked loci
- *   (7) hapmix allelic assoc test (using CopyNumberAssocTest)
  */
 class ScoreTests{
 
@@ -72,12 +65,10 @@ private:
   void Reset();
 
   AllelicAssocTest AllelicAssociationTest;
-  ResidualLDTest ResidualAllelicAssocScoreTest;//here temporarily, until rest of scoretests classes have been created
   AdmixtureAssocTest AdmixtureAssocScoreTest;
   AffectedsOnlyTest AffectedsOnlyScoreTest;
   CopyNumberAssocTest AncestryAssocScoreTest;
 
-  CopyNumberAssocTest HapMixAllelicAssocTest;//test using conditional distribution of copies of allele2, rather than sampled values
 };
 
 

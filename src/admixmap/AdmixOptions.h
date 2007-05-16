@@ -78,6 +78,7 @@ public:
   const char* getIndAdmixModeFilename()const;
 
   //score test indicators 
+  bool getScoreTestIndicator() const;
   bool getTestForAdmixtureAssociation() const;
   bool getTestForAffectedsOnly() const;
   void setTestForAffectedsOnly(bool);  
@@ -122,6 +123,7 @@ private:
   bool TestForLinkageWithAncestry;
   bool TestForMisspecifiedAlleleFreqs;
   bool TestForMisspecifiedAlleleFreqs2;
+  bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
 
   std::vector<bool> _admixed;
   bool _symmetric;         

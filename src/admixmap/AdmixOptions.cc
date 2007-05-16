@@ -52,6 +52,7 @@ void AdmixOptions::SetDefaultValues(){
   TestForLinkageWithAncestry = false;
   TestForMisspecifiedAlleleFreqs = false;
   TestForMisspecifiedAlleleFreqs2 = false;
+  ScoreTestIndicator = false; //indicator for any of the score tests in ScoreTests class
   HWTest = false;
 
 //   globalrhoPrior.push_back(3.0);//rhoalpha 
@@ -197,6 +198,11 @@ bool AdmixOptions::getLocusForTestIndicator() const
 int AdmixOptions::getLocusForTest() const
 {
   return LocusForTest;
+}
+
+bool AdmixOptions::getScoreTestIndicator() const
+{
+  return ScoreTestIndicator;
 }
 
 const char *AdmixOptions::getAncestryAssociationScoreFilename() const
@@ -702,7 +708,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     }
   
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || 
-			TestForAdmixtureAssociation || TestForHaplotypeAssociation || TestForResidualAllelicAssoc);
+			TestForAdmixtureAssociation || TestForHaplotypeAssociation );
 
   if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 

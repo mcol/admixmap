@@ -3,12 +3,8 @@ AM_LDFLAGS= -L$(srcdir)/../bcppcl
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS)
 
-all_SOURCES = AdmixtureAssocTest.cc AdmixtureAssocTest.h \
-AffectedsOnlyTest.cc AffectedsOnlyTest.h \
-AlleleFreqs.cc AlleleFreqs.h \
+all_SOURCES = AlleleFreqs.cc AlleleFreqs.h \
 AlleleFreqSampler.cc AlleleFreqSampler.h \
-AllelicAssocTest.cc AllelicAssocTest.h \
-AllelicAssocSubTest.cc AllelicAssocSubTest.h \
 Annealer.cc Annealer.h \
 Chromosome.cc Chromosome.h \
 common.h \
@@ -33,8 +29,7 @@ misc.cc \
 Model.cc Model.h \
 Options.cc Options.h \
 ResidualLDTest.cc ResidualLDTest.h \
-ScoreTestBase.cc ScoreTestBase.h \
-ScoreTests.cc ScoreTests.h 
+ScoreTestBase.cc ScoreTestBase.h
 
 if PARALLEL
 noinst_LIBRARIES = libbase-para.a
