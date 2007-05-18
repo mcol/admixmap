@@ -30,13 +30,13 @@ std::pair<char, char> getComplement(std::pair<char, char> a);
 std::pair<char, char> GenotypeString2Pair(const std::string& g);
 
 ///Encodes a string containing a pair of bases as a genotype string
-std::string getGenotype(const std::string& g, std::pair<char, char> a);
+std::string getGenotype(const std::string& g, std::pair<char, char> a, char Missing);
 
 ///Encodes a pair of bases as a genotype string
-std::string getGenotype(const std::pair<char, char>& g, std::pair<char, char> a);
+std::string getGenotype(const std::pair<char, char>& g, std::pair<char, char> a, char Missing);
 
 //Encodes genotypes given in infilename, sorts and writes to outfilename
 unsigned EncodeGenotypes(HapMapLegend& Legend,
-                         const char* infilename, const char* outfilename);
+                         const char* infilename, const char* outfilename, char missing);
 
 #endif

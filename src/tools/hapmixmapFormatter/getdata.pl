@@ -36,11 +36,12 @@ my $ccgenotypefile = '';
 my $output_ccgfile='';
 my $flank = 0;
 my $limitloci = 0;
-my $gzip_path = "/usr/bin/gzip";
+my $missing_string = 'N';
+my $gzip_path = "/usr/bin";
 #my $gzip_path = "c:\\msys\\bin\\";#for Windows users who have msys
-my $HapMapPrefix = "http://www.hapmap.org/downloads/phasing/2006-07_phaseII/phased/genotypes_chr${CHR}_${POP}_r21_nr_fwd";
+my $HapMapPrefix = '';
 ## where to put downloaded files
-my $dataprefix = "HapMapData$slash$POP";
+my $dataprefix = '';
 my $formatter_exec = "FPHD";
 my $HelpNeeded = 0;
 
@@ -66,6 +67,7 @@ GetOptions(
 "locusfile=s"     => \$locusfile,
 "flank=f"         => \$flank,
 "loci=i"          => \$limitloci,
+"missing=s"       => \$missing_string
 );
 
 print "Unprocessed by Getopt::Long\n" if $ARGV[0];
@@ -96,9 +98,12 @@ print "-ccgfile=<>             name of formatted case-control genotypes file to 
 print "-flank=F                size of flanking region in Kb\n";
 print "-loci=n                 maximum number of loci per chromosome \n";
 print "                        (valid only if no case-control file specified)\n";
+print "-missing                character denoting a missing genotype\n";
 exit;
 }
-
+if(!$dataprefix){
+  $dataprefix = "HapMapData$slash$POP";
+}
 ##check arguments
 if($CHR < 1 || $CHR > 22){
   die "Invalid chromosome number: $CHR \n";
@@ -138,6 +143,9 @@ if(!$Quiet){
 
 ## 1: download files from HapMap and decompress
 if ($Download){
+  if(!$HapMapPrefix){
+    $HapMapPrefix = "http://www.hapmap.org/downloads/phasing/2006-07_phaseII/phased/genotypes_chr${CHR}_${POP}_r21_nr_fwd";
+  }
   my $LegendFile = "${HapMapPrefix}_legend.txt.gz";
   my $PhasedFile = "${HapMapPrefix}_phased.gz";
   my $SampleFile = "${HapMapPrefix}_sample.txt.gz";
@@ -145,7 +153,7 @@ if ($Download){
   my @HapMapFiles = ($LegendFile, $PhasedFile, $SampleFile);
 
   if(!(-e $dataprefix)){
-    if(!$Quiet){print "making $dataprefix";}
+    if(!$Quiet){print "making $dataprefix\n";}
     mkpath($dataprefix);
   }
   my $outLegendFile = "$dataprefix${slash}chr${CHR}_legend.txt";
@@ -160,7 +168,7 @@ if ($Download){
       or die "Couldn't get @HapMapFiles[$i]";
     if ($Unzip){
       #decompress using gzip (if available)
-      system("${gzip_path}gzip -d $zipfile");
+      system("${gzip_path}${slash}gzip -d $zipfile");
     }
   }
 
@@ -181,6 +189,7 @@ if( $Format){
     if($limitloci){$cmd = $cmd . " -n$limitloci";}
   }
   if($Verbose){$cmd = $cmd . " -v";}
+  $cmd = $cmd . " -m$missing_string";
 
   #print "$cmd";
   my $status = system($cmd);

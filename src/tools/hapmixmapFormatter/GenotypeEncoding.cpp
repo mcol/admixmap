@@ -22,7 +22,7 @@
 
 using namespace::std;
 
-#define MISSING 'N'
+//#define MISSING 'N'
 #define NA_HAPLOID 'X'
 
 //small function to determine if a given string is in a list of strings
@@ -70,15 +70,15 @@ pair<char, char> getComplement(pair<char, char> a) {
 
 ///converts a base pair string g, eg "CT" or "A/G", to an admixmap/hapmixmap format genotype eg "1,2"
 ///a is the reference string of alleles eg "C/T"
-string getGenotype(const string& g, pair<char, char> a) {
+string getGenotype(const string& g, pair<char, char> a, char MISSING) {
 
-  return getGenotype(GenotypeString2Pair(g), a);
+  return getGenotype(GenotypeString2Pair(g), a, MISSING);
 
 }
 
 ///converts a base pair to an admixmap/hapmixmap format genotype eg "1,2"
 ///a is the reference string of alleles eg "C/T"
-string getGenotype(const pair<char, char>& g, pair<char, char> a) {
+string getGenotype(const pair<char, char>& g, pair<char, char> a, char MISSING) {
   int allele1 = (int)(g.first  == a.first)+ 2*(int)(g.first  == a.second);
   int allele2 = (int)(g.second == a.first)+ 2*(int)(g.second == a.second);
 
@@ -134,7 +134,7 @@ pair<char, char> GenotypeString2Pair(const string& g) {
   return gPair;
 }
 
-unsigned EncodeGenotypes(HapMapLegend& Legend, const char* infilename, const char* outfilename) {
+unsigned EncodeGenotypes(HapMapLegend& Legend, const char* infilename, const char* outfilename, char MISSING) {
   ifstream RawGeno(infilename);
   if(!RawGeno.is_open()){
     cerr << "** ERROR: could not open " << infilename << endl;
@@ -147,6 +147,7 @@ unsigned EncodeGenotypes(HapMapLegend& Legend, const char* infilename, const cha
   }
 
   vector<string> TypedLoci;
+  vector<string> NonHapMapLoci;//typed loci not in HapMap (usually because they are monomorphic in the HapMap sample)
   string line, ID;
   //Read Header of raw genotypes file
   RawGeno >> ID;                                  //skip first col in header
@@ -165,10 +166,20 @@ unsigned EncodeGenotypes(HapMapLegend& Legend, const char* infilename, const cha
   for(vector<string>::const_iterator i = TypedLoci.begin(); i!= TypedLoci.end(); ++i) {
     //check the locus in is the HapMap legend file
     if(!Legend.isInHapMap(*i)){
-      cerr << "** ERROR: " << *i << " is not the name of a HapMap locus on this chromosome" << endl;
-      exit(1);
+      // cerr << "** ERROR: " << *i << " is not the name of a HapMap locus on this chromosome" << endl;
+      //exit(1);
+      NonHapMapLoci.push_back(*i);
     }
-      TypedPos.push_back(Legend[*i].position);
+    TypedPos.push_back(Legend[*i].position);
+  }
+
+  if(NonHapMapLoci.size()){
+    cerr << "** Warning: " << NonHapMapLoci.size() << " loci are not in the HapMap for this chromosome and will be omitted";
+//     if(NonHapMapLoci.size()<=10){
+//       cerr << ":" << endl;
+//       copy(NonHapMapLoci.begin(), NonHapMapLoci.end(), ostream_iterator<string>(cerr, " "));
+//     }
+    cerr << endl;
   }
 
   //sort typed loci by position
@@ -199,20 +210,23 @@ unsigned EncodeGenotypes(HapMapLegend& Legend, const char* infilename, const cha
 
   //finish writing header
   for(vector<unsigned>::const_iterator i = ranks.begin(); i !=ranks.end(); ++i) {
-    //if(Legend.isInHapMap(TypedLoci[*i]))
+    if(Legend.isInHapMap(TypedLoci[*i]))
       OutGeno << " " <<  TypedLoci[*i];
   }
   OutGeno << endl;
 
   unsigned NumInd = 0;
   vector<pair<string, unsigned> > AllMissingIndivs;
+  string ValidChars = "ACTG:,; \t";
+  ValidChars.append(1, MISSING);
+
   //read ID of 1st individual
   RawGeno >> ID;
   while(getline(RawGeno, line)) {
     ++NumInd;
 
     //check for invalid characters 
-    string::size_type badchar = line.find_first_not_of("ACTGN:,; \t");
+    string::size_type badchar = line.find_first_not_of(ValidChars);
     if( badchar != string::npos){
       cerr << "** ERROR: invalid character on line " << NumInd +1 << " of " << infilename << ": " << line[badchar] << endl;
       exit(1);
@@ -239,7 +253,8 @@ unsigned EncodeGenotypes(HapMapLegend& Legend, const char* infilename, const cha
     OutGeno << ID;
     //convert genotypes and write to file
     for(vector<unsigned>::const_iterator i = ranks.begin(); i !=ranks.end(); ++i) {
-      OutGeno << " " <<  getGenotype(genotypesline[*i], Legend[TypedLoci[*i]].alleles);
+      if(Legend.isInHapMap(TypedLoci[*i]))
+	OutGeno << " " <<  getGenotype(genotypesline[*i], Legend[TypedLoci[*i]].alleles, MISSING);
     }
 
     OutGeno << endl;

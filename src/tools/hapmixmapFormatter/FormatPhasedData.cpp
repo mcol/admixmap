@@ -64,10 +64,10 @@ void WriteLocusFile(HapMapLegend& Legend, ofstream& locusfile, unsigned first, u
 
 int main(int argc, char **argv)
 {
-  if (argc < 3) {
-    FPHDOptions::PrintHelpText();
-    exit(0);
-  }
+//   if (argc < 3) {
+//     FPHDOptions::PrintHelpText();
+//     exit(0);
+//   }
 
   ofstream genotypesfile;
   ofstream locusfile;
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
   if(options.WriteCCFile()){
     if(options.Verbose())
       cout << "Writing case-control genoypes to " << options.getOutCCFilename() << endl;
-    unsigned NumTypedInd = EncodeGenotypes(Legend, options.getInCCFilename(), options.getOutCCFilename());
+    unsigned NumTypedInd = EncodeGenotypes(Legend, options.getInCCFilename(), options.getOutCCFilename(), options.getMissingChar());
     if(options.Verbose())
       cout << NumTypedInd << " case-control individuals" << endl
 	   << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "

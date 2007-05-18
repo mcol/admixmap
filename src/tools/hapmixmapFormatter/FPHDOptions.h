@@ -29,6 +29,7 @@ class FPHDOptions{
   const char* getInCCFilename()const;
   const char* getOutCCFilename()const;
   float getFlankLength()const;
+  char getMissingChar()const;
 
  private:
   bool beVerbose;
@@ -40,6 +41,7 @@ class FPHDOptions{
   char* outcasecontrolfilename;
   unsigned long userloci;
   float flankLength;//length in Kb of flanking region if using CCgenotypesfile 
+  char MissingChar;
 
   FPHDOptions();
   void ParseOptions(int argc, char*const* argv, std::ofstream&, std::ofstream&);

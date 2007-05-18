@@ -29,6 +29,7 @@ FPHDOptions::FPHDOptions(int argc, char*const* argv, std::ofstream& genotypesfil
   LimitLoci = false;
   Chr = 0;
   flankLength = 1e5;//10Kb
+  MissingChar = 'N';
 
   ParseOptions(argc, argv, genotypesfile, locusfile);
   if (Chr <= 0 || Chr > MAXCHROMOSOMES){
@@ -41,7 +42,7 @@ FPHDOptions::FPHDOptions(int argc, char*const* argv, std::ofstream& genotypesfil
 void FPHDOptions::ParseOptions(int argc, char*const* argv, std::ofstream& genotypesfile, std::ofstream& locusfile){
   int ich;
   char *genotypesfilename, *locusfilename;
-  while ((ich = getopt(argc, argv, "hc:g:l:p:i:o:n:f:qv")) != EOF) {
+  while ((ich = getopt(argc, argv, "hc:g:l:p:i:o:n:f:qvm")) != EOF) {
     switch (ich) {
     case 'h':{
       PrintHelpText();
@@ -94,6 +95,10 @@ void FPHDOptions::ParseOptions(int argc, char*const* argv, std::ofstream& genoty
       flankLength = 1000 * atof(optarg);
       break;
     }
+    case 'm':{//missing-value character
+      MissingChar = optarg[0];
+      break;
+    }
     case 'v':{                 //verbose mode
       beVerbose = true;
       break;
@@ -141,6 +146,7 @@ void FPHDOptions::PrintHelpText(){
        << "                     output." << endl
        << "-o <output case-control-file>  " << endl
        << "                   - valid only with -i, defaults to 'CaseControlGenotypes.txt'." << endl
+       << " -m  --missing     - The character used to represent missing data. Defaults to 'N'"
        << "-f<length-in-Kb>   - length in Kb of flanking region outside of typed region." << endl
        << "                     Valid only with -i. Defaults to 10." << endl << endl
        << "Note that HapMap input files must be named 'chrN_phased.txt', 'chrN_sample.txt'" << endl
@@ -177,4 +183,7 @@ const char* FPHDOptions::getOutCCFilename()const{
 }
 float FPHDOptions::getFlankLength()const{
   return flankLength;
+}
+char FPHDOptions::getMissingChar()const{
+  return MissingChar;
 }
