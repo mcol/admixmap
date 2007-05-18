@@ -10,6 +10,21 @@ if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
   ## resultsdir set to default directory 
   resultsdir <- "results"
 }
+##determine plotting device
+## can be postscript, pdf, jpeg or png
+plotDevice <- Sys.getenv("RPLOTS")
+
+openPlotDevice <- function(filename){
+  if(plotDevice == "pdf"){
+    pdf(paste(filename, "pdf", sep="."))
+  }else if(plotDevice == "jpeg"){
+    jpeg(paste(filename, "jpg", sep="."))
+  }else if(plotDevice == "png"){
+    png(paste(filename, "png", sep="."))
+  }else{##defaults to postscript
+    postscript(paste(filename, "ps", sep="."))
+  }
+}
 
 cbindIfNotNull <- function(table1, table2) {
 ## cbind two tables if both are not null
@@ -322,8 +337,8 @@ calculateAndPlotQuantiles <- function(param.samples, nvars) {
   post.quantiles <- matrix(data=NA, nrow=nvars, ncol=4, 
                            dimnames=list(dimnames(param.samples)[[2]], 
                              c("Median", "Mean", "Pct2.5", "Pct97.5")))
-  outputfile <- paste(resultsdir, "ParameterPosteriorDensities.ps", sep="/" )
-  postscript(outputfile)
+  outputfile <- paste(resultsdir, "ParameterPosteriorDensities", sep="/" )
+  openPlotDevice(outputfile)
   for(j in 1:nvars) {
     post.quantiles[j, c(1,3,4)] <- quantile(param.samples[,j], probs = c(0.5, 0.025, 0.975), na.rm = T)
     post.quantiles[j, 2] <- mean(param.samples[,j], na.rm=T) 
@@ -343,7 +358,7 @@ calculateAndPlotQuantiles <- function(param.samples, nvars) {
 plotlogpvalues <- function(psfilename, log10pvalues, table.every, title, hist ) {
   ## function to plot cumulative p-values
   ## arguments: psfilename, matrix of -log10pvalues, table.every, plot title
-  postscript(psfilename)
+  openPlotDevice(psfilename)
   ntests <- dim(log10pvalues)[1]
   evaluations <- dim(log10pvalues)[2]
   ## generate plot for test 1
@@ -375,8 +390,7 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
   ## stdNormDev is a 3-way array: k populations, loci, draws 
   log10pvalues <- -log10(pvalues)
   outputfile <- paste(resultsdir, outfile, sep="/")
-  outputfile <- paste(outputfile, ".ps", sep="")
-  postscript(outputfile)
+  openPlotDevice(outputfile)
   colours <- c("black", "blue", "red", "green")
   header <- paste("Running computation of p-values for ",outfile,sep="")
   header <- paste(header," score tests",sep="");
@@ -408,7 +422,7 @@ QQplot <- function(zscores, title, filename){
   point.list <- zscores
   if(length(point.list[!is.na(point.list)]) > 0){
     ##open output file
-    postscript( paste(resultsdir, filename, sep="/" ))
+    openPlotDevice( paste(resultsdir, filename, sep="/" ))
     ##qq-plot
     point.list <- qqnorm(zscores, main = title)
     ##add line through the points plotted
@@ -444,7 +458,7 @@ plotHWScoreTest <- function(scorefile, k) {
   scoretest <- read.table(paste(resultsdir,scorefile,sep="/"),header=TRUE, row.names="Locus")
   
   #qq plot of scores
-  QQplot(scoretest[,6], "QQ plot of H-W Test z-scores", paste(resultsdir, "QQPlotHWTest.ps", sep="/" ))
+  QQplot(scoretest[,6], "QQ plot of H-W Test z-scores", paste(resultsdir, "QQPlotHWTest", sep="/" ))
   
 }
   
@@ -507,9 +521,8 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   ##qq plot of scores
   outputfile <- paste(resultsdir, "QQPlot", sep="/" )
   outputfile <- paste(outputfile, testname, sep="")
-  outputfile <- paste(outputfile, ".ps", sep="")
   
-  postscript(outputfile)
+  openPlotDevice(outputfile)
   title <- paste("QQ plot of z-scores,", testname,sep="" )
   for(k in 1:(nrow(zscores))){
     if( length(zscores[k, ][!is.na(zscores[k, ])]) > 0 ) {
@@ -523,8 +536,8 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
 
 plotScoreMap <- function(loci.compound, zscores, K, testname){
   outputfile <- paste(resultsdir, testname, sep="/")
-  outputfile <- paste(outputfile, "ScoreMap.ps", sep="")
-  postscript(outputfile)
+  outputfile <- paste(outputfile, "ScoreMap", sep="")
+  openPlotDevice(outputfile)
   for(chr in 1:n.chr) {
     for(pop in 1:K) {
       plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
@@ -562,8 +575,8 @@ plotExclusionMap <- function(loci.compound, info.content, cutoffs.lo, cutoffs.hi
 plotInfoMap <- function(loci.compound, info.content, K, testname) {
   ## info.content is matrix in which rows index populations, cols index loci
   outputfile <- paste(resultsdir, testname, sep="/")
-  outputfile <- paste(outputfile, "InformationContentMap.ps", sep="")
-  postscript(outputfile)
+  outputfile <- paste(outputfile, "InformationContentMap", sep="")
+  openPlotDevice(outputfile)
   for(chr in 1:n.chr) {
     for(pop in 1:K) {
       plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
@@ -853,8 +866,8 @@ plotAdmixtureDistribution <- function(alphas, samples, k) {
   ## plots histogram of posterior means of individual admixture proportions for comparison 
   ## with population distribution given by Dirichlet parameter vector alphas
   xvalues <- seq(0.005,0.995,0.01)
-  outputfile <- paste(resultsdir, "DistributionIndividualAdmixture.ps", sep="/" )
-  postscript(outputfile)
+  outputfile <- paste(resultsdir, "DistributionIndividualAdmixture", sep="/" )
+  openPlotDevice(outputfile)
   par(cex=1.5, las=1) 
   for(pop in 1:k) {
     popM <- dbeta(xvalues, alphas[pop], sum(alphas[-pop])) # beta density of pop at xvalues
@@ -889,8 +902,8 @@ writePosteriorMeansIndivAdmixture <- function(samples, K) {
 plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIntensities, user.options,
                                                 population.labels, AdmixturePrior, IsAdmixed, ParentsIdentified) {
   ## samples.admixture: 3-way array with dimensions that index subpopulations, parents, draws
-  outputfile <- paste(resultsdir, "IndivParameters.ps", sep="/")
-  postscript(outputfile)
+  outputfile <- paste(resultsdir, "IndivParameters", sep="/")
+  openPlotDevice(outputfile)
   popcols <- c("grey", "blue", "red", "yellow", "orange", "green")
   if(IsAdmixed[1] & IsAdmixed[2]) { # both parents admixed
     #if(ParentsIdentified) { # bivariate plots if both parents have ancestry from pop
@@ -999,7 +1012,7 @@ plotArrivalRates <- function(arrival.rate.pm.file, locus.table, ps.filename){
   x.label <- dimnames(locus.table)[[2]][3]
 
   
-  postscript(paste(resultsdir, ps.filename, sep="/"))
+  openPlotDevice(paste(resultsdir, ps.filename, sep="/"))
   plot(map.pos[-1], ar.pm, xlab=x.label, ylab=dimnames(ar.pm)[[2]], main="Arrival Rate Map",type='l')  
   dev.off()
 }
@@ -1024,7 +1037,7 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filena
   map.pos <- locus.table[,3]
   x.label <- dimnames(locus.table)[[2]][3]
   
-  postscript(paste(resultsdir, info.map.filename, sep="/"))
+  openPlotDevice(paste(resultsdir, info.map.filename, sep="/"))
   plot(map.pos, percent.info, xlab=x.label, ylab="\%Info Extracted", main="Extracted Info Map",type='l')  
   dev.off()
 
@@ -1087,7 +1100,7 @@ if(is.null(user.options$paramfile)) {
       if(user.options$hapmixmodel ==1){
         checkConvergence(param.samples, "Population sumintensities parameters",
                          paste(resultsdir, "SumIntensitiesConvergenceDiags.txt", sep="/"));
-        postscript( paste(resultsdir, "PopSumIntensitiesAutocorrelations.ps", sep="/" ))     
+        openPlotDevice( paste(resultsdir, "PopSumIntensitiesAutocorrelations", sep="/" ))     
         plotAutocorrelations(param.samples, user.options$every)
         dev.off()
       }else{
@@ -1098,7 +1111,7 @@ if(is.null(user.options$paramfile)) {
         ## Geweke convergence diagnostics,  autocorrelations and ergodic average plots
         checkConvergence(param.samples, "Population admixture parameters",
                          paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
-        postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
+        openPlotDevice( paste(resultsdir, "PopAdmixParamAutocorrelations", sep="/" ))     
         plotAutocorrelations(param.samples, user.options$every)
         dev.off()
 
@@ -1131,7 +1144,7 @@ if(is.null(user.options$regparamfile) ||
   ## Geweke convergence diagnostics, autocorrelation and ergodic average plots
   checkConvergence(regparam.samples, "Regression parameters",
                    paste(resultsdir, "RegressionParamConvergenceDiags.txt", sep="/"))
-  postscript(paste(resultsdir, "RegressionParamAutocorrelations.ps", sep="/" ))     
+  openPlotDevice(paste(resultsdir, "RegressionParamAutocorrelations", sep="/" ))     
   plotAutocorrelations(regparam.samples, user.options$every)
   dev.off()
   
@@ -1164,7 +1177,7 @@ if(is.null(user.options$dispparamfile)||
   }
   checkConvergence(eta.samples, "Dispersion parameters",
                    paste(resultsdir, "DispParamConvergenceDiags.txt", sep="/"))
-  postscript(paste(resultsdir, "DispParamAutocorrelations.ps", sep="/" ))     
+  openPlotDevice(paste(resultsdir, "DispParamAutocorrelations", sep="/" ))     
   plotAutocorrelations(eta.samples, user.options$every)
   dev.off()
   cat(" done\n", file=outfile, append=T)
@@ -1191,14 +1204,14 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
   nvars <- dim(param.samples.all)[2]
   post.quantiles <- calculateAndPlotQuantiles(param.samples.all, nvars)
 ##plot traces
-  postscript(paste(resultsdir, "TracePlots.ps", sep="/"))
+  openPlotDevice(paste(resultsdir, "TracePlots", sep="/"))
   nsamples <- dim(param.samples.all)[1]
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
   for(var in 1:nvars)
     plot(iters, param.samples.all[,var], xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
   dev.off()
   ##plot cumulative averages from paramfiles
-  postscript(paste(resultsdir, "CumulativeAverages.ps", sep="/"))
+  openPlotDevice(paste(resultsdir, "CumulativeAverages", sep="/"))
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
   for(var in 1:nvars)
     plot(iters, cumsum(param.samples.all[,var])/c(1:nsamples), xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
@@ -1231,7 +1244,7 @@ if(is.null(user.options$ergodicaveragefile) ) {
     cat("ergodicaveragefile is empty\n", file=outfile, append=T)
   } else {
     cat("plotting ergodic averages...", file=outfile, append=T)
-    postscript( paste(resultsdir, "ErgodicAverages.ps", sep="/" ))
+    openPlotDevice( paste(resultsdir, "ErgodicAverages", sep="/" ))
     plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
     dev.off()
     cat(" done\n", file=outfile, append=T)
@@ -1241,7 +1254,7 @@ if(is.null(user.options$ergodicaveragefile) ) {
 #plot energy / loglikelihood
 #if(!is.null(options$loglikelihoodfile)){
 energy.table <- read.table(paste(resultsdir, "loglikelihoodfile.txt", sep="/"), header=F, colClasses=c("integer", "numeric"))
-postscript(paste(resultsdir, "EnergyTracePlot.ps", sep="/"))
+openPlotDevice(paste(resultsdir, "EnergyTracePlot", sep="/"))
 plot(energy.table[,1], energy.table[,2], type='l', main="Trace plot of energy (-loglikelihood)", ylab="Energy", xlab="iteration")
 dev.off()
 #}
@@ -1250,7 +1263,7 @@ dev.off()
 if(!is.null(user.options$thermo) && user.options$thermo == 1){
   cat("plotting energy against coolness...", file=outfile, append=T)
   anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
-  postscript(paste(resultsdir, "annealplot.ps", sep="/"))
+  openPlotDevice(paste(resultsdir, "annealplot", sep="/"))
   ##plot raw points
   plot(anneal.table[,1],anneal.table[,2], xlab="Coolness", ylab="Mean energy", type = 'p')
 ##  ##fit smoothed spline and overlay on points
@@ -1264,7 +1277,7 @@ if(!is.null(user.options$thermo) && user.options$thermo == 1){
 if(user.options$hapmixmodel == 1 && !is.null(user.options$arrivalrateposteriormeanfile)
    && file.exists(paste(resultsdir, user.options$arrivalrateposteriormeanfile, sep="/")) ){
   cat("plotting arrival rate map...", file=outfile, append=T)
-  plotArrivalRates(user.options$arrivalrateposteriormeanfile, loci.compound, "ArrivalRateMap.ps")
+  plotArrivalRates(user.options$arrivalrateposteriormeanfile, loci.compound, "ArrivalRateMap")
   cat(" done\n", file=outfile, append=T)
 }
 
@@ -1278,7 +1291,7 @@ if(!is.null(user.options$hwtestfile) && file.exists(paste(resultsdir,user.option
 if(!is.null(user.options$allelicassociationscorefile)
    && file.exists(paste(resultsdir,user.options$allelicassociationscorefile, sep="/"))) {
   cat("plotting scores in test for allelic association...", file=outfile, append=T)
-  outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
+  outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation", sep="/" )
 
   plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, user.options$every)
   cat(" done\n", file=outfile, append=T)
@@ -1296,7 +1309,7 @@ if(!is.null(user.options$allelicassociationscorefile)
       cat(" done\n", file=outfile, append=T)
     }
     cat("plotting map of information extracted...", file=outfile, append=T)
-    av.percent.info <- plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap.ps", "QQPlotAllelicAssocTests.ps")
+    av.percent.info <- plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap", "QQPlotAllelicAssocTests")
     ##write average information extraction to logfile
     cat(" done\n", file=outfile, append=T)
     cat(" Average Information Extraction: ", av.percent.info[[1]], "\%\n", file=outfile, append=T)
@@ -1308,7 +1321,7 @@ if(!is.null(user.options$allelicassociationscorefile)
 ## read output of score test for association with haplotypes, and plot cumulative results
 if(!is.null(user.options$haplotypeassociationscorefile) && file.exists(paste(resultsdir,user.options$haplotypeassociationscorefile, sep="/"))) {
   cat("plotting scores in test for haplotype association...", file=outfile, append=T)
-  outputfilePlot <- paste(resultsdir, "TestsHaplotypeAssociation.ps", sep="/" )
+  outputfilePlot <- paste(resultsdir, "TestsHaplotypeAssociation", sep="/" )
   plotScoreTest(user.options$haplotypeassociationscorefile, TRUE, outputfilePlot, user.options$every)
   cat(" done\n", file=outfile, append=T)
 }
@@ -1331,7 +1344,7 @@ if(!is.null(user.options$affectedsonlyscorefile) && file.exists(paste(resultsdir
 ## read output of score test for residual allelic association, and plot cumulative results
 if(!is.null(user.options$residualallelicassocscorefile) && file.exists(paste(resultsdir,user.options$residualallelicassocscorefile, sep="/"))) {
   cat("plotting scores in test for residual allelic association", file=outfile, append=T)
-  psfile <- paste(resultsdir, "TestsResidualAllelicAssoc.ps", sep="/")
+  psfile <- paste(resultsdir, "TestsResidualAllelicAssoc", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$residualallelicassocscorefile, psfile, user.options$every)
   cat(" done\n", file=outfile, append=T)
 }
@@ -1339,7 +1352,7 @@ if(!is.null(user.options$residualallelicassocscorefile) && file.exists(paste(res
 ## read output of M-H score test
 if(!is.null(user.options$mhtestfile) && file.exists(paste(resultsdir,user.options$mhtestfile, sep="/"))) {
   cat("plotting scores in M-H test", file=outfile, append=T)
-  psfile <- paste(resultsdir, "TestsMH.ps", sep="/")
+  psfile <- paste(resultsdir, "TestsMH", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$mhtestfile, psfile, user.options$every)
   ##write to file the number of loci with complete info>1 and pvalues<0.05
   writeScoreTestInfo("MHTestFinal.txt", 1, 0.05, "MHTestInfo.txt")
