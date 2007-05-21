@@ -1,1 +1,1 @@
-EXTRA_DIST = dn_genotypes.txt dn_loci.txt CaseControlGenotypes.txt outcome.txt
+EXTRA_DIST = dn_genotypes.txt dn_loci.txt CaseControlGenotypes.txt CaseControlOutcome.txt
