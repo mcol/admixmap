@@ -25,11 +25,11 @@
 class HapMixOptions : public Options
 {
 public:
-  HapMixOptions(int, char**, bool PrintOptionList);
+  HapMixOptions(int, char**);
   ~HapMixOptions();
   
   int checkOptions(LogWriter &Log, int NumberOfIndividuals);
-  void PrintUserOptions();
+  void PrintUserOptions(const char* filename);
 
   //main output files
   const char *getFreqPrecisionOutputFilename() const;
@@ -119,10 +119,8 @@ private:
   std::vector<unsigned> MaskedIndividuals;
   std::vector<unsigned> MaskedLoci;
   
-  void SetOptions(OptionMap& ProgOptions);
-
   void SetDefaultValues();  
-
+  void DefineOptions();
 
   // UNIMPLEMENTED: to avoid use
   HapMixOptions();

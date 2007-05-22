@@ -38,7 +38,7 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
 
 void PrintCopyrightNotice(LogWriter & Log);
 
-void PrintOptionsMessage();
+void PrintUsage(const char* ProgName);
 
 void ThrowException(const string& msg, LogWriter & Log);
 

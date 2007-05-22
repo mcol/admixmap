@@ -17,6 +17,8 @@
 #define HAPMIXALLELICASSOCTEST_H
 
 #include "CopyNumberAssocTest.h"
+class InputData;
+class LogWriter;
 
 class HapMixIndividualCollection;
 class Regression;
@@ -25,6 +27,7 @@ class Regression;
 class HapMixAllelicAssocTest : public CopyNumberAssocTest{
 public:
   void Update(const HapMixIndividualCollection* const IC, const Regression* const R, const Genome& Loci);
+  void PrintAverageInfo(LogWriter& Log, InputData& data, const char* filename);
 };
 
 #endif

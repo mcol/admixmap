@@ -17,7 +17,7 @@
 #include "DispersionTest.h"
 #include "AdmixOptions.h"
 #include <numeric>
-#include "bcppcl/misc.h"
+#include "bcppcl/linalg.h"
 #include "bcppcl/dist.h"
 
 using namespace ::std;

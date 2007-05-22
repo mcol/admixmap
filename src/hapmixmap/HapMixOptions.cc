@@ -12,28 +12,17 @@
  */
 
 #include "HapMixOptions.h"
-//#include "bcppcl/StringConvertor.h"
 #include <string.h>
 #include <sstream>
 
 using namespace std;
+using namespace bcppcl;
 
-// HapMixOptions::HapMixOptions()
-// {
-//   Initialise();
-// }
-HapMixOptions::HapMixOptions(int argc,  char** argv, bool PrintOptionList){
-  //base class sets default base options
-  //this call to SetDefaultValues calls this class' options
+HapMixOptions::HapMixOptions(int argc,  char** argv){
   SetDefaultValues();
-  if(!PrintOptionList)
-    ReadUserOptions(argc, argv);
-
-  OptionMap ProgOptions;
-  SetOptions(ProgOptions);
-
-  if(PrintOptionList)
-    PrintAllOptions(ProgOptions);
+  DefineOptions();
+  if(!ReadUserOptions(argc, argv, "-f"))
+    exit(1);
 }
 
 void HapMixOptions::SetDefaultValues(){
@@ -185,77 +174,72 @@ unsigned HapMixOptions::GetNumMaskedLoci()const{
   return MaskedLoci.size();
 }
 
-void HapMixOptions::SetOptions(OptionMap& ProgOptions)
+void HapMixOptions::DefineOptions()
 {
   //set up Option map
-  //first set options specific to this class
 
   /*
     data and initial values
   */
-  ProgOptions["ccgenotypesfile"] = OptionPair(&CCGenotypesFilename, "string");
-  ProgOptions["initialarrivalratefile"] = OptionPair(&InitialArrivalRateFilename, "string");
-  ProgOptions["initialmixturepropsfile"] = OptionPair(&InitialMixturePropsFilename, "string");
-  ProgOptions["initialfreqpriorfile"] = OptionPair(&InitialFreqPriorFile, "string");
-  ProgOptions["initialallelefreqfile"] = OptionPair(&InitialAlleleFreqFilename, "string");// synonym for allelefreqfile
+  addOption("ccgenotypesfile", stringOption, &CCGenotypesFilename);
+  addOption("initialarrivalratefile", stringOption, &InitialArrivalRateFilename);
+  addOption("initialmixturepropsfile", stringOption, &InitialMixturePropsFilename);
+  addOption("initialfreqpriorfile", stringOption, &InitialFreqPriorFile);
+  addOption("initialallelefreqfile", stringOption, &InitialAlleleFreqFilename);// synonym for allelefreqfile
 
   /*
      model specification
   */
-  ProgOptions["hapmixmodel"] = OptionPair(0, "null");//does nothing
+  addOption("hapmixmodel", nullOption, 0);//does nothing
   //number of block states
-  ProgOptions["states"] = OptionPair(&NumBlockStates, "int");
+  addOption("states", intOption, &NumBlockStates);
   //toggle hierarchical model on allele freq precision
-  ProgOptions["freqprecisionhiermodel"] = OptionPair(&FreqPrecisionHierModel, "bool");
+  addOption("freqprecisionhiermodel", boolOption, &FreqPrecisionHierModel);
   //toggle sampling of mixture props
-  ProgOptions["fixedmixtureprops"] = OptionPair(&FixedMixtureProps, "bool");
+  addOption("fixedmixtureprops", boolOption, &FixedMixtureProps);
   //toggle sampling of mixture props precision, valid only if fixedmixtureprops=0
-  ProgOptions["fixedmixturepropsprecision"] = OptionPair(&FixedMixturePropsPrecision, "bool");
+  addOption("fixedmixturepropsprecision", boolOption, &FixedMixturePropsPrecision);
   //set mixture props precision, initial value only if fixedmixturepropsprecision=0
-  ProgOptions["mixturepropsprecision"] = OptionPair(&MixturePropsPrecision, "float");
+  addOption("mixturepropsprecision", floatOption, &MixturePropsPrecision);
 
   /*
     prior specification
   */
   //vector of length 4, 2 Gamma priors on Gamma parameters
-  ProgOptions["arrivalrateprior"] = OptionPair(&lambdaprior, "dvector");
+  addOption("arrivalrateprior", dvectorOption, &lambdaprior);
   //vector of length 2, Gamma prior on Dirichlet precision
-  ProgOptions["mixturepropsprecisionprior"] = OptionPair(&MixturePropsPrecisionPrior, "dvector");
+  addOption("mixturepropsprecisionprior", dvectorOption, &MixturePropsPrecisionPrior);
   //vector of length 2 or 3, Gamma/Gamma-Gamma prior on allele freq prior precision
-  ProgOptions["allelefreqprecisionprior"] = OptionPair(&allelefreqprecisionprior, "dvector");
+  addOption("allelefreqprecisionprior", dvectorOption, &allelefreqprecisionprior);
 
   //sampler settings
-  ProgOptions["arrivalratesamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
-
+  addOption("arrivalratesamplerparams", fvectorOption, &rhoSamplerParams);
 
   /*
     Output files
   */
   //file to write mean and variance of frequency precision params
-  ProgOptions["freqprecisionfile"] = OptionPair(&FreqPrecisionOutputFilename, "outputfile");
+  addOption("freqprecisionfile", outputfileOption, &FreqPrecisionOutputFilename);
 
   //final values
-  ProgOptions["finalallelefreqfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");// synonym for allelefreqoutputfile
-  ProgOptions["finalfreqpriorfile"] = OptionPair(&FinalFreqPriorFilename, "outputfile");
-  ProgOptions["finalarrivalratefile"] = OptionPair(&FinalLambdaFilename, "outputfile");
-  ProgOptions["finalmixturepropsfile"] = OptionPair(&FinalMixturePropsFilename, "outputfile");
+  addOption("finalallelefreqfile", outputfileOption, &AlleleFreqOutputFilename);// synonym for allelefreqoutputfile
+  addOption("finalfreqpriorfile", outputfileOption, &FinalFreqPriorFilename);
+  addOption("finalarrivalratefile", outputfileOption, &FinalLambdaFilename);
+  addOption("finalmixturepropsfile", outputfileOption, &FinalMixturePropsFilename);
 
   //posterior means
-  ProgOptions["allelefreqprecisionposteriormeanfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");
-  ProgOptions["arrivalrateposteriormeanfile"] = OptionPair(&ArrivalRateOutputFilename, "outputfile");
+  addOption("allelefreqprecisionposteriormeanfile", outputfileOption, &AlleleFreqPriorOutputFilename);
+  addOption("arrivalrateposteriormeanfile", outputfileOption, &ArrivalRateOutputFilename);
 
 
   /*
     test options
   */
   //Mantel-Haentszel test
-  ProgOptions["mhscoretestfile"] = OptionPair(&MHTestFilename, "outputfile");
+  addOption("mhscoretestfile", outputfileOption, &MHTestFilename);
   //for output of posterior predictive genotype probs
-  ProgOptions["maskedindivs"] = OptionPair(&MaskedIndividuals, "range");
-  ProgOptions["maskedloci"] = OptionPair(&MaskedLoci, "range");
-
-  //now set base options and finish parsing
-  Options::SetOptions(ProgOptions);
+  addOption("maskedindivs", rangeOption, &MaskedIndividuals);
+  addOption("maskedloci", rangeOption, &MaskedLoci);
 
 }
 
@@ -429,13 +413,13 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
   else return 0;
 }
 
-void HapMixOptions::PrintUserOptions(){
+void HapMixOptions::PrintUserOptions(const char* filename){
   //set states value in case it has changed or not specified
   std::ostringstream s;
   if (s << getNumberOfBlockStates()) // conversion worked
     {
     useroptions["states"] = (char *)s.str().c_str();
     }
-  //Now output Options table to args.txt
-  Options::PrintUserOptions();
+  //Now output Options table to file
+  OptionReader::PrintUserOptions(filename);
 }

@@ -45,8 +45,4 @@ double digamma(double x);
 ///trigamma function with error handling
 double trigamma(double x);
 
-double **alloc2D_d(int m, int n);
-int **alloc2D_i(int m, int n);
-void free_matrix(double **, int);
-void free_matrix(int **, int);
 #endif /* !MISCFUNCTIONS_H */

@@ -26,7 +26,8 @@ public:
   ~AdmixOptions();
   
   int checkOptions(LogWriter &Log, int NumberOfIndividuals);
-  void PrintUserOptions();
+  void PrintUserOptions(const char* filename);
+  bool SetOptions();
 
   //main output files
   const char *getEtaOutputFilename() const;
@@ -158,9 +159,8 @@ private:
   string EtaPriorFilename;
   string ReportedAncestryFilename;
   
-  void SetOptions(OptionMap& ProgOptions);
-
   void SetDefaultValues();  
+  void DefineOptions();
   void setInitAlpha(LogWriter &Log);
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
 

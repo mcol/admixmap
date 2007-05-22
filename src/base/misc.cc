@@ -20,10 +20,13 @@
 /**
    Prints a message to screen in case of user not specifying any arguments
 */
-void PrintOptionsMessage() {
-  cout << "You must specify an options file\n"
+void PrintUsage(const char* ProgName) {
+  cout << "Usage: " << endl
+       << "   " << ProgName << " <options-file>" << endl
+       << "or " << ProgName << " -f<optionsfile> [extra options]" << endl
+    //       << "or " << ProgName << "<options> (deprecated)" << endl
        << "Consult the manual for details of user options."
-       << endl;
+       << endl << endl;
 }
 
 /**

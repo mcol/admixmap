@@ -1,6 +1,5 @@
-BAYESLIB_PATH = $(top_srcdir)/src/bcppcl
-AM_CPPFLAGS=-I$(BAYESLIB_PATH)
-AM_LDFLAGS = -L$(BAYESLIB_PATH)
+AM_CPPFLAGS=-I$(top_srcdir)/src/bcppcl
+AM_LDFLAGS = -all-static -L$(top_builddir)/src/bcppcl
 noinst_PROGRAMS = FPHD FUD
 FPHD_SOURCES = \
   FormatPhasedData.cpp \
@@ -9,12 +8,12 @@ FPHD_SOURCES = \
   HapMapLegend.cpp \
   HapMapLegend.h \
   FPHDOptions.cpp \
-  FPHDOptions.h
+  FPHDOptions.h 
 
 FUD_SOURCES = FormatUnphasedData.cpp
 
 #TODO: only requires gsl_permutation.la sublibrary of gsl so wasteful to link against entire gsl
-FPHD_LDADD=-lbcppcl -lgsl
+FPHD_LDADD= -lbcppcl -lgsl
 
 EXTRA_DIST = repairSecondColumn.pl getdata.pl README.txt
 

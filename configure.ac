@@ -85,6 +85,7 @@ AC_CONFIG_FILES([Makefile
 	   src/bcppcl/regression/Makefile
 	   src/bcppcl/samplers/Makefile
 	   src/bcppcl/utils/Makefile
+           src/bcppcl/examples/Makefile
            src/bcppcl/doxygen/Makefile
 	   src/scripts/Makefile
            src/scripts/genepi-config

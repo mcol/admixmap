@@ -102,6 +102,9 @@ public:
   bool IsCaseControl(int i)const;
 
   void CheckForMonomorphicLoci(LogWriter& Log)const;
+  bool isTypedLocus(unsigned)const;
+  unsigned getNumTypedLoci()const;
+
 private:    
   Matrix_s locusData_;
   Matrix_s geneticData_;

@@ -17,25 +17,26 @@
 #include <sstream>
 
 using namespace std;
+using namespace bcppcl;
 
-Options::Options()
-{
+Options::Options(){
   SetDefaultValues();
+  DefineOptions();
 }
-void Options::ReadUserOptions(int argc,  char** argv){
-  if(argc == 2)
-    ReadArgsFromFile(argv[1], useroptions);
+bool Options::ReadUserOptions(int argc, char** argv, const char* fileargIndicator ){
+  //one arg without leading '-'
+  if(argc == 2 && strncmp(argv[1], "-", 1)){
+    if(!ReadArgsFromFile(argv[1]))
+      return false;
+  }
   else if(argc > 1){
     //NOTE: command line args will not be supported soon
     cout << "Warning: command-line arguments are deprecated" << endl;
-    ReadCommandLineArgs(argc, argv);
+   if(!ReadCommandLineArgs(argc, argv, fileargIndicator))
+     return false;
   }
-  //NOTE: derived classes must call SetOptions in their own constructors
-  //  OptionMap ProgOptions;
-  //SetOptions(ProgOptions);
-
+  return true;
 }
-
 void Options::SetDefaultValues(){
   // global variables store option values: variable names not necessarily same as 
   // command-line option names which are all lower-case 
@@ -245,194 +246,60 @@ bool Options::doPrintBuildInfo()const{
   return PrintBuildInfo;
 }
 
-///convert option name to lower case and remove underscores
-void Options::ParseOptionName(string& name){
-  StringConvertor::toLower(name);
-  StringConvertor::RemoveCharFromString(name, '_');
-}
-
-void Options::ReportBadUserOption(ostream& os, string& line, unsigned linenum, const char* filename)const{
-  os << "** Invalid option: \"" << line << "\" on line " << linenum << " of " << filename << endl;
-}
-
-///read user options from file
-int Options::ReadArgsFromFile(const char* filename, UserOptions& opt){
-  ifstream fin(filename);
-  if (0 == filename || 0 == strlen(filename)) return 1;
-  if (!fin.is_open()) {
-    cerr << "Cannot open file \"" << filename << "\". Aborting" << endl;
-    exit(1);
-  } 
-
-  std::string str;
-  bool badoptions = false;
-  unsigned linenum = 0;
-  //read in line from file
-  while (getline(fin,str,'\n')){// ## apparent memory leak 
-    ++linenum;
-    //ignore #comments
-     if( str.find_first_of("#") < str.length() ) 
-       str.erase( str.find_first_of("#") );
-     //skip blank lines
-     if(str.find_first_not_of(" \t\n\r") < str.length() )
-       {   
-// 	 //check there is an '=' on line
-// 	 if(str.find("=") == string::npos || ){
-// 	   ReportBadUserOption(cerr, str, linenum, filename);
-// 	   badoptions = true;
-// 	   continue;
-// 	 }
-	  //split on '='
-	 vector<string> tokens;
-	 StringSplitter::Tokenize(str, tokens, "=");
-	 //check we have 2 tokens, option name and value
-	 if(tokens.size() != 2){
-	   ReportBadUserOption(cerr, str, linenum, filename);
-	   badoptions = true;
-	   continue;
-	 }
-	 //check tokens have graphical characters (not just whitespace)
-	 string::size_type graph0 = tokens[0].find_first_not_of(" \t\n\r");
-	 string::size_type graph1 = tokens[1].find_first_not_of(" \t\n\r");
-
-	 if(graph0 == string::npos || graph1 == string::npos){
-	   ReportBadUserOption(cerr, str, linenum, filename);
-	   badoptions = true;
-	   continue;
-	 }
-
-	 //strip leading whitespace
-	 tokens[0].erase(0, graph0 );
-	 tokens[1].erase(0, graph1 );
-	 //strip trailing whitespace
-	 tokens[0].erase( tokens[0].find_last_not_of(" \t\n\r") + 1 );
-	 tokens[1].erase( tokens[1].find_last_not_of(" \t\n\r") + 1 );
-	 //convert option name to required format, lowercase and no underscores
-	 ParseOptionName(tokens[0]);
-
-	 //now all whitespace has been removed, add option to map of user options
-	 opt[tokens[0]] = tokens[1];
-       }
-     //clear str ready for next time
-     str.clear();
-  }
-  //close file
-  fin.close();
-  //exit if any bad options found
-  //TODO?? : throw exception instead or use a different return value
-  if(badoptions) exit(1);
-
-  //all is ok, return all-clear
-  return 0;
-}
-
-/// sets the value of a data member corresponding to a user option.
-/// converts the value string to an appropriate type, with method indicated by opt.second
-/// and assigns converted value to the data member with address opt.first
-int Options::assign(OptionPair& opt, const string value){
-  if(opt.second == "int")
-    *((int*)opt.first) = atoi(value.c_str());
-  else if(opt.second =="long")
-    *((long*)opt.first) = atoi(value.c_str());
-  else if(opt.second == "double")
-    *((double*)opt.first) = atof(value.c_str());
-  else if(opt.second =="float")
-    *((float*)opt.first) = atof(value.c_str());
-  else if(opt.second == "bool"){
-    if (atoi(value.c_str()) ==1) *((bool*)opt.first) = true;
-    else *((bool*)opt.first) = false;
-  }
-  else if(opt.second == "string")
-    *((string*)opt.first) = value;
-
-  else if(opt.second =="dvector"){
-    StringConvertor::StringToVec(value, *((vector<double>*)opt.first));
-  }
-  else if(opt.second =="fvector"){
-    StringConvertor::StringToVec(value, *((vector<float>*)opt.first));
-  }
-  else if(opt.second =="uivector"){
-    StringConvertor::StringToVec(value, *((vector<unsigned>*)opt.first));
-  }
-  else if(opt.second == "range"){//may be range or list of numbers
-    vector<unsigned>* range = (vector<unsigned>*)opt.first;
-    string::size_type colon = value.find(":" , 0);
-    if(colon != string::npos){//read as range of numbers
-       for(unsigned i = (unsigned)atoi((value.substr(0, colon)).c_str()); i <= (unsigned)atoi((value.substr(colon+1)).c_str()); ++i)
-	    range->push_back(i);
-	  }
-    else StringConvertor::StringToVec(value, *range);//read as list
-  }
-  else if(opt.second =="old"){//deprecated option - return signal to erase
-    return 2;
-  }
-  else if(opt.second != "null" && opt.second != "outputfile"){
-    //skipping output file names as they are set later, prefixing resultsdir
-    return 1;//unrecognised option
-  }
-  return 0;//success
-}
-
-void Options::SetOptions(OptionMap& ProgOptions)
-{
+void Options::DefineOptions(){
   //set up Option map
 
-  // Required options
-  ProgOptions["samples"] = OptionPair(&TotalSamples, "int");
-  ProgOptions["burnin"] = OptionPair(&burnin, "int");
-  ProgOptions["every"] = OptionPair(&SampleEvery, "int");
-  ProgOptions["locusfile"] = OptionPair(&LocusFilename, "string");
-  ProgOptions["genotypesfile"] = OptionPair(&GenotypesFilename, "string");
-  ProgOptions["priorallelefreqfile"] = OptionPair(&PriorAlleleFreqFilename, "string");
+  addFlag('h', "help");
+  addFlag('v', "version");
+
+  addOption("samples", intOption, &TotalSamples);
+  addOption("burnin", intOption, &burnin);
+  addOption("every", intOption, &SampleEvery);
+  addOption("locusfile", stringOption, &LocusFilename, true);
+  addOption("genotypesfile", stringOption, &GenotypesFilename, true);
+  addOption("priorallelefreqfile", stringOption, &PriorAlleleFreqFilename);
   //regression data files
-  ProgOptions["outcomevarfile"] = OptionPair(&OutcomeVarFilename, "string");
-  ProgOptions["coxoutcomevarfile"] = OptionPair(&CoxOutcomeVarFilename, "string");
-  ProgOptions["covariatesfile"] = OptionPair(&CovariatesFilename, "string");
-  ProgOptions["outcomes"] = OptionPair(&NumberOfOutcomes, "int");
-  ProgOptions["targetindicator"] = OptionPair(&TargetIndicator, "int");
+  addOption("outcomevarfile", stringOption, &OutcomeVarFilename);
+  addOption("coxoutcomevarfile", stringOption, &CoxOutcomeVarFilename);
+  addOption("covariatesfile", stringOption, &CovariatesFilename);
+  addOption("outcomes", intOption, &NumberOfOutcomes);
+  addOption("targetindicator", intOption, &TargetIndicator);
   //standard output files (optional)
-  ProgOptions["logfile"] = OptionPair(&LogFilename, "outputfile");
-  ProgOptions["paramfile"] = OptionPair(&ParameterFilename, "outputfile");
-  ProgOptions["regparamfile"] = OptionPair(&RegressionOutputFilename, "outputfile");
-  ProgOptions["allelefreqoutputfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");
-  ProgOptions["ergodicaveragefile"] = OptionPair(&ErgodicAverageFilename, "outputfile");
+  addOption("logfile", outputfileOption, &LogFilename);
+  addOption("paramfile", outputfileOption, &ParameterFilename);
+  addOption("regparamfile", outputfileOption, &RegressionOutputFilename);
+  addOption("allelefreqoutputfile", outputfileOption, &AlleleFreqOutputFilename);
+  addOption("ergodicaveragefile", outputfileOption, &ErgodicAverageFilename);
 
   //optional results directory name option - default is 'results'
-  ProgOptions["resultsdir"] = OptionPair(&ResultsDir, "string");
-  ProgOptions["regressionpriorprecision"] = OptionPair(&regressionPriorPrecision, "double");
-  ProgOptions["fixedallelefreqs"] = OptionPair(&fixedallelefreqs, "bool");
+  addOption("resultsdir", stringOption, &ResultsDir);
+  addOption("regressionpriorprecision", doubleOption, &regressionPriorPrecision);
+  addOption("fixedallelefreqs", boolOption, &fixedallelefreqs);
   // test options
-  ProgOptions["allelicassociationscorefile"] = OptionPair(&AllelicAssociationScoreFilename, "outputfile");
-  ProgOptions["residualallelicassocscorefile"] = OptionPair(&ResidualAllelicAssocScoreFilename, "outputfile");
-  ProgOptions["hwscoretestfile"] = OptionPair(&HWTestFilename, "outputfile");
+  addOption("allelicassociationscorefile", outputfileOption, &AllelicAssociationScoreFilename);
+  addOption("residualallelicassocscorefile", outputfileOption, &ResidualAllelicAssocScoreFilename);
+  addOption("hwscoretestfile", outputfileOption, &HWTestFilename);
 
   // Other options
-  ProgOptions["numannealedruns"] = OptionPair(&NumAnnealedRuns, "int");// number of coolnesses 
-  ProgOptions["displaylevel"] = OptionPair(&displayLevel, "int");// output detail, 0 to 3
-  ProgOptions["seed"] = OptionPair(&Seed, "long");// random number seed
-  ProgOptions["thermo"] = OptionPair(&thermoIndicator, "bool");// Marginal likelihood by thermodynamic integration
-  ProgOptions["checkdata"] = OptionPair(&checkData, "bool");// set to 0 to skip some data checks
-  ProgOptions["deleteoldresults"] = OptionPair(&DeleteOldResultsIndicator, "bool");
-  ProgOptions["printbuildinfo"] = OptionPair(&PrintBuildInfo, "bool");
+  addOption("numannealedruns", intOption, &NumAnnealedRuns);// number of coolnesses 
+  addOption("displaylevel", intOption, &displayLevel);// output detail, 0 to 3
+  addOption("seed", longOption, &Seed);// random number seed
+  addOption("thermo", boolOption, &thermoIndicator);// Marginal likelihood by thermodynamic integration
+  addOption("checkdata", boolOption, &checkData);// set to 0 to skip some data checks
+  addOption("deleteoldresults", boolOption, &DeleteOldResultsIndicator);
+  addOption("printbuildinfo", boolOption, &PrintBuildInfo);
 
-  //parse user options
-  bool badOptions = false;
-  for(UserOptions::iterator i = useroptions.begin(); i != useroptions.end(); ++i){
-    int status = assign(ProgOptions[i->first], i->second);
-    if(status == 1){
-      cerr << "Unknown option: " << i->first
-	   << " with arg: " << i->second
-	   << endl;
-      badOptions = true;
-    }
-    else if (status==2) useroptions.erase(i->first);
-  }
-  if(badOptions)exit(1);
+}
+
+bool Options::SetOptions(){
+
+  if(!OptionReader::SetOptions())
+    return false;
 
   //iterate over user options again, appending resultsdir to output filenames
   //this must be done here as resultsdir must be set first
-  for(UserOptions::iterator i = useroptions.begin(); i != useroptions.end(); ++i){
-    if(ProgOptions[i->first].second == "outputfile")
+  for(map<string, string>::iterator i = useroptions.begin(); i != useroptions.end(); ++i){
+    if(ProgOptions[i->first].second == outputfileOption)
       *((string*)(ProgOptions[i->first].first)) = ResultsDir + "/" + i->second;
   }
   EYFilename = ResultsDir + "/" + EYFilename;//TODO: make a user option?
@@ -440,6 +307,8 @@ void Options::SetOptions(OptionMap& ProgOptions)
   OutputAlleleFreq = (AlleleFreqOutputFilename.size()>0);
   TestForAllelicAssociation = (AllelicAssociationScoreFilename.size()>0);
   TestForResidualAllelicAssoc = (ResidualAllelicAssocScoreFilename.size()>0);
+
+  return true;
 }
 
 int Options::checkOptions(LogWriter &Log, int){
@@ -485,70 +354,11 @@ int Options::checkOptions(LogWriter &Log, int){
   else return 0;
 }
 
-void Options::ReadCommandLineArgs(const int argc, char** argv){
-  string name, value;
-  vector<char*> args;
-  char delims[] = "-=";
-  for(int i = 1; i < argc; ++i){
+///output Options table to file
+void Options::PrintUserOptions(const char* filename){
+  string ss = ResultsDir;
+  ss.append("/");
+  ss.append(filename);
 
-    //check for options file flag and read options from file
-    if(!strncmp(argv[i], "-f", 2)){
-      const char* optionsFilename= 0;
-      if(strlen(argv[i])==2){//space between -f and the filename
-	++i;//move to the next arg and interpret as a filename
-	if(argv[i][0] == '-'){//oops, this is actually a new arg
-	  cerr << "ERROR: -f requires an options filename as argument\n";
-	  exit(1);
-	}
-	optionsFilename = argv[i];
-      }
-      else{//no space
-	optionsFilename = argv[i]+2;
-      }
-      cout << "Reading options from " << optionsFilename << endl;
-      ReadArgsFromFile(optionsFilename, useroptions);      
-      continue;
-    }
-    //tokenise argv, splitting on '-' and '='
-    char *result = NULL;
-    result = strtok( argv[i], delims );
-    while( result != NULL ) {
-      args.push_back(result);
-      result = strtok( NULL, delims );
-    }  
-  }
-  if(args.size() % 2){
-    cerr << "ERROR: mismatched arguments" << endl;
-    exit(1);
-  }
-  //TODO: allow spaces in vector args
-  for( vector<char*>::iterator i = args.begin(); i != args.end(); ){
-    name.assign(*i);
-    ++i;
-    value.assign(*i);
-    ++i;
-    useroptions[name] = value;
-  }
-}
-
-///output Options table to args.txt
-void Options::PrintUserOptions(){
-  string ss;
-  ss = ResultsDir + "/args.txt";
-  ofstream argstream(ss.c_str());
-
-  for( UserOptions::iterator p= useroptions.begin(); p!=useroptions.end(); p++) {
-    argstream << p->first << "=" << p->second <<endl;
-  }
-  argstream.close();
-}
-
-//print all available options to cout
-void Options::PrintAllOptions(OptionMap& ProgOptions)const{
-  cout << "This is a list of all valid options:" << endl
-       << "----------------------------------------" << endl;
-  for( OptionMap::const_iterator p = ProgOptions.begin(); p != ProgOptions.end(); ++p){
-    cout << p->first << " ( " << p->second.second << " )" << endl;
-  }
-
+  OptionReader::PrintUserOptions(ss.c_str());
 }

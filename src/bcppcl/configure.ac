@@ -70,6 +70,7 @@ AC_CONFIG_FILES([Makefile
 	samplers/Makefile 
 	regression/Makefile
         bcppcl/Makefile
+        examples/Makefile
 	doxygen/Makefile
 	doxygen/Doxyfile
 	])

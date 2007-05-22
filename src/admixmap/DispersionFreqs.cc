@@ -15,6 +15,7 @@
 #include "AdmixOptions.h"
 #include "bcppcl/AdaptiveRejection.h"
 #include "bcppcl/misc.h"
+#include "bcppcl/linalg.h"
 #include "bcppcl/MuSampler.h"
 #include <math.h>
 #include <numeric>

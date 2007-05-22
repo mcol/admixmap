@@ -142,29 +142,30 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   const double coolness = Coolnesses[coolness_index];
   //cast Options pointer to HapMixOptions for access to HAPMIXMAP options
   const HapMixOptions* options = (const HapMixOptions*) _options;
-
-
+  
+  
   A.ResetAlleleCounts(options->getPopulations());
 
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+  ///////////////////////////////////////////////////////////////
   // Update individual-level parameters, sampling hidden states
+  ///////////////////////////////////////////////////////////////
+    
   if(isMaster || isWorker){
-    HMIC->SampleHiddenStates(options, iteration);
+   HMIC->SampleHiddenStates(options, iteration);
   }
   //accumulate energy
   if( (isMaster || isWorker) && iteration > options->getBurnIn()) 
     GetEnergy(Coolnesses, coolness_index, *_options, SumEnergy, SumEnergySq, AISz, anneal, iteration );
-
+  
   if(isWorker || isFreqSampler){
     IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
-
+    
     if( options->getHWTestIndicator() || options->getMHTest() || options->getTestForResidualAllelicAssoc() ) {
-      EventLogger::LogEvent(13, iteration, "sampleHapPairs");
-      // loops over individuals to sample hap pairs, not skipping missing genotypes. 
-      // Does not update counts since done already
-      IC->SampleHapPairs(options, &A, &Loci, false, anneal, false); 
-      EventLogger::LogEvent(14, iteration, "sampledHapPairs");
+    EventLogger::LogEvent(13, iteration, "sampleHapPairs");
+    // loops over individuals to sample hap pairs, not skipping missing genotypes. 
+    // Does not update counts since done already
+    IC->SampleHapPairs(options, &A, &Loci, false, anneal, false); 
+    EventLogger::LogEvent(14, iteration, "sampledHapPairs");
     }
   }
 
@@ -173,28 +174,28 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
     if(options->OutputCGProbs() && iteration > options->getBurnIn())
       HMIC->AccumulateConditionalGenotypeProbs(options, Loci);
   }
-
   
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //score tests
+  ////////////////////////////////////////////////////////////////
+  //score tests
+  ///////////////////////////////////////////////////////////////
   if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){
     //update score tests every SCORETEST_UPDATE_EVERY iterations after burn-in
     if( options->getTestForAllelicAssociation()&& !(iteration%SCORETEST_UPDATE_EVERY) ){
       AllelicAssocTest.Update(HMIC, R[0], Loci);
     }
-    if(options->getTestForResidualAllelicAssoc()&& !(iteration%SCORETEST_UPDATE_EVERY)){
+    if(options->getTestForResidualAllelicAssoc()/*&& !(iteration%SCORETEST_UPDATE_EVERY)*/){
       EventLogger::LogEvent(21, iteration, "ResLDTestStart");
       ResidualAllelicAssocScoreTest.Reset();
-      ResidualAllelicAssocScoreTest.Update(A.GetAlleleFreqs(), options->getHapMixModelIndicator());
+      ResidualAllelicAssocScoreTest.Update(A.GetAlleleFreqs(), true);
       EventLogger::LogEvent(22, iteration, "ResLDTestEnd");
     }
   }
   if(options->getMHTest() && !anneal && (iteration > options->getBurnIn()))
     MHTest.Update(IC, Loci);//update Mantel-Haenszel test
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
- 
+
+  //////////////////////////////////////////////////////////////////
   // update allele frequencies conditional on locus ancestry states
-  // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
+  ///////////////////////////////////////////////////////////////////
   if( !options->getFixedAlleleFreqs()){
     if(isFreqSampler){
       EventLogger::LogEvent(7, iteration, "SampleFreqs");
@@ -208,35 +209,37 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 #endif
     A.SetDiploidGenotypeProbs();
   }//end if random allele freqs
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+  
+  //////////////////////////////////////////////////////////////////////////
+  // update of allele freqs sets HMM probs and stored loglikelihoods as bad.
+  // next update of stored loglikelihoods will be from getEnergy 
+  //////////////////////////////////////////////////////////////////////////
   if(isWorker ) {   
     IC->HMMIsBad(true); 
-  } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
-  // next update of stored loglikelihoods will be from getEnergy 
+  } 
   
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //Sample arrival rates with Hamiltonian Sampler, using sampled hidden states. 
+  //NB: requires accumulating of StateArrivalCounts in IC
+  //////////////////////////////////////////////////////////////////////////////
+  
   if(isMaster || isWorker){
-    //L->UpdateGlobalTheta(iteration, IC);
-
-    //Sample arrival rates with Hamiltonian Sampler, using sampled hidden states. 
-    //NB: requires accumulating of StateArrivalCounts in IC
     L->SampleArrivalRate(HMIC->getConcordanceCounts(), (!anneal && iteration > options->getBurnIn() 
-						       && options->getPopulations() > 1) );
-
+							&& options->getPopulations() > 1) );
+    
     //sample mixture proportions with conjugate update
     if(!options->getFixedMixtureProps())
       L->SampleMixtureProportions(HMIC->getSumArrivalCounts());
-
+    
     //Set global StateArrivalProbs in HMM objects. Do not force setting of mixture props (if fixed)
     if( isWorker) {
       L->SetHMMStateArrivalProbs( (numdiploidIndivs>0));
     }
-
+    
   }
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-  // ** update regression parameters (if regression model) conditional on individual admixture
+  ///////////////////////////////////////////////////////////////////////////
+  // update regression parameters (if regression model)
+  //////////////////////////////////////////////////////////////////////////
   if(isMaster){
     bool condition = (!anneal && iteration > options->getBurnIn() && isMaster);
     for(unsigned r = 0; r < R.size(); ++r){
@@ -255,7 +258,6 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
     }
   }
 #endif
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
 }
 
 void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _options, InputData & data, 

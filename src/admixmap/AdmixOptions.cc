@@ -12,24 +12,18 @@
  */
 
 #include "AdmixOptions.h"
-//#include "bcppcl/StringConvertor.h"
 #include <string.h>
 #include <sstream>
 #include <numeric> // for checkInitAlpha
 
 using namespace std;
+using namespace bcppcl;
 
-// AdmixOptions::AdmixOptions()
-// {
-//   Initialise();
-// }
 AdmixOptions::AdmixOptions(int argc,  char** argv){
-  //base class sets default base options
-  //this call to SetDefaultValues calls this class' options
   SetDefaultValues();
-  ReadUserOptions(argc, argv);
-  OptionMap ProgOptions;
-  SetOptions(ProgOptions);
+  DefineOptions();
+  if(!ReadUserOptions(argc, argv, "-f"))
+    exit(1);
 }
 
 void AdmixOptions::SetDefaultValues(){
@@ -378,63 +372,63 @@ const vector<float>& AdmixOptions::getPopAdmixSamplerParams()const{
   return popAdmixSamplerParams;
 }
 
-void AdmixOptions::SetOptions(OptionMap& ProgOptions)
-{
+void AdmixOptions::DefineOptions(){
   //set up Option map
-  //first set options for this class
 
-  ProgOptions["populations"] = OptionPair(&Populations, "int");
-  ProgOptions["allelefreqfile"] = OptionPair(&alleleFreqFilename, "string");
-  ProgOptions["historicallelefreqfile"] = OptionPair(&HistoricalAlleleFreqFilename, "string");
-  ProgOptions["reportedancestry"] = OptionPair(&ReportedAncestryFilename, "string");
+  addOption("populations", intOption, &Populations);
+  addOption("allelefreqfile", stringOption, &alleleFreqFilename);
+  addOption("historicallelefreqfile", stringOption, &HistoricalAlleleFreqFilename);
+  addOption("reportedancestry", stringOption, &ReportedAncestryFilename);
   //standard output files (optional)
 
   //file to write sampled values of dispersion parameter
-  ProgOptions["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");
-  ProgOptions["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");
+  addOption("dispparamfile", outputfileOption, &EtaOutputFilename);
+  addOption("indadmixturefile", outputfileOption, &IndAdmixtureFilename);
 
   //prior and model specification
-  ProgOptions["hapmixmodel"] = OptionPair(0, "null");//this will cause program to abort if 1
-  ProgOptions["randommatingmodel"] = OptionPair(&RandomMatingModel, "bool");
-  ProgOptions["globalrho"] = OptionPair(&GlobalRho, "bool");
-  ProgOptions["indadmixhiermodel"] = OptionPair(&IndAdmixHierIndicator, "bool");
-  ProgOptions["etapriorfile"] = OptionPair(&EtaPriorFilename, "string");
-  ProgOptions["globalsumintensitiesprior"] = OptionPair(&globalrhoPrior, "dvector");
-  ProgOptions["sumintensitiesprior"] = OptionPair(&rhoPrior, "dvector");
-  ProgOptions["etapriormean"] = OptionPair(&etamean, "double");
-  ProgOptions["etapriorvar"] = OptionPair(&etavar, "double");
-  ProgOptions["admixtureprior"] = OptionPair(&initalpha[0], "dvector");
-  ProgOptions["admixtureprior1"] = OptionPair(&initalpha[1], "dvector");
-  ProgOptions["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");
-  ProgOptions["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");
+  addOption("hapmixmodel", nullOption, 0);//this will cause program to abort if 1
+  addOption("randommatingmodel", boolOption, &RandomMatingModel);
+  addOption("globalrho", boolOption, &GlobalRho);
+  addOption("indadmixhiermodel", boolOption, &IndAdmixHierIndicator);
+  addOption("etapriorfile", stringOption, &EtaPriorFilename);
+  addOption("globalsumintensitiesprior", dvectorOption, &globalrhoPrior);
+  addOption("sumintensitiesprior", dvectorOption, &rhoPrior);
+  addOption("etapriormean", doubleOption, &etamean);
+  addOption("etapriorvar", doubleOption, &etavar);
+  addOption("admixtureprior", dvectorOption, &initalpha[0]);
+  addOption("admixtureprior1", dvectorOption, &initalpha[1]);
+  addOption("correlatedallelefreqs", boolOption, &correlatedallelefreqs);
+  addOption("popadmixproportionsequal", boolOption, &PopAdmixPropsAreEqual);
 
   //sampler settings
-  ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
-  ProgOptions["popadmixsamplerparams"] = OptionPair(&popAdmixSamplerParams, "fvector");
+  addOption("rhosamplerparams", fvectorOption, &rhoSamplerParams);
+  addOption("popadmixsamplerparams", fvectorOption, &popAdmixSamplerParams);
   // test options
-  ProgOptions["ancestryassociationscorefile"] = OptionPair(&AncestryAssociationScoreFilename, "outputfile");//C
-  ProgOptions["affectedsonlyscorefile"] = OptionPair(&AffectedsOnlyScoreFilename, "outputfile");
-  ProgOptions["admixturescorefile"] = OptionPair(&AssocScoreFilename, "outputfile");
-  ProgOptions["haplotypeassociationscorefile"] = OptionPair(&HaplotypeAssociationScoreFilename, "outputfile");
-  ProgOptions["stratificationtestfile"] = OptionPair(&StratTestFilename, "outputfile");
-  ProgOptions["allelefreqscorefile"] = OptionPair(&AlleleFreqScoreFilename, "outputfile");
-  ProgOptions["allelefreqscorefile2"] = OptionPair(&AlleleFreqScoreFilename2, "outputfile");
-  ProgOptions["dispersiontestfile"] = OptionPair(&DispersionTestFilename, "outputfile");
-  ProgOptions["fstoutputfile"] = OptionPair(&FSTOutputFilename, "outputfile");
-  ProgOptions["likratiofile"] = OptionPair(&LikRatioFilename, "outputfile");
-  ProgOptions["indadmixmodefile"] = OptionPair(&IndAdmixModeFilename, "outputfile");
-  ProgOptions["testgenotypesfile"] = OptionPair(0, "null");
-  ProgOptions["locusfortest"] = OptionPair(&LocusForTest, "int");
+  addOption("ancestryassociationscorefile", outputfileOption, &AncestryAssociationScoreFilename);
+  addOption("affectedsonlyscorefile", outputfileOption, &AffectedsOnlyScoreFilename);
+  addOption("admixturescorefile", outputfileOption, &AssocScoreFilename);
+  addOption("haplotypeassociationscorefile", outputfileOption, &HaplotypeAssociationScoreFilename);
+  addOption("stratificationtestfile", outputfileOption, &StratTestFilename);
+  addOption("allelefreqscorefile", outputfileOption, &AlleleFreqScoreFilename);
+  addOption("allelefreqscorefile2", outputfileOption, &AlleleFreqScoreFilename2);
+  addOption("dispersiontestfile", outputfileOption, &DispersionTestFilename);
+  addOption("fstoutputfile", outputfileOption, &FSTOutputFilename);
+  addOption("likratiofile", outputfileOption, &LikRatioFilename);
+  addOption("indadmixmodefile", outputfileOption, &IndAdmixModeFilename);
+  addOption("testgenotypesfile", nullOption, 0);
+  addOption("locusfortest", intOption, &LocusForTest);
   // Other options
-  ProgOptions["chib"] = OptionPair(&chibIndicator, "bool");//  Marginal likelihood by Chib algo
-  ProgOptions["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");//  ML for one individual in a collection 
+  addOption("chib", boolOption, &chibIndicator);//  Marginal likelihood by Chib algo
+  addOption("testoneindiv", boolOption, &TestOneIndivIndicator);//  ML for one individual in a collection 
   //old options - do nothing but kept for backward-compatibility with old scripts
-  ProgOptions["analysistypeindicator"] = OptionPair(0, "old");
-  ProgOptions["coutindicator"] = OptionPair(0, "old");
-  ProgOptions["truncationpoint"] = OptionPair(0, "old");
+  addOption("analysistypeindicator", oldOption, 0);
+  addOption("coutindicator", oldOption, 0);
+  addOption("truncationpoint", oldOption, 0);
 
-  //now set base options and finish parsing
-  Options::SetOptions(ProgOptions);
+}
+bool AdmixOptions::SetOptions(){
+  if(!Options::SetOptions())
+    return false;
 
   //set indicators
   TestForLinkageWithAncestry = (AncestryAssociationScoreFilename.size()>0);
@@ -448,6 +442,8 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   OutputFST = (FSTOutputFilename.size()>0);
   HWTest = (HWTestFilename.size()>0);
   locusForTestIndicator = (LocusForTest>-1);
+
+  return true;
 }
 
 int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
@@ -797,7 +793,7 @@ bool AdmixOptions::CheckInitAlpha( const vector<double> &alphatemp)const
    return admixed;
 }
 
-void AdmixOptions::PrintUserOptions(){
+void AdmixOptions::PrintUserOptions(const char* filename){
   //set populations value in case it has changed or not specified
   //NB do similar for any option that can be changed outside Options
   std::ostringstream s;
@@ -806,6 +802,6 @@ void AdmixOptions::PrintUserOptions(){
     useroptions["populations"] = (char *)s.str().c_str();
     }
   useroptions["hapmixmodel"] = "0";
-  //Now output Options table to args.txt
-  Options::PrintUserOptions();
+  //Now output Options table to file
+  OptionReader::PrintUserOptions(filename);
 }

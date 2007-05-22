@@ -20,7 +20,6 @@
 #include "MisSpecAlleleFreqTest.h"
 #include "gsl/gsl_cdf.h"//for pvalues
 #include "bcppcl/linalg.h"
-#include "bcppcl/misc.h"
 
 MisSpecAlleleFreqTest::MisSpecAlleleFreqTest(){
   doTest1 = false;

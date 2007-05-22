@@ -14,10 +14,11 @@
 
 #include <fstream>
 #include <string>
+#include "bcppcl/OptionReader.h"
 
-class FPHDOptions{
- public:
-  FPHDOptions(int argc, char*const* argv, std::ofstream&, std::ofstream&);
+class FPHDOptions {
+public:
+  FPHDOptions(int argc, char** argv, std::ofstream&, std::ofstream&);
   ~FPHDOptions(){};
   static void PrintHelpText();
   bool Verbose()const;
@@ -30,19 +31,22 @@ class FPHDOptions{
   const char* getOutCCFilename()const;
   float getFlankLength()const;
   char getMissingChar()const;
+  float getMinOverlap()const;
 
- private:
+private:
   bool beVerbose;
   std::string prefix;
   bool LimitLoci;
   unsigned Chr;//chromosome number
 
-  char* incasecontrolfilename;
-  char* outcasecontrolfilename;
+  std::string incasecontrolfilename;
+  std::string outcasecontrolfilename;
   unsigned long userloci;
+  float MinOverlap;//minimum overlap between subchromosomes
   float flankLength;//length in Kb of flanking region if using CCgenotypesfile 
   char MissingChar;
 
   FPHDOptions();
-  void ParseOptions(int argc, char*const* argv, std::ofstream&, std::ofstream&);
+  void DefineOptions(bcppcl::OptionReader& opt, std::string* genotypesfilename, std::string* locusfilename, unsigned long*);
+  void ParseOptions(int argc, char** argv, std::ofstream& genotypesfile, std::ofstream& locusfile);
 };

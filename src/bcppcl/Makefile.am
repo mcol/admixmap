@@ -1,4 +1,4 @@
-SUBDIRS=utils samplers regression bcppcl doxygen
+SUBDIRS=utils samplers regression bcppcl doxygen . examples
 SUBLIBS=utils/libutils.la samplers/libsampler.la regression/libregression.la
 PARALLEL_SUBLIBS=utils/libutils-para.la samplers/libsampler-para.la regression/libregression-para.la
 

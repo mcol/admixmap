@@ -16,26 +16,18 @@
 
 #include "common.h"
 #include "bcppcl/LogWriter.h"
-#include <string>
-#include <map>
-
-using namespace::std;
-
-/// map to hold user options
-typedef map<string, string> UserOptions;
-/// pair to identify types of data members
-typedef pair<void*,  string> OptionPair;
-/// map to match a user option to a data member
-typedef map<string, OptionPair >OptionMap;
+#include "bcppcl/OptionReader.h"
 
 /// Class to hold program options
-class Options
+class Options: public bcppcl::OptionReader
 {
 public:
   virtual ~Options();
-  
-  virtual int checkOptions(LogWriter &Log, int);
-  virtual void PrintUserOptions();
+  virtual bool SetOptions();
+  bool ReadUserOptions(const char* fileargIndicator = 0);
+  virtual int checkOptions(LogWriter &Log, int NumberOfIndividuals);
+  ///print user options to file
+  virtual void PrintUserOptions(const char* filename);
 
   long getBurnIn() const;
   long getTotalSamples() const;
@@ -161,23 +153,11 @@ protected:
 
   std::vector<float> rhoSamplerParams;//parameters for sampler of population sumintensities or arrival rate
 
-  UserOptions useroptions;
-  //OptionMap OptionValues;//to output user options
-
-  ///derived classes must define their oen options with a SetOptions function then call this  
-  virtual void SetOptions(OptionMap& ProgOptions);
-
   virtual void SetDefaultValues();  
+  virtual void DefineOptions();
   Options();
-  void ReadUserOptions(int, char**);
-  void PrintAllOptions(OptionMap& ProgOptions)const;
+  bool ReadUserOptions(int, char**, const char* fileargIndicator = 0);
 private:
-  //functions for reading uer options
-  void ReadCommandLineArgs(const int argc, char** argv);
-  int ReadArgsFromFile(const char* filename, map<string, string>& UserOptions);
-  int assign(OptionPair& opt, const string value);
-  void ParseOptionName(string& name);
-  void ReportBadUserOption(ostream& os, string& line, unsigned linenum, const char* filename)const;
 
   // UNIMPLEMENTED: to avoid use
   Options(const Options&);

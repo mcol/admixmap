@@ -17,7 +17,7 @@
 #include "Options.h"
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
-#include "bcppcl/misc.h"
+#include "bcppcl/linalg.h"
 
 HWTest::HWTest(){
   score = 0;

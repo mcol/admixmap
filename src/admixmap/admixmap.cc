@@ -19,17 +19,26 @@
 using namespace std;
 
 int main( int argc , char** argv ){
-  //-v flag prints version number and exits
-  if(argc==2 && !strcmp(argv[1], "-v")){
+  AdmixOptions options(argc, argv);
+
+  //print version number and copyright info, if requested, and exit
+  if(options.getFlag("version")){
     LogWriter LW;
     PrintCopyrightNotice(LW);
-    exit(0);
+    exit(1);
   }
-  //-h flag or --help print a usage messsage
-  else if (argc < 2 || (argc ==2 && ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) ) ) {
-    PrintOptionsMessage();
-    exit(1); 
-  } 
+
+  //if no options specified or help requested, print help message and list of options, then exit
+  if(!options.hasOptions() || options.getFlag("help")){
+    LogWriter LW;
+    //PrintCopyrightNotice(LW);
+    PrintUsage("admixmap");
+    //options.PrintAllOptions(cout);
+    exit(1);
+  }
+  if(!options.CheckRequiredOptions() || !options.SetOptions())
+    exit(1);
+
 #ifdef PARALLEL
   MPI::Init(argc, argv);
   Comms::Initialise();
@@ -52,8 +61,6 @@ int main( int argc , char** argv ){
 #endif
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
-  //read user options
-  AdmixOptions options(argc, argv);
 
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
@@ -88,7 +95,7 @@ int main( int argc , char** argv ){
     }
   
     //print user options to args.txt; must be done after all options are set
-    if(isMaster)options.PrintUserOptions();
+    if(isMaster)options.PrintUserOptions("args.txt");
 
     AdmixMapModel M;
 

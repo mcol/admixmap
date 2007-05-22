@@ -20,18 +20,27 @@
 using namespace std;
 
 int main( int argc , char** argv ){
-  bool PrintOptionList = false;
-  if(argc==2 && !strcmp(argv[1], "-v")){
+
+  HapMixOptions options(argc, argv);
+
+  //print version number and copyright info, if requested, and exit
+  if(options.getFlag("version")){
     LogWriter LW;
     PrintCopyrightNotice(LW);
-    exit(0);
+    exit(1);
   }
-  //-h flag or --help print a usage messsage
-  else if (argc < 2 || (argc ==2 && ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) ) ) {
-    //PrintOptionsMessage();
-    //exit(1); 
-    PrintOptionList = true;
-  } 
+
+  //if no options specified or help requested, print help message and list of options, then exit
+  if(!options.hasOptions() || options.getFlag("help")){
+    LogWriter LW;
+    //PrintCopyrightNotice(LW);
+    PrintUsage("hapmixmap");
+    options.PrintAllOptions(cout);
+    exit(1);
+  }
+  if(!options.CheckRequiredOptions() || !options.SetOptions())
+    exit(1);
+
 #ifdef PARALLEL
   MPI::Init(argc, argv);
   Comms::Initialise();
@@ -57,17 +66,6 @@ int main( int argc , char** argv ){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   //  const bool isWorker = Comms::isWorker();
-
-  //read user options
-  //if PrintOptionList = true, program will print list of options and exit.
-  if(PrintOptionList){
-    LogWriter LW;
-    PrintCopyrightNotice(LW);
-    PrintOptionsMessage();
-  }
-  HapMixOptions options(argc, argv, PrintOptionList);
-  if(PrintOptionList)
-    exit(1);
 
   //create results directory, or if it exists, deletes the contents
   if(isMaster){
@@ -98,7 +96,7 @@ int main( int argc , char** argv ){
     }
   
     //print user options to args.txt; must be done after all options are set
-    if(isMaster)options.PrintUserOptions();
+    if(isMaster)options.PrintUserOptions("args.txt");
 
     HapMixModel M;
     M.Initialise(options, data, Log);

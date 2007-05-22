@@ -1156,3 +1156,15 @@ void InputData::Delete(){
   etaPriorMatrix_.clear();
   reportedAncestryMatrix_.clear();
 }
+
+///tells if a given locus is typed, in a hapmix case-control analysis
+bool InputData::isTypedLocus(unsigned locus)const{
+  if(isCaseControlSNP.size())
+    return isCaseControlSNP[locus];
+  else
+    return false;
+}
+//returns the number of typed loci in a hapmix case-control analysis
+unsigned InputData::getNumTypedLoci()const{
+  return isCaseControlSNP.size();
+}

@@ -48,4 +48,8 @@ int cholDecomp(const double* const a, double *L, int n);
 void submatrix(double **M, double **Sub, int r1, int r2, int c1, int c2);
 void submatrix(double *M, double *Sub, int Mcols, int r1, int r2, int c1, int c2);
 
+double **alloc2D_d(int m, int n);
+int **alloc2D_i(int m, int n);
+void free_matrix(double **, int);
+void free_matrix(int **, int);
 #endif /* !LINALG_H */
