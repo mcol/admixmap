@@ -251,6 +251,7 @@ void Options::DefineOptions(){
 
   addFlag('h', "help");
   addFlag('v', "version");
+  addFlag('c', "checkmode");
 
   addOption("samples", intOption, &TotalSamples);
   addOption("burnin", intOption, &burnin);

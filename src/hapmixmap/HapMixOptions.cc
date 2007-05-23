@@ -421,5 +421,5 @@ void HapMixOptions::PrintUserOptions(const char* filename){
     useroptions["states"] = (char *)s.str().c_str();
     }
   //Now output Options table to file
-  OptionReader::PrintUserOptions(filename);
+  Options::PrintUserOptions(filename);
 }

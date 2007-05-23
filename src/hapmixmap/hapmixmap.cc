@@ -15,7 +15,7 @@
 #include <fstream>
 
 #define HAPMIXMAP_VERSION 0
-#define SUBVERSION 8
+#define SUBVERSION 9
 
 using namespace std;
 
@@ -38,6 +38,7 @@ int main( int argc , char** argv ){
     options.PrintAllOptions(cout);
     exit(1);
   }
+
   if(!options.CheckRequiredOptions() || !options.SetOptions())
     exit(1);
 
@@ -75,11 +76,17 @@ int main( int argc , char** argv ){
   //open logfile, start timer and print start message
   LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1 && isMaster));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+
   if(isMaster){
     //if(options.getDisplayLevel()>0 )
    PrintCopyrightNotice(Log);
-   if(options.doPrintBuildInfo())PrintBuildInfo(Log);
-   Log.StartMessage();
+   if(options.getFlag("checkmode"))
+     Log << On << "  *** Check Mode Active *** \n"
+	 << "-------------------------------------------------------\n";
+   else{
+     if(options.doPrintBuildInfo())PrintBuildInfo(Log);
+     Log.StartMessage();
+   }
   }
 
   try{  
@@ -97,6 +104,14 @@ int main( int argc , char** argv ){
   
     //print user options to args.txt; must be done after all options are set
     if(isMaster)options.PrintUserOptions("args.txt");
+
+    //end of program, in checkmode
+    if(options.getFlag("checkmode")){
+      Log << On << "-------------------------------------------------------\n"
+	  <<  "  *** Everything looks good ***\n\n  *** Check Mode Complete ***\n" 
+	  << "-------------------------------------------------------\n";
+      exit(0);
+    }
 
     HapMixModel M;
     M.Initialise(options, data, Log);
@@ -126,6 +141,15 @@ int main( int argc , char** argv ){
     cout << "Unknown exception occurred. Contact the program authors for assistance" << endl;
     exit(1);
   }
+
+  EventLogger::Finalise("hapmixmap");
+  //print run times to screen and log
+  if(isMaster){
+    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+    else  Log << "\n";
+    Log.ProcessingTime();
+  }
+    
 #ifdef PARALLEL
   cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n";
   //MPI::COMM_WORLD.Barrier();
@@ -134,14 +158,9 @@ int main( int argc , char** argv ){
 #else
   cout << "Finished" << endl;
 #endif
-  EventLogger::Finalise("hapmixmap");
-  //print run times to screen and log
-  if(isMaster){
-    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
-    Log.ProcessingTime();
-    //print line of *s
-    cout <<setfill('*') << setw(80) << "*" <<endl;
-  }
+
+    cout << "-------------------------------------------------------" <<endl;
+
   putenv("HAPMIXMAPCLEANEXIT=1");
   return 0;
 } //end of main

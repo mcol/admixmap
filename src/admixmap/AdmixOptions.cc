@@ -803,5 +803,5 @@ void AdmixOptions::PrintUserOptions(const char* filename){
     }
   useroptions["hapmixmodel"] = "0";
   //Now output Options table to file
-  OptionReader::PrintUserOptions(filename);
+  Options::PrintUserOptions(filename);
 }

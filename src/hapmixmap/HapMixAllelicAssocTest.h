@@ -27,7 +27,7 @@ class Regression;
 class HapMixAllelicAssocTest : public CopyNumberAssocTest{
 public:
   void Update(const HapMixIndividualCollection* const IC, const Regression* const R, const Genome& Loci);
-  void PrintAverageInfo(LogWriter& Log, InputData& data, const char* filename);
+  void PrintAverageInfo(LogWriter& Log, const InputData& data, const char* filename);
 };
 
 #endif

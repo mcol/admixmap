@@ -57,7 +57,7 @@ void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, 
   else \
     X += atof(S.c_str());
 
-void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, InputData& data, const char* filename){
+void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, const InputData& data, const char* filename){
   //filename is the final table written by this class earlier
   ifstream ScoreTable(filename);
   //TODO?? check this file exists. It should.
@@ -83,7 +83,7 @@ void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, InputData& data, c
   ScoreTable.close();
   const float size = (float)data.getNumTypedLoci();
 
-  Log << Off << "Average Information extracted across untyped loci in allelic assoc score test: " << sumPI / size
-      << "\nOn average " << sumMissing1/size << " due to ?? and " << sumMissing2/size << " due to ??\n" ;
+  Log << Off << "Average Information extracted across untyped loci in allelic assoc score test: " << sumPI / size << "%"
+      << "\nOn average " << sumMissing1/size << "% due to ?? and " << sumMissing2/size << "% due to ??\n\n" ;
 
 }

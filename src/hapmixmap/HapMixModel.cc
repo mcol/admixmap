@@ -368,11 +368,11 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
     ResidualAllelicAssocScoreTest.Output(true, data.getLocusLabels());
 
     if( options.getTestForAllelicAssociation() )    {
-      string filename; //ignored if !final
-      filename = (options.getResultsDir());
+      string filename = options.getResultsDir();
       filename.append("/AllelicAssocTestsFinal.txt");
       AllelicAssocTest.Output(data.GetPopLabels(), Loci, true, filename.c_str());
       AllelicAssocTest.ROutput();
+      AllelicAssocTest.PrintAverageInfo(Log, data, filename.c_str());
     }
 
     //output posterior means of lambda (expected number of arrivals)

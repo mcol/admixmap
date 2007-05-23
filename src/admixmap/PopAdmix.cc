@@ -308,7 +308,7 @@ void PopAdmix::InitializeOutputFile(const Vector_s& PopulationLabels) {
     // Header line of paramfile
     //Pop. Admixture
     for( int i = 0; i < options->getPopulations(); i++ ) {
-      outputstream << "\""<<PopulationLabels[i] << "\"\t";
+      outputstream << "Dirichlet." << PopulationLabels[i] << "\t";
     }
     //SumIntensities
     if( options->isGlobalRho() ) outputstream << "sumIntensities\t";

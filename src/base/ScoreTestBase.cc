@@ -53,7 +53,7 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
 		  << double2R(CompleteInfo, 3) << sep
 		  << double2R(ObservedInfo, 3) << sep;
 
-  if(CompleteInfo > 0.0 && (MissingInfo < CompleteInfo)) {
+  if(CompleteInfo > 0.0 && ObservedInfo > 0.0) {
     const double PercentInfo = 100.0 * ObservedInfo / CompleteInfo;
     if(final) *outputstream << double2R(PercentInfo, 2) << sep;
 
@@ -121,8 +121,11 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( ofstream* outputstream, str
   if(complete > 0.0){
     const double PercentInfo = 100.0*(complete - missing)/complete;
     if(final){
-      *outputstream << double2R(PercentInfo, 2) << separator//%observed info
-		    << double2R(100.0*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
+      if(PercentInfo >= 0.0)
+	*outputstream << double2R(PercentInfo, 2) << separator;//%observed info
+      else
+	*outputstream << "NA" << separator;
+      *outputstream << double2R(100.0*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
 		    << double2R(100.0*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
     }
     if(missing < complete) {

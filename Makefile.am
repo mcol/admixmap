@@ -13,6 +13,11 @@ distuninstallcheck:
 docs:
 	@(cd src/doxygen && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 
+#install binaries
+binstall: all
+	@ (cd src/admixmap && $(MAKE) $(AM_MAKEFLAGS) install) || exit 1;
+	@ (cd src/hapmixmap && $(MAKE) $(AM_MAKEFLAGS) install) || exit 1;
+
 #make admixmap binary distribution
 admixmap-bindist:
 	@ (cd src/admixmap && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;

@@ -22,13 +22,6 @@ Configuring $PACKAGE_STRING for $target
 AC_PROG_CXX([icpc icc pathCC g++ pgCC])
 AC_LANG(C++)
 
-#other programs required for optional components
-AC_PROG_YACC
-AC_PROG_LEX
-
-#AC_CHECK_PROGS([BASH], [bash], AC_MSG_ERROR(This package needs Bourne shell.))
-
-
 #preset optimisation and debug flags
 AC_CXX_FLAGS_PRESET
 dnl TODO: architecture-specific optimisations

@@ -254,6 +254,7 @@ const bcppcl::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDip
     if(isDiploid)UpdateForwardProbsDiploid();
     else UpdateForwardProbsHaploid();
   }
+
   if(betaIsBad){
     if(isDiploid)UpdateBackwardProbsDiploid();
     else UpdateBackwardProbsHaploid();
