@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 #
-# Rewrite of genotypes masking.
+# Masking genotypes
 #
 # This file is part of Genepi, genetic data analysis software.
 # Copyright (C) 2007 Maciej Bliziński
