@@ -79,7 +79,7 @@ void GSLErrorHandler(const char * reason, const char * file,
     case 28:
       throw jacobiansNotImprovingSolution(reason,file,line); break;
     case 29:  
-      cannotReachToleranceInF(reason,file,line); break;
+      throw cannotReachToleranceInF(reason,file,line); break;
     case 30:
       throw cannotReachToleranceInX(reason,file,line); break;
     case 31:
