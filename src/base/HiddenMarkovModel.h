@@ -70,6 +70,12 @@ protected:
   // the GetHiddenStateProbs() function is called
   bcppcl::pvector<double> hiddenStateProbs;
 
+  void LazyUpdateForwardProbs(bool);
+  void LazyUpdateBackwardProbs(bool);
+
+  void UpdateForwardProbs(bool);
+  void UpdateBackwardProbs(bool);
+  
   virtual void UpdateForwardProbsDiploid();
   virtual void UpdateForwardProbsHaploid();
   virtual void UpdateBackwardProbsDiploid();

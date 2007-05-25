@@ -108,12 +108,12 @@ void HiddenMarkovModel::SetGenotypeProbs(const double* const lambdain, const boo
    Requires f to have been set.
    Mcol = column with theta for second gamete.
 */
-void HiddenMarkovModel::SetStateArrivalProbs(const double* const Theta, const int Mcol, const bool isdiploid){
+void HiddenMarkovModel::SetStateArrivalProbs(const double* const Theta, const int Mcol, const bool isDiploid){
   theta = Theta;
   alphaIsBad = true;//new input so reset
   betaIsBad = true;
 
-  if(isdiploid){
+  if(isDiploid){
     for(int j0 = 0; j0 < K; ++j0) {
       for(int j1 = 0; j1 < K; ++j1) {
 	ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
@@ -126,7 +126,7 @@ void HiddenMarkovModel::SetStateArrivalProbs(const double* const Theta, const in
   for(int t = 1; t < Transitions; t++ ){        
     for(int j = 0; j < K; ++j){
       StateArrivalProbs[0][t*K + j]    = (1.0 - f[2*t]) * theta[j];
-      if(isdiploid)
+      if(isDiploid)
 	StateArrivalProbs[1][t*K + j] = (1.0 - f[2*t + 1]) * theta[K*Mcol +j ];
     }
     p[t] = f[2*t] * f[2*t + 1];
@@ -171,15 +171,12 @@ void HiddenMarkovModel::SampleJumpIndicators(const int* const LocusAncestry, con
   and is the same for all t so it is convenient to compute for
   t = T-1 since beta here is 1 so no backward recursions are required. 
 */
-double HiddenMarkovModel::getLogLikelihood(const bool isdiploid) 
+double HiddenMarkovModel::getLogLikelihood(const bool isDiploid) 
 { 
-  if(alphaIsBad) {
-    if(isdiploid) UpdateForwardProbsDiploid();
-    else UpdateForwardProbsHaploid();
-  }
+  LazyUpdateForwardProbs(isDiploid);
 
   double sum = 0.0;
-  const int NumStates = isdiploid? DStates : K;
+  const int NumStates = isDiploid? DStates : K;
   
   for( int j = 0; j < NumStates; j++ ) {
     sum += alpha[(Transitions - 1)*NumStates + j];
@@ -191,16 +188,14 @@ double HiddenMarkovModel::getLogLikelihood(const bool isdiploid)
 /**
   Samples Hidden States.
   SStates    - an int array to store the sampled states
-  isdiploid  - indicator for diploidy
+  isDiploid  - indicator for diploidy
 */
-void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isdiploid)
+void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid)
 {
-  if(alphaIsBad){
-    if(isdiploid)UpdateForwardProbsDiploid();
-    else UpdateForwardProbsHaploid();
-  }
+  LazyUpdateForwardProbs(isDiploid);
+
   int j1,j2;
-  if(isdiploid) { 
+  if(isDiploid) { 
     double* V = new double[DStates]; //probability vector for possible states (haploid or diploid)
     int C = 0; // sampled state (haploid or diploid) coded as integer
     // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete 
@@ -243,6 +238,65 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isdiploid)
     delete[] V;
   }
 }
+
+/**
+ * Update forward probabilities if needed.
+ * 
+ * @param diploid individual
+ */
+void HiddenMarkovModel::LazyUpdateForwardProbs(bool isDiploid)
+{
+  if(alphaIsBad){
+    UpdateForwardProbs(isDiploid);
+  }
+}
+
+/**
+ * Update backward probabilities if needed.
+ * 
+ * @param diploid individual
+ */
+void HiddenMarkovModel::LazyUpdateBackwardProbs(bool isDiploid)
+{
+  if(betaIsBad){
+    UpdateBackwardProbs(isDiploid);
+  }
+}
+
+/**
+ * Update forward probabilities (even if not needed).
+ *
+ * Function responsible for choosing between diploid and haploid
+ * updates.
+ * 
+ * @param diploid individual
+ */
+void HiddenMarkovModel::UpdateForwardProbs(bool isDiploid)
+{
+  if(isDiploid) {
+    UpdateForwardProbsDiploid();
+  } else {
+    UpdateForwardProbsHaploid();
+  }
+}
+
+/**
+ * Update backward probabilities (even if not needed)
+ * 
+ * Function responsible for choosing between diploid and haploid
+ * updates.
+ * 
+ * @param diploid individual
+ */
+void HiddenMarkovModel::UpdateBackwardProbs(bool isDiploid)
+{
+  if(isDiploid) {
+    UpdateBackwardProbsDiploid();
+  } else {
+    UpdateBackwardProbsHaploid();
+  }
+}
+
 /** 
     Returns a vector of conditional probabilities of each hidden state
     at 'time' t.
@@ -250,15 +304,8 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isdiploid)
     of states.
  */
 const bcppcl::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDiploid, int t){
-  if(alphaIsBad){
-    if(isDiploid)UpdateForwardProbsDiploid();
-    else UpdateForwardProbsHaploid();
-  }
-
-  if(betaIsBad){
-    if(isDiploid)UpdateBackwardProbsDiploid();
-    else UpdateBackwardProbsHaploid();
-  }
+  LazyUpdateForwardProbs(isDiploid);
+  LazyUpdateBackwardProbs(isDiploid);
 
   unsigned States = K;
   if(isDiploid) {
