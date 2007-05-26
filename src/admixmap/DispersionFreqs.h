@@ -22,6 +22,7 @@
 #include "bcppcl/StepSizeTuner.h"
 #include "bcppcl/AdaptiveRejection.h"
 class AdmixOptions;
+class InputAdmixData;
 
 /// Class to hold allele/haplotype frequencies and their priors in a dispersion model.
 class DispersionFreqs : public AlleleFreqs{
@@ -29,7 +30,7 @@ class DispersionFreqs : public AlleleFreqs{
 public:
   DispersionFreqs();
   ~DispersionFreqs();
-  void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
+  void Initialise(AdmixOptions* const options, InputAdmixData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
   void PrintPrior(const Vector_s&, LogWriter& Log)const;
   ///initialize output file for samples of dispersion parameters
@@ -88,7 +89,7 @@ private:
   void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
   void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
-  void LoadAlleleFreqs(AdmixOptions* const options, InputData* const data, LogWriter &Log);
+  void LoadAlleleFreqs(AdmixOptions* const options, InputAdmixData* const data, LogWriter &Log);
   void SetDefaultPriorParams(int i, double defaultpriorparams);
   void SampleAlleleFreqs(int, const double coolness);
   void SampleDirichletParams1D( int );

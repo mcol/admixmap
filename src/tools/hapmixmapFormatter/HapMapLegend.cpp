@@ -23,14 +23,14 @@ HapMapLegend::HapMapLegend(ifstream& LegendFile) {
 
   unsigned index = 0;
   first = 0;
-  last  = -1;
+  last  = 0;
   while(!LegendFile.eof()) {
     LocusVector.push_back(info);
     RSmap[info.rsnumber] = index++;
     ++last;
     LegendFile >> info.rsnumber >> info.position >> info.alleles.first >> info.alleles.second;
   }
-  if(last < 0 ){
+  if(last == 0 ){
     throw "Empty legend file";
   }
 }

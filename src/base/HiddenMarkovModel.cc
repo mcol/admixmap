@@ -104,9 +104,12 @@ void HiddenMarkovModel::SetGenotypeProbs(const double* const lambdain, const boo
 }
 
 /**
+   set state arrival probs.
    Set arrival rates and set pointer to ?? probs and , if diploid, calculate ThetaThetaPrime and ThetaThetaInv. 
    Requires f to have been set.
-   Mcol = column with theta for second gamete.
+   \param Theta mixture proportions
+   \param Mcol Maternal gamete column (0 if assortative mating, 1 if random mating)
+   \param isdiploid indicator for diploidy
 */
 void HiddenMarkovModel::SetStateArrivalProbs(const double* const Theta, const int Mcol, const bool isDiploid){
   theta = Theta;
@@ -166,14 +169,13 @@ void HiddenMarkovModel::SampleJumpIndicators(const int* const LocusAncestry, con
 }
 
 /**
-  returns log-likelihood
+  returns log-likelihood.
   This is the sum over states of products of alpha and beta
   and is the same for all t so it is convenient to compute for
   t = T-1 since beta here is 1 so no backward recursions are required. 
 */
-double HiddenMarkovModel::getLogLikelihood(const bool isDiploid) 
-{ 
-  LazyUpdateForwardProbs(isDiploid);
+double HiddenMarkovModel::getLogLikelihood(const bool isDiploid) { 
+  UpdateForwardProbs(isDiploid);
 
   double sum = 0.0;
   const int NumStates = isDiploid? DStates : K;
@@ -185,14 +187,8 @@ double HiddenMarkovModel::getLogLikelihood(const bool isDiploid)
   return( sumfactor+log(sum) );
 }
 
-/**
-  Samples Hidden States.
-  SStates    - an int array to store the sampled states
-  isDiploid  - indicator for diploidy
-*/
-void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid)
-{
-  LazyUpdateForwardProbs(isDiploid);
+void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
+  UpdateForwardProbs(isDiploid);
 
   int j1,j2;
   if(isDiploid) { 
@@ -239,64 +235,6 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid)
   }
 }
 
-/**
- * Update forward probabilities if needed.
- * 
- * @param diploid individual
- */
-void HiddenMarkovModel::LazyUpdateForwardProbs(bool isDiploid)
-{
-  if(alphaIsBad){
-    UpdateForwardProbs(isDiploid);
-  }
-}
-
-/**
- * Update backward probabilities if needed.
- * 
- * @param diploid individual
- */
-void HiddenMarkovModel::LazyUpdateBackwardProbs(bool isDiploid)
-{
-  if(betaIsBad){
-    UpdateBackwardProbs(isDiploid);
-  }
-}
-
-/**
- * Update forward probabilities (even if not needed).
- *
- * Function responsible for choosing between diploid and haploid
- * updates.
- * 
- * @param diploid individual
- */
-void HiddenMarkovModel::UpdateForwardProbs(bool isDiploid)
-{
-  if(isDiploid) {
-    UpdateForwardProbsDiploid();
-  } else {
-    UpdateForwardProbsHaploid();
-  }
-}
-
-/**
- * Update backward probabilities (even if not needed)
- * 
- * Function responsible for choosing between diploid and haploid
- * updates.
- * 
- * @param diploid individual
- */
-void HiddenMarkovModel::UpdateBackwardProbs(bool isDiploid)
-{
-  if(isDiploid) {
-    UpdateBackwardProbsDiploid();
-  } else {
-    UpdateBackwardProbsHaploid();
-  }
-}
-
 /** 
     Returns a vector of conditional probabilities of each hidden state
     at 'time' t.
@@ -304,9 +242,8 @@ void HiddenMarkovModel::UpdateBackwardProbs(bool isDiploid)
     of states.
  */
 const bcppcl::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDiploid, int t){
-  LazyUpdateForwardProbs(isDiploid);
-  LazyUpdateBackwardProbs(isDiploid);
-
+  UpdateForwardProbs(isDiploid);
+  UpdateBackwardProbs(isDiploid);
   unsigned States = K;
   if(isDiploid) {
     States=DStates;
@@ -329,9 +266,38 @@ const bcppcl::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDip
 
 // ****** End Public Interface *******
 
-/*
-  Updates Forward probabilities alpha, diploid case only
-*/
+/**
+ * Update forward probabilities if needed.
+ * \param isDiploid indicator for diploidy
+ */
+void HiddenMarkovModel::UpdateForwardProbs(bool isDiploid)
+{
+  if(alphaIsBad){
+    if(isDiploid) {
+      UpdateForwardProbsDiploid();
+    } else {
+      UpdateForwardProbsHaploid();
+    }
+  }
+}
+
+/**
+ * Update backward probabilities if needed.
+ * 
+ * \param isDiploid indicator for diploidy
+ */
+void HiddenMarkovModel::UpdateBackwardProbs(bool isDiploid)
+{
+  if(betaIsBad){
+    if(isDiploid) {
+      UpdateBackwardProbsDiploid();
+    } else {
+      UpdateBackwardProbsHaploid();
+    }
+  }
+}
+
+/// Updates Forward probabilities alpha, diploid case only
 void HiddenMarkovModel::UpdateForwardProbsDiploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
@@ -375,6 +341,7 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
   alphaIsBad = false;
 }
 
+/// Updates backard probabilities beta, diploid case only
 void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   if(!beta) { // allocate beta array if not already done
@@ -411,8 +378,8 @@ void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
   betaIsBad = false;
 }
 
-/*
-  Updates forward probs, haploid case only
+/**
+  Updates forward probs, haploid case only.
   Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
 */
 void HiddenMarkovModel::UpdateForwardProbsHaploid(){
@@ -446,6 +413,7 @@ void HiddenMarkovModel::UpdateForwardProbsHaploid(){
   alphaIsBad =  false;
 }
 
+///updates forward probs, haploid case only
 void HiddenMarkovModel::UpdateBackwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   if(!beta) { // allocate diploid-sized beta array if not already done

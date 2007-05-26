@@ -13,6 +13,7 @@
  */
 #include "DispersionFreqs.h"
 #include "AdmixOptions.h"
+#include "InputAdmixData.h"
 #include "bcppcl/AdaptiveRejection.h"
 #include "bcppcl/misc.h"
 #include "bcppcl/linalg.h"
@@ -86,7 +87,8 @@ if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs ) {
 }
 
 // ************** Initialisation and loading of data  *******************
-void DispersionFreqs::Initialise(AdmixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log, bool MAP){
+void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* const data, 
+				 Genome *pLoci, LogWriter &Log, bool MAP){
   //initialise Freqs, PriorAlleleFreqs, HistoricAlleleFreqs etc
   Loci = pLoci;
   Populations = options->getPopulations();
@@ -109,8 +111,7 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputData* const d
     
     // set which sampler will be used for allele freqs
     // current version uses conjugate sampler if annealing without thermo integration
-    if( hapmixmodel ||
-	(options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
+    if( (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
 	//using default allele freqs or CAF model
 	( !strlen(options->getAlleleFreqFilename()) &&
 	  !strlen(options->getHistoricalAlleleFreqFilename()) && 
@@ -271,7 +272,7 @@ void DispersionFreqs::PrintPrior(const Vector_s& PopLabels, LogWriter& Log)const
   }
 }
 
-void DispersionFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_, LogWriter &Log)
+void DispersionFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputAdmixData* const data_, LogWriter &Log)
 {
   int newrow;
   int row = 0;

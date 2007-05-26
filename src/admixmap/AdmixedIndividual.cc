@@ -12,6 +12,7 @@
  */
 #include "AdmixedIndividual.h"
 #include "AdmixOptions.h"
+#include "InputAdmixData.h"
 #include "bcppcl/Regression.h"
 #include "bcppcl/misc.h"
 #include "bcppcl/dist.h"
@@ -36,7 +37,7 @@ AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
   SumLocusAncestry_X = 0;
 }
 
-AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const options, const InputData* const Data,  
+AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const options, const InputAdmixData* const Data,  
 				     bool undertest=false){
   GenotypesMissing = new bool*[numChromosomes];
 
@@ -45,7 +46,7 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   }  
 
   //retrieve genotypes
-  Data->GetGenotype(number, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
+  Data->GetGenotype(number, *Loci, &genotypes, GenotypesMissing);
   isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
 
   Individual::Initialise(number, options, Data); 

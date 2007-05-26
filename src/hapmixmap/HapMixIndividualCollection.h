@@ -18,13 +18,14 @@
 #include "HapMixIndividual.h"
 class HapMixOptions;
 class HapMixFreqs;
+class InputHapMixData;
 
 ///Class to hold an array of Individuals for hapmixmodel
 class HapMixIndividualCollection : public IndividualCollection
 {
 public:
   ///constructor
-  HapMixIndividualCollection(const HapMixOptions* const options, InputData* const Data, Genome* Loci, const double* theta);
+  HapMixIndividualCollection(const HapMixOptions* const options, InputHapMixData* const Data, Genome* Loci, const double* theta);
   //destructor
   ~HapMixIndividualCollection();
   ///samples hidden states for each individual and calculates sufficient statistics for population-level parameters

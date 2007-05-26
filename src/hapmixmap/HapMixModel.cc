@@ -26,7 +26,7 @@ HapMixModel::~HapMixModel(){
   delete L;
 }
 
-void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter& Log){
+void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
@@ -372,7 +372,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
       filename.append("/AllelicAssocTestsFinal.txt");
       AllelicAssocTest.Output(data.GetPopLabels(), Loci, true, filename.c_str());
       AllelicAssocTest.ROutput();
-      AllelicAssocTest.PrintAverageInfo(Log, data, filename.c_str());
+      AllelicAssocTest.PrintAverageInfo(Log, (InputHapMixData&)data, filename.c_str());
     }
 
     //output posterior means of lambda (expected number of arrivals)
@@ -476,3 +476,4 @@ void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWri
 double HapMixModel::getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log){
   return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
 }
+

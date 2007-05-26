@@ -12,6 +12,7 @@
 #include "Annealer.h"
 #include "Comms.h"
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <math.h>
 
@@ -43,7 +44,8 @@ void Annealer::Initialise(bool thermo, unsigned numAnnealedRuns, unsigned sample
   //open output file
   if(Thermo && Comms::isMaster()){		
     annealstream.open(filename);
-    annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << std::endl;
+    annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << std::endl
+		 << std::setiosflags(std::ios::fixed) << std::setprecision(3);
   }
 }
 

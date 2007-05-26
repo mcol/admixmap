@@ -16,6 +16,7 @@ chib.cc chib.h \
 DispersionFreqs.cc DispersionFreqs.h \
 DispersionTest.cc DispersionTest.h \
 IndAdmixOutputter.cc IndAdmixOutputter.h \
+InputAdmixData.cc InputAdmixData.h \
 MisSpecAlleleFreqTest.cc MisSpecAlleleFreqTest.h \
 PopAdmix.cc PopAdmix.h \
 StratificationTest.cc StratificationTest.h \

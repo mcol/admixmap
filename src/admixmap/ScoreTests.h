@@ -1,8 +1,9 @@
 // *-*-C++-*-*
 /** 
+ *   ADMIXMAP
  *   ScoreTests.h 
  *   header file for Scoretests class
- *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -37,7 +38,7 @@ class ScoreTests{
 public:
   ScoreTests();
 
-  void Initialise(Options* , const IndividualCollection* const, const Genome* const ,
+  void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
 		  const Vector_s&, LogWriter &);
 
   void Output(const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
@@ -54,7 +55,7 @@ public:
   void OutputLikelihoodRatios(const char* const filename, const Vector_s& PopLabels);
 
 private:
-  const Options *options;
+  const AdmixOptions *options;
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes

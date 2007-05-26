@@ -60,8 +60,6 @@ public:
   const char *getPriorAlleleFreqFilename() const;
 
   double getRegressionPriorPrecision()const;
-  unsigned int getgenotypesSexColumn() const;
-  void setgenotypesSexColumn(unsigned int i);
 
   //indicators and model options
   virtual bool getHapMixModelIndicator() const = 0;
@@ -85,32 +83,6 @@ public:
   void setTestForAllelicAssociation(bool); 
   bool getTestForResidualAllelicAssoc()const; 
   bool getHWTestIndicator() const;
-
-  //filenames in derived classes
-  //these are required by InputData. Can be removed if InpuData and ScoreTets are forked successfully
-  virtual const char* getCCGenotypesFilename()const{return "";};
-  virtual const char* getAlleleFreqFilename ()const{return "";};
-  virtual const char *getHistoricalAlleleFreqFilename() const{return "";};
-  virtual const char *getReportedAncestryFilename() const{return "";};
-  virtual const char *getEtaPriorFilename() const{return "";};
-  virtual const char *getAffectedsOnlyScoreFilename() const{return "";};
-  virtual const char *getHaplotypeAssociationScoreFilename() const{return "";};
-  virtual const char *getAncestryAssociationScoreFilename() const{return "";};
-  virtual const char *getAlleleFreqScoreFilename() const{return "";};
-  virtual const char *getAlleleFreqScoreFilename2() const{return "";};
-  virtual const char *getAssocScoreFilename() const{return "";};
-  virtual const char* getLikRatioFilename() const{return "";};
-  virtual const char* getIndAdmixModeFilename()const{return "";};
-  virtual bool getTestForAdmixtureAssociation() const{return false;};
-  virtual bool getTestForAffectedsOnly() const{return false;};
-  virtual void setTestForAffectedsOnly(bool){};  
-  virtual bool getTestForHaplotypeAssociation() const{return false;};
-  virtual void setTestForHaplotypeAssociation(bool){};
-  virtual bool getTestForLinkageWithAncestry() const{return false;};
-  virtual void setTestForLinkageWithAncestry(bool){};
-  virtual bool getTestForMisspecifiedAlleleFreqs() const{return false;};
-  virtual bool getTestForMisspecifiedAlleleFreqs2() const{return false;};
-
 
 protected:
   long burnin;
@@ -137,7 +109,6 @@ protected:
   string LogFilename;
   string LocusFilename;
   string GenotypesFilename;
-  unsigned int genotypesSexColumn;
   string AlleleFreqOutputFilename;
   string ErgodicAverageFilename;
   string ParameterFilename;

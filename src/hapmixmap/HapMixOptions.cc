@@ -261,9 +261,7 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
 
   if (RegType == None) { //no regression
     NumberOfOutcomes = 0;
-    {
-      Log << "Cross sectional analysis, no outcome";
-    }
+    Log << "Cross sectional analysis, no outcome";
   } else if (RegType == Linear) {
     Log << "Cross sectional analysis, continuous outcome";
   } else if (RegType == Logistic) {
@@ -273,6 +271,9 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
   }
   Log << "\n";
 
+  if(CCGenotypesFilename.size() && !OutcomeVarFilename.size()){
+    Log << "WARNING: Case-Control genotypes supplied but no outcome variable!\n";
+  }
   if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
     if(NumberOfOutcomes > 0){
       Log.setDisplayMode(On);

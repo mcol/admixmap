@@ -93,8 +93,9 @@ int main( int argc , char** argv ){
     Rand RNG;//allocate random number generator
     RNG.setSeed( options.getSeed() );  // set random number seed
   
-    InputData data; //read data files and check (except allelefreq files)
-    data.readData(&options, Log);//also sets 'numberofoutcomes' and 'populations' options
+    //read data files and check (except allelefreq files)
+    //also sets 'numberofoutcomes' and 'states' options
+    InputHapMixData data(&options, Log);
 
      //check user options
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){

@@ -39,7 +39,7 @@ public:
   void DeleteGenotypes(bool);
   //virtual void Initialise(const AdmixOptions* const options, const Genome* const Loci,
 		  //const Vector_s& PopulationLabels, LogWriter &Log) = 0;
-  void LoadData(const Options* const options, const InputData* const, bool admixtureAsCovariate);
+  virtual void LoadData(const Options* const options, const InputData* const, bool admixtureAsCovariate);
   virtual void getOnePopOneIndLogLikelihood(LogWriter &, const Vector_s& ){};
 
   void SampleHapPairs(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
@@ -120,9 +120,6 @@ private:
   
   void LoadCovariates(const InputData*, const Options* const options, bool admixtureAsCovariate);
   void LoadOutcomeVar(const InputData* const);
-  void LoadRepAncestry(const InputData* const);
-
-
 
   std::ofstream EYStream;//output file for expected outcome
 

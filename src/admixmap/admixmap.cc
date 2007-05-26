@@ -85,8 +85,9 @@ int main( int argc , char** argv ){
     Rand RNG;//allocate random number generator
     RNG.setSeed( options.getSeed() );  // set random number seed
   
-    InputData data; //read data files and check (except allelefreq files)
-    data.readData(&options, Log);//also sets 'numberofoutcomes' and 'populations' options
+    //read data files and check
+    //also sets 'numberofoutcomes' and 'populations' options
+    InputAdmixData data(&options, Log); 
 
      //check user options
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
@@ -122,7 +123,6 @@ int main( int argc , char** argv ){
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
       Log.ProcessingTime();
     }
-
   }
   catch (const string& msg) {//catch any stray error messages thrown upwards
     ThrowException(msg, Log);

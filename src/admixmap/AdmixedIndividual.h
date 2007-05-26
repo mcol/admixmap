@@ -21,13 +21,14 @@
 #include "CopyNumberAssocTest.h"
 
 class AdmixOptions;
+class InputAdmixData;
 
 ///Class to represent an individual in an admixture model
 class AdmixedIndividual : public Individual 
 {
 public:
   AdmixedIndividual();
-  AdmixedIndividual(int number, const AdmixOptions* const options, const InputData* const Data, bool undertest);
+  AdmixedIndividual(int number, const AdmixOptions* const options, const InputAdmixData* const Data, bool undertest);
   ~AdmixedIndividual();
 
   static void SetStaticMembers(Genome* const pLoci, const Options* const options);

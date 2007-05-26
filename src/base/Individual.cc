@@ -43,10 +43,7 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
   else NumGametes = 1;
   
   // Read sex value if present.
-  SexIsFemale = false;
-  if (options->getgenotypesSexColumn() == 1) {//if sex column in genotypesfile
-    SexIsFemale = Data->isFemale(myNumber);
-  }
+  SexIsFemale = Data->isFemale(myNumber);
   
   double L = Loci->GetLengthOfGenome();
   double LX = 0.0;

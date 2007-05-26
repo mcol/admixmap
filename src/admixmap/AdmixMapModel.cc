@@ -21,7 +21,7 @@ AdmixMapModel::~AdmixMapModel(){
     delete L;
 }
 
-void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWriter& Log){
+void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
@@ -33,7 +33,7 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWrite
   
   AdmixedIndividuals = new AdmixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
   IC = (IndividualCollection*) AdmixedIndividuals;
-  if(isMaster || isWorker)IC->LoadData(&options, &data, (!options.getTestForAdmixtureAssociation() && options.getPopulations() > 1));    
+  if(isMaster || isWorker)AdmixedIndividuals->LoadData(&options, &data);    
   if(isWorker)AdmixedIndividuals->setGenotypeProbs(&Loci, &A); // sets unannealed probs
   if(isMaster){
     const int numdiploid = IC->getNumDiploidIndividuals();
@@ -553,3 +553,4 @@ double* AdmixMapModel::getSumEnergy()const{
 double* AdmixMapModel::getSumEnergySq()const{
     return AdmixedIndividuals->getSumEnergySq();
 }
+

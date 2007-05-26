@@ -1,6 +1,5 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   InputData.h 
  *   header file for InputData class
  *   Copyright (c) 2005 - 2007 David O'Donnell and Paul McKeigue
@@ -16,10 +15,8 @@
 #include "common.h"
 #include "bcppcl/DataMatrix.h"
 #include "GeneticDistanceUnit.h"
+#include "GenotypeLoader.h"
 #include <vector>
-
-using std::vector;
-typedef vector<vector<unsigned short> > genotype;
 
 /**
  *  Forward declarations.
@@ -30,8 +27,7 @@ class Genome;
 class Chromosome;
 
 ///Class to read and check all input data files
-class InputData
-{
+class InputData{
 public:    
 
   /**
@@ -42,27 +38,22 @@ public:
   /**
    *  Destructor.
    */    
-  ~InputData();
+  virtual ~InputData();
     
-  void Delete();//erases (nearly) all memory used by object
-  /**
-   *  Read all input data and store in internal structures.
-   */    
-  void readData(Options *options, LogWriter &log);    
-
+  ///erases (nearly) all memory used by object
+  virtual void Delete();
 
   /*
    *  Getters to retrieve data (in string form).
    */
+  ///return contents of locusfile
   const Matrix_s& getLocusData() const;
-  const Matrix_s& getGeneticData()  const;
+  ///return contents of covariatesfile
   const Matrix_s& getInputData()    const;
+  ///return contents of outcomevarfile
   const Matrix_s& getOutcomeVarData()   const;
-  const Matrix_s& getAlleleFreqData() const;
-  const Matrix_s& getHistoricalAlleleFreqData() const;
+  ///return contents of priorallelefreqfile
   const Matrix_s& getPriorAlleleFreqData() const;
-  const Matrix_s& getEtaPriorData() const;
-  const Matrix_s& getReportedAncestryData() const;
 
   /*
    *  Getters to retrieve data (converted to DataMatrix).
@@ -71,109 +62,112 @@ public:
   const DataMatrix& getOutcomeVarMatrix() const;
   const DataMatrix& getCoxOutcomeVarMatrix() const;
   const DataMatrix& getCovariatesMatrix() const;
-  //const DataMatrix& getAlleleFreqMatrix() const;
-  //const DataMatrix& getHistoricalAlleleFreqMatrix() const;
-  //const DataMatrix& getPriorAlleleFreqMatrix() const;
-  const DataMatrix& getEtaPriorMatrix() const;
-  const DataMatrix& getReportedAncestryMatrix() const;
 
-  static void convertMatrix(const Matrix_s& data, DataMatrix& m, size_t row0, size_t col0, size_t ncols);
-
+  ///
   void getOutcomeTypes(DataType*)const;
+  ///returns the DataType of an outcome variable
   DataType getOutcomeType(unsigned)const;
+  ///returns population/hidden state labels
   const Vector_s& GetPopLabels() const;
+  ///returns outcome variable labels
   Vector_s getOutcomeLabels()const;
+  ///returns locus labels (from locusfile)
   const Vector_s& getLocusLabels()const;
+  ///returns covariete labels
   const Vector_s getCovariateLabels()const;
-  //TODO: make all above const
 
-  //void convertGenotypesToIntArray(Options *options);
-  //void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
-
+  /**
+     Determines if an individual is female.
+     Determined from sex column of genotypesfile, if there is one.
+     \param i Individual number (count from 1)
+     \return true if female, false if male or unknown
+  */
   bool isFemale(int i)const;
+
+  ///returns number of individuals
   int getNumberOfIndividuals()const;
-  int getNumberOfCaseControlIndividuals()const;
+
+  ///returns total number of loci in locusfile
   int getNumberOfSimpleLoci()const;
+  ///returns number of composite loci 
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};
+  ///returns unit of distance used in locusfile (defaults to Morgans)
   GeneticDistanceUnit getUnitOfDistance()const;
+  ///returns a string representing the unit of distance in locusfile
   const std::string& getUnitOfDistanceAsString()const;
-  void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
-  bool GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, std::vector<unsigned short>* genotypes, bool** Missing);
-  bool IsCaseControl(int i)const;
 
-  void CheckForMonomorphicLoci(LogWriter& Log)const;
-  bool isTypedLocus(unsigned)const;
-  unsigned getNumTypedLoci()const;
 
-private:    
+protected:
+  /** Extracts population labels from header line of allelefreq file.
+      \param data header line of file.
+      \param Populations number of populations/hidden states
+      \param labels vector to fill with labels
+  */
+  void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
+  ///determines if there is a sex column in genotypesfile
+  void DetermineSexColumn();
+  /**
+     Checks contents of locusfile and extracts locus labels.
+     If check = true, checks that loci labels in locusfile are unique and that they match the names in the genotypes file.
+     \param sexColumn the index of the sex column in genotypesfile if there is one; 0 is not.
+     \param threshold maximum allowable distance between loci on a chromosome. If a distance exceeds this, the chromosome is broken up and a warning is printed.
+     \param check determines whether to check locus labels
+  */
+  void checkLocusFile(int sexColumn, double threshold, bool check);
+
+  ///determine number of composite loci from locusfile
+  unsigned determineNumberOfCompositeLoci()const;
+  ///determine unit of distance in locusfile
+  GeneticDistanceUnit DetermineUnitOfDistance();
+  //virtual void CheckAlleleFreqs(Options *options, LogWriter &Log);
+  ///check contents of outcomevarfile
+  virtual void CheckOutcomeVarFile(Options * const options, LogWriter &Log);
+  ///check contsnts of coxoutcomevarfile
+  void CheckCoxOutcomeVarFile(LogWriter &log)const;
+  ///check contents of covariatesfile
+  void CheckCovariatesFile(LogWriter &log);
+  /**
+   *  Read input data and store in internal structures.
+   */    
+  void ReadData(Options *options, LogWriter &log);    
+
   Matrix_s locusData_;
-  Matrix_s geneticData_;
-  Matrix_s CCgeneticData_;//case-control genotypes for hapmixmodel
   Matrix_s inputData_;
   Matrix_s outcomeVarData_;
   Matrix_s coxOutcomeVarData_;
-  Matrix_s alleleFreqData_;
-  Matrix_s historicalAlleleFreqData_;
   Matrix_s priorAlleleFreqData_;
-  Matrix_s etaPriorData_;
-  Matrix_s reportedAncestryData_;
 
   DataMatrix locusMatrix_;
   DataMatrix covariatesMatrix_;
   DataMatrix outcomeVarMatrix_;
   DataMatrix coxOutcomeVarMatrix_;
-  DataMatrix alleleFreqMatrix_;
-  DataMatrix historicalAlleleFreqMatrix_;
   DataMatrix priorAlleleFreqMatrix_;
-  DataMatrix etaPriorMatrix_;
-  DataMatrix reportedAncestryMatrix_;
 
-  Vector_s PopulationLabels;
-  Vector_s LocusLabels;
-  Vector_s OutcomeLabels;
-  std::vector<DataType> OutcomeType;
-  Vector_s CovariateLabels;
-  int NumIndividuals, numDiploid, NumCCIndividuals;
+  GenotypeLoader* genotypeLoader;
+  unsigned int genotypesSexColumn;
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
-  bool IsPedFile;
-  std::vector<bool> isCaseControlSNP;
-  std::vector<unsigned> alleleCounts[2];///< counts of alleles in hapmix genotypesfile, to check for monomorphic loci
   GeneticDistanceUnit distanceUnit;
+  Vector_s PopulationLabels;
+  std::vector<DataType> OutcomeType;
+  Vector_s CovariateLabels;
+  Vector_s OutcomeLabels;
 
+private:    
 
-  void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
-  void ReadPopulationLabels(Options *options);
-  void readGenotypesFile(const char *fname, Matrix_s& data);
-  void CheckGeneticData(Options *options)const;
-  void checkLocusFile(int sexColumn, double threshold, bool);
-  unsigned determineNumberOfCompositeLoci()const;
-  GeneticDistanceUnit DetermineUnitOfDistance();
-  void CheckAlleleFreqs(Options *options, LogWriter &Log);
-  void CheckOutcomeVarFile(Options * const options, LogWriter &Log);
-  void CheckCoxOutcomeVarFile(LogWriter &log)const;
-  void CheckCovariatesFile(LogWriter &log);
-  void CheckRepAncestryFile(int populations, LogWriter &Log)const;
+  Vector_s LocusLabels;
 
-  bool determineIfPedFile()const;
-
-  void GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool** Missing)const;
-
-  std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
-  std::vector<unsigned short> GetCaseControlGenotype(unsigned locus, unsigned* cclocus, int individual, int SexColumn)const;
-  void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
-  void CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const std::string& ID)const;
-
-  std::vector<unsigned short> GetGenotype(const std::string genostring)const;
-  void FindCaseControlLoci();
-  void CheckData(Options *options, LogWriter &Log);
+  //void CheckData(Options *options, LogWriter &Log);
 
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.
-   */    
+   */
+  ///copy constructor, not implemented    
   InputData(const InputData&);
+  //assignment operator, not implemented
   void operator=(const InputData&);
 
 };
 
+void getLabels(const Vector_s& data, std::string *labels);
 #endif /* !defined INPUT_DATA_H */

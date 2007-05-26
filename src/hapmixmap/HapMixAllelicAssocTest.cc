@@ -15,6 +15,7 @@
 #include "HapMixAllelicAssocTest.h"
 #include "Comms.h"
 #include "HapMixIndividualCollection.h"
+#include "InputHapMixData.h"
 #include "bcppcl/Regression.h"
 
 void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, const Regression* const R, const Genome& Loci){
@@ -57,7 +58,7 @@ void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, 
   else \
     X += atof(S.c_str());
 
-void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, const InputData& data, const char* filename){
+void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, const InputHapMixData& data, const char* filename){
   //filename is the final table written by this class earlier
   ifstream ScoreTable(filename);
   //TODO?? check this file exists. It should.

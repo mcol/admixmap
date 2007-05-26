@@ -18,7 +18,7 @@
 #include "chib.h"
 #include "AdmixedIndividual.h"
 #include "IndAdmixOutputter.h"
-
+class InputAdmixData;
 class IndAdmixOutputter;
 
 ///Class to hold an array of AdmixedIndividuals
@@ -27,13 +27,13 @@ class AdmixIndividualCollection : public IndividualCollection
 public:
   AdmixIndividualCollection();
   ~AdmixIndividualCollection();
-  AdmixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
+  AdmixIndividualCollection(const AdmixOptions* const options, const InputAdmixData* const Data, Genome* Loci);
 
   //void DeleteGenotypes(bool);
   void Initialise(const AdmixOptions* const options, const Genome* const Loci,
 		  const Vector_s& PopulationLabels, LogWriter &Log);
   void DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha);
-  //void LoadData(const AdmixOptions* const options, const InputData* const, bool admixtureAsCovariate);
+  void LoadData(const AdmixOptions* const options, const InputAdmixData* const);
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels);
 
   void HMMUpdates(int iteration, const AdmixOptions* const options,
@@ -104,6 +104,7 @@ private:
   chib MargLikelihood;
 
   void SetNullValues();
+  void LoadRepAncestry(const InputAdmixData* const);
 };
 
 #endif /* !defined ADMIX_INDIVIDUAL_COLLECTION_H */

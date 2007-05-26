@@ -11,6 +11,7 @@
  * 
  */
 #include "HapMixIndividual.h"
+#include "InputHapMixData.h"
 #include <algorithm>
 //#include "../common/DebugMacros.h"
 
@@ -51,7 +52,8 @@ struct ungp_t {
 map<int, int> HapMixIndividual::ord2unord;
 
 //Note: assuming SetStaticMembers is called first
-HapMixIndividual::HapMixIndividual(int number, const Options* const options, InputData* const Data, const double* GlobalTheta, bool isMasked){
+HapMixIndividual::HapMixIndividual(int number, const Options* const options, 
+				   InputHapMixData* const Data, const double* GlobalTheta, bool isMasked){
 
   GenotypesMissing = new bool*[numChromosomes];
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -59,11 +61,11 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, Inp
   }  
 
   //retrieve genotypes
-  Data->GetGenotype(number, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
+  Data->GetGenotype(number, *Loci, &genotypes, GenotypesMissing);
   DeleteGenotypes();
 
   //isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
-  isHaploid = Data->GetHapMixGenotype( number, options->getgenotypesSexColumn(), *Loci, &hgenotypes, GenotypesMissing);
+  isHaploid = Data->GetHapMixGenotype( number, *Loci, &hgenotypes, GenotypesMissing);
   Individual::Initialise(number, options, Data);
 
   Theta = const_cast<double*>(GlobalTheta);

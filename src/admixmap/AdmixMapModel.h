@@ -18,6 +18,7 @@
 #include "Model.h"
 #include "Genome.h"
 #include "AdmixOptions.h"
+#include "InputAdmixdata.h"
 #include "PopAdmix.h"
 #include "StratificationTest.h"
 #include "DispersionTest.h"
@@ -26,10 +27,12 @@
 #include "DispersionFreqs.h"
 #include "ScoreTests.h"
 
+class InputAdmixData;
+
 class AdmixMapModel : public Model{
 public:
     ~AdmixMapModel();
-  void Initialise(AdmixOptions & options, InputData& data,  LogWriter& Log);
+  void Initialise(AdmixOptions & options, InputAdmixData& data,  LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
   void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
 	       Options & options, InputData & data, LogWriter& Log, 

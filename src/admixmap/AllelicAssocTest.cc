@@ -40,7 +40,7 @@ AllelicAssocTest::~AllelicAssocTest(){
   delete[] locusObsIndicator;
 }
 
-void AllelicAssocTest::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci, 
+void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 			    LogWriter &Log){
   test = true;
   options = op;

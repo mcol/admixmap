@@ -6,17 +6,19 @@ AM_LDFLAGS= -L$(top_builddir)/src/bcppcl
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS)
 
-all_SOURCES = HapMixFreqs.cc HapMixFreqs.h \
+all_SOURCES = hapmixmap.cc \
+HapMixFreqs.cc HapMixFreqs.h \
 HapMixGenome.cc HapMixGenome.hh \
 HapMixHMM.cc HapMixHMM.hh \
 HapMixIndividual.cc HapMixIndividual.h \
 HapMixIndividualCollection.cc HapMixIndividualCollection.h \
-hapmixmap.cc \
 HapMixModel.cc HapMixModel.h \
 HapMixOptions.cc HapMixOptions.h \
+HapMixAllelicAssocTest.cc HapMixAllelicAssocTest.h  \
+HapMixGenotypeLoader.c HapMixGenotypeLoader.h \
+InputHapMixData.c InputHapMixData.h \
 MantelHaenszelTest.cc MantelHaenszelTest.h \
-PopHapMix.cc PopHapMix.h \
-HapMixAllelicAssocTest.cc HapMixAllelicAssocTest.h
+PopHapMix.cc PopHapMix.h
 
 parallel_SOURCES = 
 

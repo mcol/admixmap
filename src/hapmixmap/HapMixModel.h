@@ -16,6 +16,7 @@
 #define HAPMIXMODEL_H 1
 
 #include "Model.h"
+#include "InputHapMixData.h"
 #include "HapMixGenome.hh"
 #include "HapMixOptions.h"
 #include "PopHapMix.h"
@@ -27,7 +28,7 @@
 class HapMixModel : public Model{
 public:
   ~HapMixModel();
-  void Initialise(HapMixOptions & options, InputData& data,  LogWriter& Log);
+  void Initialise(HapMixOptions & options, InputHapMixData& data,  LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
   void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
 	       Options & options, InputData & data, LogWriter& Log, 

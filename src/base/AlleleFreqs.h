@@ -31,7 +31,7 @@ class AlleleFreqs{
 public:
   AlleleFreqs();
   virtual ~AlleleFreqs();
-  virtual void Initialise(Options* const options, InputData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
+  //virtual void Initialise(Options* const options, InputData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
   void AllocateAlleleCountArrays(unsigned K);
   virtual void PrintPrior(const Vector_s&, LogWriter& Log)const;
   virtual void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
@@ -106,7 +106,7 @@ protected:
 
 
 private:
-  void LoadAlleleFreqs(Options* const options, InputData* const data, LogWriter &Log);
+  //void LoadAlleleFreqs(Options* const options, InputData* const data, LogWriter &Log);
 
   static double muEnergyFunction(unsigned K, const double * const alpha, const double* const *args);
   static void muGradient(unsigned K, const double * const alpha, const double* const *args, double *g);

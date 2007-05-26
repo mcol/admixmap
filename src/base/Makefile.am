@@ -29,7 +29,8 @@ misc.cc \
 Model.cc Model.h \
 Options.cc Options.h \
 ResidualLDTest.cc ResidualLDTest.h \
-ScoreTestBase.cc ScoreTestBase.h
+ScoreTestBase.cc ScoreTestBase.h \
+GenotypeLoader.cc GenotypeLoader.h 
 
 if PARALLEL
 noinst_LIBRARIES = libbase-para.a

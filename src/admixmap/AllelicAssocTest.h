@@ -14,7 +14,7 @@
 #define ALLELICASSOCTEST_H 1
 
 #include "ScoreTestBase.h"
-#include "Options.h"
+#include "AdmixOptions.h"
 #include "IndividualCollection.h"
 #include "Genome.h"
 
@@ -31,7 +31,7 @@ public:
   AllelicAssocTest();
   ~AllelicAssocTest();
 
-  void Initialise( Options* , const IndividualCollection* const, const Genome* const ,
+  void Initialise( AdmixOptions* , const IndividualCollection* const, const Genome* const ,
 		  LogWriter &);
 
   void Reset();
@@ -62,7 +62,7 @@ private:
   //outputfile = allelicAssocStream
   //std::ofstream allelicAssocScoreStream;
 
-  const Options *options;
+  const AdmixOptions *options;
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes

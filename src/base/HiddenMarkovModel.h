@@ -23,20 +23,60 @@ class GenotypeProbIterator;
 */
 class HiddenMarkovModel{
 public:
+  ///default constructor
   HiddenMarkovModel();
+  /**
+     initialising constructor.
+     \param inTransitions number of transitions (loci on chromosome)
+     \param pops number of hidden states
+     \param f pointer to locus correlation (held in Chromosome
+  */
   HiddenMarkovModel( int inTransitions, int pops, const double* const f);
+  ///Destructor
   virtual ~HiddenMarkovModel();
 
+  /**
+     sets pointer to genotype probs.
+     \param lambdain the genotype probs
+     \param missing indicators for missing genotypes
+  */
   void SetGenotypeProbs(const double* const lambdain, const bool* const missing);
+
+  ///set genotype probs 
   //temporary until interface is finished
   //final version will use bcppcl::arrays instead of GPI
   virtual void SetGenotypeProbs(const GenotypeProbIterator& , const bool* const ){};
 
+  /**
+     set state arrival probs.
+     \param Theta mixture proportions
+     \param Mcol Maternal gamete column (0 if assortative mating, 1 if random mating)
+     \param isdiploid indicator for diploidy
+  */
   virtual void SetStateArrivalProbs(const double* const Theta, const int Mcol, const bool isdiploid);
 
+  /**
+     Samples Hidden States.
+     \param SStates an int array to store the sampled states
+     \param isDiploid indicator for diploidy
+  */
   void SampleHiddenStates(int *SStates, bool isdiploid);
+
+  ///returns conditional probs of hidden states
   const bcppcl::pvector<double>& GetHiddenStateProbs( const bool isDiploid, int t );
+
+  ///returns loglikelihood
   double getLogLikelihood(bool isDiploid);
+
+  /**
+     Samples jump indicators.
+     \param LocusAncestry array of hidden states
+     \param gametes number of gametes (1 or 2)
+     \param SumLocusAncestry
+     \param SumNumArrivals
+     \param SampleArrivals indicates whether to sample arrivals or not
+     \param startlocus index of first locus on chromosome
+  */
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, int *SumLocusAncestry, 
 			    std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;
 
@@ -69,9 +109,6 @@ protected:
   // Storing results so vectors are not being created every time
   // the GetHiddenStateProbs() function is called
   bcppcl::pvector<double> hiddenStateProbs;
-
-  void LazyUpdateForwardProbs(bool);
-  void LazyUpdateBackwardProbs(bool);
 
   void UpdateForwardProbs(bool);
   void UpdateBackwardProbs(bool);

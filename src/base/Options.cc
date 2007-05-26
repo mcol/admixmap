@@ -50,7 +50,6 @@ void Options::SetDefaultValues(){
   NumAnnealedRuns = 20; // default if option thermo not specified 
   ResultsDir = "results";
   LogFilename = "log.txt";
-  genotypesSexColumn = 0;
   TargetIndicator = 0;
   fixedallelefreqs = false;
   NumberOfOutcomes = -1;
@@ -127,15 +126,6 @@ const char *Options::getLocusFilename() const
 const char *Options::getGenotypesFilename() const
 {
   return GenotypesFilename.c_str();
-}
-unsigned int Options::getgenotypesSexColumn() const
-{
-  return genotypesSexColumn;
-}
-
-void Options::setgenotypesSexColumn(unsigned int i)
-{
-  genotypesSexColumn = i;
 }
 bool Options::CheckData()const{
     return checkData;

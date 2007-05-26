@@ -11,6 +11,7 @@
  * 
  */
 #include "AdmixIndividualCollection.h"
+#include "InputAdmixData.h"
 #include "bcppcl/Regression.h"
 #include "Comms.h"
 #ifdef PARALLEL
@@ -31,7 +32,8 @@ void AdmixIndividualCollection::SetNullValues(){
   SumLogTheta = 0;
 }
 
-AdmixIndividualCollection::AdmixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
+AdmixIndividualCollection::AdmixIndividualCollection(const AdmixOptions* const options, 
+						     const InputAdmixData* const Data, Genome* Loci) {
   SetNullValues();
   Populations = options->getPopulations();
   NumInd = Data->getNumberOfIndividuals();
@@ -136,6 +138,23 @@ void AdmixIndividualCollection::DrawInitialAdmixture(const std::vector<std::vect
 void AdmixIndividualCollection::resetStepSizeApproximators(int k) {
   for(unsigned i = worker_rank; i < size; i+= NumWorkers)
     AdmixedChild[i]->resetStepSizeApproximator(k);
+}
+
+void AdmixIndividualCollection::LoadData(const AdmixOptions* const options, const InputAdmixData* const data_){
+
+  IndividualCollection::LoadData(options, data_, 
+				 (!options->getTestForAdmixtureAssociation() && options->getPopulations() > 1));
+  if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
+    LoadRepAncestry(data_);
+  }
+}
+
+void AdmixIndividualCollection::LoadRepAncestry(const InputAdmixData* const data_){
+  ReportedAncestry = new DataMatrix[NumInd];
+  DataMatrix& temporary = (DataMatrix&)data_->getReportedAncestryMatrix();
+  for( unsigned i = 0; i < temporary.nRows() / 2; i++ )
+    ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.nCols() - 1 );
+ 
 }
 
 // ************** UPDATING **************

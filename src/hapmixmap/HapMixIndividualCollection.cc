@@ -13,6 +13,7 @@
 
 #include "HapMixIndividualCollection.h"
 #include "HapMixOptions.h"
+#include "InputHapMixData.h"
 //#include "HapMixIndividual.h"
 #include "HapMixFreqs.h"
 #include "bcppcl/Regression.h"
@@ -20,7 +21,7 @@
 
 HapMixIndividualCollection
 ::HapMixIndividualCollection(const HapMixOptions* const options, 
-			     InputData* const Data, Genome* Loci, const double* theta){
+			     InputHapMixData* const Data, Genome* Loci, const double* theta){
   SetNullValues();
   NumCompLoci = Loci->GetNumberOfCompositeLoci();
   GlobalConcordanceCounts = 0;

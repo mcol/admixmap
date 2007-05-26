@@ -93,9 +93,6 @@ void IndividualCollection::LoadData(const Options* const options, const InputDat
     if(strlen( options->getOutcomeVarFilename() ) != 0)LoadOutcomeVar(data_);
     LoadCovariates(data_, options, admixtureAsCovariate);
   }
-  if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
-    LoadRepAncestry(data_);
-  }
 }
 
 void IndividualCollection::LoadCovariates(const InputData* const data_, const Options* const options, bool admixtureAsCovariate){
@@ -172,14 +169,6 @@ void IndividualCollection::LoadOutcomeVar(const InputData* const data_){
   Outcome = data_->getOutcomeVarMatrix();
   //if(size != Outcome.nRows() && size!= NumInd)throw string("ERROR in outcomevarfile: wrong number of rows\n");
   NumOutcomes = Outcome.nCols();
- 
-}
-
-void IndividualCollection::LoadRepAncestry(const InputData* const data_){
-  ReportedAncestry = new DataMatrix[NumInd];
-  DataMatrix& temporary = (DataMatrix&)data_->getReportedAncestryMatrix();
-  for( unsigned i = 0; i < temporary.nRows() / 2; i++ )
-    ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.nCols() - 1 );
  
 }
 

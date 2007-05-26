@@ -1,4 +1,5 @@
 /** 
+ *   ADMIXMAP
  *   ScoreTests.cc 
  *   Class acts as a container for the following tests:
  *   (1) Score test for allelic association
@@ -35,7 +36,7 @@ ScoreTests::~ScoreTests(){
 
 }
 
-void ScoreTests::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci, 
+void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 			    const Vector_s& PLabels, LogWriter &Log){
   options = op;
   individuals = indiv;
