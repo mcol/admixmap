@@ -267,8 +267,8 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
 void HapMixFreqs::OpenOutputFile(const char* filename){
   if(strlen(filename)){
     allelefreqprioroutput.open(filename);
-    allelefreqprioroutput << "Freq.Precision.Mean\tFreq.Precision.Var";
-    if(etaHierModel)allelefreqprioroutput << "\tFreq.Precision.Prior.Rate";
+    allelefreqprioroutput << "RAD.Mean\tRAD.Var";
+    if(etaHierModel)allelefreqprioroutput << "\tRAD.Prior.Rate";
     allelefreqprioroutput << std::endl;
   }
 }
@@ -397,7 +397,7 @@ void HapMixFreqs::SamplePriorPrecision(unsigned locus, unsigned Populations, dou
 
   }
   catch(string s){
-    throw string ("Error encountered while sampling frequency prior precision: " + s);
+    throw string ("Error encountered while sampling residual allelic diversity: " + s);
   }
 }
 
@@ -551,7 +551,7 @@ void HapMixFreqs::OutputPosteriorMeans(const char* filename, LogWriter& Log)cons
   if(IsRandom() && strlen(filename)){
     std::ofstream outfile(filename);
     if(outfile.is_open()){
-      Log << Quiet << "Writing posterior means of allele freq precision to " << filename << "\n"; 
+      Log << Quiet << "Writing posterior means of residual allelic diversity to " << filename << "\n"; 
       
       for(int j = 0; j < NumberOfCompositeLoci; ++j){
 	outfile << SumEta[j] / (double)(NumEtaUpdates) << " ";
@@ -561,7 +561,7 @@ void HapMixFreqs::OutputPosteriorMeans(const char* filename, LogWriter& Log)cons
     else{
       //throw string("Error: cannot open " + filename);
       Log << On << "Error: cannot open " <<  filename
-	  << ". Not writing freq precision posterior means.\n";
+	  << ". Not writing residual allelic diversity posterior means.\n";
     }
   }
 }

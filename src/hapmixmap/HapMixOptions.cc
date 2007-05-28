@@ -48,7 +48,7 @@ void HapMixOptions::SetDefaultValues(){
   useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
   useroptions["finalarrivalratefile"] = FinalLambdaFilename;
   useroptions["finalmixturepropsfile"] = FinalMixturePropsFilename;
-  useroptions["freqprecisionhiermodel"] = "0";
+  useroptions["residualadhiermodel"] = "0";
   useroptions["fixedmixtureprops"] = "1";
   useroptions["fixedmixturepropsprecision"] = "1";
 }
@@ -195,6 +195,7 @@ void HapMixOptions::DefineOptions()
   addOption("states", intOption, &NumBlockStates);
   //toggle hierarchical model on allele freq precision
   addOption("freqprecisionhiermodel", boolOption, &FreqPrecisionHierModel);
+  addOption("residualadhiermodel", boolOption, &FreqPrecisionHierModel);
   //toggle sampling of mixture props
   addOption("fixedmixtureprops", boolOption, &FixedMixtureProps);
   //toggle sampling of mixture props precision, valid only if fixedmixtureprops=0
@@ -211,6 +212,7 @@ void HapMixOptions::DefineOptions()
   addOption("mixturepropsprecisionprior", dvectorOption, &MixturePropsPrecisionPrior);
   //vector of length 2 or 3, Gamma/Gamma-Gamma prior on allele freq prior precision
   addOption("allelefreqprecisionprior", dvectorOption, &allelefreqprecisionprior);
+  addOption("residualadprior", dvectorOption, &allelefreqprecisionprior);
 
   //sampler settings
   addOption("arrivalratesamplerparams", fvectorOption, &rhoSamplerParams);
@@ -220,6 +222,7 @@ void HapMixOptions::DefineOptions()
   */
   //file to write mean and variance of frequency precision params
   addOption("freqprecisionfile", outputfileOption, &FreqPrecisionOutputFilename);
+  addOption("residualadfile", outputfileOption, &FreqPrecisionOutputFilename);
 
   //final values
   addOption("finalallelefreqfile", outputfileOption, &AlleleFreqOutputFilename);// synonym for allelefreqoutputfile
@@ -229,6 +232,7 @@ void HapMixOptions::DefineOptions()
 
   //posterior means
   addOption("allelefreqprecisionposteriormeanfile", outputfileOption, &AlleleFreqPriorOutputFilename);
+  addOption("residualadposteriormeanfile", outputfileOption, &AlleleFreqPriorOutputFilename);
   addOption("arrivalrateposteriormeanfile", outputfileOption, &ArrivalRateOutputFilename);
 
 
@@ -338,14 +342,15 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
 
   // **** model for allele freqs ****
 
-  if(useroptions["allelefreqprecisionprior"].size()){
+  if(useroptions.find("allelefreqprecisionprior") != useroptions.end() ||
+     useroptions.find("residualadprior") != useroptions.end()){
     
     if(FreqPrecisionHierModel && (allelefreqprecisionprior.size() !=3)) {
-      Log << "ERROR: 'allelefreqprecisionprior' must have length 3\n";
+      Log << "ERROR: 'residualadprior' must have length 3\n";
       badOptions = true;
     }
     else if(allelefreqprecisionprior.size()< 2){
-      Log << "ERROR: 'allelefreqprecisionprior' must have length 2\n";
+      Log << "ERROR: 'residualadprior' must have length 2\n";
       badOptions = true;
     }
   }
@@ -356,10 +361,12 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     if( FreqPrecisionOutputFilename.size()){
       FreqPrecisionOutputFilename.clear();
       useroptions.erase("freqprecisionfile");
+      useroptions.erase("residualadfile");
     }
     if(AlleleFreqPriorOutputFilename.size()){
       AlleleFreqPriorOutputFilename.clear();
       useroptions.erase("allelefreqprecisionposteriormeanfile");
+      useroptions.erase("residualadposteriormeanfile");
     }
   }
 

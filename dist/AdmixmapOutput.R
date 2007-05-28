@@ -1186,9 +1186,9 @@ if(is.null(user.options$dispparamfile)||
 ## read hapmix allele freq precision samples
 hapmix.freq.precision.samples = NULL
 if(user.options$hapmixmodel == 1){
-  if(!is.null(user.options$freqprecisionfile)){
+  if(!is.null(user.options$residualadfile)){
   cat("reading allele frequency precision parameters...", file=outfile, append=T)
-  hapmix.freq.precision.samples<-read.table(paste(resultsdir, user.options$freqprecisionfile,sep="/"), header=TRUE)
+  hapmix.freq.precision.samples<-read.table(paste(resultsdir, user.options$residualadfile,sep="/"), header=TRUE)
   cat(" done\n", file=outfile, append=T)
   }
 }
@@ -1298,13 +1298,13 @@ if(!is.null(user.options$allelicassociationscorefile)
 
 ##append columnns with posterior means of arrival rate and allele freq precision to final table if hapmixmodel
   if(user.options$hapmixmodel == 1){
-    if(!is.null(user.options$arrivalrateposteriormeanfile) && !is.null(user.options$allelefreqprecisionposteriormeanfile)){
+    if(!is.null(user.options$arrivalrateposteriormeanfile) && !is.null(user.options$residualadposteriormeanfile)){
       cat("appending posterior means of arrival rates and freq precision to score table...", file=outfile, append=T)
       lambda <- c(NA, dget(paste(resultsdir,
   user.options$arrivalrateposteriormeanfile, sep="/"))) # dget not scan
-      eta <- c(scan(paste(resultsdir, user.options$allelefreqprecisionposteriormeanfile, sep="/")))
+      eta <- c(scan(paste(resultsdir, user.options$residualadposteriormeanfile, sep="/")))
       scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T),
-                                          ArrivalRate=lambda, FreqPrecision=eta)
+                                          ArrivalRate=lambda, ResidualAD=eta)
       write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=F, col.names=T)
       cat(" done\n", file=outfile, append=T)
     }

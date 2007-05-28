@@ -18,7 +18,7 @@
 #include "Model.h"
 #include "Genome.h"
 #include "AdmixOptions.h"
-#include "InputAdmixdata.h"
+#include "InputAdmixData.h"
 #include "PopAdmix.h"
 #include "StratificationTest.h"
 #include "DispersionTest.h"
