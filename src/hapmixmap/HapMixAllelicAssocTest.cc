@@ -54,7 +54,7 @@ void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, 
 
 #define COUNTINFO(S, X) \
   if(S == "NA" || S =="NaN") \
-    X +=100.0;\
+    X +=0.0;\
   else \
     X += atof(S.c_str());
 
@@ -66,6 +66,7 @@ void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, const InputHapMixD
   string scrap;
   float sumPI = 0.0, sumMissing1 = 0.0, sumMissing2 = 0.0;
   string sInfo, smissing1, smissing2;
+  getline(ScoreTable, scrap);//skip header
   ScoreTable >> scrap >> scrap >> scrap >> scrap >> sInfo >> smissing1 >> smissing2;
   unsigned locus = 0;
   while(getline(ScoreTable, scrap)){
@@ -76,15 +77,14 @@ void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, const InputHapMixD
       COUNTINFO(sInfo, sumPI)
       COUNTINFO(smissing1, sumMissing1)
       COUNTINFO(smissing2, sumMissing2)
-
-      ++locus;
     }
     ScoreTable >> scrap >> scrap >> scrap >> scrap >> sInfo >> smissing1 >> smissing2;
+    ++locus;
   }
   ScoreTable.close();
   const float size = (float)data.getNumTypedLoci();
 
   Log << Off << "Average Information extracted across untyped loci in allelic assoc score test: " << sumPI / size << "%"
-      << "\nOn average " << sumMissing1/size << "% due to ?? and " << sumMissing2/size << "% due to ??\n\n" ;
-
+      << "\nOn average " << sumMissing1/size << "% Missing Info due to uncertainty about genotypes\n and " 
+      << sumMissing2/size << "% Missing Info due to uncertainty about model parameters\n\n" ;
 }

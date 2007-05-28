@@ -1028,9 +1028,6 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filena
   final.table <- read.table(full.filename, header=T)
   percent.info <- final.table$PercentInfo
   zscores <- final.table$StdNormal
-  Av.missing1 <- mean(final.table$Missing1)
-  Av.missing2 <- mean(final.table$Missing2)
-  Av.percent.info <- mean(percent.info)
   rm(final.table)
   
   ##read map positions from LocusTable
@@ -1043,8 +1040,7 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filena
 
   ##QQ plot of zscores
   QQplot(zscores, "QQ plot of z-scores in Allelic Association Test", qqplot.filename)
-  
-  return(list(Av.percent.info, Av.missing1, Av.missing2) )
+
 }
 ###################################################################################
 ## start of script
@@ -1309,12 +1305,9 @@ if(!is.null(user.options$allelicassociationscorefile)
       cat(" done\n", file=outfile, append=T)
     }
     cat("plotting map of information extracted...", file=outfile, append=T)
-    av.percent.info <- plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap", "QQPlotAllelicAssocTests")
+    plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap", "QQPlotAllelicAssocTests")
     ##write average information extraction to logfile
     cat(" done\n", file=outfile, append=T)
-    cat(" Average Information Extraction: ", av.percent.info[[1]], "\%\n", file=outfile, append=T)
-    cat(" Average Information Component1: ", av.percent.info[[2]], "\%\n", file=outfile, append=T)
-    cat(" Average Information Component2: ", av.percent.info[[3]], "\%\n", file=outfile, append=T)
   }
 }
 
