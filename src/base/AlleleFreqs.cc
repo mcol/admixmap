@@ -17,6 +17,7 @@
 #include <numeric>
 #include "Comms.h"
 #include "bcppcl/LogWriter.h"
+#include "bcppcl/Exceptions.h"
 
 #ifdef PARALLEL
 #include <mpe.h>
@@ -267,16 +268,25 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, LogWriter &Log){
         Freqs[locus][NumStates-1 + pop*NumStates] = 1.0;
 	
 	for( int state = 0; state < NumStates-1; state++ ){
-	  infile >> phi;
-	  if(infile.eof()){
+	  if(!(infile >> phi)){
 	    throw string( "ERROR: Too few entries in initialallelefreqfile.\n") ;
 	  }
+	  //check 0 <= phi <= 1
+	  if(phi < 0 || phi > 1)
+	    throw DataOutOfRangeException("allele frequency", "between 0 and 1", "initialallelefreqfile");
 	  if(phi == 1.0)phi = 0.999;
 	  if(phi == 0.0)phi = 0.001;
 	  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] = phi;
 	  Freqs[locus][NumStates-1 + pop*NumStates] -= phi;
  	}
       }
+    }
+
+   //see if anything more than whitespace left in file
+    string test;
+    infile >> test;
+    if(test.find_first_not_of(" \t\n\r") != string::npos){
+      throw string("ERROR: too many entries in initialallelefreqfile\n");
     }
     infile.close();
   }

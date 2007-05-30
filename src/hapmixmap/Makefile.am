@@ -4,7 +4,7 @@ AM_CPPFLAGS=-I$(BAYESLIB_PATH)  -I$(BASELIB_PATH)
 
 AM_LDFLAGS= -L$(top_builddir)/src/bcppcl
 SUFFIXES=.cc .o
-AM_CXXFLAGS=$(WFLAGS)
+AM_CXXFLAGS=$(WFLAGS) -fexceptions
 
 all_SOURCES = hapmixmap.cc \
 HapMixFreqs.cc HapMixFreqs.h \

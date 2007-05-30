@@ -27,6 +27,7 @@
 
 class HapMixModel : public Model{
 public:
+  HapMixModel();
   ~HapMixModel();
   void Initialise(HapMixOptions & options, InputHapMixData& data,  LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);

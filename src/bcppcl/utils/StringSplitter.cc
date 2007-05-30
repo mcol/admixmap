@@ -242,3 +242,15 @@ void StringSplitter::Tokenize(const std::string& str,
   
 //   while (std::string::npos != pos || std::string::npos != lastPos);
 // }
+
+//possible alternative
+// void StringSplitter::Tokenize(const std::string& text, std::vector<std::string>& tokens, const std::string& delim) {
+//   std::vector<std::string> result;
+//   std::string::size_type b(text.find_first_not_of(delim));
+//   while (b != std::string::npos) {
+//     std::string::size_type e(text.find_first_of(delim, b));
+//     result.push_back(text.substr(b, e - b));
+//     b = text.find_first_not_of(delim, min(e, text.size()));
+//   }
+//   return result;
+// } 

@@ -14,6 +14,7 @@
 #include "Genome.h"
 #include "HapMixOptions.h"
 #include "bcppcl/misc.h"
+#include "bcppcl/Exceptions.h"
 #include "Comms.h"
 
 HapMixFreqs::HapMixFreqs(){
@@ -180,16 +181,20 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
     initialvaluefile.open(initialvaluefilename);
   }
 
-  //TODO: check initial value file has right format
   //TODO??: check prior is consistent with initial values
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     if(initialvaluefile.is_open()){//read values from file
-      initialvaluefile >> Eta[i];
-      initialvaluefile >> DirichletParams[i];//read mu
-      if(initialvaluefile.eof()){
+      //read eta (precision) and alpha (mean)
+      if(!( initialvaluefile >> Eta[i] >> DirichletParams[i]))
+	{//reached end-of-file too early
         throw string("ERROR: Too few entries in initialfreqpriorfile\n");
       }
-      DirichletParams[i] *= Eta[i];         //multiply by eta to get Dir params
+      //check values read are ok
+      if(Eta[i] < 0.0)
+	throw DataOutOfRangeException("residual allelic diversity parameter", ">0", "initialfreqpriorfile");
+      if( DirichletParams[i] < 0.0 || DirichletParams[i] > 1.0)
+	throw DataOutOfRangeException("allele frequency mean", "between 0 and 1", "initialfreqpriorfile");
+      DirichletParams[i] *= Eta[i]; //multiply mean by precision to get Dir params
     }
     else{
       //set precision to prior mean
@@ -200,7 +205,16 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
     EtaSampler[i].SetParameters(0.1, 0.00001, 100.0, 0.26);
     if(accumulateEta)SumEta[i] = 0.0;
   }
-  if(initialvaluefile.is_open())initialvaluefile.close();
+
+  if(initialvaluefile.is_open()){
+   //see if anything more than whitespace left in file
+    string test;
+    initialvaluefile >> test;
+    if(test.find_first_not_of(" \t\n\r") != string::npos){
+      throw string("ERROR: too many entries in initialfreqpriorfile\n");
+    }
+    initialvaluefile.close();
+  }
 }
 
 void HapMixFreqs::PrintPrior(LogWriter& Log)const{

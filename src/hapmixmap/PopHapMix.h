@@ -121,7 +121,9 @@ private:
   DirichletParamSampler MixturePropsPrecisionSampler;
 
   void InitialiseMixtureProportions(LogWriter& Log);
+  void ReadInitialMixturePropsFromFile(const char* initfilename, LogWriter& Log);
   void InitialiseArrivalRates(LogWriter& Log);
+  void ReadInitialArrivalRatesFromFile(const char* initfilename, unsigned numIntervals, LogWriter& Log);
   void InitializeOutputFile(const string& distanceUnit);
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);

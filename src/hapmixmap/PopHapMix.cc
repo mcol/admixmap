@@ -29,8 +29,7 @@ using namespace std;
 #define SQ( x ) x*x
 #define REC(x) 1.0 / x
 
-PopHapMix::PopHapMix( HapMixOptions* op, HapMixGenome* loci)
-{
+PopHapMix::PopHapMix( HapMixOptions* op, HapMixGenome* loci){
   options = op;
   Loci = loci;
   MixtureProps = 0;
@@ -92,28 +91,7 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
   const char* initfilename = options->getInitialMixturePropsFilename();
   //get initial values from file
   if(strlen(initfilename)){
-    ifstream initfile(initfilename);
-
-    if(initfile.is_open()){
-      Log << Quiet << "Reading initial values of mixture proportions from " << initfilename << "\n";
-      unsigned index = 0;
-      do{
-	initfile >> MixtureProps[index];
-	++index;
-      }while(!initfile.eof() && index < KL);
-      if(index < KL){
-	Log << On << "\nERROR: Too few entries in initialmixturepropsfile. Expected " << KL
-	    << ", found " << index-1 << "\n";
-	exit(1);
-      }
-      
-      initfile.close();
-    }
-    else{
-      string err("ERROR: cannot open initialmixturepropsfile: ");
-      err.append(initfilename);
-      throw err;
-    }
+    ReadInitialMixturePropsFromFile(initfilename, Log);
   }
   //set initial values of Mixture Props as uniform  
   else{
@@ -175,6 +153,41 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
   else
     Log << Quiet << "Model with fixed mixture proportions\n";
   
+}
+
+void PopHapMix::ReadInitialMixturePropsFromFile(const char* initfilename, LogWriter& Log){
+  ifstream initfile(initfilename);
+  
+  if(initfile.is_open()){
+    Log << Quiet << "Reading initial values of mixture proportions from " << initfilename << "\n";
+    const unsigned KL = K*Loci->GetNumberOfCompositeLoci();
+   //read until vector is filled or end-of-file
+    for(unsigned index = 0; index < KL; ++index){
+      if(!(initfile >>MixtureProps[index])){
+      //reached end of file before vector full -> file too small
+      Log << On << "\nERROR: Too few entries in initialmixturepropsfile. Expected " << KL
+	  << ", found " << index << "\n";
+	exit(1);
+      }
+      if(MixtureProps[index] < 0.0 || MixtureProps[index] > 1.0)
+	throw DataOutOfRangeException("mixture proportions", "between 0 and 1", "initialmixturepropsfile");
+    }
+
+    //see if anything more than whitespace left in file
+    string test;
+    initfile >> test;
+    if(test.find_first_not_of(" \t\n\r") != string::npos){
+      Log << On << "WERROR: Too many entries in initialmixturepropsfile. Expected " << KL << "\n";
+      exit(1);
+    }
+    
+    initfile.close();
+  }
+  else{
+    string err("ERROR: cannot open initialmixturepropsfile: ");
+    err.append(initfilename);
+    throw err;
+  }
 }
 
 void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
@@ -246,33 +259,9 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   int d = 0; //indexes intervals
   const char* initfilename = options->getInitialArrivalRateFilename();
   const bool useinitfile = (strlen(initfilename) > 0);
-  ifstream initfile;
-  if(useinitfile){
-    initfile.open(initfilename);
 
-    if(initfile.is_open()){
-      Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
-      
-      //read initial values of h, beta
-      initfile >> LambdaArgs.h >> LambdaArgs.beta;
-      
-      vector<double>::iterator ar = lambda.begin();
-      while(!initfile.eof() && ar != lambda.end()){
-        initfile >> *ar;
-        ++ar;
-      }
-      if(ar != lambda.end()){
-	Log << On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
-	    << numIntervals + 2 << ", found " << numIntervals - (int)(lambda.end() - ar)+2 << "\n";
-	exit(1);
-      }
-      
-    }
-    else{
-      string err("ERROR: cannot open initialarrivalratefile: ");
-      err.append(initfilename);
-      throw err;
-    }
+  if(useinitfile){
+    ReadInitialArrivalRatesFromFile(initfilename, numIntervals, Log);
   }
   
   for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
@@ -292,8 +281,48 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   
 }
 
-PopHapMix::~PopHapMix()
-{
+void PopHapMix::ReadInitialArrivalRatesFromFile(const char* initfilename, unsigned numIntervals, LogWriter& Log){
+  ifstream initfile(initfilename);
+  
+  if(initfile.is_open()){
+    Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
+    
+    //read initial values of h, beta
+    initfile >> LambdaArgs.h >> LambdaArgs.beta;
+    if(LambdaArgs.h <= 0.0)
+      throw DataOutOfRangeException("Arrival Rate mean", ">0", "initialarrivalratefile");
+    if(LambdaArgs.beta <= 0.0)
+      throw DataOutOfRangeException("Arrival Rate rate parameter", ">0", "initialarrivalratefile");
+    
+   //read until vector is filled or end-of-file
+    for(vector<double>::iterator ar = lambda.begin(); ar != lambda.end(); ++ar){
+      if(!(initfile >>*ar)){
+      //reached end of file before vector full -> file too small
+	Log << On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
+	    << numIntervals + 2 << ", found " << numIntervals - (int)(lambda.end() - ar)+2 << "\n";
+	exit(1);
+      }
+      if(*ar <= 0.0)
+	throw DataOutOfRangeException("Arrival Rate", ">0", "initialarrivalratefile");
+    }
+
+    //see if anything more than whitespace left in file
+    string test;
+    initfile >> test;
+    if(test.find_first_not_of(" \t\n\r") != string::npos){
+      Log << On << "ERROR: Too many entries in initialarrivalratefile\n";
+      exit(1);
+    }
+    initfile.close(); 
+  }
+  else{
+    string err("ERROR: cannot open initialarrivalratefile: ");
+    err.append(initfilename);
+    throw err;
+  }
+}
+
+PopHapMix::~PopHapMix(){
   delete[] MixtureProps;
   delete[] ArrivalRateSampler;
   delete[] MixturePropsPrior;

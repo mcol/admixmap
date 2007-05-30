@@ -18,9 +18,11 @@
 #define SCORETEST_UPDATE_EVERY 2
 int numdiploidIndivs = 0;
 
-// HapMixModel::HapMixModel(){
-
-// }
+HapMixModel::HapMixModel(){
+  L = 0;
+  HMIC = 0;
+  IC = 0; 
+}
 
 HapMixModel::~HapMixModel(){
   delete L;
