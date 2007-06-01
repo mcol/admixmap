@@ -45,9 +45,6 @@ AC_CHECK_CXX_FEATURES
 #check for gsl
 AM_PATH_GSL
 
-#check if script called with --enable-parallel and if so set parallel flags
-AC_ENABLE_PARALLEL
-
 # Check if the script was called with --enable-optimize, 
 # --enable-debug or --enable-profile, and if so modify the compilation flags.
 dnl TODO: should not allow debug and optimize together
