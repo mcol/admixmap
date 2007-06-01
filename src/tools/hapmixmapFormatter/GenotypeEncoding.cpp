@@ -1,6 +1,6 @@
 /**
-   GenotypeEncoding.cpp
-   Functions to turn genotypes coded as pairs of alleles to strings
+   \file GenotypeEncoding.cpp
+   Functions to turn genotypes coded as pairs of alleles to strings.
    eg A/C ->"1,2"
    This file is part of FPHD
    
@@ -13,12 +13,7 @@
 */
 
 #include "GenotypeEncoding.h"
-#include <iostream>
-#include <fstream>
 #include <sstream>
-#include "bcppcl/ranker.h"
-#include "gsl/gsl_permutation.h"
-#include "bcppcl/StringSplitter.h"
 
 using namespace::std;
 
@@ -132,146 +127,6 @@ pair<char, char> GenotypeString2Pair(const string& g) {
   }
   
   return gPair;
-}
-
-unsigned EncodeGenotypes(HapMapLegend& Legend, const char* infilename, const char* outfilename, char MISSING) {
-  ifstream RawGeno(infilename);
-  if(!RawGeno.is_open()){
-    cerr << "** ERROR: could not open " << infilename << endl;
-    exit(1);
-  }
-  ofstream OutGeno(outfilename);
-  if(!OutGeno.is_open()){
-    cerr << "** ERROR: could not open " << outfilename << endl;
-    exit(1);
-  }
-
-  vector<string> TypedLoci;
-  vector<string> NonHapMapLoci;//typed loci not in HapMap (usually because they are monomorphic in the HapMap sample)
-  string line, ID;
-  //Read Header of raw genotypes file
-  RawGeno >> ID;                                  //skip first col in header
-  OutGeno << ID;
-  getline(RawGeno, line);
-  if(line.find_first_not_of(" \t") == string::npos){
-    cerr << "** ERROR: " << infilename << " header is empty!" << endl;
-    exit(1);
-  }
-  StringSplitter::Tokenize(line, TypedLoci, " \t");
-
-  const unsigned NumTypedLoci = TypedLoci.size();
-
-  //create vector of positions of typed loci
-  vector<unsigned long> TypedPos;
-  for(vector<string>::const_iterator i = TypedLoci.begin(); i!= TypedLoci.end(); ++i) {
-    //check the locus in is the HapMap legend file
-    if(!Legend.isInHapMap(*i)){
-      // cerr << "** ERROR: " << *i << " is not the name of a HapMap locus on this chromosome" << endl;
-      //exit(1);
-      NonHapMapLoci.push_back(*i);
-    }
-    TypedPos.push_back(Legend[*i].position);
-  }
-
-  if(NonHapMapLoci.size()){
-    cerr << "** Warning: " << NonHapMapLoci.size() << " loci are not in the HapMap for this chromosome and will be omitted";
-//     if(NonHapMapLoci.size()<=10){
-//       cerr << ":" << endl;
-//       copy(NonHapMapLoci.begin(), NonHapMapLoci.end(), ostream_iterator<string>(cerr, " "));
-//     }
-    cerr << endl;
-  }
-
-  //sort typed loci by position
-  const unsigned num = TypedPos.size();
-  vector<unsigned> ranks(num);
-  rank(TypedPos, ranks, "default");
-
-  gsl_permutation * p = gsl_permutation_alloc (num);
-  for (uint i = 0; i < num; ++i) {
-    p->data[i] = (int)ranks[i]-1;
-  }
-  //get inverse of permuation
-  //if(!gsl_permutation_valid (p))exit(2);
-  gsl_permutation * q = gsl_permutation_alloc (num);
-  gsl_permutation_inverse (q, p);
-  //gsl_permutation_fprintf (stdout, q, " %u");
-  for (uint i = 0; i < num; ++i) {
-    ranks[i] = q->data[i];
-  }
-
-  //tidy up
-  TypedPos.clear();
-  gsl_permutation_free(p);
-  gsl_permutation_free(q);
-
-  //set first and last loci in Legend
-  Legend.setLimits(TypedLoci[ranks[0]], TypedLoci[ranks[ranks.size()-1]]);
-
-  //finish writing header
-  for(vector<unsigned>::const_iterator i = ranks.begin(); i !=ranks.end(); ++i) {
-    if(Legend.isInHapMap(TypedLoci[*i]))
-      OutGeno << " " <<  TypedLoci[*i];
-  }
-  OutGeno << endl;
-
-  unsigned NumInd = 0;
-  vector<pair<string, unsigned> > AllMissingIndivs;
-  string ValidChars = "ACTG:,; \t";
-  ValidChars.append(1, MISSING);
-
-  //read ID of 1st individual
-  RawGeno >> ID;
-  while(getline(RawGeno, line)) {
-    ++NumInd;
-
-    //check for invalid characters 
-    string::size_type badchar = line.find_first_not_of(ValidChars);
-    if( badchar != string::npos){
-      cerr << "** ERROR: invalid character on line " << NumInd +1 << " of " << infilename << ": " << line[badchar] << endl;
-      exit(1);
-    }
-
-    //check there is at least one observed genotype
-    if(line.find_first_of("ACTG") == string::npos){
-      AllMissingIndivs.push_back(pair<string, unsigned>(ID, NumInd));
-      RawGeno >> ID;
-      --NumInd;   
-      continue;
-    }
-
-    //Tokenize line into strings
-    vector<string> genotypesline;
-    StringSplitter::Tokenize(line, genotypesline, " \t");
-    //check individual has the correct number of genotypes
-    if(genotypesline.size() != NumTypedLoci){
-      cerr << "** ERROR: inconsistent row lengths in " << infilename << ". " 
-	   << NumTypedLoci << " loci in header but " << genotypesline.size() << " in row " << NumInd;
-      exit(1); 
-    }
-
-    OutGeno << ID;
-    //convert genotypes and write to file
-    for(vector<unsigned>::const_iterator i = ranks.begin(); i !=ranks.end(); ++i) {
-      if(Legend.isInHapMap(TypedLoci[*i]))
-	OutGeno << " " <<  getGenotype(genotypesline[*i], Legend[TypedLoci[*i]].alleles, MISSING);
-    }
-
-    OutGeno << endl;
-    RawGeno >> ID;                                //read ID
-  }
-  RawGeno.close();
-  OutGeno.close();
-
-  //warn user of individuals with all missing genotypes
-  if(AllMissingIndivs.size()){
-    cerr << "** Warning: The following individuals have no observed genotypes and have been omitted." << endl;
-    for(vector<pair<string, unsigned> >::const_iterator i = AllMissingIndivs.begin(); i != AllMissingIndivs.end(); ++i){
-      cout << i->first << "(" << i->second << ")" << endl;
-    }
-    cout << endl;
-  }
-  return NumInd;
 }
 
 

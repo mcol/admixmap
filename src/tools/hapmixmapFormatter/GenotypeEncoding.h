@@ -1,7 +1,7 @@
 // *-*-C++-*-*
 /**
-   GenotypeEncoding.h
-   Prototypes of various HAPMIXMAP data formatting functions
+   \file GenotypeEncoding.h
+   Prototypes of various HAPMIXMAP data formatting functions.
    This file is part of FPHD
 
    This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -15,7 +15,7 @@
 #ifndef FORMATTING_H
 #define FORMATTING_H
 #include <string>
-#include "HapMapLegend.h"
+#include <vector>
 
 ///determines if a given string is one of a vector of strings
 bool isListedSNP(const std::string HapMapSNP, const std::vector<std::string>SNPs);
@@ -35,8 +35,5 @@ std::string getGenotype(const std::string& g, std::pair<char, char> a, char Miss
 ///Encodes a pair of bases as a genotype string
 std::string getGenotype(const std::pair<char, char>& g, std::pair<char, char> a, char Missing);
 
-//Encodes genotypes given in infilename, sorts and writes to outfilename
-unsigned EncodeGenotypes(HapMapLegend& Legend,
-                         const char* infilename, const char* outfilename, char missing);
 
 #endif

@@ -8,7 +8,14 @@ FPHD_SOURCES = \
   HapMapLegend.cpp \
   HapMapLegend.h \
   FPHDOptions.cpp \
-  FPHDOptions.h 
+  FPHDOptions.h \
+  HapMapData.h \
+  HapMapData.cpp \
+  UserGenotypes.h \
+  UserGenotypes.cpp \
+  InitialValues.h \
+  InitialValues.cpp
+
 
 FUD_SOURCES = FormatUnphasedData.cpp
 

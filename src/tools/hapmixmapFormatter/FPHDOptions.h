@@ -1,7 +1,7 @@
 // *-*-C++-*-*
-/*
-  FPHDOptions.h
-  Options for FPHD
+/**
+  \file FPHDOptions.h
+  Options for FPHD.
   This file is part of FPHD
 
   This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -18,35 +18,50 @@
 
 class FPHDOptions {
 public:
-  FPHDOptions(int argc, char** argv, std::ofstream&, std::ofstream&);
+  FPHDOptions(int argc, char** argv);
   ~FPHDOptions(){};
   static void PrintHelpText();
   bool Verbose()const;
   bool LimitedLoci()const;
   const std::string& getPrefix()const;
   unsigned getChrNum()const;
-  unsigned long getNumUserLoci()const;
+  unsigned long getMaxLoci()const;
   bool WriteCCFile()const;
+  const char* getLocusFilename()const;
+  const char* getGenotypesFilename()const;
   const char* getInCCFilename()const;
   const char* getOutCCFilename()const;
+  const char* getInitialMixturePropsFilename()const;
+  const char* getInitialArrivalRateFilename()const;
+  const char* getInitialAlleleFreqFilename()const;
+  const char* getInitialFreqPriorFilename()const;
   float getFlankLength()const;
   char getMissingChar()const;
-  float getMinOverlap()const;
-
+  unsigned getMinOverlap()const;
+  void setMaxLoci(unsigned);
 private:
   bool beVerbose;
   std::string prefix;
-  bool LimitLoci;
+  //bool LimitLoci;
   unsigned Chr;//chromosome number
 
+  std::string genotypesfilename, locusfilename;
   std::string incasecontrolfilename;
   std::string outcasecontrolfilename;
-  unsigned long userloci;
-  float MinOverlap;//minimum overlap between subchromosomes
+  unsigned long MaxLoci;//max loci per subchromosome
+  unsigned MinOverlap_bp;//minimum overlap between subchromosomes
+  float MinOverlap_kb;
   float flankLength;//length in Kb of flanking region if using CCgenotypesfile 
   char MissingChar;
 
+  //initial value files
+  std::string InitialMixturePropsFilename;
+  std::string InitialArrivalRateFilename;
+  std::string InitialAlleleFreqFilename;
+  std::string InitialFreqPriorFilename;
+
   FPHDOptions();
-  void DefineOptions(bcppcl::OptionReader& opt, std::string* genotypesfilename, std::string* locusfilename, unsigned long*);
-  void ParseOptions(int argc, char** argv, std::ofstream& genotypesfile, std::ofstream& locusfile);
+  void DefineOptions(bcppcl::OptionReader& opt);
+  void ParseOptions(int argc, char** argv);
+  void StripSuffix(std::string& filename);
 };

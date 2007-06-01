@@ -1,6 +1,6 @@
-/*
-  FPHDOptions.cpp
-  Options for FPHD
+/**
+  \file FPHDOptions.cpp
+  Options for FPHD.
   This file is part of FPHD
 
   This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -12,31 +12,31 @@
 */
 #include "FPHDOptions.h"
 #include <iostream>
-//#include "bcppcl/OptionReader.h"
 
 #define MAXCHROMOSOMES 22//maximum number of chromosomes
 #define PROGNAME "FPHD"
 
 using namespace::std;
 
-FPHDOptions::FPHDOptions(int argc, char** argv, std::ofstream& genotypesfile, std::ofstream& locusfile){
+FPHDOptions::FPHDOptions(int argc, char** argv){
   //set defaults
   beVerbose = false;
   prefix = ".";
   incasecontrolfilename;
   outcasecontrolfilename;
-  userloci = 1000000000;  //some number > number of HapMap loci
-  LimitLoci = false;
+  MaxLoci = 1000000000;  //some number > number of HapMap loci
+  //LimitLoci = false;
   Chr = 0;
   flankLength = 10;//10Kb
-  MinOverlap = 5000.0;
+  MinOverlap_kb = 5000;//5Mb
+  MinOverlap_bp = (unsigned) (MinOverlap_kb * 1000.0);
   MissingChar = 'N';
 
   if(argc == 1){//no args specified - print usage and exit
     PrintHelpText();
     exit(1);
   }
-  ParseOptions(argc, argv, genotypesfile, locusfile);
+  ParseOptions(argc, argv);
   if (Chr <= 0 || Chr > MAXCHROMOSOMES){
     cerr << "ERROR: Invalid chromosome number: " << Chr << endl;
     exit(1);
@@ -44,16 +44,15 @@ FPHDOptions::FPHDOptions(int argc, char** argv, std::ofstream& genotypesfile, st
 
 }
 
-void FPHDOptions::ParseOptions(int argc, char** argv, std::ofstream& genotypesfile, std::ofstream& locusfile){
+void FPHDOptions::ParseOptions(int argc, char** argv){
   bcppcl::OptionReader opt;
   opt.setVerbose(true); /* print warnings about unknown options */
 
-  string genotypesfilename, locusfilename;
-  unsigned long locuslimit = 0;
   opt.setUserOption("genotypesfile", "genotypes.txt");
   opt.setUserOption("locusfile", "loci.txt");
-  DefineOptions(opt, &genotypesfilename, &locusfilename, &locuslimit);
-  opt.ReadCommandLineArgs(argc, argv);
+  DefineOptions(opt);
+  if(!opt.ReadCommandLineArgs(argc, argv))
+    exit(1);
   if(opt.getFlag( "help" ) || opt.getFlag( 'h' )){
     PrintHelpText();
     exit(1);
@@ -61,21 +60,8 @@ void FPHDOptions::ParseOptions(int argc, char** argv, std::ofstream& genotypesfi
   if(!opt.SetOptions() | !opt.CheckRequiredOptions())
     exit(1);
 
-  genotypesfile.open(genotypesfilename.c_str());
-  if(!genotypesfile.is_open()){
-    cout << "Error: cannot open genotypesfile\n";
-    exit(1);
-  }
-  locusfile.open(locusfilename.c_str());
-  if (!locusfile.is_open()) {
-    cout << "Error: cannot open locusfile\n";
-    exit(1);
-  }
   //check for upper limit on loci
-  if (locuslimit > 0){
-    userloci = locuslimit - 1;
-    LimitLoci = true;
-  }
+ 
   //convert flankLength in kb to bp
   flankLength *= 1000;
 
@@ -86,54 +72,88 @@ void FPHDOptions::ParseOptions(int argc, char** argv, std::ofstream& genotypesfi
   if(incasecontrolfilename.size() && !outcasecontrolfilename.size())
     outcasecontrolfilename = "CaseControlGenotypes.txt";
 
+  //set min overlap when dividing chromosomes
+  MinOverlap_bp = (unsigned) (MinOverlap_kb * 1000.0);
+
   if(beVerbose){
     cout << "Writing genotypes to " << genotypesfilename << endl;
     cout << "Writing locusfile to " << locusfilename << endl;
     if(incasecontrolfilename.size())
       cout << "Writing case-control genotypes to " << outcasecontrolfilename << endl; 
   }
+
+  StripSuffix(locusfilename);
+  StripSuffix(genotypesfilename);
+  StripSuffix(outcasecontrolfilename);
 }
 
-void FPHDOptions::DefineOptions(bcppcl::OptionReader& opt, string* genotypesfilename, string* locusfilename, unsigned long* locuslimit){
+void FPHDOptions::StripSuffix(std::string& filename){
+  if(filename.size() ==0) return;
+  filename.erase(filename.find_first_of("."));
+}
+
+void FPHDOptions::DefineOptions(bcppcl::OptionReader& opt){
   opt.addFlag('h', "help");
   opt.addFlag('v', "verbose");
   opt.addOption('c', "chromosome", bcppcl::intOption, &Chr, true);
   opt.addOption('p', "prefix", bcppcl::stringOption, &prefix);
-  opt.addOption('g', "genotypesfile", bcppcl::stringOption, genotypesfilename);
-  opt.addOption('l', "locusfile", bcppcl::stringOption, locusfilename);
-  opt.addOption('n', "numloci", bcppcl::longOption, &locuslimit);
-  opt.addOption("minoverlap", bcppcl::floatOption, &MinOverlap);
+  opt.addOption('g', "genotypesfile", bcppcl::stringOption, &genotypesfilename);
+  opt.addOption('l', "locusfile", bcppcl::stringOption, &locusfilename);
+  //  opt.addOption('n', "numloci", bcppcl::longOption, &locuslimit);
+  opt.addOption('M', "maxloci", bcppcl::intOption, &MaxLoci);
+  opt.addOption("minoverlap", bcppcl::floatOption, &MinOverlap_kb);
   opt.addOption('i', "inputfile", bcppcl::stringOption, &incasecontrolfilename);
   opt.addOption('o', "outputfile", bcppcl::stringOption, &outcasecontrolfilename);
   opt.addOption('f', "flank", bcppcl::floatOption, &flankLength);
   opt.addOption('m', "missing", bcppcl::charOption, &MissingChar);
+  opt.addOption("initialmixturepropsfile", bcppcl::stringOption, &InitialMixturePropsFilename);
+  opt.addOption("initialarrivalratefile", bcppcl::stringOption, &InitialArrivalRateFilename);
+  opt.addOption("initialallelefreqfile", bcppcl::stringOption, &InitialAlleleFreqFilename);
+  opt.addOption("initialfreqpriorfile", bcppcl::stringOption, &InitialFreqPriorFilename);
 }
 
 
 void FPHDOptions::PrintHelpText(){
+  //       |<-             This is 80 characters' width                                 ->|
   cout << "----------------------------------------------------------------------------"
        << endl
-       << "This program converts phased HapMap data to HAPMIXMAP format" << endl
+       << "This program prepares data for use with HAPMIXMAP." << endl
+       << "It formats phased HapMap data as well as user-supplied case-control genotypes" << endl
+       << "and prepares initial value files, breaking into separate files as necessary." << endl
        << "Copyright (c) David O'Donnell 2007" << endl
        << "All parts of this program are freely distributable" << endl << endl
-       << "Usage: " << PROGNAME << " -c<chr> [options]" << endl << endl
-       << "Options ('-' signs are optional): " << endl
-       << "-h   -help            print this help message and exit" << endl
-       << "-c   -chromosome      chromosome number" << endl
-       << "-v   -verbose         be verbose" << endl
-       << "-p   -prefix          prefix where HapMap files are located, defaults to '.'" << endl 
-       << "-g   -genotypesfile   output genotypes file, defaults to 'genotypes.txt'" << endl
-       << "-l   -locusfile       output locus file, defaults to loci.txt" << endl
-       << "-n   -numloci         maximum number of loci per (sub)chromosome. " << endl
-       << "     -minoverlap      minimum overlap between sub-chromosomes in kb." << endl
-       << "-i   -inputfile       raw case-control genotypes file. This file will be" << endl
-       << "                      formatted and used to restrict the range of HapMap loci" << endl 
-       << "                      output." << endl
-       << "-o   -outputfile      output case-control-file  " << endl
-       << "                      valid only with -i, defaults to 'CaseControlGenotypes.txt'." << endl
-       << "-m   -missing         missing-value character, defaults to 'N'" << endl
-       << "-f   -flank           length in Kb of flanking region outside of typed region." << endl
-       << "                      Valid only with -i. Defaults to 10." << endl << endl
+       << "Usage: " << PROGNAME << " -c=[1...22] [option=value ...]" << endl << endl
+       << "Options ('-' signs are optional), = denotes a default: " << endl
+       << "-h   -help                  Print this help message and exit" << endl
+       << "-c   -chromosome            Chromosome number" << endl
+       << "-v   -verbose               Be verbose" << endl
+       << "-p   -prefix = .            Prefix where HapMap files are located." << endl 
+       << "-l   -locusfile = loci      Output locus file prefix" << endl
+       << "-g   -genotypesfile = genotypes.txt" << endl
+       << "                            Output genotypes file prefix" << endl
+       << "-i   -inputfile             Raw case-control genotypes file. This file will be" << endl
+       << "                            formatted and used to restrict the range of " << endl 
+       << "                            HapMap loci output." << endl
+       << "-o   -outputfile = CaseControlGenotypes.txt" << endl
+       << "                            output case-control-file prefix (valid only with -i)" << endl
+       << "-M   -maxloci               Maximum number of loci per sub-chromosome/file." << endl
+       << "                            If not specified, all available loci will be used" << endl
+       << "     -minoverlap = 5000     Minimum overlap between sub-chromosomes in kb." << endl
+       << "-m   -missing = N           missing-value character" << endl
+       << "-f   -flank = 10            length in Kb of flanking region outside of" << endl
+       << "                            typed region. Valid only with -i." << endl << endl
+       << endl
+       << "Initial Value Files - these will be broken up like the other output files" << endl
+       << "     -initialallelefreqfile" << endl
+       << "                            File with initial values of allele frequencies" << endl
+       << "     -initialfreqpriorfile" << endl
+       << "                            File with initial values of allele frequency prior" << endl
+       << "                            parameters." << endl
+       << "     -initialarrivalratefile" << endl
+       << "                            File with initial values of arrival rates." << endl
+       << "     -initialmixturepropsfile" << endl
+       << "                            File with initial values of mixture proportions." << endl
+       << endl
        << "Note that HapMap input files must be named 'chrN_phased.txt', 'chrN_sample.txt'" << endl
        << "and 'chrN_legend.txt', where N is an integer from 1 to 22"
        << endl << endl;
@@ -142,9 +162,9 @@ void FPHDOptions::PrintHelpText(){
 bool FPHDOptions::Verbose()const{
   return beVerbose;
 }
-bool FPHDOptions::LimitedLoci()const{
-  return LimitLoci;
-}
+// bool FPHDOptions::LimitedLoci()const{
+//   return LimitLoci;
+// }
 
 const std::string& FPHDOptions::getPrefix()const{
   return prefix;
@@ -153,12 +173,18 @@ unsigned FPHDOptions::getChrNum()const{
   return Chr;
 }
 
-unsigned long FPHDOptions::getNumUserLoci()const{
-  return userloci;
+unsigned long FPHDOptions::getMaxLoci()const{
+  return MaxLoci;
 }
 
 bool FPHDOptions::WriteCCFile()const{
   return (incasecontrolfilename.size()>0);
+}
+const char* FPHDOptions::getLocusFilename()const{
+  return locusfilename.c_str();
+}
+const char* FPHDOptions::getGenotypesFilename()const{
+  return genotypesfilename.c_str();
 }
 const char* FPHDOptions::getInCCFilename()const{
   return incasecontrolfilename.c_str();
@@ -172,6 +198,21 @@ float FPHDOptions::getFlankLength()const{
 char FPHDOptions::getMissingChar()const{
   return MissingChar;
 }
-float FPHDOptions::getMinOverlap()const{
-  return MinOverlap;
+unsigned FPHDOptions::getMinOverlap()const{
+  return MinOverlap_bp;
+}
+void FPHDOptions::setMaxLoci(unsigned L){
+  MaxLoci = L < MaxLoci ? L : MaxLoci;
+}
+const char* FPHDOptions::getInitialMixturePropsFilename()const{
+  return InitialMixturePropsFilename.c_str();
+}
+const char* FPHDOptions::getInitialArrivalRateFilename()const{
+  return InitialArrivalRateFilename.c_str();
+}
+const char* FPHDOptions::getInitialAlleleFreqFilename()const{
+  return InitialAlleleFreqFilename.c_str();
+}
+const char* FPHDOptions::getInitialFreqPriorFilename()const{
+  return InitialFreqPriorFilename.c_str();
 }
