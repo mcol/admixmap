@@ -77,7 +77,7 @@ int main( int argc , char** argv ){
   if(isMaster){
     //if(options.getDisplayLevel()>0 )
     PrintCopyrightNotice(Log);
-    if(options.doPrintBuildInfo())PrintBuildInfo(Log);
+    if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
     Log.StartMessage();
   }
 

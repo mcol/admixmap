@@ -41,19 +41,19 @@ states => 8,
 hapmixmodel =>  1,
 displaylevel => 3,
 
-freqprecisionhiermodel => 1,
-allelefreqprecisionprior => "0.2, 1, 1",
-arrivalrateprior => "150, 1, 40, 10",
+residualadhiermodel => 0,
+arrivalrateprior => 12. 0.1, 2000,1000,
+residualadprior => 0.25, 1,
 arrivalratesamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 
 resultsdir => "results",
 logfile => "logfile.txt",
 paramfile => "paramfile.txt",
-freqprecisionfile => "allelefreqdispersion.txt",
+residualadfile => "allelefreqdispersion.txt",
 
 #allelefreqprioroutputfile => "initialetas.txt",
 #allelefreqoutputfile => "initialallelefreqs.txt",
-#hapmixlambdaoutputfile => "initiallambdas.txt",
+#arrivalrateoutputfile => "initiallambdas.txt",
 
 ergodicaveragefile => "ergodicaverage.txt"
 };

@@ -84,7 +84,7 @@ int main( int argc , char** argv ){
      Log << On << "  *** Check Mode Active *** \n"
 	 << "-------------------------------------------------------\n";
    else{
-     if(options.doPrintBuildInfo())PrintBuildInfo(Log);
+     if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
      Log.StartMessage();
    }
   }

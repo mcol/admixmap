@@ -25,12 +25,8 @@ deleteoldresults = 1     # [0|1] delete contents of resultsdir, if it exists
 ########################################
 #      Model Specification             #
 ########################################
-states           = 4     # number of block states (integer)
+states           = 8     # number of block states (integer)
 hapmixmodel      = 1     # ignored, must be 1
-fixedmixtureprops = 0
-fixedmixturepropsprecision = 1
-#mixturepropsprecision = 1
-#mixturepropsprecisionprior = 4, 1
 
 ########################################
 #      Data Files                      #
@@ -52,6 +48,8 @@ logfile        = log.txt #name of logfile
 #initialarrivalratefile  # arrival rates
 #initialallelefreqfile   # allele frequencies
 #initialfreqpriorfile    # allele frequency prior parameters
+#initialmixturepropsfile # mixture proportions
+#mixturepropsprecision = 1 # mixture proportion precision parameter
 
 ########################################
 #   final values                       #
@@ -59,16 +57,17 @@ logfile        = log.txt #name of logfile
 finalarrivalratefile = state-arrivalrates.txt# arrival rates and their prior parameters
 finalallelefreqfile  = state-allelefreqs.txt # allele frequencies
 finalfreqpriorfile   = state-freqpriors.txt  # allele frequency prior parameters
+finalmixtureropsfile = state-mixtureprops.txt# mixture proportions
 
 ########################################
 #   arrival rates                      #
 ########################################
 #------------------------------------------------------------------
-# 4 comma-separated numbers specifying the parameters of the 
-# Gamma priors on the parameters of the arrivale rate distribution:
-# h_shape, h_rate, b_shape, b_rate
+# 3 or 4 comma-separated numbers specifying the parameters of the 
+# Gamma priors on the parameters of the arrival rate distribution:
+# h_shape, h_rate, b_shape, b_rate. If 3 numbers, the rate parameter is fixed. 
 #------------------------------------------------------------------
-arrivalrateprior   = 30, 0.1, 10, 1 
+arrivalrateprior   = 12, 0.5, 1 
 
 #------------------------------------------------------------------
 # **  for expert users only   **
@@ -88,20 +87,26 @@ arrivalrateprior   = 30, 0.1, 10, 1
 #------------------------------------------------------------------
 #arrivalrateposteriormeanfile
 
+#######################################
+# mixture proportions                 #
+#######################################
+#mixturepropsprecisionprior = 8, 1
+fixedmixtureprops = 1
+fixedmixturepropsprecision = 1
+
 ########################################
 #  allele frequencies                  #
 ########################################
 #priorallelefreqfile       # file with parameters of the Dirichlet prior on the allele frequencies
 fixedallelefreqs           = 0 #[0|1] 1=fixed-frequency model, 1=random-frequency model
-freqprecisionhiermodel = 1 # [0|1] whether to sample the rate parameter of the allele frequency precision
-#allelefreqqprior           # = [1, 0.2] | [1, 0.2, 1] 
-                            # if freqprecisionhiermodel = 0, 2 comma-separated numbers giving the shape and rate parameters of the Gamma prior on
+residualadhiermodel = 0     # [0|1] whether to sample the rate parameter of the allele frequency precision
+#residualadqprior           # = [1, 4] | [1, 40, 10] 
+                            # if residualadhiermodel = 0, 2 comma-separated numbers giving the shape and rate parameters of the Gamma prior on
                             # the allele frequency Dirichlet distribution.
-                            # if freqprecisionhiermodel = 1, 3, comma-separated numbers giving the shape parameter and 
+                            # if residualadhiermodel = 1, 3, comma-separated numbers giving the shape parameter and 
                             # the shape and rate parameters of the Gamma prior on the rate.
-freqprecisionfile           # sampled values of precision parameters
-allelefreqoutputfile        # posterior means of allele frequencies
-allelefreqprioroutputfile   # posterior means of the allele frequency prior
+residualadfile              # sampled values of residual allelic diversity parameters
+residualadposteriormeanfile # posterior means of the allele frequency prior
 
 ########################################
 #    regression model                  #

@@ -71,7 +71,6 @@ public:
   void setRegType(RegressionType R);
   virtual bool getTestOneIndivIndicator() const = 0;
   bool getDeleteOldResultsIndicator()const;
-  bool doPrintBuildInfo()const;
 
   //Score test file names
   const char *getAllelicAssociationScoreFilename() const; 
@@ -103,7 +102,6 @@ protected:
   bool HWTest;
   double regressionPriorPrecision;
   bool DeleteOldResultsIndicator;//indicates whether to delete contents of resultsdir
-  bool PrintBuildInfo;
 
   string ResultsDir;
   string LogFilename;

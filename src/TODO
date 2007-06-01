@@ -1,14 +1,8 @@
 
 namespaces for bcppcl
 
-package for tools
-
 --with-bcppcl-path
 
---with-sprng-path
+checks for bcppcl
 
---with-mpi-path
-
-checks for sprng, gmp, bcppcl
-
-error messages if MPI, sprng, gsl etc not found
+error messages if dependencies etc not found
