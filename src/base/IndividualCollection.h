@@ -94,11 +94,6 @@ protected:
   int worker_rank, NumWorkers;
   virtual void SetNullValues();
   Individual** _child;//pointer to _child array
-#ifdef PARALLEL
-  // int rank_with_freqs;
-  //communicators for workers (Individual updaters)
-  MPI::Intracomm workers;
-#endif
 
   //Regression Objects
   DataMatrix Outcome;

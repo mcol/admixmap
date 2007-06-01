@@ -14,9 +14,6 @@
 #include "InputAdmixData.h"
 #include "bcppcl/Regression.h"
 #include "Comms.h"
-#ifdef PARALLEL
-#include <mpe.h>//for MPI event logging
-#endif
 using namespace std;
 
 // **** CONSTRUCTORS  ****
@@ -41,15 +38,6 @@ AdmixIndividualCollection::AdmixIndividualCollection(const AdmixOptions* const o
   NumCompLoci = Loci->GetNumberOfCompositeLoci();
   worker_rank = 0;
   NumWorkers = 1;
-#ifdef PARALLEL
-    int global_rank = MPI::COMM_WORLD.Get_rank();
-    //create communicator for workers and find size of and rank within this group
-    workers = MPI::COMM_WORLD.Split( Comms::isWorker(), global_rank);
-    NumWorkers = workers.Get_size();
-    if(global_rank >1)
-      worker_rank = workers.Get_rank();
-    else worker_rank = size;//so that non-workers will not loop over Individuals
-#endif
 
   AdmixedIndividual::SetStaticMembers(Loci, options);
   
@@ -81,10 +69,6 @@ AdmixIndividualCollection::AdmixIndividualCollection(const AdmixOptions* const o
     }
   }
   _child = (Individual**)AdmixedChild;
-
-#ifdef PARALLEL
-    Comms::Reduce(&NumDiploidIndividuals);
-#endif
 
 }
 
@@ -159,32 +143,17 @@ void AdmixIndividualCollection::LoadRepAncestry(const InputAdmixData* const data
 
 // ************** UPDATING **************
 //TODO: ?? have next two functions use those in base class and have ones here only operate on test individuals
-void AdmixIndividualCollection::setGenotypeProbs(const Genome* const Loci, const AlleleFreqs* const
-#ifdef PARALLEL
-					    A
-#endif
-					    ){
+void AdmixIndividualCollection::setGenotypeProbs(const Genome* const Loci){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-#ifdef PARALLEL
-      //get pointer to allele probs for this locus
-      const double* AlleleProbs = A->GetAlleleFreqs(locus);//need to get alleleprobs from A as workers have no CompositeLocus objects
-      for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
-	AdmixedChild[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
-      }
-      if(TestInd)
-	for(int i = 0; i < sizeTestInd; ++i)
-	  TestInd[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
-#else
       for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
 	AdmixedChild[i]->SetGenotypeProbs(j, jj, locus, false);
       }
       if(TestInd)
 	for(int i = 0; i < sizeTestInd; ++i)
 	  TestInd[i]->SetGenotypeProbs(j, jj, locus, false);
-#endif
       locus++;
     }
   }
@@ -307,9 +276,6 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions* co
     }
 
   }
-#ifdef PARALLEL
-  if(worker_rank<(int)size)MPE_Log_event(16, iteration, "Sampledancestry");
-#endif
 }
 
 ///samples individual-level sumintensities and admixture
@@ -443,9 +409,6 @@ double AdmixIndividualCollection::GetSumrho()const
    double Sumrho = 0;
    for( unsigned int i = worker_rank; i < size; i+=NumWorkers )
       Sumrho += ( AdmixedChild[i])->getSumrho();
-#ifdef PARALLEL
-   Comms::Reduce(&Sumrho);
-#endif
    return Sumrho;
 }
 
@@ -453,9 +416,6 @@ double AdmixIndividualCollection::getSumLogTheta(int i)const{
   return SumLogTheta[i];
 }
 const double* AdmixIndividualCollection::getSumLogTheta()const{
-#ifdef PARALLEL
-  Comms::Reduce(SumLogTheta, Populations);
-#endif
   return SumLogTheta;
 }
 
@@ -529,8 +489,7 @@ double* AdmixIndividualCollection::getSumEnergySq()const{
     return SumEnergySq;
 }
 double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned 
-							, AlleleFreqs* A){
+							     LogWriter &Log, const vector<double>& SumLogRho, unsigned,  AlleleFreqs* A){
   //TODO: broadcast SumLogRho to workers
   //SumRho = ergodic sum of global sumintensities
   int iterations = options->getTotalSamples()-options->getBurnIn();
@@ -540,10 +499,6 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* cons
     vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
     if(Comms::isMaster())//master only
       for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
-#ifdef PARALLEL
-    if(!Comms::isFreqSampler()) 
-      Comms::BroadcastVector(RhoBar);
-#endif
     //set locus correlation
     if(Comms::isWorker()){//workers only
       Loci->SetLocusCorrelation(RhoBar);
@@ -555,13 +510,8 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* cons
     for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
       (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
   
-#ifdef PARALLEL
-  //broadcast allele freqs
-  if(!Comms::isMaster())A->BroadcastAlleleFreqs();
-#endif
-
   //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  if(Comms::isWorker())setGenotypeProbs(Loci, A);
+  if(Comms::isWorker())setGenotypeProbs(Loci);
 
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual
@@ -569,11 +519,6 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* cons
   for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
     Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
-#ifdef PARALLEL
-  if(!Comms::isFreqSampler()){
-    Comms::Reduce(&Lhat);
-  }
-#endif
 
   if(Comms::isMaster()){
     Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";

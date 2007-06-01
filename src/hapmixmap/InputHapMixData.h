@@ -81,7 +81,7 @@ private:
       Read from priorallelefreqfile, if specified. 
       Otherwise assign default names - BlockState1, BlockState2 etc
   */
-  void ReadPopulationLabels(HapMixOptions *options);
+  void ReadBlockStateLabels(HapMixOptions *options);
 
   /**
      Checks contents of outcomevarfile and coxoutcomevarfile.

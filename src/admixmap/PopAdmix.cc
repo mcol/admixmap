@@ -19,9 +19,6 @@
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
 #include "Comms.h"
-#ifdef PARALLEL
-#include <mpe.h>//for MPI event logging
-#endif
 using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
@@ -156,9 +153,6 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
 	 throw string("Error encountered while sampling population admixture parameters:\n" +s);
        }
      }
-#ifdef PARALLEL
-     Comms::BroadcastVector(alpha[0]);
-#endif
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
 
   }
@@ -183,9 +177,6 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
        double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
        if(options->getNumberOfOutcomes() > 0)for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
      }
-#ifdef PARALLEL
-     Comms::Broadcast(poptheta, options->getPopulations());
-#endif
    }
    
  
@@ -209,10 +200,6 @@ void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const
       logrhoprop = Rand::gennor(logrho0, step);
       rhoprop = exp(logrhoprop); // propose log rho from normal distribution with SD step
     }
-#ifdef PARALLEL
-    //broadcast proposal
-    Comms::Broadcast(&rhoprop);
-#endif
     
     if(Comms::isWorker()){
        //get log likelihood at current parameter values, annealed if this is an annealing run
@@ -236,11 +223,6 @@ void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const
       LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
     }//end worker block
   
-#ifdef PARALLEL
-    //reduce logL ratio
-    Comms::Reduce(&LogLikelihoodRatio);
-#endif
-    
     if(Comms::isMaster()){
       //compute log ratio of prior densities in log rho basis
       double LogPriorRatio = rhoalpha * (logrhoprop - logrho0) - rhobeta * (rhoprop - rho[0]); 
@@ -262,12 +244,6 @@ void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const
       }
       if(sumlogrho )SumLogRho[0] += logrho0;// accumulate sum of log of sumintensities after burnin.
     }
-#ifdef PARALLEL
-    //tell workers whether proposal has been accepted
-    MPE_Log_event(17, 0, "Bcastrho");
-    Comms::Broadcast(&accept);
-    MPE_Log_event(18, 0, "Bcasted");
-#endif
 
     if(Comms::isWorker()){      
       if(accept) {
@@ -293,9 +269,6 @@ void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const
 	else
 	  rhobeta = Rand::gengam( rhoalpha* IC->getSize() + rhobeta0, sumrho + rhobeta1 );
       }
-#ifdef PARALLEL
-    Comms::Broadcast(&rhobeta);
-#endif
     } // otherwise do not update rhobeta
 
     // accumulate sum of log of mean of sumintensities after burnin.

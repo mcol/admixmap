@@ -3,7 +3,9 @@ AM_LDFLAGS= -L$(srcdir)/../bcppcl
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS)
 
-all_SOURCES = AlleleFreqs.cc AlleleFreqs.h \
+noinst_LIBRARIES = libbase.a
+
+libbase_a_SOURCES = AlleleFreqs.cc AlleleFreqs.h \
 AlleleFreqSampler.cc AlleleFreqSampler.h \
 Annealer.cc Annealer.h \
 Chromosome.cc Chromosome.h \
@@ -11,7 +13,6 @@ common.h \
 Comms.cc Comms.h \
 CompositeLocus.cc CompositeLocus.h \
 CopyNumberAssocTest.cc CopyNumberAssocTest.h \
-EventLogger.cc EventLogger.hh \
 FreqArrays.h \
 GeneticDistanceUnit.h \
 Genome.cc Genome.h \
@@ -31,16 +32,6 @@ Options.cc Options.h \
 ResidualLDTest.cc ResidualLDTest.h \
 ScoreTestBase.cc ScoreTestBase.h \
 GenotypeLoader.cc GenotypeLoader.h 
-
-if PARALLEL
-noinst_LIBRARIES = libbase-para.a
-libbase_para_a_SOURCES = $(all_SOURCES)
-libbase_para_a_CPPFLAGS = $(AM_CPPFLAGS) -DPARALLEL
-else
-noinst_LIBRARIES = libbase.a
-libbase_a_SOURCES = $(all_SOURCES)
-endif
-
 
 #.cc.o:
 #	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<

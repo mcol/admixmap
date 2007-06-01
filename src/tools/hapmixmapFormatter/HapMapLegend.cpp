@@ -139,7 +139,7 @@ void HapMapLegend::DetermineCutPoints(unsigned maxLoci, unsigned long minOverlap
     ov.first = end_st+1;
     //Segments.push_back(st);
     //Segments.push_back(ov);
-    cout << " >> " <<  st.first << " " << st.second << " " << ov.first << " " << ov.second << endl;
+    //cout << " >> " <<  st.first << " " << st.second << " " << ov.first << " " << ov.second << endl;
     SubChrSizes.push_back(ov.second+1 - ov.first);
 
     //set start of next non-overlap 

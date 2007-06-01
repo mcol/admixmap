@@ -19,10 +19,6 @@
 #include "bcppcl/LogWriter.h"
 #include "bcppcl/Exceptions.h"
 
-#ifdef PARALLEL
-#include <mpe.h>
-#endif
-
 //#define DEBUGETA 1
 
 static double convertValueFromFile(const string s){
@@ -39,10 +35,6 @@ AlleleFreqs::AlleleFreqs(){
   AlleleFreqsMAP.array = 0;
   PriorParams = 0;
 
-#ifdef PARALLEL
-  globalAlleleCounts = 0;
-  globalHetCounts = 0;
-#endif
 }
 
 AlleleFreqs::~AlleleFreqs(){
@@ -60,11 +52,6 @@ AlleleFreqs::~AlleleFreqs(){
     delete[] PriorParams;
   }
 
-#ifdef PARALLEL
-  delete[] globalAlleleCounts;
-  delete[] globalHetCounts;
-  // AlleleFreqArrayType.Free();
-#endif
   if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER)
     for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
       delete *i;
@@ -131,10 +118,6 @@ AlleleFreqs::~AlleleFreqs(){
 //   }//end if isfreqsampler
 //   if(Comms::isFreqSampler() || Comms::isWorker()){
 //     AllocateAlleleCountArrays(options->getPopulations());
-// #ifdef PARALLEL
-//     //broadcast initial values of freqs
-//     BroadcastAlleleFreqs();
-// #endif
 //   }
 // }
 
@@ -236,19 +219,6 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
   hetCounts.array = new int[L*K*K];
   hetCounts.stride = K*K;
   //}
-#ifdef PARALLEL
-  if(MPI::COMM_WORLD.Get_rank() == 1){
-    globalAlleleCounts = new int[L * K*2];
-    globalHetCounts = new int[L*K*K];
-  }
-#endif
-#endif
-#ifdef PARALLEL
-  if(!Freqs.array){//workers need to allocate Freqs
-    Freqs.array = new double[L*K*2];
-    Freqs.stride = K*2;
-  }
-
 #endif
 }
 
@@ -419,11 +389,11 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
-#ifndef PARALLEL
+
     //no need to update alleleprobs, they are the same as Freqs
     //set HapPair probs using updated alleleprobs
     (*Loci)(i)->SetHapPairProbs();
-#endif
+
   }
   
 }
@@ -432,23 +402,13 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 void AlleleFreqs::ResetAlleleCounts(unsigned K) { 
   const int L = Loci->GetNumberOfCompositeLoci();
   for( int i = 0; i < L; i++ ){
-#ifdef PARALLEL
-    int NumberOfStates = 2;
-#else
     int NumberOfStates = Loci->GetNumberOfStates(i);
-#endif
+
     if(AlleleCounts.array)fill(AlleleCounts[i], AlleleCounts[i] + NumberOfStates*K, 0);
     //TODO: only do next line if thermo = 1 and testoneindiv = 0 and annealing
     if(hetCounts.array && NumberOfStates==2)
       fill(hetCounts[i], hetCounts[i]+K*K, 0);
   }
-#ifdef PARALLEL
-  if(globalAlleleCounts)
-    fill(globalAlleleCounts, globalAlleleCounts + L*2*K, 0);
-  //TODO: only do next line if thermo = 1 and testoneindiv = 0 and annealing
-  if(globalHetCounts)
-    fill(globalHetCounts, globalHetCounts+L*K*K, 0);
-#endif
 }
 
 /**
@@ -491,18 +451,6 @@ void AlleleFreqs::resetStepSizeApproximator(int k) {
     }
   }
 }
-
-
-#ifdef PARALLEL
-void AlleleFreqs::SumAlleleCountsOverProcesses(unsigned K){
-  const int L = Loci->GetNumberOfCompositeLoci();
-  Comms::reduceAlleleCounts(AlleleCounts.array, globalAlleleCounts, L*K*2);
-  Comms::reduceAlleleCounts(hetCounts.array, globalHetCounts, L*K*K);
-}
-void AlleleFreqs::BroadcastAlleleFreqs(){
-  Comms::BroadcastAlleleFreqs(Freqs.array, (Loci->GetNumberOfCompositeLoci()) * (Freqs.stride));
-}
-#endif
 
 /** samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
     and stores result in array Freqs 
@@ -745,7 +693,3 @@ void AlleleFreqs::OutputAlleleFreqSamplerAcceptanceRates(const char* filename){
 }
 
 
-#ifdef PARALLEL
-
-
-#endif

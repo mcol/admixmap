@@ -19,7 +19,6 @@
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
 #include "Comms.h"
-#include "EventLogger.hh"//for MPE event logging
 #include "bcppcl/GSLExceptions.h" //for catching gsl exceptions
 #include "bcppcl/Exceptions.h"//for throwing InfiniteGradient to Hamiltonian
 
@@ -72,13 +71,6 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
   
   //broadcast lambda to all processes, in Comm (excludes freqsampler)
   //no need to broadcast MixtureProps if it is kept fixed
-#ifdef PARALLEL
-  EventLogger::LogEvent(17, 0, "Bcastlambda");
-  Comms::BroadcastVector(lambda);
-  EventLogger::LogEvent(18, 0, "Bcasted");
-  //TODO: broadcast Mixture Params
-#endif    
-
 }
 
 ///initialise global admixture proportions
@@ -342,7 +334,6 @@ void PopHapMix::SampleArrivalRate(const int* ConcordanceCounts, bool accumulateL
   int locus = 0;
   int interval = 0;
   if(Comms::isMaster()){
-    EventLogger::LogEvent(9, 0, "sampleLambda");
     LambdaPriorArgs.sumlambda = 0.0;
     hargs.sum_dloglambda = 0.0;
     try{
@@ -383,16 +374,10 @@ void PopHapMix::SampleArrivalRate(const int* ConcordanceCounts, bool accumulateL
       stringstream err;err << "Error encountered while sampling lambda " << interval << ":\n" + s;
       throw(err.str());
     }
-    EventLogger::LogEvent(10, 0, "sampledLambda");
   }
 
 //broadcast lambda to all processes, in Comm (excludes freqsampler)
 //no need to broadcast MixtureProps if it is kept fixed
-#ifdef PARALLEL
-  EventLogger::LogEvent(17, 0, "Bcastlambda");
-  Comms::BroadcastVector(lambda);
-  EventLogger::LogEvent(18, 0, "Bcasted");
-#endif    
 
   if(Comms::isMaster()){
     //SamplehRandomWalk();
@@ -780,11 +765,6 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
     eta = ( (K - 1.0) / ((double)K * SumThetaVar )) - 1.0 ;
 
   }
-
-#ifdef PARALLEL
-  //TODO: broadcast mixture props
-#endif
-
 }
 
 /**

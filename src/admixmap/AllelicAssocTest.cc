@@ -83,10 +83,6 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
 	
 
       }//end loop over loci
-#ifdef PARALLEL
-      //accumulate locusObsIndicator over individuals (processes) 
-      Comms::AllReduce_int(locusObsIndicator, L);
-#endif
 
   /*----------------------
     | haplotype association |

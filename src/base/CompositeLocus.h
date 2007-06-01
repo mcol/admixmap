@@ -41,16 +41,16 @@ public:
   void setAlleleProbsMAP(const double* const Freqs);
   void AccumulateAlleleProbs();
 
-#ifndef PARALLEL
   void getConditionalHapPairProbs(bcppcl::pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
   /** Similar to getConditionalHapPairProbs, but only the first and last
    * elements of Probs are being set.
    * 
    * It's a shortcut to speed it up in a special case when a genotype
-   * is missing. */
+   * is missing. 
+   */
   void getFirstAndLastConditionalHapPairProbs(bcppcl::pvector<double>& Probs, const int ancestry[2]) const;
   void SampleHapPair(hapPair*, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
-#endif
+
 
   int GetNumberOfLoci()const;
   int GetNumberOfStates()const;
@@ -79,9 +79,7 @@ protected:
   static int Populations;
   static int PopulationsSquared;
   static int PopulationsSquared_x_3; //< Caching a value for efficiency
-#ifndef PARALLEL
   double *HapPairProbs; //< haplotype pair probabilities calculated using AlleleProbs
-#endif
 
 private:
   int NumberOfLoci;
@@ -90,9 +88,7 @@ private:
   const double *AlleleProbs;//< pointer to allele frequencies held in AlleleFreqs
   const double *AlleleProbsMAP;//< pointer to AlleleFreqsMAP held in AlleleFreqs
   double *SumAlleleProbs;//< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
-#ifndef PARALLEL
   double *HapPairProbsMAP; //< hap pair probs calculated using AlleleProbsMAP
-#endif
   std::vector<std::string> Label;
   int *base;
   static bool RandomAlleleFreqs;
@@ -117,28 +113,6 @@ double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const 
 
 typedef std::vector<hapPair>::const_iterator happairiter;
 
-#ifdef PARALLEL
-inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool /*chibindicator*/) const {
-  double *q = Probs;
-  const double* p;
-  //if(!chibindicator || !RandomAlleleFreqs) 
-  p = AlleleProbs;
-  //else 
-      //p = AlleleProbsMAP;
-
-  happairiter end = HapPairs.end();
-  for(int k0 = 0; k0 < Populations; ++k0)
-    for(int k1 = 0; k1 < Populations; ++k1) {
-    *q = 0.0;
-    happairiter h = HapPairs.begin();
-    for( ; h != end ; ++h) {
-      //in parallel version, the happairprobs are not stored so we calculate them from allele probs
-      *q += *(p + k0*NumberOfStates+h->haps[0]) * *(p + k1*NumberOfStates+h->haps[1]);
-    }
-    q++;
-  }
-}
-#else
 inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, 
 					     bool chibindicator) const {
   int Ksq = Populations*Populations;
@@ -161,7 +135,6 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<ha
     q++;
   }
 }
-#endif
 
 inline void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
   //TODO: check if this works in parallel version

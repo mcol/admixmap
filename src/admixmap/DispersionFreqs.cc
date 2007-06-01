@@ -21,9 +21,6 @@
 #include <math.h>
 #include <numeric>
 #include "Comms.h"
-#ifdef PARALLEL
-#include <mpe.h>
-#endif
 
 //#define DEBUGETA 1
 
@@ -250,10 +247,6 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
   }//end if is freqsampler
   if(Comms::isFreqSampler() || Comms::isWorker()){
     AllocateAlleleCountArrays(options->getPopulations());
-#ifdef PARALLEL
-    //broadcast initial values of freqs
-    BroadcastAlleleFreqs();
-#endif
   }
 }
 
@@ -510,11 +503,11 @@ void DispersionFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double 
 
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
-#ifndef PARALLEL
+
     //no need to update alleleprobs, they are the same as Freqs
     //set HapPair probs using updated alleleprobs
     (*Loci)(i)->SetHapPairProbs();
-#endif
+
   }
   
   // Sample for allele frequency dispersion parameters, eta, conditional on allelefreqs using

@@ -11,11 +11,6 @@
  */
 #include "Individual.h"
 #include "bcppcl/Regression.h" 
-//#include "bcppcl/misc.h"
-//#include "bcppcl/dist.h"
-//#include "bcppcl/linalg.h"
-//#include <algorithm>
-//#include <limits>
 #include <sstream>
 #include <exception>
 
@@ -132,13 +127,10 @@ void Individual::setGenotypesToMissing(){
 void Individual::DeleteGenotypes(){
   unsigned noCompositeLoci = Loci->GetNumberOfCompositeLoci();
   for(unsigned j = 0; j < noCompositeLoci; ++j){
-#ifdef PARALLEL
-      genotypes[j][0].clear();
-#else
     int noLoci = Loci->getNumberOfLoci(j);
     for(int k = 0; k < noLoci; ++k)
       genotypes[j][k].clear();
-#endif
+
     genotypes[j].clear();
   }
   genotypes.clear();
@@ -290,39 +282,6 @@ void Individual::SampleHiddenStates(const Options* const options){
   logLikelihood.HMMisOK = true;
 }
 
-#ifdef PARALLEL
-void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, 
-			       bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
-			       const double* const AlleleProbs){
-  if( !skipMissingGenotypes || !GenotypesMissing[j][jj]){
-    int ancestry[2];//to store ancestry states
-    GetLocusAncestry(j,jj,ancestry);
-    //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-    if(PossibleHapPairs[locus].size()> 1){// no need to sample if only one possible hap pair
-
-     //code taken from CompositeLocus. workers have no CompositeLocus objects so this must be done here
-      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
-      double* Probs = new double[PossibleHapPairs[locus].size()];//1way array of hap.pair probs
-      double* p = Probs;
-      happairiter end = PossibleHapPairs[locus].end();
-      for(happairiter hiter = PossibleHapPairs[locus].begin() ; hiter != end ; ++hiter, ++p) {
-	*p = AlleleProbs[ancestry[0] * NumberOfStates + hiter->haps[0] ] 
-	  * AlleleProbs[ancestry[1] * NumberOfStates + hiter->haps[1] ];
-      }
-      
-      int h = Rand::SampleFromDiscrete(Probs, PossibleHapPairs[locus].size());
-      delete[] Probs;
-      
-      sampledHapPairs[locus].haps[0] = PossibleHapPairs[locus][h].haps[0];
-      sampledHapPairs[locus].haps[1] = PossibleHapPairs[locus][h].haps[1];
-
-    }
-    if(UpdateCounts && !GenotypesMissing[j][jj])
-      //now update allelecounts in AlleleFreqs using sampled hap pair
-      A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, ancestry, (gametes[j]==2), annealthermo);
-  }
-}
-#else
 void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts){
   if( !skipMissingGenotypes || !GenotypesMissing[j][jj]) {
     int anc[2];//to store ancestry states
@@ -337,7 +296,6 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
       A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), annealthermo);
   }
 }
-#endif
 
 void Individual::UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const{
   if(!GenotypesMissing[j][jj]){

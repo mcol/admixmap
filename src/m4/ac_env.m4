@@ -12,7 +12,6 @@ dnl CXX_DEBUG_FLAGS    = $CXX_DEBUG_FLAGS
 Optimize           = $enable_optimize
 debug              = $enable_debug
 profile            = $enable_profile
-Parallel version   = $enable_parallel
 Platform           = $target
 Install path:      = $prefix
 ------------------------------------------------------------------------

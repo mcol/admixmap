@@ -21,8 +21,4 @@ const std::string RegressionString[] ={"None", "Linear", "Logistic", "Cox", "Mli
 ///enum for continuous/binary datatypes
 enum DataType {Continuous, Binary, CoxData};
 
-#ifdef PARALLEL
-#include "mpi2c++/mpi++.h"
-#endif
-
 #endif /* !defined COMMON_H */

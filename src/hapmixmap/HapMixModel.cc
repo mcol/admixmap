@@ -12,7 +12,6 @@
  */
 
 #include "HapMixModel.h"
-#include "EventLogger.hh"
 #include "HapMixIndividual.h"
 
 #define SCORETEST_UPDATE_EVERY 2
@@ -64,11 +63,6 @@ void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  Log
   if(isWorker){
     Loci.SetHMMDimensions(options.getNumberOfBlockStates(), (bool)(numdiploidIndivs !=0));
   }
-
-#ifdef PARALLEL
-  //broadcast number of diploid individuals
-  MPI::COMM_WORLD.Bcast(&numdiploidIndivs, 1, MPI::INT, 0);
-#endif
 
   if(isFreqSampler)
     A.setSampler(options.getThermoIndicator(), (!numdiploidIndivs), 
@@ -126,7 +120,7 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
     }
 
     //Sample Parameters
-    UpdateParameters(iteration, &options, Log, data.GetPopLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
+    UpdateParameters(iteration, &options, Log, data.GetHiddenStateLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
     SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
 	       AnnealedRun);
 	
@@ -163,11 +157,9 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
     IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
     
     if( options->getHWTestIndicator() || options->getMHTest() || options->getTestForResidualAllelicAssoc() ) {
-    EventLogger::LogEvent(13, iteration, "sampleHapPairs");
     // loops over individuals to sample hap pairs, not skipping missing genotypes. 
     // Does not update counts since done already
     IC->SampleHapPairs(options, &A, &Loci, false, anneal, false); 
-    EventLogger::LogEvent(14, iteration, "sampledHapPairs");
     }
   }
 
@@ -186,10 +178,8 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
       AllelicAssocTest.Update(HMIC, R[0], Loci);
     }
     if(options->getTestForResidualAllelicAssoc()/*&& !(iteration%SCORETEST_UPDATE_EVERY)*/){
-      EventLogger::LogEvent(21, iteration, "ResLDTestStart");
       ResidualAllelicAssocScoreTest.Reset();
       ResidualAllelicAssocScoreTest.Update(A.GetAlleleFreqs(), true);
-      EventLogger::LogEvent(22, iteration, "ResLDTestEnd");
     }
   }
   if(options->getMHTest() && !anneal && (iteration > options->getBurnIn()))
@@ -200,15 +190,8 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   ///////////////////////////////////////////////////////////////////
   if( !options->getFixedAlleleFreqs()){
     if(isFreqSampler){
-      EventLogger::LogEvent(7, iteration, "SampleFreqs");
       A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, (numdiploidIndivs==0));
-      EventLogger::LogEvent(8, iteration, "SampledFreqs");
     }
-#ifdef PARALLEL
-    if(isWorker || isFreqSampler ) { 
-      A.BroadcastAlleleFreqs();
-    }
-#endif
     A.SetDiploidGenotypeProbs();
   }//end if random allele freqs
   
@@ -252,14 +235,6 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
       }
     }
   }
-#ifdef PARALLEL
-  if(isMaster || isWorker){    //broadcast regression parameters to workers
-    for(unsigned r = 0; r < R.size(); ++r){
-      Comms::BroadcastRegressionParameters(R[r]->getbeta(), R[r]->getNumCovariates());
-      //if(R[r]->getRegressionType()==Linear) Comms::BroadcastRegressionPrecision(R[r]->getlambda());
-    }
-  }
-#endif
 }
 
 void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _options, InputData & data, 
@@ -301,7 +276,7 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _optio
 	ResidualAllelicAssocScoreTest.Output(false, data.getLocusLabels());
 	if( options.getTestForAllelicAssociation() )    {
 	  string filename; //ignored if !final
-	  AllelicAssocTest.Output(data.GetPopLabels(), Loci, false, filename.c_str());
+	  AllelicAssocTest.Output(data.GetHiddenStateLabels(), Loci, false, filename.c_str());
 	}
 
         if(options.getMHTest() && Comms::isMaster()){
@@ -372,7 +347,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
     if( options.getTestForAllelicAssociation() )    {
       string filename = options.getResultsDir();
       filename.append("/AllelicAssocTestsFinal.txt");
-      AllelicAssocTest.Output(data.GetPopLabels(), Loci, true, filename.c_str());
+      AllelicAssocTest.Output(data.GetHiddenStateLabels(), Loci, true, filename.c_str());
       AllelicAssocTest.ROutput();
       AllelicAssocTest.PrintAverageInfo(Log, (InputHapMixData&)data, filename.c_str());
     }
@@ -423,7 +398,7 @@ void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWr
     ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci, Log);
   }
   if(isMaster)
-    InitializeErgodicAvgFile(&options, Log, data.GetPopLabels(), data.getCovariateLabels());
+    InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
 }
 //this function is here because three different objects have to write to avgstream
 void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWriter &Log,  
@@ -476,6 +451,6 @@ void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWri
 }
 
 double HapMixModel::getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log){
-  return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
+  return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho(), Loci.GetNumberOfChromosomes());
 }
 

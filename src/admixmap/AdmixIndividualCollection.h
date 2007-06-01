@@ -60,8 +60,7 @@ public:
 
   void OutputIndAdmixture();
   double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
-							, AlleleFreqs* A);
+							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
   void OutputChibResults(LogWriter&)const;
 
   AdmixedIndividual* getIndividual(int)const;
@@ -73,7 +72,7 @@ public:
 //  double getLogLikelihood(const AdmixOptions* const options, bool forceupdate);
   //double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R,
 			 // const bool & annealed);
-  void setGenotypeProbs(const Genome * const G, const AlleleFreqs* const);
+  void setGenotypeProbs(const Genome * const G);
 
   void annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses);
 

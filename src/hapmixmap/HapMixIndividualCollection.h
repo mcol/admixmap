@@ -42,7 +42,7 @@ public:
   void AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci);
   void OutputCGProbs(const char* filename, const Vector_s& LocusLabels);
   double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
-				    const double* const MixtureProps, const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A );
+				    const double* const MixtureProps, const vector<double>& SumRho, unsigned numChromosomes );
 private:
   unsigned NumCaseControls;
   int* ConcordanceCounts;//for update of locus-specific sumintensities

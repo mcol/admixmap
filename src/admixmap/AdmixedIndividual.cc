@@ -58,14 +58,9 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
 
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
-#ifdef PARALLEL
-    SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
-    //NOTE: X data not yet supported in parallel version
-#else
     ploidy p = (genotypes[j][0].size()>1) ? diploid : haploid;
     AdmixGenotypeIterator G(genotypes[j], p);
     (*Loci)(j)->HaplotypeSetter.setPossibleHaplotypePairs(&G, PossibleHapPairs[j]);
-#endif
 
     // initialise sampledHapPairs with the first of the possible happairs. 
     // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
@@ -232,49 +227,6 @@ void AdmixedIndividual::setAdmixtureProps(const double* const a, size_t size) {
     Theta[i] = a[i];
   }
 }
-#ifdef PARALLEL
-//this version can also be used in serial version
-void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
-  if( !GenotypesMissing[j][jj] ){
-    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-      double *q = GenotypeProbs[j]+jj*NumHiddenStates*NumHiddenStates;
- 	     
-      happairiter end = PossibleHapPairs[locus].end();
-      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
-      for(int k0 = 0; k0 < NumHiddenStates; ++k0)
-	for(int k1 = 0; k1 < NumHiddenStates; ++k1) {
-	  *q = 0.0;
-	  happairiter h = PossibleHapPairs[locus].begin();
-	  for( ; h != end ; ++h) {
-	    *q += AlleleProbs[k0*NumberOfStates+h->haps[0]] * AlleleProbs[k1*NumberOfStates+h->haps[1]];
-	  }
-	  q++;
-	}
-    }
-    else{//haploid
-      double *q =GenotypeProbs[j]+jj*NumHiddenStates;
-      happairiter end = PossibleHapPairs[locus].end();
-      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
-      for(int k0 = 0; k0 < NumHiddenStates; ++k0) {
-	*q = 0.0;
-	happairiter h = PossibleHapPairs[locus].begin();
-	for( ; h != end ; ++h) {
-	  *q += AlleleProbs[k0*NumberOfStates + h->haps[0]];
-	}
-	q++;
-      }
-    }
- 	   
-  } else {//missing genotype
-    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-      for( int k = 0; k < NumHiddenStates*NumHiddenStates; ++k ) GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates + k] = 1.0;
-    }
-    else{
-      for( int k = 0; k < NumHiddenStates; ++k ) GenotypeProbs[j][jj*NumHiddenStates + k] = 1.0;
-    }
-  }
-}
-#endif
  	
 void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator=false){
   //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP

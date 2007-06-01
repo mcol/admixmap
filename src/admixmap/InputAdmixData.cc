@@ -74,7 +74,7 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
       CheckCovariatesFile(Log);
     //append population labels to covariate labels
     if(!options->getTestForAdmixtureAssociation()){
-      for( vector<string>::const_iterator i = PopulationLabels.begin()+1; i !=PopulationLabels.end(); ++i ){
+      for( vector<string>::const_iterator i = HiddenStateLabels.begin()+1; i !=HiddenStateLabels.end(); ++i ){
 	CovariateLabels.push_back("slope." + *i); 
       }
     }
@@ -93,11 +93,11 @@ void InputAdmixData::GetGenotype(int i, const Genome &Loci,
 void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
   //  if(strlen(options->getAlleleFreqFilename()) || strlen(options->getPriorAlleleFreqFilename()) || strlen(options->getHistoricalAlleleFreqFilename())){
   if(strlen(options->getAlleleFreqFilename()))
-    DataReader::ReadHeader(options->getAlleleFreqFilename(), PopulationLabels);
+    DataReader::ReadHeader(options->getAlleleFreqFilename(), HiddenStateLabels);
   else if(strlen(options->getPriorAlleleFreqFilename()))
-    DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), PopulationLabels);
+    DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), HiddenStateLabels);
   else if(strlen(options->getHistoricalAlleleFreqFilename()))
-    DataReader::ReadHeader(options->getHistoricalAlleleFreqFilename(), PopulationLabels);
+    DataReader::ReadHeader(options->getHistoricalAlleleFreqFilename(), HiddenStateLabels);
   
   //  }
   else{
@@ -105,7 +105,7 @@ void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
     for( int j = 0; j < options->getPopulations(); j++ ){
       stringstream poplabel;
       poplabel << "Pop" << j+1;
-      PopulationLabels.push_back(poplabel.str());
+      HiddenStateLabels.push_back(poplabel.str());
     }
   }
 }
@@ -224,6 +224,9 @@ const DataMatrix& InputAdmixData::getEtaPriorMatrix() const{
 
 const DataMatrix& InputAdmixData::getReportedAncestryMatrix() const{
   return reportedAncestryMatrix_;
+}
+const Vector_s& InputAdmixData::GetPopLabels() const{
+  return HiddenStateLabels;
 }
 
 void InputAdmixData::Delete(){

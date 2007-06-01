@@ -360,8 +360,8 @@ const DataMatrix& InputData::getCovariatesMatrix() const
 {
   return covariatesMatrix_;
 }
-const Vector_s& InputData::GetPopLabels() const{
-  return PopulationLabels;
+const Vector_s& InputData::GetHiddenStateLabels() const{
+  return HiddenStateLabels;
 }
 Vector_s InputData::getOutcomeLabels()const{
   return OutcomeLabels;

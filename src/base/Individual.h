@@ -60,12 +60,8 @@ public:
    
   void SampleHiddenStates(const Options* const options);
 
-#ifdef PARALLEL
-  void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
-		     const double* const AlleleProbs);
-#else
   void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts);
-#endif
+
   void UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const;
 
   void SampleMissingOutcomes(DataMatrix *Outcome, const std::vector<Regression*>& R);

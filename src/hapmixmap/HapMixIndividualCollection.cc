@@ -35,20 +35,6 @@ HapMixIndividualCollection
   NumCaseControls = Data->getNumberOfCaseControlIndividuals();
   worker_rank = 0;
   NumWorkers = 1;
-#ifdef PARALLEL
-  int global_rank = MPI::COMM_WORLD.Get_rank();
-  //create communicator for workers and find size of and rank within this group
-  workers = MPI::COMM_WORLD.Split( Comms::isWorker(), global_rank);
-  NumWorkers = workers.Get_size();
-  if(global_rank >1)
-    worker_rank = workers.Get_rank();
-  else worker_rank = size;//so that non-workers will not loop over Individuals
-
-  if(Comms::isMaster()){
-    GlobalConcordanceCounts = new int[NumCompLoci*2*(options->getNumberOfBlockStates())];
-    GlobalSumArrivalCounts = new int[NumCompLoci*options->getNumberOfBlockStates()];
-  }
-#endif
   
   //  Individual::SetStaticMembers(Loci, options);
   Individual::SetStaticMembers(Loci, options);
@@ -65,17 +51,11 @@ HapMixIndividualCollection
 	++NumDiploidIndividuals;
     }
   }
-#ifdef PARALLEL
-    Comms::Reduce(&NumDiploidIndividuals);
-#endif
   if(options->OutputCGProbs())GPO.Initialise(options->GetNumMaskedIndividuals(), options->GetNumMaskedLoci());
 }
 
 HapMixIndividualCollection::~HapMixIndividualCollection(){
   delete[] ConcordanceCounts;
-#ifdef PARALLEL
-  delete[] GlobalConcordanceCounts;
-#endif
 }
 const HapMixIndividual* HapMixIndividualCollection::getHapMixIndividual(int num)const{
   if (num < (int)size){
@@ -92,10 +72,6 @@ bool HapMixIndividualCollection::isMaskedIndividual(unsigned i, const vector<uns
 
 }
 void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const options, unsigned iteration){
-
-#ifdef PARALLEL
-  if(worker_rank<(int)size)MPE_Log_event(15, 0, "Sampleancestry");
-#endif
 
   fill(ConcordanceCounts, ConcordanceCounts + NumCompLoci*(options->getPopulations()+1), 0);
   fill(SumArrivalCounts, SumArrivalCounts + NumCompLoci*options->getPopulations(), 0);
@@ -138,27 +114,14 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
     //set HMMisBad before moving to the next individual, but keep stored loglikelihood
     _child[i]->HMMIsBad(false); 
   }
-#ifdef PARALLEL
-  if(worker_rank<(int)size)MPE_Log_event(16, 0, "Sampledancestry");
-  Comms::ReduceAncestryCounts(ConcordanceCounts, GlobalConcordanceCounts, NumCompLoci*2*(options->getPopulations()));
-  //TODO: reduce SumArrivalCounts
-#endif
 }
 
 const int* HapMixIndividualCollection::getConcordanceCounts()const{
-#ifdef PARALLEL
-  return GlobalConcordanceCounts;
-#else
   return ConcordanceCounts;
-#endif
 }
 
 const int* HapMixIndividualCollection::getSumArrivalCounts()const{
-#ifdef PARALLEL
-  return GlobalSumArrivalCounts;
-#else
   return SumArrivalCounts;
-#endif
 }
 
 int HapMixIndividualCollection::getNumberOfIndividualsForScoreTests()const{
@@ -202,13 +165,7 @@ void HapMixIndividualCollection::OutputCGProbs(const char* filename, const Vecto
 
 double HapMixIndividualCollection
 ::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-                             LogWriter &Log, const double* const MixtureProps, const vector<double>& SumLogRho, unsigned numChromosomes
-                             , AlleleFreqs* 
-#ifdef PARALLEL
-//A is not required in serial version
-    A
-#endif
-    ){
+                             LogWriter &Log, const double* const MixtureProps, const vector<double>& SumLogRho, unsigned numChromosomes){
 
   //TODO: broadcast SumLogRho to workers
   //TODO: set mixture props to posterior means
@@ -225,12 +182,6 @@ double HapMixIndividualCollection
   vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
   if(Comms::isMaster())//master only
     for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
-#ifdef PARALLEL
-  if(!Comms::isFreqSampler()) 
-    Comms::BroadcastVector(RhoBar);
-  //broadcast number of diploid individuals
-  MPI::COMM_WORLD.Bcast(&NumDiploid, 1, MPI::INT, 0);
-#endif
   //set locus correlation
   if(Comms::isWorker()){//workers only
     Loci->SetLocusCorrelation(RhoBar);
@@ -249,11 +200,6 @@ double HapMixIndividualCollection
     for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
       (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
   
-#ifdef PARALLEL
-  //broadcast allele freqs
-  if(!Comms::isMaster())A->BroadcastAlleleFreqs();
-#endif
-
   //set genotype probs using happair probs calculated at posterior means of allele freqs 
   //if(Comms::isWorker())setGenotypeProbs(Loci, A);
 
@@ -264,12 +210,6 @@ double HapMixIndividualCollection
     if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
     else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
-#ifdef PARALLEL
-  if(!Comms::isFreqSampler()){
-    Comms::Reduce(&Lhat);
-  }
-#endif
-
   if(Comms::isMaster()){
     Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
     for(unsigned c = 0; c < R.size(); ++c){

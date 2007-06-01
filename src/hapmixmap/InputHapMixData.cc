@@ -50,7 +50,7 @@ void InputHapMixData::CheckData(HapMixOptions *options, LogWriter &Log){
   //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
 
   CheckAlleleFreqs(options, Log);
-  ReadPopulationLabels(options);
+  ReadBlockStateLabels(options);
 
   //detects regression model
   if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() )){//if outcome specified
@@ -97,17 +97,17 @@ void InputHapMixData::CheckForMonomorphicLoci(LogWriter& Log)const{
   hGenotypeLoader->CheckForMonomorphicLoci(Log);
 }
 
-void InputHapMixData::ReadPopulationLabels(HapMixOptions *options){
+void InputHapMixData::ReadBlockStateLabels(HapMixOptions *options){
   
   if(strlen(options->getPriorAlleleFreqFilename()))
-    DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), PopulationLabels);
+    DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), HiddenStateLabels);
 
   else{
     //set default pop labels
     for( int j = 0; j < options->getPopulations(); j++ ){
       stringstream poplabel;
       poplabel << "BlockState" << j+1;
-      PopulationLabels.push_back(poplabel.str());
+      HiddenStateLabels.push_back(poplabel.str());
     }
   }
 }
@@ -138,7 +138,6 @@ void InputHapMixData::CheckAlleleFreqs(HapMixOptions *options, LogWriter &Log){
     nrows = priorAlleleFreqData_.size();
     expectednrows = NumberOfStates+1;
     Populations = priorAlleleFreqData_[0].size() - 1;
-    //getPopLabels(priorAlleleFreqData_[0], Populations, PopulationLabels);
   }
   if(infile){
     if(nrows != expectednrows){

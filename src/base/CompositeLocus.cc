@@ -35,10 +35,8 @@ CompositeLocus::CompositeLocus()
   NumberOfMergedHaplotypes = 0;
   AlleleProbs = 0;
   SumAlleleProbs = 0;
-#ifndef PARALLEL
   HapPairProbs = 0;
   HapPairProbsMAP = 0;
-#endif
 
   MergeHaplotypes = 0;
   HapLabels = 0;
@@ -46,10 +44,8 @@ CompositeLocus::CompositeLocus()
 
 CompositeLocus::~CompositeLocus()
 {
-#ifndef PARALLEL
   if(HapPairProbsMAP != HapPairProbs)  delete[] HapPairProbsMAP;
   delete[] HapPairProbs;
-#endif
   delete[] MergeHaplotypes;
   delete[] HapLabels;
   if(RandomAlleleFreqs)
@@ -178,23 +174,21 @@ void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs, bool All
     SumAlleleProbs = new double[Populations*NumberOfStates];
     fill(SumAlleleProbs, SumAlleleProbs+Populations*NumberOfStates, 0.0);
   }
-#ifndef PARALLEL
+
   if(!AllHaploid){//some diploid data, need HapPairProbs
     //set size of array of haplotype pair probs
     HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
     SetHapPairProbs();
   }
-#endif
+
 }
 
 void CompositeLocus::InitialiseHapPairProbsMAP(){
-#ifndef PARALLEL
   HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
   //   //Initialise HapPairProbsMAP to values in HapPairProbs
   //   for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
   //     HapPairProbsMAP[h0] = HapPairProbs[h0];
   SetHapPairProbsMAP();
-#endif
 }
 
 ///Sets AlleleProbsMAP to point to FreqsMAP in AlleleFreqs.
@@ -208,7 +202,6 @@ void CompositeLocus::setAlleleProbsMAP(const double* const FreqsMAP) {
  * in the array of probabilities of ordered haplotype pairs for each
  * ordered pair of ancestry states
  */
-#ifndef PARALLEL
 void CompositeLocus::SetHapPairProbs(){
   SetHapPairProbs(AlleleProbs, HapPairProbs);
 }
@@ -219,9 +212,7 @@ void CompositeLocus::SetHapPairProbs(){
    Not done in parallel version as HapPairProbs and HapPairProbsMAP are not stored.
 */
 void CompositeLocus::SetHapPairProbsMAP() {
-#ifndef PARALLEL
   SetHapPairProbs( AlleleProbsMAP, HapPairProbsMAP);
-#endif
 
 }
 
@@ -239,30 +230,22 @@ void CompositeLocus::SetHapPairProbs(const double* alleleProbs, double* hapPairP
     }
   }
 }
-#endif
+
 
 void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
   if(RandomAlleleFreqs){//if fixed allele freqs there is nothing to do
-#ifndef PARALLEL
+
     double *mu = new double[Populations * NumberOfStates];
-#endif
+
     for(int k = 0; k < Populations; ++k){
       for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k*NumberOfStates +h] /= (double)iterations;
-#ifdef PARALLEL
-      //in parallel version, we don't store the HapPairProbs so instead of setting them to posterior means,
-      //simply set AlleleProbs to their PM and they will bw used to compute genotype probs required for deviance at PM
-      //this is ok as this is done at end, after main loop
-      softmax(NumberOfStates, (double*)AlleleProbs+k*NumberOfStates, SumAlleleProbs+k*NumberOfStates);
-#else
       softmax(NumberOfStates, mu+k*NumberOfStates, SumAlleleProbs+k*NumberOfStates);
-#endif
+
       //if(RandomAlleleFreqs)for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k*NumberOfStates+h] *= (double)iterations;
     }
 
-#ifndef PARALLEL
     SetHapPairProbs(mu, HapPairProbs);//sets HapPairProbs using posterior means of Haplotype Probs
     delete[] mu;
-#endif
   }
 }
 
@@ -285,9 +268,6 @@ void CompositeLocus::AccumulateAlleleProbs(){
   }
 }
 
-
-#ifndef PARALLEL 
-//thse functions are not available in the parallel version because there are no HapPairProbs
 
 /**
  * Returns probabilities of ordered hap pairs conditional on hidden states
@@ -375,7 +355,6 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Po
   hap->haps[0] = PossibleHapPairs[h].haps[0];
   hap->haps[1] = PossibleHapPairs[h].haps[1];
 }
-#endif
 
 
 ///returns a vector of length NumberOfLoci of numbers of copies of allele a at this locus, as encoded in haplotype pair h

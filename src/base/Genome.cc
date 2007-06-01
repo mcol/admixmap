@@ -111,15 +111,6 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     }
     row++;
     if(isFreqUpdater){
-#ifdef PARALLEL 
-//at present, parallel version can only handle diallelic loci
-      if(LocusArray[i].GetNumberOfStates()>2){
-	stringstream err;
-	err << "sorry, I can only handle diallelic loci. Composite locus " << i+1 << " has " 
-	    << LocusArray[i].GetNumberOfLoci() << " simple loci and " << LocusArray[i].GetNumberOfStates() << " alleles/haplotypes";
-	throw err.str();
-      }
-#endif
       if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
       //TotalLoci += LocusArray[i].GetNumberOfLoci();
     }
@@ -231,21 +222,6 @@ const CompositeLocus* Genome::GetLocus(int ElementNumber)const{
 /// Writes numbers of loci and chromosomes and length of genome to Log and screen.
 /// unit is the unit of measurement of the distances in the locusfile (Morgans/centiMorgans) 
 void Genome::PrintSizes(LogWriter &Log, const string& distanceUnit)const{
-#ifdef PARALLEL
-  ///1st worker tells master length of autosomes and xchrm
-  ///(this is determined during creation of chromosomes, which master doesn't do)
-  ///only master is allowed to write to logfile
-  const int rank = MPI::COMM_WORLD.Get_rank();
-  if(rank == 2) {
-    MPI::COMM_WORLD.Send(&LengthOfGenome, 1, MPI::DOUBLE, 0, 0);
-    MPI::COMM_WORLD.Send(&LengthOfXchrm, 1, MPI::DOUBLE, 0, 1);
-  }
-  if(rank==0){
-    MPI::Status status;
-    MPI::COMM_WORLD.Recv((double*)&LengthOfGenome, 1, MPI::DOUBLE, 2, 0, status);
-    MPI::COMM_WORLD.Recv((double*)&LengthOfXchrm, 1, MPI::DOUBLE, 2, 1, status);
-  }
-#endif
   
   Log.setDisplayMode(Quiet);
   Log << "\n" << TotalLoci << " simple loci\n"
@@ -277,14 +253,8 @@ unsigned int Genome::GetNumberOfCompositeLoci()const
   return NumberOfCompositeLoci;
 }
 ///returns the number of loci in a given composite locus
-int Genome::getNumberOfLoci(int 
-#ifdef PARALLEL
-    )const{
-  return 1;
-#else
-  j)const{
+int Genome::getNumberOfLoci(int j)const{
   return LocusArray[j].GetNumberOfLoci();
-#endif
 }
 ///returns the number of chromosomes
 unsigned int Genome::GetNumberOfChromosomes()const{
@@ -315,27 +285,16 @@ double Genome::GetDistance( int locus )const
 }
 
 ///returns number of states of a comp locus
-int Genome::GetNumberOfStates(int
-#ifdef PARALLEL
-    )const{
-    return 2;
-#else
-    locus)const{
+int Genome::GetNumberOfStates(int locus)const{
   return LocusArray[locus].GetNumberOfStates();
-#endif
 }
 ///returns total number of states accross all comp loci
-int Genome::GetNumberOfStates()const
-{
-#ifdef PARALLEL
-  return NumberOfCompositeLoci*2;
-#else
+int Genome::GetNumberOfStates()const{
   int ret = 0;
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     ret += LocusArray[i].GetNumberOfStates();
   }
   return ret;
-#endif
 }
 
 /// Get a chromosome number by absolute locus number

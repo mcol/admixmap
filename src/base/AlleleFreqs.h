@@ -58,10 +58,6 @@ public:
   const int *GetAlleleCounts(int locus)const;
   
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
-#ifdef PARALLEL
-  void SumAlleleCountsOverProcesses(unsigned K);
-  void BroadcastAlleleFreqs();
-#endif
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
 
@@ -78,14 +74,6 @@ protected:
   FreqArray AlleleFreqsMAP; // posterior mode of allele freqs
   array_of_allelecounts AlleleCounts;
   array_of_allelecounts hetCounts;//counts of het individuals with distinct ancestry states at SNPs
-#ifdef PARALLEL
-  int* globalAlleleCounts;
-  int* globalHetCounts;
-  double * globalFreqs;
-  int startlocus;
-  int* LociCounts;
-  int* displs;
-#endif
   int worker_rank;
   int NumWorkers;
   double **PriorParams;

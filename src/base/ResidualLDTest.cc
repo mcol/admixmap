@@ -44,9 +44,6 @@ void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const i
   if(test){
     //open output file
     if(rank==0)OpenFile(Log, &outputfile, options->getResidualAllelicAssocScoreFilename(), "Tests for residual allelic association", true);
-#ifdef PARALLEL
-    unsigned dimresalleleinfo = 0;
-#endif
     if(rank==0){
       SumScore.resize(Lociptr->GetNumberOfChromosomes());
       SumScore2.resize(Lociptr->GetNumberOfChromosomes());
@@ -69,9 +66,6 @@ void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const i
       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
 	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 
-#ifdef PARALLEL
-	dimresalleleinfo += dim*dim;
-#endif
 	if(rank==0){
 	  SumScore[j][k].assign(dim, 0.0);
 	  SumScore2[j][k].assign(dim*dim, 0.0);
@@ -84,9 +78,6 @@ void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const i
       }
       ++locus;//for last locus on chrm
     }
-#ifdef PARALLEL
-    Comms::SetDoubleWorkspace(dimresalleleinfo, (rank==0));
-#endif
   }
   
 }
@@ -120,10 +111,6 @@ void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
       ++abslocus;//for last locus on chrm
     }
   }
-#ifdef PARALLEL
-  //sum score and info across processes and accumulate score, square of score and info
-  Comms::ReduceResidualLDScores(Score, Info, SumScore, SumScore2, SumInfo);
-#else
   //vector<unsigned>::iterator T_iter = Tcount.begin();
   //accumulate score, square of score and info
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
@@ -146,7 +133,7 @@ void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
 	}
       }
     }
-#endif
+
   ++numUpdates;
 }
 

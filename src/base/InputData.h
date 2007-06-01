@@ -68,7 +68,7 @@ public:
   ///returns the DataType of an outcome variable
   DataType getOutcomeType(unsigned)const;
   ///returns population/hidden state labels
-  const Vector_s& GetPopLabels() const;
+  const Vector_s& GetHiddenStateLabels() const;
   ///returns outcome variable labels
   Vector_s getOutcomeLabels()const;
   ///returns locus labels (from locusfile)
@@ -148,7 +148,7 @@ protected:
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
   GeneticDistanceUnit distanceUnit;
-  Vector_s PopulationLabels;
+  Vector_s HiddenStateLabels;
   std::vector<DataType> OutcomeType;
   Vector_s CovariateLabels;
   Vector_s OutcomeLabels;

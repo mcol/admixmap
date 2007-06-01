@@ -92,15 +92,9 @@ void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles)
 }
 
 void ThrowException(const string& msg, LogWriter & Log){
-#ifdef PARALLEL//print error message to screen as only master is allowed write with LogWriter
-  Log << On << "rank " << MPI::COMM_WORLD.Get_rank() << ": " << msg << "\n Exiting...\n";
-  Log.ProcessingTime();
-  MPI::COMM_WORLD.Abort(1);
-#else
   Log << On << "\n" << msg << "\n Exiting...\n";
   Log.ProcessingTime();
   exit(1);
-#endif
 }
 
 /**

@@ -62,6 +62,9 @@ public:
       \see GenotypeLoader::GetGenotype
   */
   void GetGenotype(int i, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
+
+  ///get population labels
+  const Vector_s& GetPopLabels() const;
 private:
   Matrix_s alleleFreqData_;
   Matrix_s historicalAlleleFreqData_;

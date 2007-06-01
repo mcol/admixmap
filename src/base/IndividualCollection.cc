@@ -12,9 +12,6 @@
 #include "IndividualCollection.h"
 #include "bcppcl/Regression.h"
 #include "Comms.h"
-#ifdef PARALLEL
-#include <mpe.h>//for MPI event logging
-#endif
 using namespace std;
 
 // **** CONSTRUCTORS  ****
@@ -45,15 +42,6 @@ IndividualCollection::IndividualCollection(const Options* const options, const I
   NumCompLoci = Loci->GetNumberOfCompositeLoci();
   worker_rank = 0;
   NumWorkers = 1;
-#ifdef PARALLEL
-    int global_rank = MPI::COMM_WORLD.Get_rank();
-    //create communicator for workers and find size of and rank within this group
-    workers = MPI::COMM_WORLD.Split( Comms::isWorker(), global_rank);
-    NumWorkers = workers.Get_size();
-    if(global_rank >1)
-      worker_rank = workers.Get_rank();
-    else worker_rank = size;//so that non-workers will not loop over Individuals
-#endif
 }
 
 int IndividualCollection::getNumDiploidIndividuals()const{
@@ -188,18 +176,11 @@ void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFr
   bool annealthermo = anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator();
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-#ifdef PARALLEL
-      const double* AlleleProbs = A->GetAlleleFreqs(locus);
-#endif
       
       for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
 	//Sample Haplotype Pair
 	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles 
-#ifdef PARALLEL
-	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo, UpdateAlleleCounts, AlleleProbs);
-#else
 	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo, UpdateAlleleCounts);
-#endif
       }
       locus++;
     }
@@ -208,9 +189,6 @@ void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFr
 
 void IndividualCollection::AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
                                                   bool anneal){
-#ifdef PARALLEL
-      MPE_Log_event(23, 0, "startAlleleCountUpdate");
-#endif
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
@@ -224,13 +202,6 @@ void IndividualCollection::AccumulateAlleleCounts(const Options* const options, 
       locus++;
     }
   }
-#ifdef PARALLEL
-      MPE_Log_event(24, 0, "endAlleleCountUpdate");
-#endif
-
-#ifdef PARALLEL
-  A->SumAlleleCountsOverProcesses(options->getPopulations());
-#endif
 }
 
 // ************** ACCESSORS **************
@@ -300,12 +271,6 @@ unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)con
       }
     }
   }
-#ifdef PARALLEL
-  MPI::COMM_WORLD.Barrier();
-  int totalCounts;
-  MPI::COMM_WORLD.Reduce(&AlleleCounts, &totalCounts, 1, MPI::INT, MPI::SUM, 0);
-  AlleleCounts = totalCounts;
-#endif
   return AlleleCounts;
 }
 
@@ -331,12 +296,6 @@ int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
       ++count;
     }
   }
-#ifdef PARALLEL
-  MPI::COMM_WORLD.Barrier();
-  int totalCount;
-  MPI::COMM_WORLD.Reduce(&count, &totalCount, 1, MPI::INT, MPI::SUM, 0);
-  count = totalCount;
-#endif
   return count;
 }
 
@@ -350,10 +309,6 @@ double IndividualCollection::getLogLikelihood(const Options* const options, bool
     LogLikelihood += _child[i]->getLogLikelihood(options, forceupdate, true); // store result if updated
     _child[i]->HMMIsBad(false); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
   }
-#ifdef PARALLEL
-  //send total to master
-  Comms::Reduce(&LogLikelihood);
-#endif
   return LogLikelihood;
 }
 
@@ -373,10 +328,6 @@ double IndividualCollection::getEnergy(const Options* const options, const vecto
     if(annealed)  _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
     else _child[i]->HMMIsBad(false); 
   }
-#ifdef PARALLEL
-  //send total to master
-  Comms::Reduce(&LogLikHMM);
-#endif
   // get regression log-likelihood 
   if(Comms::isMaster())
     for(unsigned c = 0; c < R.size(); ++c) LogLikRegression += R[c]->getLogLikelihood(getOutcome(c));

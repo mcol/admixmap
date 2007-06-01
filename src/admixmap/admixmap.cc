@@ -39,27 +39,6 @@ int main( int argc , char** argv ){
   if(!options.CheckRequiredOptions() || !options.SetOptions())
     exit(1);
 
-#ifdef PARALLEL
-  MPI::Init(argc, argv);
-  Comms::Initialise();
-
-  //define states for logging
-  MPE_Init_log();
-  if(Comms::isMaster()){
-    MPE_Describe_state(1, 2, "Barrier", "red:vlines1");
-    MPE_Describe_state(3, 4, "ReduceAncestry", "cyan:vlines3");
-    MPE_Describe_state(5, 6, "ReduceAlleleCounts", "orange:gray2");
-    MPE_Describe_state(7, 8, "SampleAlleleFreqs", "yellow:gray3");
-    MPE_Describe_state(9, 10, "SampleRho", "LightBlue:gray3");
-    MPE_Describe_state(11, 12, "SetGenotypeProbs", "LightGreen:hlines2");
-    MPE_Describe_state(13, 14, "SampleHapPairs", "magenta:vlines2");
-    MPE_Describe_state(15, 16, "SampleAncestry", "blue:vlines3");
-    MPE_Describe_state(17, 18, "Bcastrho", "maroon:gray");
-    MPE_Describe_state(19, 20, "BcastFreqs", "plum:hlines3");
-    MPE_Describe_state(21, 22, "ScoreTests", "gray:hlines3");
-  }
-#endif
-
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
 
   const bool isMaster = Comms::isMaster();
@@ -134,25 +113,11 @@ int main( int argc , char** argv ){
     ThrowException(e.what(), Log);
   }
 
-#ifdef PARALLEL
-  catch(MPI::Exception e){
-    cout << "Error in process " << MPI::COMM_WORLD.Get_rank() << ": " << e.Get_error_code() << endl;
-    MPI::COMM_WORLD.Abort(1);
-  }
-#endif
   catch(...){
     cout << "Unknown exception occurred. Contact the program authors for assistance" << endl;
     exit(1);
   }
-#ifdef PARALLEL
-  cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n";
-  //MPI::COMM_WORLD.Barrier();
-  Comms::Finalise();
-  MPE_Finish_log("admixmap");
-  MPI_Finalize();
-#else
   cout << "Finished" << endl;
-#endif
 
   if(isMaster){//print line of *s
     cout <<setfill('*') << setw(80) << "*" <<endl;
@@ -165,11 +130,7 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
-      << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << "." << SUBVERSION
-#ifdef PARALLEL
-      << " (Parallel) "
-#endif
-      << ") **\n"
+      << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << "." << SUBVERSION << ") **\n"
       << "-------------------------------------------------------\n";
   Log.setDisplayMode(Quiet);
   cout << "Copyright(c) 2002-2007 " << endl

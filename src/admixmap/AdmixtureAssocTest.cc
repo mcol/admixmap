@@ -13,9 +13,6 @@
 #include "AdmixtureAssocTest.h"
 #include <math.h>//for sqrt
 #include <algorithm> //for fill
-#ifdef PARALLEL
-#include "Comms.h"
-#endif
 
 using namespace std;
 
@@ -71,10 +68,6 @@ void AdmixtureAssocTest::Initialise(const unsigned K, const unsigned NumOutcomes
 	fill(SumScore2, SumScore2 + NumPopulations * NumOutcomeVars, 0.0);
 	fill(SumInfo, SumInfo + NumPopulations * NumOutcomeVars, 0.0);
 	InitialiseAssocScoreFile(PLabels);
-#ifdef PARALLEL
-	Comms::SetDoubleWorkspace(NumPopulations * NumOutcomeVars, false);
-#endif
-
       }
     }
     else{
@@ -123,11 +116,6 @@ void AdmixtureAssocTest::UpdateIndividualScore( const double* const Theta, doubl
 
 void AdmixtureAssocTest::Accumulate(){
   if( test ){
-#ifdef PARALLEL
-  //sum scores across processes
-    Comms::ReduceAdmixtureAssocScores(Score, Info, NumPopulations * NumOutcomeVars);
-#endif
-
     //SumScore += Score;
     transform(Score, Score + NumPopulations*NumOutcomeVars, SumScore, SumScore, std::plus<double>());
     //SumAdmixtureInfo += AdmixtureInfo;

@@ -19,7 +19,7 @@ AM_CONDITIONAL(PARALLEL, test x$enable_parallel = xyes)
 
 if test "x$enable_parallel" = "xyes";
   then AC_SPRNG AC_CXX_MPI
-       PARALLEL_LIBS="$MPILIBS -lgmp $SPRNGLIBS -lmpe"
+       PARALLEL_LIBS="$MPILIBS -lgmp $SPRNGLIBS"
 fi
 AC_SUBST([PARALLEL_ENABLE])
 AC_SUBST([PARALLEL_LIBS])

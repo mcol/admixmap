@@ -11,7 +11,6 @@
  * 
  */
 #include "HapMixModel.h"
-#include "EventLogger.hh"
 #include <fstream>
 
 #define HAPMIXMAP_VERSION 0
@@ -41,28 +40,6 @@ int main( int argc , char** argv ){
 
   if(!options.CheckRequiredOptions() || !options.SetOptions())
     exit(1);
-
-#ifdef PARALLEL
-  MPI::Init(argc, argv);
-  Comms::Initialise();
-
-#endif
-  //define states for logging
-  EventLogger::Initialise();
-  if(Comms::isMaster()){
-    EventLogger::DefineEvent(1, 2, "Barrier", "red:vlines1");
-    EventLogger::DefineEvent(3, 4, "ReduceAncestry", "cyan:vlines3");
-    EventLogger::DefineEvent(5, 6, "ReduceAlleleCounts", "orange:gray2");
-    EventLogger::DefineEvent(7, 8, "SampleAlleleFreqs", "yellow:gray3");
-    EventLogger::DefineEvent(9, 10, "SampleLambda", "LightBlue:gray3");
-    EventLogger::DefineEvent(11, 12, "SetGenotypeProbs", "LightGreen:hlines2");
-    EventLogger::DefineEvent(13, 14, "SampleHapPairs", "magenta:vlines2");
-    EventLogger::DefineEvent(15, 16, "SampleAncestry", "blue:vlines3");
-    EventLogger::DefineEvent(17, 18, "BcastLambda", "maroon:gray");
-    EventLogger::DefineEvent(19, 20, "BcastFreqs", "plum:hlines3");
-    EventLogger::DefineEvent(21, 22, "ScoreTests", "gray:hlines3");
-    EventLogger::DefineEvent(23, 24, "UpdateAlleleCounts", "DarkGreen:hlines4");
-  }
 
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
@@ -132,18 +109,11 @@ int main( int argc , char** argv ){
     ThrowException(e.what(), Log);
   }
 
-#ifdef PARALLEL
-  catch(MPI::Exception e){
-    cout << "Error in process " << MPI::COMM_WORLD.Get_rank() << ": " << e.Get_error_code() << endl;
-    MPI::COMM_WORLD.Abort(1);
-  }
-#endif
   catch(...){
     cout << "Unknown exception occurred. Contact the program authors for assistance" << endl;
     exit(1);
   }
 
-  EventLogger::Finalise("hapmixmap");
   //print run times to screen and log
   if(isMaster){
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
@@ -151,16 +121,8 @@ int main( int argc , char** argv ){
     Log.ProcessingTime();
   }
     
-#ifdef PARALLEL
-  cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n";
-  //MPI::COMM_WORLD.Barrier();
-  Comms::Finalise();
-  MPI_Finalize();
-#else
-  cout << "Finished" << endl;
-#endif
-
-    cout << "-------------------------------------------------------" <<endl;
+  cout << "Finished" << endl
+       << "-------------------------------------------------------" << endl;
 
   putenv("HAPMIXMAPCLEANEXIT=1");
   return 0;
@@ -170,11 +132,7 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
-      << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION << "." << SUBVERSION
-#ifdef PARALLEL
-      << " (Parallel) "
-#endif
-      << ") **\n"
+      << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION << "." << SUBVERSION << ") **\n"
       << "-------------------------------------------------------\n";
   Log.setDisplayMode(Quiet);
   cout << "Copyright(c) 2006, 2007 " << endl

@@ -34,7 +34,7 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
   AdmixedIndividuals = new AdmixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
   IC = (IndividualCollection*) AdmixedIndividuals;
   if(isMaster || isWorker)AdmixedIndividuals->LoadData(&options, &data);    
-  if(isWorker)AdmixedIndividuals->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+  if(isWorker)AdmixedIndividuals->setGenotypeProbs(&Loci); // sets unannealed probs
   if(isMaster){
     const int numdiploid = IC->getNumDiploidIndividuals();
     const int numindivs = data.getNumberOfIndividuals();
@@ -96,7 +96,7 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
     }
 
     //Sample Parameters
-    UpdateParameters(iteration, &options, Log, data.GetPopLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
+    UpdateParameters(iteration, &options, Log, data.GetHiddenStateLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
     SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
 	       AnnealedRun);
 	
@@ -159,44 +159,20 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, Log
   }
 
   if(isWorker || isFreqSampler) {
-#ifdef PARALLEL
-    MPE_Log_event(13, iteration, "sampleHapPairs");
-#endif
 // loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
     AdmixedIndividuals->SampleHapPairs(options, &A, &Loci, true, anneal, true);
-#ifdef PARALLEL
-    MPE_Log_event(14, iteration, "sampledHapPairs");
-#endif
   }
-  
-#ifdef PARALLEL
-  if(isWorker || isFreqSampler){
-    A.SumAlleleCountsOverProcesses(options->getPopulations());
-  }
-#endif
   
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){
     //score tests
     if( options->getScoreTestIndicator() ){
-#ifdef PARALLEL
-      MPE_Log_event(21, iteration, "ScoreTestUpdatestart");
-#endif
       //TODO: broadcast dispersion in linear regression
       Scoretests.Update(R);//score tests evaluated for first outcome var only
-#ifdef PARALLEL
-      MPE_Log_event(22, iteration, "ScoreTestUpdateEnd");
-#endif
     }
     if(options->getTestForResidualAllelicAssoc()){
-#ifdef PARALLEL
-      MPE_Log_event(21, iteration, "ResLDTestStart");
-#endif
       ResidualAllelicAssocScoreTest.Reset();
       ResidualAllelicAssocScoreTest.Update(A.GetAlleleFreqs(), options->getHapMixModelIndicator());
-#ifdef PARALLEL
-      MPE_Log_event(22, iteration, "ResLDTestEnd");
-#endif
     }
   }
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -215,32 +191,15 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, Log
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
   if( !options->getFixedAlleleFreqs()){
     if(isFreqSampler){
-#ifdef PARALLEL
-      MPE_Log_event(7, iteration, "SampleFreqs");
-#endif
       A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
-#ifdef PARALLEL
-    MPE_Log_event(8, iteration, "SampledFreqs");
-#endif
     }
-#ifdef PARALLEL
-    if(isWorker || isFreqSampler ) { 
-      A.BroadcastAlleleFreqs();
-    }
-#endif
   }//end if random allele freqs
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
 
   if(isWorker && (!options->getFixedAlleleFreqs() || anneal)) {   
-#ifdef PARALLEL
-    MPE_Log_event(11, iteration, "setGenotypeProbs"); 
-#endif
-    AdmixedIndividuals->setGenotypeProbs(&Loci, &A); // sets unannealed probs ready for getEnergy
+    AdmixedIndividuals->setGenotypeProbs(&Loci); // sets unannealed probs ready for getEnergy
     AdmixedIndividuals->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
-#ifdef PARALLEL
-    MPE_Log_event(12, iteration, "GenotypeProbsSet"); 
-#endif
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   
   // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
@@ -264,14 +223,6 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, Log
       }
     }
   }
-#ifdef PARALLEL
-  if(isMaster || isWorker){    //broadcast regression parameters to workers
-    for(unsigned r = 0; r < R.size(); ++r){
-      Comms::BroadcastRegressionParameters(R[r]->getbeta(), R[r]->getNumCovariates());
-      //if(R[r]->getRegressionType()==Linear) Comms::BroadcastRegressionPrecision(R[r]->getlambda());
-    }
-  }
-#endif
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
 void AdmixMapModel::ResetStepSizeApproximators(int resetk){
@@ -297,10 +248,10 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
       
       // ** set merged haplotypes for allelic association score test 
       if( (isMaster || isWorker) && iteration == options.getBurnIn() ){
-#ifndef PARALLEL
+
 	if(options.getTestForAllelicAssociation())
 	  Scoretests.SetAllelicAssociationTest(L->getalpha0());
-#endif
+
 	if( isMaster && options.getStratificationTest() )
 	  StratTest.Initialize( &options, Loci, IC, Log);
       }
@@ -337,7 +288,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 	    avgstream << endl;
 	  }
 	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), false);
+	  if( options.getScoreTestIndicator() )  Scoretests.Output(data.GetHiddenStateLabels(), data.getLocusLabels(), false);
 	  ResidualAllelicAssocScoreTest.Output(false, data.getLocusLabels());
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
@@ -427,15 +378,15 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     A.OutputFST();
   }
   if(Comms::isFreqSampler())
-    A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
+    A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetHiddenStateLabels());
 
   //stratification test
   if( options.getStratificationTest() ) StratTest.Output(Log);
   //dispersion test
-  if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetPopLabels());
+  if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetHiddenStateLabels());
   //tests for mis-specified allele frequencies
   if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-    AlleleFreqTest.Output(&Loci, data.GetPopLabels()); 
+    AlleleFreqTest.Output(&Loci, data.GetHiddenStateLabels()); 
   //test for H-W eq
   if( options.getHWTestIndicator() )
     HWtest.Output(data.getLocusLabels()); 
@@ -445,7 +396,7 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
       //finish writing score test output as R objects
       Scoretests.ROutput();
       //write final tables
-      Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), true);
+      Scoretests.Output(data.GetHiddenStateLabels(), data.getLocusLabels(), true);
     }
     ResidualAllelicAssocScoreTest.ROutput();
     ResidualAllelicAssocScoreTest.Output(true, data.getLocusLabels());
@@ -454,7 +405,7 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
   //output to likelihood ratio file
   if(options.getTestForAffectedsOnly())
     Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), 
-				      data.GetPopLabels());	
+				      data.GetHiddenStateLabels());	
 }
 void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, LogWriter& Log){
   const bool isMaster = Comms::isMaster();
@@ -465,7 +416,7 @@ void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, Lo
   AdmixOptions& options = (AdmixOptions&) _options;
   if(isMaster || isWorker){
     if( options.getScoreTestIndicator() ){
-      Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
+      Scoretests.Initialise(&options, IC, &Loci, data.GetHiddenStateLabels(), Log);
     }
     ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci, Log);
   }
@@ -480,7 +431,7 @@ void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, Lo
   if( options.getHWTestIndicator() )
     HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
   if(isMaster)
-    InitializeErgodicAvgFile(&options, Log, data.GetPopLabels(), data.getCovariateLabels());
+    InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
   //}
 
 }

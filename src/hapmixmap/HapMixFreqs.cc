@@ -59,10 +59,6 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
   }//end if is freqsampler
   if(Comms::isFreqSampler() || Comms::isWorker()){
     AllocateAlleleCountArrays(options->getPopulations());
-#ifdef PARALLEL
-    //broadcast initial values of freqs
-    BroadcastAlleleFreqs();
-#endif
   }
 }
 
@@ -331,12 +327,12 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
     
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
-#ifndef PARALLEL
+
     //no need to update alleleprobs, they are the same as Freqs
     //set HapPair probs using updated alleleprobs
     if(!AllHaploid)//skip if all haploid data
       (*Loci)(i)->SetHapPairProbs();
-#endif
+
   }
   
 }

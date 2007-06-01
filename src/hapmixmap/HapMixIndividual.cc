@@ -74,13 +74,9 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options,
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(unsigned j = 0; j < numCompositeLoci; ++j) {
     ploidy p = ( !isHaploid && (!Loci->isXLocus(j) || SexIsFemale)) ? diploid : haploid;
-    //#ifdef PARALLEL
-    //cannot use function in CompositeLocus because workers have no CompositeLocus objects
     SetPossibleHaplotypePairs(hgenotypes.begin()+j, PossibleHapPairs[j], p); 
-    //#else
     //HapMixGenotypeIterator G(hgenotypes.begin() + j, p);
     //(*Loci)(j)->HaplotypeSetter.setPossibleHaplotypePairs(&G, PossibleHapPairs[j]);
-    //#endif
     
     // initialise sampledHapPairs with the first of the possible happairs. 
     // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
@@ -345,7 +341,6 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
       
       if (orderedStateProbs[ospIdx] == 0) continue;
 
-#ifndef PARALLEL      
       /*
        * Calling a simplified version of getConditionalHapPairProbs
        * which sets only 0th and 3rd element of orderedGenotypeProbs
@@ -356,9 +351,6 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
        */
       (*Loci)(j)->getFirstAndLastConditionalHapPairProbs(
           orderedGenotypeProbs, anc);
-#else
-//TODO: alternative code for parallel version
-#endif
       /*
        * multiply result by conditional probs of anc and accumulate
        * result in array genotype probs (size 3 x number of loci)
