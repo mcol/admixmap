@@ -130,7 +130,7 @@ StringSplitter::StateInString::onGraph(StringSplitter *_this, char c)
 StringSplitter::StringSplitterState *
 StringSplitter::StateInString::onEndLn(StringSplitter *)
 {
-  throw std::runtime_error("Unexpected end of line looking up for closing quote.");
+  throw std::runtime_error("Unexpected end of line while looking for closing quote.");
 }
 
 
@@ -145,14 +145,14 @@ StringSplitter::~StringSplitter()
 {
 }
 
-const Vector_s& StringSplitter::split(const char *p)
+const Vector_s& StringSplitter::split(const char *p, char delim)
 {
   result_.clear();
   current_.clear();
 
   for (StringSplitterState *state = &STATE_WHITE; state; ++p)
     {
-      if (isspace(*p) || *p == ',' || *p == ' ') {
+      if (isspace(*p) || *p == delim) {
 	state = state->onWhite(this, *p);
       } else if (*p == '"') {
 	state = state->onQuote(this);
@@ -166,9 +166,9 @@ const Vector_s& StringSplitter::split(const char *p)
   return result_;
 }
 
-const Vector_s& StringSplitter::split(const std::string& str)
+const Vector_s& StringSplitter::split(const std::string& str, char delim)
 {
-  return split(str.c_str());
+  return split(str.c_str(), delim);
 }
 
 void StringSplitter::addChar(char c)
@@ -244,13 +244,13 @@ void StringSplitter::Tokenize(const std::string& str,
 // }
 
 //possible alternative
-// void StringSplitter::Tokenize(const std::string& text, std::vector<std::string>& tokens, const std::string& delim) {
-//   std::vector<std::string> result;
-//   std::string::size_type b(text.find_first_not_of(delim));
-//   while (b != std::string::npos) {
-//     std::string::size_type e(text.find_first_of(delim, b));
-//     result.push_back(text.substr(b, e - b));
-//     b = text.find_first_not_of(delim, min(e, text.size()));
-//   }
-//   return result;
-// } 
+
+void StringSplitter::QuickTokenize(const std::string& text, std::vector<std::string>& tokens, const std::string& delim) {
+  tokens.clear();
+  std::string::size_type b(text.find_first_not_of(delim));
+  while (b != std::string::npos) {
+    std::string::size_type e(text.find_first_of(delim, b));
+    tokens.push_back(text.substr(b, e - b));
+    b = text.find_first_not_of(delim, (e<text.size() ? e: text.size()) );
+  }
+} 

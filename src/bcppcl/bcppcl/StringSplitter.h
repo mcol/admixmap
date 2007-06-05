@@ -15,7 +15,7 @@ typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors
  *      space symbols.
  *  Important:
  *      Enclosing quotes are removed from resulting strings.
- *  Implementaion: 
+ *  Implementation: 
  *      Class uses "State" pattern (GoF).
  */
 class StringSplitter
@@ -26,14 +26,15 @@ public:
   
   /// = Splitting (see comments for class above).
 
-  /// splits a char array into a vector of strings, splitting on whitespace.  
-  const Vector_s& split(const char *str);
-  /// splits a string into a vector of strings, splitting on whitespace.  .  
-  const Vector_s& split(const std::string& str);
+  /// splits a char array into a vector of strings, splitting on whitespace ro supplied delimiter.  
+  const Vector_s& split(const char *str, char delim = ' ');
+  /// splits a string into a vector of strings, splitting on whitespace or supplied delmiter. 
+  const Vector_s& split(const std::string& str, char delim = ' ');
   ///   Splits a string into tokens, splitting on any character(s).
   static void Tokenize(const std::string& str,
 		       std::vector<std::string>& tokens,
 		       const std::string& delimiters);
+  static void QuickTokenize(const std::string& text, std::vector<std::string>& tokens, const std::string& delim);
 
 private:
     struct StringSplitterState;

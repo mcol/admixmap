@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <ctype.h>
 #include <algorithm>
+#include <sstream>
 
 StringSplitter DataReader::splitter;
 
@@ -46,7 +47,7 @@ void DataReader::readFile(const char *fname, std::vector<std::vector<std::string
     try {
       std::string line; 
 
-      //check for header
+      //check for header by searching for alphabetic characters
       getline(in, line);
       if( find_if(line.begin(), line.end(), isalpha) == line.end() ){
 	std::string errstring = "ERROR: No header found in file ";
@@ -62,9 +63,12 @@ void DataReader::readFile(const char *fname, std::vector<std::vector<std::string
 
 	  //throw exception if line has length different from header
 	  if(data.size()>1 && data[data.size()-1].size() != data[0].size()){
-	    std::string errstring = "Inconsistent row lengths in file ";
-	    errstring.append(fname);
-	    throw errstring;
+	    std::stringstream errstring;
+	    errstring << "Inconsistent row lengths in file "
+		      << fname
+		      << ". " << data[0].size() << " fields in header but "
+		      << data[data.size()-1].size() << " fields in row " << data.size()-1 << std::endl;
+	    throw errstring.str();
 	  }
 	}
 	//read next line
