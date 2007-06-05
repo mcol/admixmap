@@ -22,9 +22,6 @@ AdmixMapModel::~AdmixMapModel(){
 }
 
 void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  LogWriter& Log){
-  const bool isMaster = Comms::isMaster();
-  const bool isFreqSampler = Comms::isFreqSampler();
-  const bool isWorker = Comms::isWorker();
 
   InitialiseGenome(Loci, options, data, Log);
 
@@ -33,38 +30,36 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
   
   AdmixedIndividuals = new AdmixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
   IC = (IndividualCollection*) AdmixedIndividuals;
-  if(isMaster || isWorker)AdmixedIndividuals->LoadData(&options, &data);    
-  if(isWorker)AdmixedIndividuals->setGenotypeProbs(&Loci); // sets unannealed probs
-  if(isMaster){
-    const int numdiploid = IC->getNumDiploidIndividuals();
-    const int numindivs = data.getNumberOfIndividuals();
-    if(numindivs > 1){
-      Log.setDisplayMode(Quiet);
-      //Log << numindivs << " individuals\n";
-      if(numdiploid > 0){
-	Log << numdiploid << " diploid "; 
-	if(numdiploid < numindivs)Log<< "and ";
-      }
-      if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
-      Log << "individuals\n\n";
+  AdmixedIndividuals->LoadData(&options, &data);    
+  AdmixedIndividuals->setGenotypeProbs(&Loci); // sets unannealed probs
+
+  const int numdiploid = IC->getNumDiploidIndividuals();
+  const int numindivs = data.getNumberOfIndividuals();
+  if(numindivs > 1){
+    Log.setDisplayMode(Quiet);
+    //Log << numindivs << " individuals\n";
+    if(numdiploid > 0){
+      Log << numdiploid << " diploid "; 
+      if(numdiploid < numindivs)Log<< "and ";
     }
+    if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
+    Log << "individuals\n\n";
   }
+
   
   L = new PopAdmix(&options, &Loci);    
-  if(isMaster || isWorker)L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
-  if(isFreqSampler)A.PrintPrior(data.GetPopLabels(), Log);
+  L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
+  A.PrintPrior(data.GetPopLabels(), Log);
   
-  if( options.getPopulations()>1 && (options.isGlobalRho()) && isWorker) {
+  if( options.getPopulations()>1 && (options.isGlobalRho())) {
     Loci.SetLocusCorrelation(L->getrho());
   }
   
-  if(isMaster || isWorker){
-      AdmixedIndividuals->Initialise(&options, &Loci, data.GetPopLabels(), Log);
-      AdmixedIndividuals->DrawInitialAdmixture(L->getalpha());
-  }
+  AdmixedIndividuals->Initialise(&options, &Loci, data.GetPopLabels(), Log);
+  AdmixedIndividuals->DrawInitialAdmixture(L->getalpha());
   
   //initialise regression objects
-  if (options.getNumberOfOutcomes()>0 && (isMaster || isWorker)){
+  if (options.getNumberOfOutcomes()>0 ){
     InitialiseRegressionObjects(options, data, Log);
   }
 }
@@ -72,16 +67,13 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
 void AdmixMapModel::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
 			    Options & options, InputData & data, LogWriter& Log, 
 			    double & SumEnergy, double & SumEnergySq,  bool AnnealedRun) {
-  const bool isMaster = Comms::isMaster();
-  //const bool isFreqSampler = Comms::isFreqSampler();
-  const bool isWorker = Comms::isWorker();
 
   //Accumulate Energy
   double AISz = 0.0;
-  if(isMaster && !AnnealedRun) cout << endl;
+  if(!AnnealedRun) cout << endl;
 
   for( int iteration = 0; iteration <= samples; iteration++ ) {
-    if( (isMaster || isWorker) && iteration > burnin) {
+    if( iteration > burnin) {
       if( !options.getTestOneIndivIndicator() ) {
 	GetEnergy(Coolnesses, coolness, options, SumEnergy, SumEnergySq, AISz, AnnealedRun, iteration );
       }
@@ -91,7 +83,7 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
   
 
      //Write Iteration Number to screen
-    if( isMaster && !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
+    if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
 
@@ -108,30 +100,25 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
 
 void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, LogWriter& Log, 
 		      const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal){
-  const bool isMaster = Comms::isMaster();
-  const bool isFreqSampler = Comms::isFreqSampler();
-  const bool isWorker = Comms::isWorker();
-
     //cast Options pointer to AdmixOptions pointer for access to ADMIXMAP options
   //TODO: change pointer to reference
   const AdmixOptions* options = (const AdmixOptions*) _options;
 
   // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
-  if((isMaster || isWorker) && (anneal || options->getTestOneIndivIndicator()))
+  if(anneal || options->getTestOneIndivIndicator())
     AdmixedIndividuals->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses);
 
 
   A.ResetAlleleCounts(options->getPopulations());
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    if(isMaster || isWorker){
-    // ** update global sumintensities conditional on genotype probs and individual admixture proportions
-     if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && 
-        (Loci.GetLengthOfGenome() + Loci.GetLengthOfXchrm() > 0.0))
-       L->UpdateGlobalSumIntensities(AdmixedIndividuals, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1));
-    // leaves individuals with HMM probs bad, stored likelihood ok
-    // this function also sets locus correlations in Chromosomes
-  }
+  // ** update global sumintensities conditional on genotype probs and individual admixture proportions
+  if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && 
+     (Loci.GetLengthOfGenome() + Loci.GetLengthOfXchrm() > 0.0))
+    L->UpdateGlobalSumIntensities(AdmixedIndividuals, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1));
+  // leaves individuals with HMM probs bad, stored likelihood ok
+  // this function also sets locus correlations in Chromosomes
+  
 
   //find posterior modes of individual admixture at end of burn-in
   //set Chib numerator
@@ -154,17 +141,14 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, Log
      When not using random-walk sampler (odd iterations), it is when sampling ancestry.
      Backward updates are invoked just before the score test update but only if required.
   */
-  if(isMaster || isWorker){
-    AdmixedIndividuals->HMMUpdates(iteration, options, R, L->getpoptheta(), L->getalpha(), Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
-  }
-
-  if(isWorker || isFreqSampler) {
-// loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
-    AdmixedIndividuals->SampleHapPairs(options, &A, &Loci, true, anneal, true);
-  }
+  AdmixedIndividuals->HMMUpdates(iteration, options, R, L->getpoptheta(), L->getalpha(), 
+				   Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
+  
+  // loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
+  AdmixedIndividuals->SampleHapPairs(options, &A, &Loci, true, anneal, true);
   
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){
+  if( !anneal && iteration > options->getBurnIn() ){
     //score tests
     if( options->getScoreTestIndicator() ){
       //TODO: broadcast dispersion in linear regression
@@ -190,14 +174,12 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, Log
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
   if( !options->getFixedAlleleFreqs()){
-    if(isFreqSampler){
-      A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
-    }
+    A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
   }//end if random allele freqs
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
 
-  if(isWorker && (!options->getFixedAlleleFreqs() || anneal)) {   
+  if(!options->getFixedAlleleFreqs() || anneal) {   
     AdmixedIndividuals->setGenotypeProbs(&Loci); // sets unannealed probs ready for getEnergy
     AdmixedIndividuals->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
@@ -206,21 +188,18 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, Log
   // or from update of individual-level parameters otherwise
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(isMaster || isWorker){
-    //update population admixture Dirichlet parameters conditional on individual admixture
-    L->UpdatePopAdmixParams(iteration, AdmixedIndividuals, Log);
-  }
+  //update population admixture Dirichlet parameters conditional on individual admixture
+  L->UpdatePopAdmixParams(iteration, AdmixedIndividuals, Log);
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   // ** update regression parameters (if regression model) conditional on individual admixture
-  if(isMaster){
-    bool condition = (!anneal && iteration > options->getBurnIn() && isMaster);
-    for(unsigned r = 0; r < R.size(); ++r){
-      R[r]->Update(condition, IC->getOutcome(r), coolness );
-      //output expected values of outcome variables to file every 'every' iterations after burnin
-      if(condition && !(iteration % options->getSampleEvery()) ) {
-	R[r]->OutputExpectedY();
-      }
+  bool condition = (!anneal && iteration > options->getBurnIn());
+  for(unsigned r = 0; r < R.size(); ++r){
+    R[r]->Update(condition, IC->getOutcome(r), coolness );
+    //output expected values of outcome variables to file every 'every' iterations after burnin
+    if(condition && !(iteration % options->getSampleEvery()) ) {
+      R[r]->OutputExpectedY();
     }
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -233,9 +212,6 @@ void AdmixMapModel::ResetStepSizeApproximators(int resetk){
 void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _options, InputData & data, 
 			       LogWriter& Log, double& SumEnergy, double& SumEnergySq, 
 			       bool AnnealedRun){
-  const bool isMaster = Comms::isMaster();
-  //const bool isFreqSampler = Comms::isFreqSampler();
-  const bool isWorker = Comms::isWorker();
   //cast Options object to AdmixOptions for access to ADMIXMAP options
   AdmixOptions& options = (AdmixOptions&) _options;
 
@@ -243,21 +219,21 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
     Log.setDisplayMode(Quiet);
      if(!AnnealedRun){    
       // output every 'getSampleEvery()' iterations
-      if(!(iteration % options.getSampleEvery()) && isMaster)
+      if(!(iteration % options.getSampleEvery()))
 	OutputParameters(iteration, &options, Log);
       
       // ** set merged haplotypes for allelic association score test 
-      if( (isMaster || isWorker) && iteration == options.getBurnIn() ){
+      if( iteration == options.getBurnIn() ){
 
 	if(options.getTestForAllelicAssociation())
 	  Scoretests.SetAllelicAssociationTest(L->getalpha0());
 
-	if( isMaster && options.getStratificationTest() )
+	if( options.getStratificationTest() )
 	  StratTest.Initialize( &options, Loci, IC, Log);
       }
 	    
       //Updates and Output after BurnIn     
-      if( !AnnealedRun && iteration > burnin && isMaster){
+      if( !AnnealedRun && iteration > burnin){
 	//dispersion test
 	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A, IC);
 	//stratification test
@@ -336,7 +312,7 @@ void AdmixMapModel::PrintAcceptanceRates(const Options& _options, LogWriter& Log
    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
    else Log.setDisplayMode(On);
    
-   if(options.getPopulations() > 1 && Comms::isMaster()){
+   if(options.getPopulations() > 1 ){
      L->printAcceptanceRates(Log);
    }
    if(options.getCorrelatedAlleleFreqs()){
@@ -374,11 +350,10 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     if(AdmixedIndividuals->getSize()==1) AdmixedIndividuals->OutputChibResults(Log);
   }
   //FST
-  if( strlen( options.getHistoricalAlleleFreqFilename()) && Comms::isFreqSampler()  ){
+  if( strlen( options.getHistoricalAlleleFreqFilename()) ){
     A.OutputFST();
   }
-  if(Comms::isFreqSampler())
-    A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetHiddenStateLabels());
+  A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetHiddenStateLabels());
 
   //stratification test
   if( options.getStratificationTest() ) StratTest.Output(Log);
@@ -391,16 +366,14 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
   if( options.getHWTestIndicator() )
     HWtest.Output(data.getLocusLabels()); 
 
-  if(Comms::isMaster()){
-    if( options.getScoreTestIndicator() ) {
-      //finish writing score test output as R objects
-      Scoretests.ROutput();
-      //write final tables
-      Scoretests.Output(data.GetHiddenStateLabels(), data.getLocusLabels(), true);
-    }
-    ResidualAllelicAssocScoreTest.ROutput();
-    ResidualAllelicAssocScoreTest.Output(true, data.getLocusLabels());
+  if( options.getScoreTestIndicator() ) {
+    //finish writing score test output as R objects
+    Scoretests.ROutput();
+    //write final tables
+    Scoretests.Output(data.GetHiddenStateLabels(), data.getLocusLabels(), true);
   }
+  ResidualAllelicAssocScoreTest.ROutput();
+  ResidualAllelicAssocScoreTest.Output(true, data.getLocusLabels());
 
   //output to likelihood ratio file
   if(options.getTestForAffectedsOnly())
@@ -408,19 +381,14 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
 				      data.GetHiddenStateLabels());	
 }
 void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, LogWriter& Log){
-  const bool isMaster = Comms::isMaster();
-  //const bool isFreqSampler = Comms::isFreqSampler();
-  const bool isWorker = Comms::isWorker();
 
   //cast Options object to AdmixOptions for access to ADMIXMAP options
   AdmixOptions& options = (AdmixOptions&) _options;
-  if(isMaster || isWorker){
-    if( options.getScoreTestIndicator() ){
-      Scoretests.Initialise(&options, IC, &Loci, data.GetHiddenStateLabels(), Log);
-    }
-    ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci, Log);
+  if( options.getScoreTestIndicator() ){
+    Scoretests.Initialise(&options, IC, &Loci, data.GetHiddenStateLabels(), Log);
   }
-  //if(isMaster){
+  ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci, Log);
+
   if( options.getTestForDispersion() ){
     DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
   }
@@ -430,9 +398,8 @@ void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, Lo
     AlleleFreqTest.Initialise(&options, &Loci, Log );  
   if( options.getHWTestIndicator() )
     HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
-  if(isMaster)
-    InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
-  //}
+  InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
+
 
 }
 //this function is here because three different objects have to write to avgstream

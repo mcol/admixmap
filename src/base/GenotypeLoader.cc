@@ -86,6 +86,7 @@ const
   unsigned long numdiploid = 0;
   unsigned long numhaploidX = 0;
   unsigned long numdiploidX = 0;
+  unsigned long numObserved = 0;
   //  unsigned numXloci = 0;
 
   for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
@@ -111,7 +112,9 @@ const
 				 g[0], 0, numalleles );
 
 	if(isXchrm){
-	  if(g.size()==1)++numhaploidX;
+	  if(g.size()==1){
+	    ++numhaploidX;
+	  }
 	  else {//diploid X genotype
 	    if(!isFemale(i)){//males cannot have diploid X genotypes
 	      //cerr << "Genotype error in Individual " << i << ". Males cannot have diploid X-chromosome genotypes.";
@@ -123,14 +126,15 @@ const
 	    ++numdiploidX;
 	  }
 	}
-	else{
+	else{//autosome
 	  if(g.size()==1)++numhaploid;
 	  else ++numdiploid;
 	}
 	simplelocus++;
 	G.push_back(g);
 	count += g[0];
-      }
+	numObserved += g[0];
+      }//end locus loop
       
       Missing[c][j] = (count == 0);
       
@@ -138,15 +142,16 @@ const
       ++complocus;
     }
   }
-  CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i, geneticData_[i][0]);
+  CheckGenotypes(numObserved, numhaploid, numdiploid, numhaploidX, numdiploidX, i, geneticData_[i][0]);
 }
 
-void GenotypeLoader::CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const string& ID)const{
+void GenotypeLoader::CheckGenotypes(unsigned long numObserved, unsigned long numhaploid, unsigned long numdiploid, 
+				    unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const string& ID)const{
 
 ///check for no observed genotypes
-    if(numhaploid + numdiploid + numhaploidX + numdiploidX ==0){
-        cerr << endl << "Genotype error in Individual " << ID << ": No observed genotypes." << endl;
-        exit(1);
+    if(numObserved ==0){
+        cerr << endl << "WARNING: Individual " << ID << " has no observed genotypes." << endl;
+        //exit(1);
     }
 
 /// check for male with diploid X data

@@ -14,15 +14,11 @@
 #include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
 #include "bcppcl/linalg.h"//for HH_solve to compute chi-sq
-#include "Comms.h"
 #include "FreqArrays.h"
 
 ResidualLDTest::ResidualLDTest(){
   options = 0;
   individuals = 0;
-  rank = Comms::getRank();
-  worker_rank = Comms::getWorkerRank();
-  NumWorkers = Comms::getNumWorkers();
   numUpdates = 0;
   numPrintedIterations = 0;
 }
@@ -38,40 +34,38 @@ void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const i
   chrm = Loci->getChromosomes();
   Lociptr = Loci;
   Log.setDisplayMode(Quiet);
-  if(worker_rank==-1) worker_rank =indiv->getSize();//to stop master iterating through individuals
   test = options->getTestForResidualAllelicAssoc();
 
   if(test){
     //open output file
-    if(rank==0)OpenFile(Log, &outputfile, options->getResidualAllelicAssocScoreFilename(), "Tests for residual allelic association", true);
-    if(rank==0){
-      SumScore.resize(Lociptr->GetNumberOfChromosomes());
-      SumScore2.resize(Lociptr->GetNumberOfChromosomes());
-      SumInfo.resize(Lociptr->GetNumberOfChromosomes());
-    }
+    OpenFile(Log, &outputfile, options->getResidualAllelicAssocScoreFilename(), "Tests for residual allelic association", true);
+    
+    SumScore.resize(Lociptr->GetNumberOfChromosomes());
+    SumScore2.resize(Lociptr->GetNumberOfChromosomes());
+    SumInfo.resize(Lociptr->GetNumberOfChromosomes());
+
     Score.resize(Lociptr->GetNumberOfChromosomes());
     Info.resize(Lociptr->GetNumberOfChromosomes());
 
     int locus = 0;
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
-      if(rank==0){      
-	SumScore[j].resize(NumberOfLoci-1);
-	SumScore2[j].resize(NumberOfLoci-1);
-	SumInfo[j].resize(NumberOfLoci-1);
-      }
+      
+      SumScore[j].resize(NumberOfLoci-1);
+      SumScore2[j].resize(NumberOfLoci-1);
+      SumInfo[j].resize(NumberOfLoci-1);
+
       Score[j].resize(NumberOfLoci-1);
       Info[j].resize(NumberOfLoci-1);
 
       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
 	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 
-	if(rank==0){
-	  SumScore[j][k].assign(dim, 0.0);
-	  SumScore2[j][k].assign(dim*dim, 0.0);
-	  SumInfo[j][k].assign(dim*dim, 0.0);
-	  //Tcount.push_back(0);
-	}
+	SumScore[j][k].assign(dim, 0.0);
+	SumScore2[j][k].assign(dim*dim, 0.0);
+	SumInfo[j][k].assign(dim*dim, 0.0);
+	//Tcount.push_back(0);
+
 	Score[j][k].assign(dim, 0.0);
 	Info[j][k].assign(dim*dim, 0.0);
 	++locus;
@@ -99,18 +93,18 @@ void ResidualLDTest::Reset(){
 
 void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
   int abslocus = 0;
-  if(Comms::isWorker()){
-    for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){
-      for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
-	//if(ishapmixmodel)
-	//UpdateScoresForResidualAllelicAssociation2(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
-	//else
-	UpdateScoresForResidualAllelicAssociation(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
-	++abslocus;
-      }
-      ++abslocus;//for last locus on chrm
+  
+  for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){
+    for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
+      //if(ishapmixmodel)
+      //UpdateScoresForResidualAllelicAssociation2(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
+      //else
+      UpdateScoresForResidualAllelicAssociation(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
+      ++abslocus;
     }
+    ++abslocus;//for last locus on chrm
   }
+
   //vector<unsigned>::iterator T_iter = Tcount.begin();
   //accumulate score, square of score and info
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
@@ -174,7 +168,7 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
   int dim = (M-1)*(N-1);
   int ancA[2];//ancestry at A
   int ancB[2];//ancestry at B
-  for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers) {
+  for(int i = 0; i < individuals->getSize(); i++) {
     Individual* ind = individuals->getIndividual(i);
     if( !ind->GenotypeIsMissing(abslocus) && !ind->GenotypeIsMissing(abslocus+1) ) {
       //skip missing genotypes as hap pairs not sampled
@@ -231,7 +225,7 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus
   int dim = (M-1)*(N-1);
   int ancA[2];//ancestry at A
   int ancB[2];//ancestry at B
-  for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers) {
+  for(int i = 0; i < individuals->getSize(); i++) {
     Individual* ind = individuals->getIndividual(i);
     if( !ind->GenotypeIsMissing(abslocus) && !ind->GenotypeIsMissing(abslocus+1) ) {
       //skip missing genotypes as hap pairs not sampled

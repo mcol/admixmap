@@ -13,7 +13,6 @@
  * 
  */
 #include "HapMixAllelicAssocTest.h"
-#include "Comms.h"
 #include "HapMixIndividualCollection.h"
 #include "InputHapMixData.h"
 #include "bcppcl/Regression.h"
@@ -23,33 +22,29 @@ void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, 
   const double dispersion = R->getDispersion();
   const double* const EY = R->getExpectedOutcome();
   const int NumberOfIndividuals = IC->getNumberOfIndividualsForScoreTests();
-  unsigned worker_rank = Comms::getWorkerRank();
-  if(Comms::isWorker()){
-    for( int i = worker_rank ; i < NumberOfIndividuals; i+=Comms::getNumWorkers() ){
-      this->UpdateB(R->DerivativeInverseLinkFunction(i), dispersion, 0);
-    }
-    const int offset = IC->getFirstScoreTestIndividualNumber();
+
+  for( int i = 0 ; i < NumberOfIndividuals; i++ ){
+    this->UpdateB(R->DerivativeInverseLinkFunction(i), dispersion, 0);
+  }
+  const int offset = IC->getFirstScoreTestIndividualNumber();
+  
+  for( int i = 0 ; i < NumberOfIndividuals; i++ ){
     
-    for( int i = worker_rank ; i < NumberOfIndividuals; i+=Comms::getNumWorkers() ){
-      
-      const HapMixIndividual* const ind = IC->getHapMixIndividual(i + offset);
-      vector<vector<double> > UnorderedProbs(3, vector<double>(1));
-      const double YMinusEY = IC->getOutcome(0, i) - EY[i];//individual outcome - its expectation
-      double DInvLink = R->DerivativeInverseLinkFunction(i);
-      unsigned int numberCompositeLoci = Loci.GetNumberOfCompositeLoci();
-      for(unsigned int j = 0; j < numberCompositeLoci; j++ ) {
-	// SNPs only
-	if (Loci.GetNumberOfStates(j) == 2) {
-	  UnorderedProbs = ind->getUnorderedProbs(j); 
-	  CopyNumberAssocTest::Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
-	}
+    const HapMixIndividual* const ind = IC->getHapMixIndividual(i + offset);
+    vector<vector<double> > UnorderedProbs(3, vector<double>(1));
+    const double YMinusEY = IC->getOutcome(0, i) - EY[i];//individual outcome - its expectation
+    double DInvLink = R->DerivativeInverseLinkFunction(i);
+    unsigned int numberCompositeLoci = Loci.GetNumberOfCompositeLoci();
+    for(unsigned int j = 0; j < numberCompositeLoci; j++ ) {
+      // SNPs only
+      if (Loci.GetNumberOfStates(j) == 2) {
+	UnorderedProbs = ind->getUnorderedProbs(j); 
+	CopyNumberAssocTest::Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
       }
     }
   }
-  //TODO reduce scores
-  if(Comms::isMaster()){
-    this->Accumulate();
-  }
+
+  this->Accumulate();
 }
 
 #define COUNTINFO(S, X) \

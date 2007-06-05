@@ -14,7 +14,6 @@
 #include "Genome.h"
 #include "bcppcl/DataMatrix.h"
 #include "bcppcl/StringConvertor.h"
-#include "Comms.h"
 #include "bcppcl/LogWriter.h"
 using namespace std;
 
@@ -47,23 +46,16 @@ Genome::~Genome()
 
 ///gets contents of locusfile and creates CompositeLocus array and Chromosome array
 void Genome::Initialise(const InputData* const data_, int populations, LogWriter &Log){
-  // in parallel version: master(rank0) needs distances for updating sumintensities
-  //                      freqsampler (rank1) needs CompLocus objects
-  //                      workers (rank >1) need chromosomes and distances
-
   const DataMatrix& locifileData =  data_->getLocusMatrix();//locus file converted to doubles
   const Vector_s& locusLabels = data_->getLocusLabels();
-  const bool isMaster = Comms::isMaster();
-  const bool isWorker = Comms::isWorker();//a worker updates individuals, so needs chromosomes
-  const bool isFreqUpdater = Comms::isFreqSampler();;
   
   //determine number of composite loci
   NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
   TotalLoci = data_->getNumberOfSimpleLoci();
   
   //create array of CompositeLocus objects
-  if(isFreqUpdater)LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
-  if(isMaster || isWorker)Distances = new double[ NumberOfCompositeLoci ];
+  LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
+  Distances = new double[ NumberOfCompositeLoci ];
   
   // Set number of alleles at each locus
   unsigned row = 0;//counts lines in locusfile
@@ -84,11 +76,9 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     //get chromosome labels from col 4 of locusfile, if there is one   
     if (m.size() == 4) ChrmLabels.push_back(StringConvertor::dequote(m[3]));
 
-    if(isMaster || isWorker){
-      Distances[ i ] = locifileData.get( row, 1 );
-      if(unit == centimorgans)Distances[i] /= 100.0;//convert to Morgans
-      //      SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
-    }
+    Distances[ i ] = locifileData.get( row, 1 );
+    if(unit == centimorgans)Distances[i] /= 100.0;//convert to Morgans
+    //      SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
 
     if(locifileData.isMissing(row, 1) || locifileData.get(row, 1)>=100.0){//new chromosome, triggered by missing value or value of >=100 for distance
       cnum++;
@@ -101,33 +91,30 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
     
     //set number of alleles of first locus in comp locus
-    if(isFreqUpdater) LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
+    LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
     
     //loop through lines in locusfile for current complocus
     while( row < locifileData.nRows() - 1 && !locifileData.isMissing( row + 1, 1 ) && locifileData.get( row + 1, 1 ) == 0 ){
-      if(isFreqUpdater)LocusArray[i].AddLocus( (int)locifileData.get( row+1, 0 ), locusLabels[row+1] );
+      LocusArray[i].AddLocus( (int)locifileData.get( row+1, 0 ), locusLabels[row+1] );
       //adds locus with number of alleles given as argument
       row++;
     }
     row++;
-    if(isFreqUpdater){
-      if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
-      //TotalLoci += LocusArray[i].GetNumberOfLoci();
-    }
+
+    if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
+    //TotalLoci += LocusArray[i].GetNumberOfLoci();
+
   }//end comp loci loop
 
   NumberOfChromosomes = cnum +1;
   SizesOfChromosomes = new unsigned int[NumberOfChromosomes];//array to store lengths of the chromosomes
   cstart.push_back(NumberOfCompositeLoci);//add extra element for next line to work
   for(unsigned c = 0; c < NumberOfChromosomes; ++c) SizesOfChromosomes[c] = cstart[c+1] - cstart[c];
-  if(isWorker){//create Chromosome objects
-    InitialiseChromosomes(cstart, populations);
-  }
-  
+  //create Chromosome objects
+  InitialiseChromosomes(cstart, populations);
 
-  if(isMaster || isWorker ){
-    PrintSizes(Log, data_->getUnitOfDistanceAsString());//prints length of genome, num loci, num chromosomes
-  }
+  //print length of genome, num loci, num chromosomes
+  PrintSizes(Log, data_->getUnitOfDistanceAsString());
 }
 
 ///Creates an array of pointers to Chromosome objects and sets their labels.
@@ -368,8 +355,8 @@ void Genome::SetLocusCorrelation(double rho){
 
 ///Prints table of cpmposite loci for R script to read
 void Genome::PrintLocusTable(const char* filename, const vector<double>& Dist, const string& distanceUnit)const{
-  //could use Distances array member but in parallel version the processor calling this function will not have this array
-  //so we use the raw distances from the locusfile instead
+  //could use Distances array member
+  //but we use the raw distances from the locusfile instead
   ofstream outfile(filename);
   outfile << "LocusName\tNumHaps\tMapPosition(" << distanceUnit << ")\tChromosome" << endl;
   unsigned locus = 0;//counter for composite locus

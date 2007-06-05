@@ -17,7 +17,6 @@
 //#include "HapMixIndividual.h"
 #include "HapMixFreqs.h"
 #include "bcppcl/Regression.h"
-#include "Comms.h"
 
 HapMixIndividualCollection
 ::HapMixIndividualCollection(const HapMixOptions* const options, 
@@ -33,24 +32,21 @@ HapMixIndividualCollection
   NumInd = Data->getNumberOfIndividuals();//number of individuals, including case-controls
   size = NumInd;
   NumCaseControls = Data->getNumberOfCaseControlIndividuals();
-  worker_rank = 0;
-  NumWorkers = 1;
   
   //  Individual::SetStaticMembers(Loci, options);
   Individual::SetStaticMembers(Loci, options);
 
-  if(worker_rank < (int)size){
-    _child = new Individual*[size];
-    for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
-      // _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
-      //NB: first arg sets Individual's number
-      HapMixChild.push_back(new HapMixIndividual(i+1, options, Data, theta, isMaskedIndividual(i, options->getMaskedIndividuals())));
-      //TODO: next line will cause lots of problems for parallel version
-      _child[i] = HapMixChild[i];
-      if(!_child[i]->isHaploidIndividual())
-	++NumDiploidIndividuals;
-    }
+  _child = new Individual*[size];
+  for (unsigned int i = 0; i < size; i++) {
+    // _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
+    //NB: first arg sets Individual's number
+    HapMixChild.push_back(new HapMixIndividual(i+1, options, Data, theta, isMaskedIndividual(i, options->getMaskedIndividuals())));
+
+    _child[i] = HapMixChild[i];
+    if(!_child[i]->isHaploidIndividual())
+      ++NumDiploidIndividuals;
   }
+  
   if(options->OutputCGProbs())GPO.Initialise(options->GetNumMaskedIndividuals(), options->GetNumMaskedLoci());
 }
 
@@ -80,7 +76,7 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
   const vector<unsigned>::const_iterator mi_begin = maskedIndividuals.begin();
   const vector<unsigned>::const_iterator mi_end = maskedIndividuals.end();
 
-  for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
+  for(unsigned int i = 0; i < size; i++ ){
 
     /*do calculating of ordered probs first because it requires both forward and backward HMM updates
       and these can be done in parallel on a dual-core processor */
@@ -139,7 +135,6 @@ bool HapMixIndividualCollection::isCaseControl(unsigned i)const{
   return ( i > (size - NumCaseControls) );
 }
 
-//TODO: alternative for parallel version
 void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci){
   
   const std::vector<unsigned>& MaskedLoci = options->getMaskedLoci();
@@ -174,50 +169,46 @@ double HapMixIndividualCollection
   const int iterations = options->getTotalSamples()-options->getBurnIn();
   int NumDiploid = 0;
   
-  if(Comms::isMaster() || Comms::isWorker()){
-    NumDiploid = getNumDiploidIndividuals();
-  }
+  NumDiploid = getNumDiploidIndividuals();
 
   //update chromosomes using globalrho, for globalrho model
   vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
-  if(Comms::isMaster())//master only
-    for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
+
+  for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
   //set locus correlation
-  if(Comms::isWorker()){//workers only
-    Loci->SetLocusCorrelation(RhoBar);
-    if(options->getHapMixModelIndicator())
-      for( unsigned int j = 0; j < numChromosomes; j++ )
-	//set global state arrival probs in hapmixmodel
-	//TODO: can skip this if xonly analysis with no females
-	//NB: assumes always diploid in hapmixmodel
-	//KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-	Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options->isRandomMatingModel(),
-							  (NumDiploid)>0);
-  }
+
+  Loci->SetLocusCorrelation(RhoBar);
+  if(options->getHapMixModelIndicator())
+    for( unsigned int j = 0; j < numChromosomes; j++ )
+      //set global state arrival probs in hapmixmodel
+      //TODO: can skip this if xonly analysis with no females
+      //NB: assumes always diploid in hapmixmodel
+      //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
+      Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options->isRandomMatingModel(),
+							(NumDiploid)>0);
   
-  //set haplotype pair probs to posterior means (in parallel version, sets AlleleProbs(Freqs) to posterior means
-  if(Comms::isFreqSampler() && NumDiploid)
+  //set haplotype pair probs to posterior means 
+  if(NumDiploid)
     for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
       (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
   
   //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  //if(Comms::isWorker())setGenotypeProbs(Loci, A);
+  //setGenotypeProbs(Loci, A);
 
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates
-  for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
+  for(unsigned int i = 0; i < size; i++ ){
     if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
     else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
-  if(Comms::isMaster()){
-    Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
-    for(unsigned c = 0; c < R.size(); ++c){
-      double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
-      Lhat += RegressionLogL;
-      Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
-	  << -2.0*RegressionLogL << "\n";
-    }
+  
+  Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
+  for(unsigned c = 0; c < R.size(); ++c){
+    double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
+    Lhat += RegressionLogL;
+    Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
+	<< -2.0*RegressionLogL << "\n";
   }
   return(-2.0*Lhat);
 }

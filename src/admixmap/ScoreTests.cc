@@ -20,16 +20,12 @@
 #include <numeric>
 #include "ScoreTests.h"
 #include "bcppcl/Regression.h"
-#include "Comms.h"
 
 using namespace std;
 
 ScoreTests::ScoreTests(){
   options = 0;
   individuals = 0;
-  rank = Comms::getRank();
-  worker_rank = Comms::getWorkerRank();
-  NumWorkers = Comms::getNumWorkers();
 }
 
 ScoreTests::~ScoreTests(){
@@ -43,8 +39,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
   chrm = Loci->getChromosomes();
   Lociptr = Loci;
   Log.setDisplayMode(Quiet);
-  if(worker_rank==-1) worker_rank =indiv->getSize();//to stop master iterating through individuals
-
+ 
   int K = options->getPopulations();
   int L = Lociptr->GetNumberOfCompositeLoci();
 
@@ -108,7 +103,7 @@ void ScoreTests::Update(const vector<Regression* >& R)
     //NOTE: in future this loop will be outside score tests classes so the indiv indices can be controlled outside
     const int offset = individuals->getFirstScoreTestIndividualNumber();
 
-    for( int i = worker_rank ; i < NumberOfIndividuals; i+=NumWorkers ){
+    for( int i = 0; i < NumberOfIndividuals; i++ ){
       
       Individual* ind = individuals->getIndividual(i + offset);
       double YMinusEY = individuals->getOutcome(0, i) - EY[i];//individual outcome - its expectation
@@ -127,38 +122,34 @@ void ScoreTests::Update(const vector<Regression* >& R)
     }
   }
   
-  if(rank==0){
-
-      //-----------------------------
-      //Accumulate Scores, Info etc. over iterations
-      //-----------------------------
-      
-      /*----------------------
-	| admixture association |
-	-----------------------*/
-      if( options->getTestForAdmixtureAssociation() ){
-	AdmixtureAssocScoreTest.Accumulate();
-      }
-      /*-----------------------
-	| Linkage with ancestry  |
-	-----------------------*/
-      if( options->getTestForLinkageWithAncestry() ){
-	AncestryAssocScoreTest.Accumulate();
-      } 
-      /*------------------------------------
-	|affecteds-only linkage with ancestry |
-	------------------------------------*/ 
-      if( options->getTestForAffectedsOnly() ){
-	AffectedsOnlyScoreTest.Accumulate();
-      }
-      if(options->getTestForAllelicAssociation()){
-	/*-------------------------------------
-	  | Allelic and haplotype association  |
-	  -------------------------------------*/
-	AllelicAssociationTest.Accumulate();
-      }
-    
-  }//end if rank==0
+  //-----------------------------
+  //Accumulate Scores, Info etc. over iterations
+  //-----------------------------
+  
+  /*----------------------
+    | admixture association |
+    -----------------------*/
+  if( options->getTestForAdmixtureAssociation() ){
+    AdmixtureAssocScoreTest.Accumulate();
+  }
+  /*-----------------------
+    | Linkage with ancestry  |
+    -----------------------*/
+  if( options->getTestForLinkageWithAncestry() ){
+    AncestryAssocScoreTest.Accumulate();
+  } 
+  /*------------------------------------
+    |affecteds-only linkage with ancestry |
+    ------------------------------------*/ 
+  if( options->getTestForAffectedsOnly() ){
+    AffectedsOnlyScoreTest.Accumulate();
+  }
+  if(options->getTestForAllelicAssociation()){
+    /*-------------------------------------
+      | Allelic and haplotype association  |
+      -------------------------------------*/
+    AllelicAssociationTest.Accumulate();
+  }
 }
 
 // ********** OUTPUT **********************************************************

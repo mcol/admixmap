@@ -75,7 +75,8 @@ protected:
    \param i individual number
    \param ID individual ID
 */
-  void CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const std::string& ID)const;
+  void CheckGenotypes(unsigned long numObserved, unsigned long numhaploid, unsigned long numdiploid, 
+		      unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const std::string& ID)const;
 
   std::vector<unsigned short> GetGenotype(const std::string genostring)const;
   bool determineIfPedFile()const;

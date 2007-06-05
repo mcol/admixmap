@@ -18,7 +18,7 @@
 #include <numeric>
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
-#include "Comms.h"
+
 using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
@@ -59,7 +59,7 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
     unsigned num_leapfrogs = size? (unsigned)samplerparams[1] : 40;
     PopAdmixSampler.SetSize( obs, K, initial_stepsize, num_leapfrogs );
     
-    if(Comms::isMaster())SumLogRho.push_back(0.0);
+    SumLogRho.push_back(0.0);
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
 
     rhoalpha = options->getRhoalpha();
@@ -95,7 +95,7 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
     
 
     // ** Open paramfile **
-    if ( Comms::isMaster() && options->getIndAdmixHierIndicator()){
+    if ( options->getIndAdmixHierIndicator()){
       Log.setDisplayMode(Quiet);
       if( strlen( options->getParameterFilename() ) ){
 	outputstream.open( options->getParameterFilename(), ios::out );
@@ -138,48 +138,42 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
        options->getIndAdmixHierIndicator() ){
      const double* sumlogtheta = individuals->getSumLogTheta();
 
-     if(Comms::isMaster()){
-       //sample alpha conditional on individual admixture proportions
-       //cout << "alpha " << alpha[0][0] << " " << alpha[0][1] <<  " sumlogtheta " 
-       //	    << individuals->getSumLogTheta()[0] << " " <<  individuals->getSumLogTheta()[1] << endl;
-       try{
-	 if(options->PopAdmixturePropsAreEqual())
-	   //sample only dispersion
-	   PopAdmixSampler.SampleEta(sumlogtheta, alpha[0]);
-	 else//sample proportions and dispersion
-	   PopAdmixSampler.Sample( sumlogtheta, alpha[0]);
-       }
-       catch(string s){
-	 throw string("Error encountered while sampling population admixture parameters:\n" +s);
-       }
+     //sample alpha conditional on individual admixture proportions
+     //cout << "alpha " << alpha[0][0] << " " << alpha[0][1] <<  " sumlogtheta " 
+     //	    << individuals->getSumLogTheta()[0] << " " <<  individuals->getSumLogTheta()[1] << endl;
+     try{
+       if(options->PopAdmixturePropsAreEqual())
+	 //sample only dispersion
+	 PopAdmixSampler.SampleEta(sumlogtheta, alpha[0]);
+       else//sample proportions and dispersion
+	 PopAdmixSampler.Sample( sumlogtheta, alpha[0]);
      }
+     catch(string s){
+       throw string("Error encountered while sampling population admixture parameters:\n" +s);
+     }
+
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
 
   }
-   if(Comms::isMaster()){
-     // ** accumulate sum of Dirichlet parameter vector over iterations  **
-     transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
-     
-     if( iteration == options->getBurnIn() && options->getPopulations() > 1) {
-       if(options->getNumberOfOutcomes() > 0){
-	 Log << Off << "Individual admixture centred in regression model around: ";
-	 for(int i = 0; i < options->getPopulations(); ++i)Log << poptheta[i] << "\t";
-	 Log << "\n";
-       }
-       fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
+   // ** accumulate sum of Dirichlet parameter vector over iterations  **
+   transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
+   
+   if( iteration == options->getBurnIn() && options->getPopulations() > 1) {
+     if(options->getNumberOfOutcomes() > 0){
+       Log << Off << "Individual admixture centred in regression model around: ";
+       for(int i = 0; i < options->getPopulations(); ++i)Log << poptheta[i] << "\t";
+       Log << "\n";
      }
+     fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
    }
+   
    
    if( iteration < options->getBurnIn() && options->getPopulations() > 1) {
-     if(Comms::isMaster()){
-       // accumulate ergodic average of population admixture, which is used to centre 
-       // the values of individual admixture in the regression model
-       double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
-       if(options->getNumberOfOutcomes() > 0)for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
-     }
+     // accumulate ergodic average of population admixture, which is used to centre 
+     // the values of individual admixture in the regression model
+     double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
+     if(options->getNumberOfOutcomes() > 0)for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
    }
-   
- 
 }
 
 ///updates global sumintensities in a globalrho model, using random-walk Metropolis-Hastings
@@ -192,103 +186,91 @@ void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const
     double rhoprop = rho[0];
     double logrhoprop = 0.0;
     double logrho0 = log(rho[0]);
-    const int NumWorkers = Comms::getNumWorkers();
 
-    if(Comms::isMaster()){
-     
-      NumberOfUpdates++;
-      logrhoprop = Rand::gennor(logrho0, step);
-      rhoprop = exp(logrhoprop); // propose log rho from normal distribution with SD step
-    }
+    NumberOfUpdates++;
+    logrhoprop = Rand::gennor(logrho0, step);
+    rhoprop = exp(logrhoprop); // propose log rho from normal distribution with SD step
     
-    if(Comms::isWorker()){
-       //get log likelihood at current parameter values, annealed if this is an annealing run
-      for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers) {
-	Individual* ind = ((IndividualCollection*)IC)->getIndividual(i);
-	ind->HMMIsBad(true);//to force HMM update
-	LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
-	ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
-      }
-      // set ancestry correlations using proposed value of sum-intensities
-      // value for X chromosome set to half the autosomal value 
-      Loci->SetLocusCorrelation(rhoprop);
-      
-      //get log HMM likelihood at proposal rho and current admixture proportions
-      for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers) {
+    //get log likelihood at current parameter values, annealed if this is an annealing run
+    for(int i = 0; i < IC->getSize(); i++) {
+      Individual* ind = ((IndividualCollection*)IC)->getIndividual(i);
+      ind->HMMIsBad(true);//to force HMM update
+      LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
+      ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
+    }
+    // set ancestry correlations using proposed value of sum-intensities
+    // value for X chromosome set to half the autosomal value 
+    Loci->SetLocusCorrelation(rhoprop);
+    
+    //get log HMM likelihood at proposal rho and current admixture proportions
+    for(int i = 0; i < IC->getSize(); i++) {
+      Individual* ind =((IndividualCollection*)IC)->getIndividual(i);
+      LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
+      ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
+      // line above should not be needed for a forced update with result not stored
+    }
+    LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
+    
+    //compute log ratio of prior densities in log rho basis
+    double LogPriorRatio = rhoalpha * (logrhoprop - logrho0) - rhobeta * (rhoprop - rho[0]); 
+    // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
+    double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
+    
+    // generic Metropolis step
+    if( LogAccProbRatio < 0 ) {
+      if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
+    } else accept = 1;  
+    
+    if(accept){
+      rho[0] = rhoprop;
+      logrho0 = logrhoprop;
+    }
+    //update sampler object every w updates
+    if( !( NumberOfUpdates % w ) ){
+      step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
+    }
+    if(sumlogrho )SumLogRho[0] += logrho0;// accumulate sum of log of sumintensities after burnin.
+    
+    if(accept) {
+      for(int i = 0; i < IC->getSize(); i++){
 	Individual* ind =((IndividualCollection*)IC)->getIndividual(i);
-	LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
-	ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
-	// line above should not be needed for a forced update with result not stored
+	ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
       }
-      LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
-    }//end worker block
-  
-    if(Comms::isMaster()){
-      //compute log ratio of prior densities in log rho basis
-      double LogPriorRatio = rhoalpha * (logrhoprop - logrho0) - rhobeta * (rhoprop - rho[0]); 
-      // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
-      double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
-      
-      // generic Metropolis step
-      if( LogAccProbRatio < 0 ) {
-	if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
-      } else accept = 1;  
-
-      if(accept){
-	rho[0] = rhoprop;
-	logrho0 = logrhoprop;
-      }
-      //update sampler object every w updates
-      if( !( NumberOfUpdates % w ) ){
-	step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
-      }
-      if(sumlogrho )SumLogRho[0] += logrho0;// accumulate sum of log of sumintensities after burnin.
-    }
-
-    if(Comms::isWorker()){      
-      if(accept) {
-	for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers){
-	  Individual* ind =((IndividualCollection*)IC)->getIndividual(i);
-	  ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
-	}
-      } else { 
-	// restore ancestry correlations in Chromosomes using original value of sum-intensities
-	Loci->SetLocusCorrelation(rho);
-      } // stored loglikelihoods are still ok
-    }
+    } else { 
+      // restore ancestry correlations in Chromosomes using original value of sum-intensities
+      Loci->SetLocusCorrelation(rho);
+    } // stored loglikelihoods are still ok
   }//end if global rho model
   
   else { //individual- or gamete-specific rho model
     if(IC->getSize()>1 && options->getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
       double sumrho = IC->GetSumrho();    
-      if(Comms::isMaster()){
-	
-	// update scale parameter of gamma distribution of sumintensities in population 
-	if( options->isRandomMatingModel() )
-	  rhobeta = Rand::gengam( 2*rhoalpha * IC->getSize() + rhobeta0, sumrho + rhobeta1 );
-	else
-	  rhobeta = Rand::gengam( rhoalpha* IC->getSize() + rhobeta0, sumrho + rhobeta1 );
-      }
+      
+      // update scale parameter of gamma distribution of sumintensities in population 
+      if( options->isRandomMatingModel() )
+	rhobeta = Rand::gengam( 2*rhoalpha * IC->getSize() + rhobeta0, sumrho + rhobeta1 );
+      else
+	rhobeta = Rand::gengam( rhoalpha* IC->getSize() + rhobeta0, sumrho + rhobeta1 );
+      
     } // otherwise do not update rhobeta
 
     // accumulate sum of log of mean of sumintensities after burnin.
-    if(sumlogrho && Comms::isMaster())SumLogRho[0] += log(rhoalpha) - log(rhobeta);
+    if(sumlogrho)
+      SumLogRho[0] += log(rhoalpha) - log(rhobeta);
   }
 }
 
 void PopAdmix::InitializeOutputFile(const Vector_s& PopulationLabels) {
-  if(Comms::isMaster()){
-    // Header line of paramfile
-    //Pop. Admixture
-    for( int i = 0; i < options->getPopulations(); i++ ) {
-      outputstream << "Dirichlet." << PopulationLabels[i] << "\t";
-    }
-    //SumIntensities
-    if( options->isGlobalRho() ) outputstream << "sumIntensities\t";
-    else outputstream << "sumIntensities.mean\t";
-    
-    outputstream << endl;
+  // Header line of paramfile
+  //Pop. Admixture
+  for( int i = 0; i < options->getPopulations(); i++ ) {
+    outputstream << "Dirichlet." << PopulationLabels[i] << "\t";
   }
+  //SumIntensities
+  if( options->isGlobalRho() ) outputstream << "sumIntensities\t";
+  else outputstream << "sumIntensities.mean\t";
+  
+  outputstream << endl;
 }
 
 void PopAdmix::OutputErgodicAvg( int samples, std::ofstream *avgstream)

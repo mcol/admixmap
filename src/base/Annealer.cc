@@ -10,7 +10,6 @@
  * 
  */
 #include "Annealer.h"
-#include "Comms.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -42,7 +41,7 @@ void Annealer::Initialise(bool thermo, unsigned numAnnealedRuns, unsigned sample
   _burnin = burnin;
 
   //open output file
-  if(Thermo && Comms::isMaster()){		
+  if(Thermo){		
     annealstream.open(filename);
     annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << std::endl
 		 << std::setiosflags(std::ios::fixed) << std::setprecision(3);
@@ -61,19 +60,18 @@ void Annealer::PrintRunLengths(LogWriter& Log, bool testoneindiv){
   int finalrunlength = _samples;
   if(Thermo)finalrunlength = _samples*2;//last run is twice as long with thermo option
 
-  if(Comms::isMaster()){
-    if(!testoneindiv && NumAnnealedRuns > 0) {
-      Log << On << NumAnnealedRuns << " annealing runs of " << annealedrunlength 
-	  << " iteration(s) followed by final run of "; 
-    }
-    Log << finalrunlength << " iterations at ";
-
-    if( testoneindiv) {
-      Log << NumAnnealedRuns+1 
-	  <<" coolnesses for test individual. Other individuals at ";
-    }
-    Log << "coolness of 1\n";
+  if(!testoneindiv && NumAnnealedRuns > 0) {
+    Log << On << NumAnnealedRuns << " annealing runs of " << annealedrunlength 
+	<< " iteration(s) followed by final run of "; 
   }
+  Log << finalrunlength << " iterations at ";
+  
+  if( testoneindiv) {
+    Log << NumAnnealedRuns+1 
+	<<" coolnesses for test individual. Other individuals at ";
+  }
+  Log << "coolness of 1\n";
+
 }
 
 void Annealer::SetAnnealingSchedule(){

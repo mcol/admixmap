@@ -91,7 +91,6 @@ protected:
   unsigned int NumInd, size;
   unsigned NumDiploidIndividuals;
   int Populations, NumCompLoci;
-  int worker_rank, NumWorkers;
   virtual void SetNullValues();
   Individual** _child;//pointer to _child array
 

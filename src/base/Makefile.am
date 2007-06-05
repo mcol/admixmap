@@ -10,7 +10,6 @@ AlleleFreqSampler.cc AlleleFreqSampler.h \
 Annealer.cc Annealer.h \
 Chromosome.cc Chromosome.h \
 common.h \
-Comms.cc Comms.h \
 CompositeLocus.cc CompositeLocus.h \
 CopyNumberAssocTest.cc CopyNumberAssocTest.h \
 FreqArrays.h \

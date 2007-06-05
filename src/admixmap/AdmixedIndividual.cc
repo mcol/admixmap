@@ -185,7 +185,6 @@ AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumLocusAncestry;
   delete[] SumLocusAncestry_X;
   //this might not work, relies on Loci still being in scope in top level
-  //but it's safe for parallel version because the function ignores the argument
   //GPArray.dealloc(Loci->GetNumberOfCompositeLoci());
 }
 

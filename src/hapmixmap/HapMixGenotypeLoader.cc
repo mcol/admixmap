@@ -117,7 +117,9 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, int SexColumn, const Genome 
   }
 
   const string ID = isCaseControl ? CCgeneticData_[i - NumIndividuals][0] : geneticData_[i][0];
-  CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i, ID);
+
+  CheckGenotypes((numhaploid + numdiploid + numhaploidX + numdiploidX), 
+		 numhaploid, numdiploid, numhaploidX, numdiploidX, i, ID);
   bool isHaploid = (bool)(numdiploid+numdiploidX == 0); 
 
   return isHaploid;
@@ -196,7 +198,11 @@ HapMixGenotypeLoader::GetCaseControlGenotype(unsigned locus, unsigned* cclocus,
     g = GenotypeLoader::GetGenotype(CCgeneticData_[individual-NumIndividuals][col]);
     ++(*cclocus);
   }
-  else g.push_back(0);//g has one zero. Doesn't matter whether haploid or diploid as a missing genotype is coded the same way and missing genotypes are ignored in most places anyway.
+  else 
+    //g has one zero. 
+    //Doesn't matter whether haploid or diploid as a missing genotype 
+    //is coded the same way and missing genotypes are ignored in most places anyway.
+    g.push_back(0);
 
   return g;
 }

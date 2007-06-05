@@ -15,7 +15,6 @@
 #include "HapMixOptions.h"
 #include "bcppcl/misc.h"
 #include "bcppcl/Exceptions.h"
-#include "Comms.h"
 
 HapMixFreqs::HapMixFreqs(){
   DirichletParams = 0;
@@ -47,19 +46,16 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
   hapmixmodel = options->getHapMixModelIndicator();
   RandomAlleleFreqs = !options->getFixedAlleleFreqs();
   
-  if(Comms::isFreqSampler()){
-    LoadAlleleFreqs(options, data, Log);
-    
-    InitialisePrior(Populations, NumberOfCompositeLoci, options, Log );  
-
-    //open freqpriorfile
-    if(IsRandom() ){
-      OpenOutputFile(options->getFreqPrecisionOutputFilename());
-    }
-  }//end if is freqsampler
-  if(Comms::isFreqSampler() || Comms::isWorker()){
-    AllocateAlleleCountArrays(options->getPopulations());
+  LoadAlleleFreqs(options, data, Log);
+  
+  InitialisePrior(Populations, NumberOfCompositeLoci, options, Log );  
+  
+  //open freqpriorfile
+  if(IsRandom() ){
+    OpenOutputFile(options->getFreqPrecisionOutputFilename());
   }
+  
+  AllocateAlleleCountArrays(options->getPopulations());
 }
 
 void HapMixFreqs::setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*/){
@@ -73,37 +69,31 @@ void HapMixFreqs::setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*
 //     FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
 //   }
 
-  if(Comms::isFreqSampler()){
-    if(!thermo && (AllHaploid /*|| !DefaultPriors*/))
-      FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
-    else//thermo, some diploid data, default priors
-      FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
-    
-    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      if(RandomAlleleFreqs){
-        if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
-          //set up samplers for allelefreqs
-          FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
-                                                      &(DirichletParams[i]), true));
-        }
+  if(!thermo && (AllHaploid /*|| !DefaultPriors*/))
+    FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+  else//thermo, some diploid data, default priors
+    FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
+  
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    if(RandomAlleleFreqs){
+      if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
+	//set up samplers for allelefreqs
+	FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
+						    &(DirichletParams[i]), true));
       }
-      //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
-      //allocate HapPairProbs and calculate them using AlleleProbs
-      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i], AllHaploid);
-      
-    }//end comp locus loop
-  }
+    }
+    //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
+    //allocate HapPairProbs and calculate them using AlleleProbs
+    (*Loci)(i)->InitialiseHapPairProbs(Freqs[i], AllHaploid);
+    
+  }//end comp locus loop
+
 }
 
 void HapMixFreqs::AllocateDiploidGenotypeProbs(){
-#ifdef ARRAY2D
   DiploidGenotypeProbs.array = new double*[NumberOfCompositeLoci];
   for(int i = 0; i < NumberOfCompositeLoci; ++i)
      DiploidGenotypeProbs.array[i] = new double[3*Populations*Populations];
-#else
-  DiploidGenotypeProbs.alloc(NumberOfCompositeLoci*3*Populations*Populations);
-  DiploidGenotypeProbs.stride = 3*Populations*Populations;
-#endif
 }
 
 void HapMixFreqs::SetDiploidGenotypeProbs(){
@@ -226,13 +216,7 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
   const Matrix_s* temporary = 0;
 
   //allocate frequency arrays
-#ifdef ARRAY2D
   Freqs.array = new double*[NumberOfCompositeLoci];
-#else
-  Freqs.array = new double[NumberOfCompositeLoci*Populations*2];
-  Freqs.stride = Populations*2;
-  AlleleFreqsMAP.stride = Populations*2;
-#endif
   AlleleFreqsMAP.array = Freqs.array;
 
   //set static members of CompositeLocus
@@ -257,9 +241,7 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
     }
     
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-#ifdef ARRAY2D
       Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
-#endif
       
       if(file){//read allele freqs from file
         newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;

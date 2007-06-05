@@ -41,24 +41,18 @@ int main( int argc , char** argv ){
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
 
-  const bool isMaster = Comms::isMaster();
-  //const bool isFreqSampler = Comms::isFreqSampler();
-  //  const bool isWorker = Comms::isWorker();
-
   //create results directory, or if it exists, deletes the contents
-  if(isMaster){
-    MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/);
-  }
+  MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/);
  
   //open logfile, start timer and print start message
-  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1 && isMaster));
+  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
-  if(isMaster){
-    //if(options.getDisplayLevel()>0 )
-    PrintCopyrightNotice(Log);
-    if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
-    Log.StartMessage();
-  }
+ 
+  //if(options.getDisplayLevel()>0 )
+  PrintCopyrightNotice(Log);
+  if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
+  Log.StartMessage();
+ 
 
   try{  
     Rand RNG;//allocate random number generator
@@ -75,7 +69,7 @@ int main( int argc , char** argv ){
     }
   
     //print user options to args.txt; must be done after all options are set
-    if(isMaster)options.PrintUserOptions("args.txt");
+    options.PrintUserOptions("args.txt");
 
     AdmixMapModel M;
 
@@ -98,10 +92,9 @@ int main( int argc , char** argv ){
 	M.Run(options, data, Log, NumAnnealedRuns);
     }
 
-    if(isMaster){
-      if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
-      Log.ProcessingTime();
-    }
+    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+    Log.ProcessingTime();
+
   }
   catch (const string& msg) {//catch any stray error messages thrown upwards
     ThrowException(msg, Log);
@@ -117,11 +110,9 @@ int main( int argc , char** argv ){
     cout << "Unknown exception occurred. Contact the program authors for assistance" << endl;
     exit(1);
   }
-  cout << "Finished" << endl;
+  cout << "Finished" << endl
+       << setfill('*') << setw(80) << "*" <<endl;
 
-  if(isMaster){//print line of *s
-    cout <<setfill('*') << setw(80) << "*" <<endl;
-  }
   putenv("ADMIXMAPCLEANEXIT=1");
   return 0;
 } //end of main

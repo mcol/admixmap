@@ -41,29 +41,21 @@ int main( int argc , char** argv ){
   if(!options.CheckRequiredOptions() || !options.SetOptions())
     exit(1);
 
-  const bool isMaster = Comms::isMaster();
-  //const bool isFreqSampler = Comms::isFreqSampler();
-  //  const bool isWorker = Comms::isWorker();
-
   //create results directory, or if it exists, deletes the contents
-  if(isMaster){
-    MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/, options.getDeleteOldResultsIndicator());
-  }
+  MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/, options.getDeleteOldResultsIndicator());
  
   //open logfile, start timer and print start message
-  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1 && isMaster));
+  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
 
-  if(isMaster){
-    //if(options.getDisplayLevel()>0 )
-   PrintCopyrightNotice(Log);
-   if(options.getFlag("checkmode"))
-     Log << On << "  *** Check Mode Active *** \n"
-	 << "-------------------------------------------------------\n";
-   else{
-     if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
-     Log.StartMessage();
-   }
+  //if(options.getDisplayLevel()>0 )
+  PrintCopyrightNotice(Log);
+  if(options.getFlag("checkmode"))
+    Log << On << "  *** Check Mode Active *** \n"
+	<< "-------------------------------------------------------\n";
+  else{
+    if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
+    Log.StartMessage();
   }
 
   try{  
@@ -81,7 +73,7 @@ int main( int argc , char** argv ){
     }
   
     //print user options to args.txt; must be done after all options are set
-    if(isMaster)options.PrintUserOptions("args.txt");
+    options.PrintUserOptions("args.txt");
 
     //end of program, in checkmode
     if(options.getFlag("checkmode")){
@@ -115,11 +107,9 @@ int main( int argc , char** argv ){
   }
 
   //print run times to screen and log
-  if(isMaster){
-    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
-    else  Log << "\n";
-    Log.ProcessingTime();
-  }
+  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+  else  Log << "\n";
+  Log.ProcessingTime();
     
   cout << "Finished" << endl
        << "-------------------------------------------------------" << endl;

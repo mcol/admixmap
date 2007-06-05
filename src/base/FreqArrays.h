@@ -2,14 +2,6 @@
 
 #ifndef FREQ_ARRAYS_H
 #define FREQ_ARRAYS_H
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "bcppcl/ColumnIter.h"
-
-#ifndef PARALLEL
-#define ARRAY2D
-#endif
 
 /**
    struct to hold allelecounts in either a 1d (where Number of alleles is fixed) or 2d array. 
@@ -25,8 +17,8 @@
    AlleleCounts[i]; //accesses counts for ith locus
    
    AlleleCounts[i][k*2 +a]; //accesses count of ath allele in kth pop at ith locus
-   */
-#ifdef ARRAY2D
+*/
+
 typedef struct{
 
   int **array;
@@ -89,81 +81,6 @@ public:
     }
   };
 };
-
-#else
-typedef struct{
-  int* array;
-  unsigned stride;
-
-  int* operator[](unsigned i){
-    return array + i*stride;
-  };
-  const int* operator[](unsigned i)const{
-    return array + i*stride;
-  };
-  void dealloc(int ){
-    if(array){
-      delete[] array;
-      array = 0;
-    }
-  };
-}array_of_allelecounts;
-
-class FreqArray {
-private:
-  bool dynall;
-
-public:
-  double* array;
-  unsigned stride;
-
-  FreqArray(){
-   array = 0;
-   stride = 0;
-   dynall = false;
-  }
-
-  FreqArray(double* a, unsigned s){
-   array = a;
-   stride = s;
-   dynall =false;
-  }
-
-  ~FreqArray(){
-    if(dynall) delete[] array;
-  }
-  void alloc(unsigned size){
-    array = new double[size];
-    if(!array){
-      throw ("ERROR in FreqArray: unable to allocate memory");
-    }
-    else{
-      dynall = true;
-//      fill(array, array+size, 0.0);
-      for(unsigned i = 0; i < size; ++i)array[i] = 0.0;
-    }
-  }
-
-  FreqArray operator+(unsigned i){
-   FreqArray A(array+i, stride);
-   return A;
-  }
-  double* operator[](unsigned i){
-    return array + i*stride;
-  };
-  const double* operator[](unsigned i)const{
-    return array + i*stride;
-  };
-//NOTE be very careful using this function
-//  void dealloc(int ){
-  //   if(array){
-  //   delete[] array;
-  //  array = 0;
-  // }
-  //};
-};
-
-#endif
 
 
 #endif

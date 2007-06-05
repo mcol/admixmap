@@ -209,7 +209,6 @@ void CompositeLocus::SetHapPairProbs(){
 
 /**
    SetsHapPairProbsMAP using AlleleProbsMAP
-   Not done in parallel version as HapPairProbs and HapPairProbsMAP are not stored.
 */
 void CompositeLocus::SetHapPairProbsMAP() {
   SetHapPairProbs( AlleleProbsMAP, HapPairProbsMAP);
@@ -271,7 +270,6 @@ void CompositeLocus::AccumulateAlleleProbs(){
 
 /**
  * Returns probabilities of ordered hap pairs conditional on hidden states
- * TODO: write alternative for parallel version using AlleleProbs
  */
 void CompositeLocus::getConditionalHapPairProbs(bcppcl::pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
   //Note: probs should have length equal to the total number of possible diploid states ie  NumberOfStates^2 .

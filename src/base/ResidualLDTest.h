@@ -53,7 +53,6 @@ private:
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
-  int rank, worker_rank, NumWorkers;
   //std::vector<unsigned> Tcount;
   
   //OUTPUT

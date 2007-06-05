@@ -14,7 +14,6 @@
 #include "bcppcl/StringConvertor.h"
 #include "bcppcl/DataReader.h"
 #include "Genome.h"
-#include "Comms.h"
 #include <string>
 #include <sstream>
 
@@ -120,7 +119,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
 
   if(getUnitOfDistance()==centimorgans)threshold *= 100.0;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
-    if(check && Comms::isFreqSampler()){
+    if(check){
       //check number of alleles is >1
       if(locusMatrix_.get(i-1,0) <2){
 	cerr << "ERROR on line " << i+1 << " of locusfile: number of alleles must be >1." << endl;
@@ -153,7 +152,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
     LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
   }//end loop over loci
   if(flag)exit(1);
-  if(check && Comms::isWorker()){
+  if(check){
     const size_t numLoci = locusData_.size() - 1;//number of simple loci
     const vector<string>& GenotypesFileHeader = genotypeLoader->getHeader();
 

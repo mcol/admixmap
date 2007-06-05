@@ -18,7 +18,6 @@
 #include <sstream>
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
-#include "Comms.h"
 #include "bcppcl/GSLExceptions.h" //for catching gsl exceptions
 #include "bcppcl/Exceptions.h"//for throwing InfiniteGradient to Hamiltonian
 
@@ -44,33 +43,28 @@ PopHapMix::PopHapMix( HapMixOptions* op, HapMixGenome* loci){
 void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
   K = options->getNumberOfBlockStates();
 
-  if ( Comms::isMaster()){
-    
-    InitialiseMixtureProportions(Log);
-    
-    InitialiseArrivalRates(Log);
-    
-    // ** Open paramfile **
-    Log.setDisplayMode(Quiet);
-    if( strlen( options->getParameterFilename() ) ){
-      outputstream.open( options->getParameterFilename(), ios::out );
-      if( !outputstream )
-	{
-	  Log << On << "ERROR: Couldn't open paramfile\n";
-            exit( 1 );
-	}
-      else{
-	Log << Quiet << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
-	InitializeOutputFile(distanceUnit);
+  InitialiseMixtureProportions(Log);
+  
+  InitialiseArrivalRates(Log);
+  
+  // ** Open paramfile **
+  Log.setDisplayMode(Quiet);
+  if( strlen( options->getParameterFilename() ) ){
+    outputstream.open( options->getParameterFilename(), ios::out );
+    if( !outputstream )
+      {
+	Log << On << "ERROR: Couldn't open paramfile\n";
+	exit( 1 );
       }
-    }
     else{
-      Log << Quiet << "No paramfile given\n";
+      Log << Quiet << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
+      InitializeOutputFile(distanceUnit);
     }
   }
+  else{
+    Log << Quiet << "No paramfile given\n";
+  }
   
-  //broadcast lambda to all processes, in Comm (excludes freqsampler)
-  //no need to broadcast MixtureProps if it is kept fixed
 }
 
 ///initialise global admixture proportions
@@ -184,7 +178,7 @@ void PopHapMix::ReadInitialMixturePropsFromFile(const char* initfilename, LogWri
 
 void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
  const unsigned L = Loci->GetNumberOfCompositeLoci();
-  //if(Comms::isMaster())SumLogLambda.push_back(0.0);
+
   //set priors
   const vector<double>& priorparams = options->getLambdaPrior();
   if(priorparams.size()==3){
@@ -263,9 +257,9 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
       hargs.distances[d] = Loci->GetDistance(locus);
       if(!useinitfile)//initialise at prior mean
         lambda[d]= Rand::gengam(LambdaArgs.h*Loci->GetDistance(locus), LambdaArgs.beta);
-      if(Comms::isMaster()){
-        SumLogLambda.push_back(0.0);
-      }
+
+      SumLogLambda.push_back(0.0);
+
       ++d;
       ++locus;
     }//end locus loop
@@ -333,63 +327,56 @@ void PopHapMix::SampleArrivalRate(const int* ConcordanceCounts, bool accumulateL
   //double sum = 0.0;
   int locus = 0;
   int interval = 0;
-  if(Comms::isMaster()){
-    LambdaPriorArgs.sumlambda = 0.0;
-    hargs.sum_dloglambda = 0.0;
-    try{
-      vector<double>::iterator lambda_iter = lambda.begin();
-      vector<double>::iterator sumloglambda_iter = SumLogLambda.begin();
- 
-      for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-	++locus;//skip first locus on each chromosome
-	for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
-	  double loglambda = log(*lambda_iter);//sampler is on log scale
-          LambdaArgs.theta = MixtureProps + locus*K;
-	  LambdaArgs.Distance = hargs.distances[interval];//distance between this locus and last
-	  //LambdaArgs.NumConcordant = StateArrivalCounts[locus*2+1];
-	  //LambdaArgs.NumDiscordant = StateArrivalCounts[locus*2];
-	  LambdaArgs.ConcordanceCounts = ConcordanceCounts + locus*2*K;
-	  //sample new value
-	  ArrivalRateSampler[interval].Sample(&loglambda, &LambdaArgs);
-	  *lambda_iter = exp(loglambda);
-
-// 	  if(*lambda_iter > 50.0)
-// 	    {cout << interval << " " << *lambda_iter << endl;
-// 	      system("pause");
-// 	    }
-	  //accumulate sums of log of lambda
-	  if(accumulateLogs)
-	    *(sumloglambda_iter++) += loglambda;
-	  //accumulate sums, used to sample beta
-	  LambdaPriorArgs.sumlambda += *lambda_iter;
-	  hargs.sum_dloglambda += hargs.distances[interval]*loglambda;
-
-	  ++interval;
-	  ++locus;
-	  ++lambda_iter;
-	}
+  LambdaPriorArgs.sumlambda = 0.0;
+  hargs.sum_dloglambda = 0.0;
+  try{
+    vector<double>::iterator lambda_iter = lambda.begin();
+    vector<double>::iterator sumloglambda_iter = SumLogLambda.begin();
+    
+    for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+      ++locus;//skip first locus on each chromosome
+      for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+	double loglambda = log(*lambda_iter);//sampler is on log scale
+	LambdaArgs.theta = MixtureProps + locus*K;
+	LambdaArgs.Distance = hargs.distances[interval];//distance between this locus and last
+	//LambdaArgs.NumConcordant = StateArrivalCounts[locus*2+1];
+	//LambdaArgs.NumDiscordant = StateArrivalCounts[locus*2];
+	LambdaArgs.ConcordanceCounts = ConcordanceCounts + locus*2*K;
+	//sample new value
+	ArrivalRateSampler[interval].Sample(&loglambda, &LambdaArgs);
+	*lambda_iter = exp(loglambda);
+	
+	// 	  if(*lambda_iter > 50.0)
+	// 	    {cout << interval << " " << *lambda_iter << endl;
+	// 	      system("pause");
+	// 	    }
+	//accumulate sums of log of lambda
+	if(accumulateLogs)
+	  *(sumloglambda_iter++) += loglambda;
+	//accumulate sums, used to sample beta
+	LambdaPriorArgs.sumlambda += *lambda_iter;
+	hargs.sum_dloglambda += hargs.distances[interval]*loglambda;
+	
+	++interval;
+	++locus;
+	++lambda_iter;
       }
     }
-    catch(string s){
-      stringstream err;err << "Error encountered while sampling lambda " << interval << ":\n" + s;
-      throw(err.str());
-    }
   }
-
-//broadcast lambda to all processes, in Comm (excludes freqsampler)
-//no need to broadcast MixtureProps if it is kept fixed
-
-  if(Comms::isMaster()){
-    //SamplehRandomWalk();
-    Sampleh_ARS();
-    if(!fixRateParameter)
-      SampleRateParameter();
+  catch(string s){
+    stringstream err;err << "Error encountered while sampling lambda " << interval << ":\n" + s;
+    throw(err.str());
   }
+  
+  //SamplehRandomWalk();
+  Sampleh_ARS();
+  if(!fixRateParameter)
+    SampleRateParameter();
 }
 
 void PopHapMix::Sampleh_RandomWalk(){
-   try{
-//sample h component of lambda shape parameter, using random walk
+  try{
+    //sample h component of lambda shape parameter, using random walk
      const double h = LambdaArgs.h;
      const double logh = log(h);
      const double logproposal = Rand::gennor(logh, hTuner.getStepSize());
@@ -568,18 +555,16 @@ double PopHapMix::hd2logf(double h, const void* const vargs){
 }
 
 void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
-  if(Comms::isMaster()){
-    // Header line of paramfile
-    if(!options->getFixedMixturePropsPrecision())
-      outputstream << "MixtureProps.Precision\t";
-    if(!options->getFixedMixtureProps())
-      outputstream << "MixtureProps.Sample.Precision\t";
-    outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t";
-    if(!fixRateParameter)
-      outputstream << "Arrivals.per"<< distanceUnit << ".rateParam\t";
-    outputstream << "Arrivals.per"<< distanceUnit << ".Mean"
-		 << endl;
-  }
+  // Header line of paramfile
+  if(!options->getFixedMixturePropsPrecision())
+    outputstream << "MixtureProps.Precision\t";
+  if(!options->getFixedMixtureProps())
+    outputstream << "MixtureProps.Sample.Precision\t";
+  outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t";
+  if(!fixRateParameter)
+    outputstream << "Arrivals.per"<< distanceUnit << ".rateParam\t";
+  outputstream << "Arrivals.per"<< distanceUnit << ".Mean"
+	       << endl;
 }
 
 //output sample mean of ergodic average of lambda
@@ -724,7 +709,7 @@ void PopHapMix::OutputArrivalRatePosteriorMeans(const char* filename, int sample
 
 ///sample mixture proportions with conjugate update
 void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
-  if(Comms::isMaster() && !options->getFixedMixtureProps()){
+  if(!options->getFixedMixtureProps()){
     const unsigned L = Loci->GetNumberOfCompositeLoci();
     //TODO: ?? make SumLogTheta a class variable
     double SumLogTheta[K];
@@ -774,11 +759,9 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
 //TODO: can skip this if xonly analysis with no females
 void PopHapMix::SetHMMStateArrivalProbs(bool diploid){
   //set locus correlation (workers only)
-  if(Comms::isWorker()){
-    Loci->SetLocusCorrelation(lambda);
-    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ){
-      Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, 0, diploid);
-    }
+  Loci->SetLocusCorrelation(lambda);
+  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ){
+    Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, 0, diploid);
   }
 }
 

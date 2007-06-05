@@ -26,7 +26,7 @@
 class FreqArray;
 
 /**
- * Class acts as a wrapper for the following tests:
+ * Class acts as a container for the following tests:
  *   (1) Score test for allelic association
  *   (2) Score test for within-halpotype association
  *   (3) Score test for admixture association (admixturescoretest)
@@ -59,9 +59,6 @@ private:
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
-  int rank, worker_rank, NumWorkers;
-
-//OUTPUT
 
   void Reset();
 

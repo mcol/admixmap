@@ -28,7 +28,6 @@
 #include "Chromosome.h"
 #include "ResidualLDTest.h"
 #include "HWTest.h"
-#include "Comms.h"
 #include "Annealer.h"
 
 //prototypes for miscellaneous functions

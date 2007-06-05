@@ -137,7 +137,6 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<ha
 }
 
 inline void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
-  //TODO: check if this works in parallel version
   double *q = Probs;
   const double *p;
   if(!chibindicator || !RandomAlleleFreqs) 

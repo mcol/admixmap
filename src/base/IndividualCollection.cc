@@ -11,12 +11,12 @@
  */
 #include "IndividualCollection.h"
 #include "bcppcl/Regression.h"
-#include "Comms.h"
+
 using namespace std;
 
 // **** CONSTRUCTORS  ****
 IndividualCollection::IndividualCollection() {
-    SetNullValues();
+  SetNullValues();
 }
 void IndividualCollection::SetNullValues(){
   OutcomeType = 0;
@@ -40,8 +40,6 @@ IndividualCollection::IndividualCollection(const Options* const options, const I
   NumInd = Data->getNumberOfIndividuals();
   size = NumInd;
   NumCompLoci = Loci->GetNumberOfCompositeLoci();
-  worker_rank = 0;
-  NumWorkers = 1;
 }
 
 int IndividualCollection::getNumDiploidIndividuals()const{
@@ -50,10 +48,9 @@ int IndividualCollection::getNumDiploidIndividuals()const{
 
 // ************** DESTRUCTOR **************
 IndividualCollection::~IndividualCollection() {
-  //if(worker_rank==0)
   //cout << "\n Deleting individual objects\n" << flush;
   //  AdmixedIndividual::DeleteStaticMembers();
-  for(unsigned int i = worker_rank; i < size; i+=NumWorkers){
+  for(unsigned int i = 0; i < size; i++){
     delete _child[i];
   }
 
@@ -63,7 +60,7 @@ IndividualCollection::~IndividualCollection() {
   delete[] ReportedAncestry;
 }
 void IndividualCollection::DeleteGenotypes(bool setmissing=false){
-  for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
+  for (unsigned int i = 0; i < size; i++) {
     if(setmissing)_child[i]->SetMissingGenotypes();
     _child[i]->DeleteGenotypes();
   }
@@ -161,7 +158,7 @@ void IndividualCollection::LoadOutcomeVar(const InputData* const data_){
 }
 
 void IndividualCollection::HMMIsBad(bool b){
-  for(unsigned i = worker_rank; i < size; i+= NumWorkers)
+  for(unsigned i = 0; i < size; i++)
     _child[i]->HMMIsBad(b);
 }
 
@@ -177,7 +174,7 @@ void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFr
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
       
-      for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
+      for(unsigned int i = 0; i < size; i++ ){
 	//Sample Haplotype Pair
 	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles 
 	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo, UpdateAlleleCounts);
@@ -196,7 +193,7 @@ void IndividualCollection::AccumulateAlleleCounts(const Options* const options, 
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 
-      for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
+      for(unsigned int i = 0; i < size; i++ ){
         _child[i]->UpdateAlleleCounts(j, jj, locus, A, annealthermo);
       }
       locus++;
@@ -260,7 +257,7 @@ const DataMatrix& IndividualCollection::getOutcomeMatrix()const{
  */
 unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)const{
   int AlleleCounts = 0;
-  for(unsigned i = worker_rank; i < size; i += NumWorkers){
+  for(unsigned i = 0; i < size; i++){
     if(!_child[i]->GenotypeIsMissing(locus)){
       const int* haps = _child[i]->getSampledHapPair(locus);
       if(haps[0] == allele-1){// -1 because alleles count from 1 and haps count from 0
@@ -278,7 +275,7 @@ const vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop,
   int ancestry[2];
   vector<int> counts(NumStates);
   fill(counts.begin(), counts.end(), 0);
-  for(unsigned i = worker_rank; i < size; i += NumWorkers)
+  for(unsigned i = 0; i < size; i++)
     if( !_child[i]->GenotypeIsMissing(locus)){
       _child[i]->GetLocusAncestry(locus, ancestry);
       const int* happair = _child[i]->getSampledHapPair(locus);
@@ -291,7 +288,7 @@ const vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop,
 ///count number of missing genotypes at locus
 int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
   int count = 0;
-  for(unsigned i = worker_rank; i < size; i += NumWorkers){
+  for(unsigned i = 0; i < size; i++){
     if(_child[i]->GenotypeIsMissing(locus)){
       ++count;
     }
@@ -305,7 +302,7 @@ int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
 
 double IndividualCollection::getLogLikelihood(const Options* const options, bool forceupdate){
   double LogLikelihood = 0.0;
-  for(unsigned i = worker_rank; i < size; i+= NumWorkers) {
+  for(unsigned i = 0; i < size; i++) {
     LogLikelihood += _child[i]->getLogLikelihood(options, forceupdate, true); // store result if updated
     _child[i]->HMMIsBad(false); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
   }
@@ -321,7 +318,7 @@ double IndividualCollection::getEnergy(const Options* const options, const vecto
   double LogLikRegression = 0.0;
   double Energy = 0.0;
   // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
-  for(unsigned i = worker_rank; i < size; i+= NumWorkers) {
+  for(unsigned i = 0; i < size; i++) {
     LogLikHMM += _child[i]->getLogLikelihood(options, false, !annealed); // store result if not an annealed run
     // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
     
@@ -329,8 +326,7 @@ double IndividualCollection::getEnergy(const Options* const options, const vecto
     else _child[i]->HMMIsBad(false); 
   }
   // get regression log-likelihood 
-  if(Comms::isMaster())
-    for(unsigned c = 0; c < R.size(); ++c) LogLikRegression += R[c]->getLogLikelihood(getOutcome(c));
+  for(unsigned c = 0; c < R.size(); ++c) LogLikRegression += R[c]->getLogLikelihood(getOutcome(c));
   Energy = -(LogLikHMM + LogLikRegression);
   return Energy;
 } 

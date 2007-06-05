@@ -15,17 +15,12 @@
  */
 
 #include "AllelicAssocTest.h"
-#include "Comms.h"
-
 
 AllelicAssocTest::AllelicAssocTest(){
   locusObsIndicator = 0;
 
   options = 0;
   individuals = 0;
-  rank = Comms::getRank();
-  worker_rank = Comms::getWorkerRank();
-  NumWorkers = Comms::getNumWorkers();
 
   NumOutputs = 0;
   onFirstLineAllelicAssoc = true;
@@ -48,19 +43,18 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
   chrm = Loci->getChromosomes();
   Lociptr = Loci;
   Log.setDisplayMode(Quiet);
-  if(worker_rank==-1) worker_rank =indiv->getSize();//to stop master iterating through individuals
 
   const int L = Lociptr->GetNumberOfCompositeLoci();
 
-  if(rank==0)OpenFile(Log, &outputfile, options->getAllelicAssociationScoreFilename(), 
-		      "Tests for allelic association", true);
+  OpenFile(Log, &outputfile, options->getAllelicAssociationScoreFilename(), 
+	   "Tests for allelic association", true);
       
       locusObsIndicator = new int[L];
       
       //search for loci with no observed genotypes
       for(int j = 0; j < L; ++j){
 	locusObsIndicator[j] = false;
-	for(int i = worker_rank + indiv->getFirstScoreTestIndividualNumber(); i < indiv->getNumberOfIndividualsForScoreTests(); i+= NumWorkers){
+	for(int i = indiv->getFirstScoreTestIndividualNumber(); i < indiv->getNumberOfIndividualsForScoreTests(); i++){
 	  if(!indiv->getIndividual(i)->GenotypeIsMissing(j)){
 	    locusObsIndicator[j] = true;
 	  }
@@ -75,11 +69,11 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
 	const int NumberOfLoci = Lociptr->getNumberOfLoci(j);
 	
 	if(NumberOfLoci > 1 )//haplotype
-	  SubTests.push_back(new WithinHaplotypeTest(NumberOfLoci, (rank==0)));
+	  SubTests.push_back(new WithinHaplotypeTest(NumberOfLoci, true));
 	else if(NumberOfStates == 2 )//simple diallelic locus
-	  SubTests.push_back(new SNPTest((rank==0)));
+	  SubTests.push_back(new SNPTest(true));
 	else//simple multiallelic locus
-	  SubTests.push_back(new MultiAllelicLocusTest(NumberOfStates, (rank==0)));
+	  SubTests.push_back(new MultiAllelicLocusTest(NumberOfStates, true));
 	
 
       }//end loop over loci
@@ -89,19 +83,19 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
     ----------------------*/  
   if( strlen( options->getHaplotypeAssociationScoreFilename() ) ){
     if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
-      if(rank==0)OpenFile(Log, &HaplotypeAssocScoreStream, options->getHaplotypeAssociationScoreFilename(), 
-			  "Tests for haplotype associations", true);
+      OpenFile(Log, &HaplotypeAssocScoreStream, options->getHaplotypeAssociationScoreFilename(), 
+	       "Tests for haplotype associations", true);
       for( int j = 0; j < L; j++ ){
 
 	if( Lociptr->getNumberOfLoci(j) > 1 )
-	  HaplotypeAssocTests.push_back(new HaplotypeTest(1, (rank==0)));
+	  HaplotypeAssocTests.push_back(new HaplotypeTest(1, true));
 	else
 	  HaplotypeAssocTests.push_back(0);
       }
     }
     else {
       op->setTestForHaplotypeAssociation(false);
-      if(rank==0)Log << "ERROR: Cannot test for haplotype associations if all loci are simple\n" << "This option will be ignored\n";
+      Log << "ERROR: Cannot test for haplotype associations if all loci are simple\n" << "This option will be ignored\n";
     }
   }
 }

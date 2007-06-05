@@ -99,7 +99,7 @@ private:
   
   void InitialiseSumIntensities(const AdmixOptions* const options); 
   void setAdmixtureProps(const double* const, size_t);
-  ///set possible happairs, SNPs only. Required for parallel code
+  ///set possible happairs, SNPs only. 
   void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
   //void setAdmixturePropsX(const double* const, size_t);
   const int *getSumLocusAncestry()const;

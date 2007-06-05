@@ -1,7 +1,6 @@
 #include "MantelHaenszelTest.h"
 #include "IndividualCollection.h"
 #include "Genome.h"
-#include "Comms.h"
 #include "gsl/gsl_cdf.h"
 #include "gsl/gsl_math.h"//for gsl_finite
 
@@ -47,7 +46,6 @@ void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci
 
 void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Loci){
   const std::vector<unsigned> nulltable(4, 0);
-  const int NumWorkers = Comms::getNumWorkers();
   int ancA[2];//ancestry at A
   int ancB[2];//ancestry at B
   int locus = 0;
@@ -57,7 +55,7 @@ void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Lo
       //reset counts to zero
       fill(CountTable.begin(), CountTable.end(), nulltable);
       std::vector<unsigned> N(Ksq, 0);//number of gametes
-      for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers) {
+      for(int i = 0; i < IC->getSize(); i++) {
 	Individual* ind = IC->getIndividual(i);
 	if( !ind->GenotypeIsMissing(locus) && !ind->GenotypeIsMissing(locus+1) ) {
 	  //skip missing genotypes as hap pairs not sampled

@@ -28,33 +28,29 @@ Model::~Model(){
 
 void Model::InitialiseGenome(Genome& G, const Options& options, InputData& data, LogWriter& Log){
   G.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
-  if(Comms::isFreqSampler()){
-    //print table of loci for R script to read
-    string locustable = options.getResultsDir();
-    locustable.append("/LocusTable.txt");
-    G.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1), data.getUnitOfDistanceAsString());
-    locustable.clear();
-  }
+  //print table of loci for R script to read
+  string locustable = options.getResultsDir();
+  locustable.append("/LocusTable.txt");
+  G.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1), data.getUnitOfDistanceAsString());
+  locustable.clear();
 }
 
 void Model::InitialiseRegressionObjects(Options& options, InputData& data,  LogWriter& Log){
-  if( Comms::isMaster() ){
-    Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
-    Regression::OpenExpectedYFile(options.getEYFilename(), Log);
-  }
+  
+  Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
+  Regression::OpenExpectedYFile(options.getEYFilename(), Log);
+
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
     //determine regression type and allocate regression objects
     if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
     else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
     else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression());
     
-    if(Comms::isMaster()) {
-      if(R[r]->getRegressionType()==Cox)
-	R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log);
-      else
-	R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
-    }
-    else R[r]->Initialise(r, IC->GetNumCovariates());
+    if(R[r]->getRegressionType()==Cox)
+      R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log);
+    else
+      R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
+    
     R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
   }
 }
@@ -119,10 +115,9 @@ void Model::Run(Options& options, InputData& data, LogWriter& Log,
     Iterate(samples, burnin, A.GetCoolnesses(), run, options, data, Log, SumEnergy, SumEnergySq,
 	    AnnealedRun);
     
-    if(Comms::isMaster()){	
-      //calculate mean and variance of energy at this coolness
-      A.CalculateLogEvidence(run, coolness, SumEnergy, SumEnergySq, samples - burnin);
-    } 
+    //calculate mean and variance of energy at this coolness
+    A.CalculateLogEvidence(run, coolness, SumEnergy, SumEnergySq, samples - burnin);
+    
   } // end loop over coolnesses
 
   Finish(options, data, Log);    
@@ -140,10 +135,9 @@ void Model::TestIndivRun(Options& options, InputData& data, LogWriter& Log,
   // call with argument AnnealedRun false - copies of test individual will be annealed anyway  
   Iterate(samples, burnin, A.GetCoolnesses(), NumAnnealedRuns, options, data, Log, 
 	  SumEnergy, SumEnergySq, false);
-  if(Comms::isMaster()){
-    // arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls
-    A.CalculateLogEvidence(getSumEnergy(), getSumEnergySq(), options.getNumAnnealedRuns());
-  }
+  
+  // arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls
+  A.CalculateLogEvidence(getSumEnergy(), getSumEnergySq(), options.getNumAnnealedRuns());
 
   Finish(options, data, Log);    
 }
@@ -154,18 +148,16 @@ void Model::GetEnergy(const double* Coolnesses, unsigned coolness, const Options
 
   double Energy = IC->getEnergy(&options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
   
-  if(Comms::isMaster()){
-    SumEnergy += Energy;
-    SumEnergySq += Energy*Energy;
-    if(coolness>0)AISz += exp((Coolnesses[coolness]-Coolnesses[coolness-1])*(-Energy));
-    // write to file if not AnnealedRun
-    if(!AnnealedRun){
-      loglikelihoodfile << iteration<< "\t" << Energy <<endl;
-      if(options.getDisplayLevel()>2 && !(iteration%options.getSampleEvery()))cout << Energy << "\t";
-    }
+  SumEnergy += Energy;
+  SumEnergySq += Energy*Energy;
+  if(coolness>0)AISz += exp((Coolnesses[coolness]-Coolnesses[coolness-1])*(-Energy));
+  // write to file if not AnnealedRun
+  if(!AnnealedRun){
+    loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+    if(options.getDisplayLevel()>2 && !(iteration%options.getSampleEvery()))cout << Energy << "\t";
   }
-  
 }
+
 void Model::ResetStepSizeApproximators(int resetk){
   IC->resetStepSizeApproximators(resetk); 
   pA->resetStepSizeApproximator(resetk);
@@ -185,8 +177,7 @@ void Model::OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & S
 
 /// Output at end
 void Model::Finish(Options& options, InputData& data, LogWriter& Log){
-  if(Comms::isMaster())
-    cout<< "\nIterations completed                       \n" << flush;
+  cout<< "\nIterations completed                       \n" << flush;
 
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
   else Log.setDisplayMode(Quiet);
@@ -200,12 +191,12 @@ void Model::Finish(Options& options, InputData& data, LogWriter& Log){
   }
   
   //Expected Outcome
-  if(Comms::isMaster() && options.getNumberOfOutcomes() > 0){
+  if(options.getNumberOfOutcomes() > 0){
     Regression::FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), 
                                          data.getOutcomeLabels());
   }
   
-  if(Comms::isMaster())cout << "Output to files completed\n" << flush;
+  cout << "Output to files completed\n" << flush;
   
   // ******************* acceptance rates - output to screen and log ***************************
   PrintAcceptanceRates(options, Log);
