@@ -2,7 +2,7 @@
 /* 
  *   HAPMIXMAP
  *   HapmixOptions.h 
- *   header file for AdmixOptions class
+ *   header file for HapMixOptions class
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 

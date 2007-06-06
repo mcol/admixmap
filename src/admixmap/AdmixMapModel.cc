@@ -78,7 +78,7 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
 	GetEnergy(Coolnesses, coolness, options, SumEnergy, SumEnergySq, AISz, AnnealedRun, iteration );
       }
     } else {  
-      IC->accumulateEnergyArrays(&options);
+      AdmixedIndividuals->accumulateEnergyArrays(&options);
     }
   
 

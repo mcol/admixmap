@@ -1,5 +1,4 @@
 /** 
- *   ADMIXMAP
  *   AlleleFreqSampler.cc 
  *   Class to sample allele/haplotype frequencies.
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue

@@ -1,6 +1,5 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   Chromosome.h 
  *   header file for Chromosome class
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue

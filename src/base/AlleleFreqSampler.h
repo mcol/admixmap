@@ -1,6 +1,5 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   AlleleFreqSampler.h 
  *   Class to sample allele/haplotype frequencies at a given composite locus.
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue

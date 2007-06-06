@@ -151,10 +151,7 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, LogWriter &Log){
  *
  * It is also permissable to have one column, in which case the parameters are (initially) the same across all
  * populations. This is required for a correlated allelefreqs model.
- * If Historic is true, sets "historical allele frequencies", where the model has been specified to allow the 
- * allele freqs in the admixed population 
- * to vary from the historical allele frequencies in the unadmixed ancestral populations that have 
- * been sampled. 
+
  */
 void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, bool oldformat){
   // set size of allele freqs array for this locus

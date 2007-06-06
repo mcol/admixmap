@@ -380,7 +380,7 @@ void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
 
 /**
   Updates forward probs, haploid case only.
-  Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
+  Here theta is a column matrix and the last dimensions of f and lambda are 1.
 */
 void HiddenMarkovModel::UpdateForwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");

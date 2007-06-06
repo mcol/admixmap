@@ -1,5 +1,4 @@
 /** 
- *   ADMIXMAP
  *   CopyNumberAssocTest.h 
  *   Class to implement score test for association of trait with ancestry
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue

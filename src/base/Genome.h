@@ -1,6 +1,5 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   Genome.h
  *   header file for Genome class (formerly known as GeneticArray)
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue

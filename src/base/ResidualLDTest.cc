@@ -1,5 +1,4 @@
 /* 
- *   ADMIXMAP
  *   ResidualLDTest.cc 
  *   Class to implement score tests for residual allelic association between adjacent pairs of linked loci
  *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
