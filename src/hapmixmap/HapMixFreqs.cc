@@ -206,7 +206,7 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
 void HapMixFreqs::PrintPrior(LogWriter& Log)const{
   Log << "Dirichlet prior on allele frequencies. \n"
       << "Uniform prior on Dirichlet proportions.\n"
-      << "Gamma prior on Dirichlet precision (Residual Allelic diversity) with shape " << EtaShape;
+      << "Gamma prior on Dirichlet precision (Residual Allelic Diversity) with shape " << EtaShape;
   if(etaHierModel)
     Log << " and Gamma("<< EtaRatePriorShape << ", " << EtaRatePriorRate << ") prior on rate.\n\n";
   else

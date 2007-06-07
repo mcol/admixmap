@@ -558,12 +558,17 @@ void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
   // Header line of paramfile
   if(!options->getFixedMixturePropsPrecision())
     outputstream << "MixtureProps.Precision\t";
+
   if(!options->getFixedMixtureProps())
     outputstream << "MixtureProps.Sample.Precision\t";
+
   outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t";
+
   if(!fixRateParameter)
     outputstream << "Arrivals.per"<< distanceUnit << ".rateParam\t";
+
   outputstream << "Arrivals.per"<< distanceUnit << ".Mean"
+	       << "\tMean.Block.Length.kb"
 	       << endl;
 }
 
@@ -625,7 +630,9 @@ void PopHapMix::OutputParams(int iteration, LogWriter &){
   if( iteration > options->getBurnIn() ){
     // OutputAverageMixtureProps(outputstream);
     OutputParams(outputstream);
-    outputstream << endl;
+    //write Haplotype block length to file
+    outputstream << (8000 * LambdaArgs.beta) / (LambdaArgs.h * 7)
+		 << endl;
   }
 }
 
