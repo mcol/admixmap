@@ -60,10 +60,10 @@ vector<unsigned short> GenotypeLoader::GetGenotype(const string genostring)const
     g.push_back(0);
     return g;
   }
-  //look for , or / 
-  string::size_type i = str.find_first_of(",/");
-  //extract first allele as portion of string up to first ',' or '/'
-  //NOTE: if string consists only of ',' or '/' or anything non-numeric, genotype is taken as missing
+  //look for , or / or :
+  string::size_type i = str.find_first_of(",/:");
+  //extract first allele as portion of string up to first ',' or '/' or ':'
+  //NOTE: if string consists only of ',' or '/' or ':' or anything non-numeric, genotype is taken as missing
   g.push_back(atoi(str.substr(0,i).c_str()));
 
   if( i != string::npos){// , or / found
