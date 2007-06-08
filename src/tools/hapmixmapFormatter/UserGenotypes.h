@@ -48,7 +48,7 @@ private:
   std::string inFileName;
   ///ID label from infile header
   std::string ID;
-  ///vector of names of typed loci
+  ///vector of names of typed loci, including those not in HapMap
   std::vector<std::string> TypedLoci;
   ///number of typed loci, excluding those not in HapMap
   unsigned NumTypedHapMapLoci;
@@ -57,8 +57,8 @@ private:
 
   UserGenotypes();
   UserGenotypes(const UserGenotypes&);
-  ///sort loci by map position
-  void SortLoci(const std::vector<unsigned long>& TypedPos);
+  ///rank loci by map position
+  void RankLoci(const std::vector<unsigned long>& TypedPos);
   ///write header to output file(s)
   void WriteHeader(  std::vector<std::ofstream*>& OutGeno, HapMapLegend& Legend );
   unsigned EncodeGenotypes(std::vector<std::ofstream*>& OutGeno, HapMapLegend& Legend, char missing);

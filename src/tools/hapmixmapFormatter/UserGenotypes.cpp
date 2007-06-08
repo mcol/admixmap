@@ -22,6 +22,7 @@
 #include <sstream>
 
 using namespace std;
+#define HUGE 999999999
 
 UserGenotypes::UserGenotypes(HapMapLegend& Legend, const char* infilename){
   if(infilename == 0 || strlen(infilename)==0)
@@ -44,6 +45,7 @@ UserGenotypes::UserGenotypes(HapMapLegend& Legend, const char* infilename){
     cerr << "** ERROR: " << infilename << " header is empty!" << endl;
     exit(1);
   }
+  vector<string> tokens;//vector of typed loci
   StringSplitter::Tokenize(line, TypedLoci, " \t");
 
    //create vector of positions of typed loci
@@ -52,12 +54,16 @@ UserGenotypes::UserGenotypes(HapMapLegend& Legend, const char* infilename){
     //check the locus in is the HapMap legend file
     if(!Legend.isInHapMap(*i)){
       NonHapMapLoci.push_back(*i);
+      //assign a position off end of genome to ensure a rank higher than any locus in HapMap
+      TypedPos.push_back(HUGE);
     }
-    TypedPos.push_back(Legend[*i].position);
+    else{
+      //assign position from legend file
+      TypedPos.push_back(Legend[*i].position);
+    }
   }
-
   NumTypedHapMapLoci = TypedLoci.size() - NonHapMapLoci.size();
-  if(NumTypedHapMapLoci == 0){
+  if( NumTypedHapMapLoci == 0){
     throw string("ERROR: no HapMap loci found in" + inFileName );
   }
   //report loci not in HapMap
@@ -71,7 +77,7 @@ UserGenotypes::UserGenotypes(HapMapLegend& Legend, const char* infilename){
     cerr << endl;
   }
 
-  SortLoci(TypedPos);
+  RankLoci(TypedPos);
   TypedPos.clear();
 }
 UserGenotypes::~UserGenotypes(){
@@ -79,7 +85,7 @@ UserGenotypes::~UserGenotypes(){
 }
 
 
-void UserGenotypes::SortLoci(const vector<unsigned long>& TypedPos){
+void UserGenotypes::RankLoci(const vector<unsigned long>& TypedPos){
   const unsigned Num = TypedPos.size();
   //sort typed loci by position
   ranks.assign(Num, 0);
@@ -94,8 +100,12 @@ void UserGenotypes::SortLoci(const vector<unsigned long>& TypedPos){
   gsl_permutation * q = gsl_permutation_alloc (Num);
   gsl_permutation_inverse (q, p);
   //gsl_permutation_fprintf (stdout, q, " %u");
-  for (uint i = 0; i < Num; ++i) {
-    ranks[i] = q->data[i];
+
+  //clear ranks and start again, this time exclusing loci not in HapMap
+  ranks.clear();
+  for (uint i = 0; i < NumTypedHapMapLoci; ++i) {
+    //ranks[i] = index of ith locus by map position (if TypedLoci were sorted)
+    ranks.push_back(q->data[i]);
   }
 
   //tidy up
@@ -216,7 +226,7 @@ unsigned UserGenotypes::EncodeGenotypes(vector<ofstream*>& OutGeno, HapMapLegend
 	}
       }
     }
-    
+   
     //finish with newline
     for(unsigned j = 0; j < Legend.getNumSubChromosomes(); ++j)
       *(OutGeno[j]) << endl;
