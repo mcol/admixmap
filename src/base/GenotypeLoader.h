@@ -30,8 +30,8 @@ public:
   GenotypeLoader();
   ///destructor
   virtual ~GenotypeLoader(){};
-  ///read genotypesfile into a sring array
-  void Read(const char* filename, LogWriter& Log);
+  ///read genotypesfile into a string array
+  virtual void Read(const char* filename, LogWriter& Log);
   /**
      retrieve an Individual's genotype.
      reads genotypes as strings from string matrix (read from file) , converts them to vectors of unsigned short ints and allocates them to the Individual's genotype vector.

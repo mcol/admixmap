@@ -1,5 +1,6 @@
 // *-*-C++-*-*
 /* 
+ *   HAPMIXMAP
  *   HapMixGenotypeLoader.h 
  *   class to load and assign genotypes in hapmixmodel
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
@@ -19,6 +20,8 @@ class HapMixGenotypeLoader : public GenotypeLoader{
 public:
   ///constructor
   HapMixGenotypeLoader();
+  ///read genotypesfile into a string array
+  void Read(const char* filename, LogWriter& Log);
   ///read case-control genotypesfile
   void ReadCaseControlGenotypes(const char* filename, LogWriter& Log);
 

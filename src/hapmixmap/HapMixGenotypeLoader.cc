@@ -1,4 +1,5 @@
 /* 
+ *   HAPMIXMAP
  *   HapMixGenotypeLoader.cc 
  *   class to load and assign genotypes
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
@@ -19,12 +20,17 @@ HapMixGenotypeLoader::HapMixGenotypeLoader(){
   NumCCIndividuals = 0;
 }
 
+void HapMixGenotypeLoader::Read(const char* filename, LogWriter& Log){
+  GenotypeLoader::Read(filename, Log);
+  //if we get this far, geneticData_ is guaranteed to be non-empty
+  alleleCounts[0].assign(geneticData_[0].size(), 0);
+  alleleCounts[1].assign(geneticData_[0].size(), 0);
+}
+
 void HapMixGenotypeLoader::ReadCaseControlGenotypes(const char* filename, LogWriter& Log){
   DataReader::ReadData(filename, CCgeneticData_, Log); 
   if(CCgeneticData_.size()){
     NumCCIndividuals = CCgeneticData_.size() - 1;
-    alleleCounts[0].assign(geneticData_[0].size(), 0);
-    alleleCounts[1].assign(geneticData_[0].size(), 0);
     FindCaseControlLoci();
   }
 }
@@ -45,7 +51,7 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, int SexColumn, const Genome 
     for(unsigned jj = 0; jj < Loci.GetSizeOfChromosome(j); ++jj){
       
       std::vector<unsigned short> g = isCaseControl ?
-        GetCaseControlGenotype(locus, &cclocus,i, SexColumn)//function will increment locus if this locus is typed
+        GetCaseControlGenotype(locus, &cclocus,i, SexColumn)//function will increment cclocus if this locus is typed
         : GenotypeLoader::GetGenotype(locus, i, SexColumn);
 
       //for backward-compatibility, allow diploid X-chr genotypes for males
@@ -128,14 +134,20 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, int SexColumn, const Genome 
 void HapMixGenotypeLoader::CheckForMonomorphicLoci(LogWriter& Log)const{
   std::vector<unsigned> MMLoci;
 
-  for(unsigned locus = 0; locus < geneticData_[0].size(); ++locus){
+  for(unsigned locus = 0; locus < geneticData_[0].size()-1; ++locus){
     if(!alleleCounts[0][locus] || !alleleCounts[1][locus])
       MMLoci.push_back(locus);  
   }
   if(MMLoci.size()){
-    Log << On << "ERROR: The following loci are monomorphic. Check your genotypesfile.\n";
-    for(vector<unsigned>::const_iterator j = MMLoci.begin(); j != MMLoci.end(); ++j){
-      Log << geneticData_[0][*j+1] << "\n";
+    Log << On << "ERROR: " << MMLoci.size() << " loci are monomorphic. Check your genotypesfile.\n";
+    if(MMLoci.size() < 10){
+      for(vector<unsigned>::const_iterator j = MMLoci.begin(); j != MMLoci.end(); ++j){
+	Log << geneticData_[0][*j+1] << "\n";
+      }
+    }
+    else{
+      Log << "The first is " << geneticData_[0][MMLoci[0]+1]
+	  << "\n and the last is " << geneticData_[0][*(MMLoci.end()-1)+1] << "\n";
     }
     exit(1);
   }
