@@ -139,7 +139,7 @@ void HapMixGenotypeLoader::CheckForMonomorphicLoci(LogWriter& Log)const{
       MMLoci.push_back(locus);  
   }
   if(MMLoci.size()){
-    Log << On << "ERROR: " << MMLoci.size() << " loci are monomorphic. Check your genotypesfile.\n";
+    Log << On << "ERROR: " << (int)(MMLoci.size()) << " loci are monomorphic. Check your genotypesfile.\n";
     if(MMLoci.size() < 10){
       for(vector<unsigned>::const_iterator j = MMLoci.begin(); j != MMLoci.end(); ++j){
 	Log << geneticData_[0][*j+1] << "\n";
