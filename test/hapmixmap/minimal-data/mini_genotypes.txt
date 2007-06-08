@@ -1,0 +1,5 @@
+"Gameteid"	rs1 rs2
+NA01a 1 1
+NA01b 1 2
+NA02a 1 1
+NA02b 1 2
