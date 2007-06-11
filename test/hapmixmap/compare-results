@@ -55,7 +55,7 @@ mv "$2" "$2-old"
 mkdir -p "$2"
 pushd "$2"
 ln -s ../data data
-HAPMIXMAP_EXEC="$1/src/admixmap/hapmixmap"
+HAPMIXMAP_EXEC="$1/src/hapmixmap/hapmixmap"
 
 if [ "$2" = "hapmixmap-stable" ]
 then
@@ -66,14 +66,12 @@ fi
 
 for HAPARG in $CONF_FILES
 do
-	if [ ! -z "$DISPLAY" ]
+	if [ ! -z "$DISPLAY" -a ! -z "$(which xterm)" ]
 	then
 		# xterm -title "$TITLE $HAPARG" -geometry $GEOMETRY -e $HAPMIXMAP_EXEC $HAPARG
 		xterm -title "$HAPMIXMAP_EXEC $HAPARG" -geometry $GEOMETRY -e $HAPMIXMAP_EXEC $HAPARG
 	else
-		# $HAPMIXMAP_EXEC $HAPARG
-		echo "Can't open \$DISPLAY"
-		exit 1
+		$HAPMIXMAP_EXEC $HAPARG
 	fi
 done
 popd
