@@ -27,7 +27,7 @@ void WriteLocusFileBody(HapMapLegend& Legend, vector<ofstream*>& locusfiles,
 			unsigned first, unsigned last, bool beVerbose);
 void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Legend, 
 			    unsigned first, unsigned last, const string& prefix, bool beVerbose);
-
+vector<unsigned> FindMonomorphicLoci(vector<unsigned> AlleleCounts[2]);
 void WriteLocusFile(HapMapLegend& Legend, const char* fileprefix, 
 		    unsigned first, unsigned last, bool beVerbose){
 
@@ -163,6 +163,10 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
 
   int gamete = 0;
   int allele = 0;
+  const unsigned NumLoci = Legend.size();
+  //vector to counts alleles in order to check for monomorphic loci
+  vector<unsigned> NullCounts(NumLoci, 0);
+  vector<unsigned> AlleleCounts[2] = {NullCounts, NullCounts};
   phasedfile >> allele;
   while (!phasedfile.eof()) {
     //if (beVerbose)
@@ -179,10 +183,10 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
 
     //write indiv id and sex
     for(unsigned j = 0; j < Legend.getNumSubChromosomes(); ++j)
-      *(genotypesfiles[j]) << ID  + suffix << "\t";        // << sex[indiv] <<"\t";
+      *(genotypesfiles[j]) << ID  <<  suffix << "\t";        // << sex[indiv] <<"\t";
 
     //write genotypes for first chromosome
-    for (unsigned j = 0; j <  Legend.size(); ++j) {
+    for (unsigned j = 0; j <  NumLoci; ++j) {
 
       //if (j < options.getMaxLoci())
       if(j >= first && j<last){
@@ -190,6 +194,7 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
 	    sub != Legend[j].subchr.end(); ++sub){
 	  *(genotypesfiles[*sub]) << allele + 1 << " ";
 	}
+	AlleleCounts[allele][j-first]++;
       }
       phasedfile >> allele;
     }
@@ -199,4 +204,20 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
   }
   phasedfile.close();
   samplefile.close();
+
+  vector<unsigned> MMLoci = FindMonomorphicLoci(AlleleCounts);
+  if(MMLoci.size()){
+    //if(beVerbose)
+      cout << "\nWARNING: " << MMLoci.size() << " monomorphic loci";
+  }
+
+}
+
+vector<unsigned> FindMonomorphicLoci(vector<unsigned> AlleleCounts[2]){
+  vector<unsigned> MonomorphicIndices;
+  for(unsigned locus = 0; locus < AlleleCounts[0].size(); ++locus){
+    if(AlleleCounts[0][locus] == 0 || AlleleCounts[1][locus] == 0)
+      MonomorphicIndices.push_back(locus);
+  }
+  return MonomorphicIndices;
 }

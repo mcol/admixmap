@@ -22,7 +22,7 @@
 #include <sstream>
 
 using namespace std;
-#define HUGE 999999999
+#define REMOTE_POSITION 999999999
 
 UserGenotypes::UserGenotypes(HapMapLegend& Legend, const char* infilename){
   if(infilename == 0 || strlen(infilename)==0)
@@ -55,7 +55,7 @@ UserGenotypes::UserGenotypes(HapMapLegend& Legend, const char* infilename){
     if(!Legend.isInHapMap(*i)){
       NonHapMapLoci.push_back(*i);
       //assign a position off end of genome to ensure a rank higher than any locus in HapMap
-      TypedPos.push_back(HUGE);
+      TypedPos.push_back(REMOTE_POSITION);
     }
     else{
       //assign position from legend file
