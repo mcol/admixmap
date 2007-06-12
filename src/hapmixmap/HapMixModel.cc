@@ -355,7 +355,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
 }
 void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWriter& Log){
   if( options.getTestForAllelicAssociation() ){
-    AllelicAssocTest.Initialise(options.getAllelicAssociationScoreFilename(), 1, Loci.GetNumberOfCompositeLoci(), Log, false);
+    AllelicAssocTest.Initialise(options.getAllelicAssociationScoreFilename(), Loci.GetNumberOfCompositeLoci(), Log);
   }
   ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci, Log);
   

@@ -21,6 +21,7 @@ MisSpecAlleleFreqTest.cc MisSpecAlleleFreqTest.h \
 PopAdmix.cc PopAdmix.h \
 StratificationTest.cc StratificationTest.h \
 AffectedsOnlyTest.cc AffectedsOnlyTest.h \
+AncestryAssocTest.cc AncestryAssocTest.h \
 AdmixtureAssocTest.cc AdmixtureAssocTest.h \
 AllelicAssocTest.cc AllelicAssocTest.h \
 AllelicAssocSubTest.cc AllelicAssocSubTest.h \

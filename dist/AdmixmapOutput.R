@@ -1,5 +1,5 @@
 # rm(list = ls())  ## remove (almost) everything in the working environment.
-library(MASS)
+#library(MASS)
 ## to run this script from an R console session, set environment variable RESULTSDIR
 ## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
 message <- "\n\nStarting R script\n";
@@ -501,10 +501,11 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   rm(scoretest.final.table)
   
   ##plot z-scores across genome
-  zscores <- scoretest.final[,,7]
+  zscores <- matrix(scoretest.final[,,7], nrow=dim(scoretest.final)[1], ncol=dim(scoretest.final)[2])
+
   plotScoreMap(loci.compound,zscores, KK, testname) 
   ## plot (complete) information content
-  info.content <- scoretest.final[,,2]
+  info.content <- matrix(scoretest.final[,,2], nrow=dim(scoretest.final)[1], ncol=dim(scoretest.final)[2])
   plotInfoMap(loci.compound, info.content, KK, testname)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
@@ -1035,7 +1036,7 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filena
   x.label <- dimnames(locus.table)[[2]][3]
   
   openPlotDevice(paste(resultsdir, info.map.filename, sep="/"))
-  plot(map.pos, percent.info, xlab=x.label, ylab="\%Info Extracted", main="Extracted Info Map",type='l')  
+  plot(map.pos, percent.info, xlab=x.label, ylab="%Info Extracted", main="Extracted Info Map",type='l')  
   dev.off()
 
   ##QQ plot of zscores

@@ -1,6 +1,6 @@
 /** 
  *   CopyNumberAssocTest.h 
- *   Class to implement score test for association of trait with ancestry
+ *   Class to implement score test for association of trait with copy number
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -34,10 +34,10 @@ CopyNumberAssocTest::CopyNumberAssocTest(){
   numPrintedIterations = 0;
   numUpdates = 0;
 }
-CopyNumberAssocTest::CopyNumberAssocTest(bool use_prevb){
-  CopyNumberAssocTest();
-  useprevb = use_prevb;
-}
+// CopyNumberAssocTest::CopyNumberAssocTest(bool use_prevb){
+//   CopyNumberAssocTest();
+//   useprevb = use_prevb;
+// }
 CopyNumberAssocTest::~CopyNumberAssocTest(){
   if(test){
     delete[] SumScore;
@@ -53,10 +53,10 @@ CopyNumberAssocTest::~CopyNumberAssocTest(){
     free_matrix(InfoCorrection, L);
   }
 }
-void CopyNumberAssocTest::Initialise(const char* filename, const int NumStrata, const int NumLoci, LogWriter &Log, bool use_prevb){
+void CopyNumberAssocTest::Initialise(const char* filename, const int NumStrata, const int NumLoci, LogWriter &Log){
   test = true;
-  OpenFile(Log, &outputfile, filename, "Tests for locus linkage", true);
-  
+  OpenOutputFile(Log, filename);
+
   K = NumStrata;
   L = NumLoci;
   int KK = K;
@@ -79,10 +79,10 @@ void CopyNumberAssocTest::Initialise(const char* filename, const int NumStrata, 
   VarScore = alloc2D_d(L, K);
   InfoCorrection = alloc2D_d(L, K);
   B = new double[K * K];
-  useprevb = use_prevb;
   if(useprevb)PrevB = new double[K * K];
   else PrevB = B;
   Xcov = new double[K];
+
 }
 
 void CopyNumberAssocTest::Reset(){
@@ -132,25 +132,6 @@ void CopyNumberAssocTest::Output(const Vector_s& PopLabels, const Genome& Loci, 
     }
   }
   if(final)outfile->close();
-}
-
-void CopyNumberAssocTest::ROutput(){
-  if(test){
-    int KK = K;
-    if(KK ==2 )KK = 1;
-    
-    vector<string> labels;
-    labels.push_back("Locus");
-    if(KK > 1)labels.push_back("Population");  
-    labels.push_back("minusLog10PValue");
-
-    vector<int> dimensions(3,0);
-    dimensions[0] = labels.size();
-    dimensions[1] = L * KK;
-    dimensions[2] = (int)(numPrintedIterations);
-    
-    R_output3DarrayDimensions(&outputfile, dimensions, labels);
-  }
 }
 
 void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 

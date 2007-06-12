@@ -1,6 +1,6 @@
 // *-*-C++-*-*
 /** 
- *   CopyNumberAssocTest.h (formerly AncestryAssocTest.h)
+ *   CopyNumberAssocTest.h 
  *   header file for CopyNumberAssocTest class
  *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -24,22 +24,24 @@ class CopyNumberAssocTest : public ScoreTestBase{
 
 public:
   CopyNumberAssocTest();
-  CopyNumberAssocTest(bool use_prevb);
-  ~CopyNumberAssocTest();
-  void Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log, bool use_prevb = true);
+  virtual ~CopyNumberAssocTest();
+  virtual void Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log);
 
   void Reset();
-  void Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
+  virtual void Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
 	      const std::vector<std::vector<double> > Probs) ;
   void UpdateB(double DInvLink, double dispersion, const double* Covariates);
 
   void Accumulate();
 
   void Output(const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
-  void ROutput();
+  virtual void ROutput() = 0;
 
-private:
+protected:
+  virtual void OpenOutputFile(LogWriter &Log, const char* filename) = 0;
+  bool useprevb;
   unsigned K, L;
+private:
   unsigned firstpoplabel;
 
   double **Score;
@@ -48,7 +50,6 @@ private:
   double **InfoCorrection;
   double *B;//used to correct info
   double *PrevB;//holds B for previous iteration while B accumulates for this iteration
-  bool useprevb;
   double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
   double* SumScore;

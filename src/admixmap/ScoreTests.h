@@ -21,7 +21,7 @@
 #include "AdmixtureAssocTest.h"
 #include "AllelicAssocTest.h"
 #include "AffectedsOnlyTest.h" 
-#include "CopyNumberAssocTest.h"
+#include "AncestryAssocTest.h"
 
 class FreqArray;
 
@@ -65,7 +65,7 @@ private:
   AllelicAssocTest AllelicAssociationTest;
   AdmixtureAssocTest AdmixtureAssocScoreTest;
   AffectedsOnlyTest AffectedsOnlyScoreTest;
-  CopyNumberAssocTest AncestryAssocScoreTest;
+  AncestryAssocTest AncestryAssocScoreTest;
 
 };
 

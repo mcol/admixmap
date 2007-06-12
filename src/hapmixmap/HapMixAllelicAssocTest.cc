@@ -17,6 +17,24 @@
 #include "InputHapMixData.h"
 #include "bcppcl/Regression.h"
 
+HapMixAllelicAssocTest::HapMixAllelicAssocTest(){
+  useprevb = false;
+  K = 1;
+}
+
+//public function
+void HapMixAllelicAssocTest::Initialise(const char* filename, const int NumLoci, LogWriter &Log){
+  this->Initialise(filename, 1, NumLoci, Log);
+}
+
+//private function - calls base function
+void HapMixAllelicAssocTest::Initialise(const char* filename, const int , const int NumLoci, LogWriter &Log){
+  CopyNumberAssocTest::Initialise(filename, 1, NumLoci, Log);
+}
+
+void HapMixAllelicAssocTest::OpenOutputFile(LogWriter &Log, const char* filename){
+  OpenFile(Log, &outputfile, filename, "Tests for allelic association", true);
+}
 void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, const Regression* const R, const Genome& Loci){
   this->Reset();
   const double dispersion = R->getDispersion();
@@ -45,6 +63,21 @@ void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, 
   }
 
   this->Accumulate();
+}
+
+void HapMixAllelicAssocTest::ROutput(){
+  if(test){
+    vector<string> labels;
+    labels.push_back("Locus");
+    labels.push_back("minusLog10PValue");
+
+    vector<int> dimensions(3,0);
+    dimensions[0] = labels.size();
+    dimensions[1] = L;
+    dimensions[2] = (int)(numPrintedIterations);
+    
+    R_output3DarrayDimensions(&outputfile, dimensions, labels);
+  }
 }
 
 #define COUNTINFO(S, X) \
@@ -82,4 +115,9 @@ void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, const InputHapMixD
   Log << Off << "Average Information extracted across untyped loci in allelic assoc score test: " << sumPI / size << "%"
       << "\nOn average " << sumMissing1/size << "% Missing Info due to uncertainty about genotypes\n and " 
       << sumMissing2/size << "% Missing Info due to uncertainty about model parameters\n\n" ;
+}
+
+void HapMixAllelicAssocTest::Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
+				    const std::vector<std::vector<double> > Probs) {
+  CopyNumberAssocTest::Update(locus, Covariates, phi, YMinusEY, DInvLink, Probs);
 }
