@@ -7,109 +7,49 @@
 using namespace::std;
 #define COMMENT_CHAR " # "
 
-//base type manipulators
-ostream& comma(ostream& os){
-  os << ", ";
-  return os;
-}
-ostream& newline(ostream& os){
-  os << "\n";
-  return os;
-}
-
-//derived type manipulators
-void comma(RObjectWriter& R){
-  if(R.needComma)
-    R << COMMA;
-  //will need a comma next time
-  R.needComma = true;
-}
-
+//manipulators
 void newline(RObjectWriter& R){
-  //print a comma if this is not the first line
-  if(R.needNewLineComma)
-    R << COMMA;
-  //print a comment on previous line if there is one
-  if(R.comment_cache.size()){
-    R << COMMENT_CHAR << R.comment_cache;
-    R.comment_cache.clear();
-  }
-  //start new line
-  R << "\n";
-
-  //will not need a comma before first element of next line
-  R.needComma = false;
-  //will need a comma before next line (if there is one)
-  R.needNewLineComma = true;
-}
-
-//stream insertion friends
-
-RObjectWriter& operator<<( RObjectWriter & R, void (*manip)(RObjectWriter& R)){
-  manip(R);
-  return R;
+  R.needNewLine = true;
 }
 
 //class members
 
 RObjectWriter::RObjectWriter() {
-  needNewLineComma = false;
+  needNewLine = false;
   needComma = false;
 }
 
 RObjectWriter::RObjectWriter(const char* filename){
-  needNewLineComma = false;
+  needNewLine = false;
   needComma = false;
   open(filename);
 }
 
 RObjectWriter::RObjectWriter(const string& filename){
-  needNewLineComma = false;
+  needNewLine = false;
   needComma = false;
   open(filename.c_str());
 }
 
 void RObjectWriter::open(const char* filename){
-  ((ofstream*)this)->open(filename);
-  if(!this->is_open()){
+  file.open(filename);
+  if(!file.is_open()){
     string error_string = "ERROR: could not open ";
     error_string.append(filename);
     throw(error_string);
   }
 
   //start writing R object
-  *this << "structure(.Data=c(" ;//<< endl;
+  file << "structure(.Data=c(" << endl;
 }
 
 void RObjectWriter::open(const string& filename){
-  open(filename.c_str());
+  file.open(filename.c_str());
 }
 
 void RObjectWriter::close(const vector<int>& dim, const vector<vector<string> >& DimNames){
   WriteDimensions(dim, DimNames);
-  ((ofstream*)this)->close();
-}
-
-//private function to prevent closing without writing dimensions
-void RObjectWriter::close(){
-  ((ofstream*)this)->close();
-}
-
-RObjectWriter& RObjectWriter::comment(const char* s){
-  if(needComma){//comment is not on new line
-    //cache comment for output later, in case this is the last line
-    //strcpy(comment_cache, s);
-    comment_cache = s;
-  }
-  else{//on new line
-    *this << COMMENT_CHAR << s ;
-    needNewLineComma = false;
-  }
-
-  //no need for comma after comment
-  needComma = false;
-
-  return *this;
+  file.close();
 }
 
 void RObjectWriter::WriteDimensions(const vector<int>& dim, const vector<vector<string> >& DimNames)
@@ -120,23 +60,23 @@ void RObjectWriter::WriteDimensions(const vector<int>& dim, const vector<vector<
 
   //write comment for last line if there is one
   if(comment_cache.size()){
-    *this << COMMENT_CHAR << comment_cache;
+    file << COMMENT_CHAR << comment_cache;
     comment_cache.clear();
   }
 
     //finish defining data 
-  *this << endl << ")," << endl
+  file << endl << ")," << endl
 
   //define dimensions
 	<< ".Dim = c(";
 
   for(unsigned int i = 0; i < dim.size(); i++){
-    *this << dim[i];
+    file << dim[i];
     if(i != dim.size() - 1){
-      *this << ",";
+      file << ",";
     }
   }
-  *this << ")," << endl
+  file << ")," << endl
   
   //define dimnames
 	<< ".Dimnames=list(";
@@ -147,30 +87,83 @@ void RObjectWriter::WriteDimensions(const vector<int>& dim, const vector<vector<
       throw string("Error in RobjectWriter::WriteDimensions : dimnames do not match dimension");
 
     if(d > 0)//seperate dimnames with comma
-      *this << ", ";    
+      file << ", ";    
 
     //write dimnames for labeled dimensions
-    *this << "c(";
+    file << "c(";
     for(unsigned int i = 0; i < DimNames[d].size(); i++){
-      *this << "\"" << DimNames[d][i] << "\"";
+      file << "\"" << DimNames[d][i] << "\"";
       if(i != DimNames[d].size() - 1){
-	*this << ",";
+	file << ",";
       }
     }
-    *this << ")";
+    file << ")";
   }
 
   //write 'character(0)' for remaining dimensions
   for( ; d < dim.size(); ++d){
     if(d > 0)//seperate dimnames with comma
-      *this << ", ";    
+      file << ", ";    
 
-    *this << "character(0)";
+    file << "character(0)";
   }
   //...and finally
-  *this << "))" << endl;
+  file << "))" << endl;
 
 }
 
+void RObjectWriter::setDecimalPrecision(unsigned p){
+  file << setfill(' ');
+  file.setf(ios::fixed); 
+  file.precision(p);
+  file.width(p);
+}
 
+void RObjectWriter::comment(const char* c){
+  if(needNewLine){
+    if(needComma)
+      file << ',';
+    file << COMMENT_CHAR << comment_cache << endl << COMMENT_CHAR << c;
+    comment_cache.clear();
+    needNewLine = false;
+  }else
+    comment_cache.append(c);
+}
+void RObjectWriter::comment(const std::string& s){
+  comment(s.c_str()); 
+}
 
+template <class T>
+RObjectWriter& RObjectWriter::operator<<(const T t){
+  if(needComma) file << ",";
+  if(needNewLine){
+    if(comment_cache.size()){
+      file << COMMENT_CHAR << comment_cache;
+      comment_cache.clear();
+    }
+    file << std::endl;
+    needNewLine = false;
+  }
+  file << t;
+  needComma = true;
+  return *this;
+}
+
+template RObjectWriter& RObjectWriter::operator<<(const unsigned);
+template RObjectWriter& RObjectWriter::operator<<(const int);
+template RObjectWriter& RObjectWriter::operator<<(const long);
+template RObjectWriter& RObjectWriter::operator<<(const float);
+template RObjectWriter& RObjectWriter::operator<<(const double);
+template RObjectWriter& RObjectWriter::operator<<(const string);
+template RObjectWriter& RObjectWriter::operator<<(const char*);
+template RObjectWriter& RObjectWriter::operator<<(const bool);
+template RObjectWriter& RObjectWriter::operator<<(const char);
+
+RObjectWriter& operator<<(RObjectWriter& R, void (*manip)(RObjectWriter& R)){
+  manip(R);
+  return R;
+}
+RObjectWriter& operator<<(RObjectWriter& R, const Rcomment& c){
+  R.comment(c.str.c_str());
+  return R;
+}

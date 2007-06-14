@@ -53,10 +53,7 @@ void GenotypeProbOutputter::Update( unsigned indiv, unsigned locus,
 /// Output Probs as R object to be read with dget() function
 void GenotypeProbOutputter::Output(const char* filename, const vector<string>& LocusLabels){
   outfile.open(filename);
-
-  outfile << setfill(' ');
-  outfile.setf(ios::fixed); 
-  outfile.precision(6);
+  outfile.setDecimalPrecision(6);
 
   NumIterations /= NumMaskedIndivs;
   NumIterations /= NumMaskedLoci;
@@ -72,13 +69,12 @@ void GenotypeProbOutputter::Output(const char* filename, const vector<string>& L
 
   for(indiv_i = sumProbs.begin(); indiv_i != sumProbs.end(); ++indiv_i) {
 #ifdef GPO_LABELS
-    outfile << endl << "#Individual " << icounter1;
+    stringstream label;
+    label << "Individual " << icounter1;
+    outfile << Rcomment(ss.str().c_str()) << newline;
 #endif
     lcounter1 = 1;
     for (locus_i = indiv_i->begin(); locus_i != indiv_i->end(); ++locus_i) {
-      // Keep one line per genotype triplet, adding a comma at end of previous line
-      outfile << newline;
-
       for (gt_i = locus_i->begin(); gt_i != locus_i->end(); ++gt_i) {
         SumProb = *gt_i;
 	//average over iterations
@@ -90,7 +86,7 @@ void GenotypeProbOutputter::Output(const char* filename, const vector<string>& L
         *gt_i = floor((*gt_i) * 1e6 + 0.5) * 1e-6;
 
         // Output the number, preceded by a comma if not the first element
-        outfile << comma << setw(6) << *gt_i;
+        outfile << *gt_i;
 
 #ifdef GPO_DEBUG
          if (isnan(*gt_i)) {
@@ -104,13 +100,15 @@ void GenotypeProbOutputter::Output(const char* filename, const vector<string>& L
 #endif
       }//end loop over genotypes
 #ifdef GPO_LABELS
-      //comma first except for last line 
-      // (RObjectWriter cannot deal with complex comments like this so have to do it explicitly)
-      if(icounter1< NumMaskedIndivs || lcounter1 < NumMaskedLoci)
-	outfile << COMMA;
-      outfile << " # masked locus no. " << lcounter1;
+      if(icounter1< NumMaskedIndivs || lcounter1 < NumMaskedLoci){
+	stringstream label;
+	label << " masked locus no. "  << lcounter1;
+	outfile << Rcomment(label.str().c_str());
+      }
 #endif
       ++lcounter1;
+      // Keep one line per genotype triplet
+      outfile << newline;
     }//end loop over individuals
     ++icounter1;
   }//end loop over loci

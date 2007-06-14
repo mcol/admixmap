@@ -7,8 +7,13 @@
 #include <string>
 #include <vector>
 
+struct Rcomment{
+  Rcomment(const char* c): str(c){};
+  std::string str;
+};
+
 ///class to write an R object
-class RObjectWriter :public std::ofstream{
+class RObjectWriter {
 
 public:
 
@@ -26,43 +31,38 @@ public:
   ///supply a vector of dimensions and a vector of labels for at least the first dimension
   void close(const std::vector<int>& dims, const std::vector< std::vector<std::string> >& dimnames);
   //write a comment, prefixed by a comment character
-  RObjectWriter& comment(const char* c);
+
+  //set decimal precision
+  void setDecimalPrecision(unsigned );
   /**
      manipulator to start new line.
-     Call **before a new line** not after the old one. 
-     First call starts a new line. Every subsequent call writes a comma then starts a new line.
-     If you just want a new line, use endl instead.
+     differs from endl in that the object does not write the newline until there is more output and it remembers if it needs a comma first.
   */
-  friend void newline(RObjectWriter& R);
-
-  friend void comma(RObjectWriter& R);
-
-  ///stream insertion operator to accept newline manipulator
-  ///this allows "R << newline;"
-  friend RObjectWriter& operator<<( RObjectWriter & R, void (*man)(RObjectWriter&));
+  friend void newline(RObjectWriter& R );
+  ///add a comment
+  void comment(const char* );
+  ///add a comment
+  void comment(const std::string&);
+  ///write to file
+  template <class T>
+  RObjectWriter& operator<<(const T);
 
 private:
-  bool needNewLineComma;///< used to determine if a comma is needed before a newline
+  std::ofstream file;
+  bool needNewLine;///< used to determine if a comma is needed before a newline
   bool needComma;///<used to determine if a comma is needed before a new element
   std::string comment_cache;
 
-  ///overloaded close function, private to prevent closing without writing dimensions
-  void close();
   ///write dimensions of R object
   void WriteDimensions(const std::vector<int>&, const std::vector< std::vector<std::string> >&);
 };
 
 //declarations of friend functions
-
 void newline(RObjectWriter& R);
-void comma(RObjectWriter& R);
 
-std::ostream& newline(std::ostream& os);
-std::ostream& comma(std::ostream& os);
-
-RObjectWriter& operator<<( RObjectWriter & R, void (*man)(RObjectWriter&));
-
-//define a comma followed by a space, for convenience. 
-#define COMMA ", "
+//stream insertion for newline
+RObjectWriter&  operator<<(RObjectWriter& R, void (*man)(RObjectWriter&));
+//stream insertion for comments
+RObjectWriter&  operator<<(RObjectWriter& R, const Rcomment&);
 
 #endif
