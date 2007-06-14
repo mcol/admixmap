@@ -55,7 +55,10 @@ int main(int argc, char **argv){
       ss << options.getPrefix() << "/chr" << options.getChrNum();
       prefix = ss.str();
     }
-    
+    // *** PHASE 0: remove monomorphic loci ***
+    RemoveMonomorphicLoci(prefix, options.Verbose(), options.Backup()); 
+
+   
     // *** PHASE 1: read legend file  ***
     
     //read HapMap legend file
@@ -117,14 +120,13 @@ int main(int argc, char **argv){
     // *** PHASE 3: write locus file, count number of loci  ***
     WriteLocusFile(Legend, options.getLocusFilename(), first, last, options.Verbose());
     if(options.Verbose())
-      cout << "Finished writing locusfile. "// << last - first << " loci" 
+      cout << "Finished writing locusfile. "
 	   << endl << endl;
     
     // *** PHASE 4: Write genotypesfile, count gametes  ********
     WriteGenotypesFile(Legend, options.getGenotypesFilename(), prefix, first, last, options.Verbose());
     if(options.Verbose()){
       cout << endl << "Finished writing genotypesfile" << endl;
-      //cout << gamete << " gametes" << endl;
     }
     
     // *** PHASE 5: Split initial value files  *********

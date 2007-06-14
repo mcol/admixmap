@@ -21,6 +21,7 @@ using namespace::std;
 FPHDOptions::FPHDOptions(int argc, char** argv){
   //set defaults
   beVerbose = false;
+  backup = true;
   prefix = ".";
   incasecontrolfilename;
   outcasecontrolfilename;
@@ -68,6 +69,9 @@ void FPHDOptions::ParseOptions(int argc, char** argv){
   //set verbose flag
   beVerbose = opt.getFlag("verbose");
 
+  //set backup flag
+  backup = opt.getFlag("backup");
+
   //set default ouput ccgenotypesfilename if none specified
   if(incasecontrolfilename.size() && !outcasecontrolfilename.size())
     outcasecontrolfilename = "CaseControlGenotypes.txt";
@@ -99,6 +103,7 @@ void FPHDOptions::DefineOptions(bcppcl::OptionReader& opt){
   opt.addOption('p', "prefix", bcppcl::stringOption, &prefix);
   opt.addOption('g', "genotypesfile", bcppcl::stringOption, &genotypesfilename);
   opt.addOption('l', "locusfile", bcppcl::stringOption, &locusfilename);
+  opt.addFlag('b', "backup");
   //  opt.addOption('n', "numloci", bcppcl::longOption, &locuslimit);
   opt.addOption('M', "maxloci", bcppcl::intOption, &MaxLoci);
   opt.addOption("minoverlap", bcppcl::floatOption, &MinOverlap_kb);
@@ -131,6 +136,7 @@ void FPHDOptions::PrintHelpText(){
        << "-l   -locusfile = loci      Output locus file prefix" << endl
        << "-g   -genotypesfile = genotypes.txt" << endl
        << "                            Output genotypes file prefix" << endl
+       << "-b   -backup                Back up original data if monomorphic loci found" << endl
        << "-i   -inputfile             Raw case-control genotypes file. This file will be" << endl
        << "                            formatted and used to restrict the range of " << endl 
        << "                            HapMap loci output." << endl
@@ -171,6 +177,10 @@ const std::string& FPHDOptions::getPrefix()const{
 }
 unsigned FPHDOptions::getChrNum()const{
   return Chr;
+}
+
+bool FPHDOptions::Backup()const{
+  return backup;
 }
 
 unsigned long FPHDOptions::getMaxLoci()const{

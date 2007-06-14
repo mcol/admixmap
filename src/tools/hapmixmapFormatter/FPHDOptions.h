@@ -23,6 +23,7 @@ public:
   static void PrintHelpText();
   bool Verbose()const;
   bool LimitedLoci()const;
+  bool Backup()const;
   const std::string& getPrefix()const;
   unsigned getChrNum()const;
   unsigned long getMaxLoci()const;
@@ -40,7 +41,7 @@ public:
   unsigned getMinOverlap()const;
   void setMaxLoci(unsigned);
 private:
-  bool beVerbose;
+  bool beVerbose, backup;
   std::string prefix;
   //bool LimitLoci;
   unsigned Chr;//chromosome number

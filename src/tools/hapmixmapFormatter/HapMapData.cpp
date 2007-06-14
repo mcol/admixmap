@@ -17,6 +17,7 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
+#include <cstdio>//for rename
 
 using namespace::std;
 
@@ -28,6 +29,7 @@ void WriteLocusFileBody(HapMapLegend& Legend, vector<ofstream*>& locusfiles,
 void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Legend, 
 			    unsigned first, unsigned last, const string& prefix, bool beVerbose);
 vector<unsigned> FindMonomorphicLoci(vector<unsigned> AlleleCounts[2]);
+
 void WriteLocusFile(HapMapLegend& Legend, const char* fileprefix, 
 		    unsigned first, unsigned last, bool beVerbose){
 
@@ -164,9 +166,7 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
   int gamete = 0;
   int allele = 0;
   const unsigned NumLoci = Legend.size();
-  //vector to counts alleles in order to check for monomorphic loci
-  vector<unsigned> NullCounts(NumLoci, 0);
-  vector<unsigned> AlleleCounts[2] = {NullCounts, NullCounts};
+
   phasedfile >> allele;
   while (!phasedfile.eof()) {
     //if (beVerbose)
@@ -194,7 +194,6 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
 	    sub != Legend[j].subchr.end(); ++sub){
 	  *(genotypesfiles[*sub]) << allele + 1 << " ";
 	}
-	AlleleCounts[allele][j-first]++;
       }
       phasedfile >> allele;
     }
@@ -205,19 +204,133 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
   phasedfile.close();
   samplefile.close();
 
-  vector<unsigned> MMLoci = FindMonomorphicLoci(AlleleCounts);
-  if(MMLoci.size()){
-    //if(beVerbose)
-      cout << "\nWARNING: " << MMLoci.size() << " monomorphic loci";
-  }
-
 }
 
-vector<unsigned> FindMonomorphicLoci(vector<unsigned> AlleleCounts[2]){
-  vector<unsigned> MonomorphicIndices;
-  for(unsigned locus = 0; locus < AlleleCounts[0].size(); ++locus){
-    if(AlleleCounts[0][locus] == 0 || AlleleCounts[1][locus] == 0)
-      MonomorphicIndices.push_back(locus);
+void RemoveMonomorphicLoci( const string& prefix, bool beVerbose, bool backup){
+  string PhasedFilename = prefix + "_phased.txt";
+  string LegendFilename = prefix + "_legend.txt";
+  string outLegendFilename = prefix + "_tempLegend.txt";
+  string outPhasedFilename = prefix + "_tempPhased.txt";  
+
+  //read legend file to determine number of loci
+  char line[100];
+  unsigned long NumLoci = 0;
+  ifstream legendfile(LegendFilename.c_str());
+  if(!legendfile.is_open()){
+    cerr << "ERROR: cannot open " << LegendFilename << endl;
+    exit(1);
   }
-  return MonomorphicIndices;
+  while(! legendfile.getline(line, 100).eof()){
+    ++NumLoci;
+  }
+  --NumLoci;
+  legendfile.close();
+  legendfile.clear();
+
+  // cout << "Found " << NumLoci << " loci" << endl;
+
+  // read phased file and count alleles
+  ifstream phasedfile(PhasedFilename.c_str());
+  if(!phasedfile.is_open()){
+    cerr << "ERROR: cannot open " << PhasedFilename << endl;
+    exit(1);
+  }
+  char* genotypes = new char[2*NumLoci];
+  vector<unsigned> AlleleSums(NumLoci, 0);
+  unsigned NumIndivs = 0;
+  while(! (phasedfile.get(genotypes, 2*NumLoci).eof())){
+    char* tok = genotypes;
+    for(unsigned i = 0; i < NumLoci ; ++i, tok+=2){
+      AlleleSums[i] += atoi(tok);
+    }
+    ++NumIndivs;
+  }
+
+  phasedfile.close();
+  phasedfile.clear();
+
+  //search for monomorphic loci
+  vector<bool> isMM;
+  unsigned numMM = 0;
+  for(vector<unsigned>::const_iterator i = AlleleSums.begin(); i != AlleleSums.end(); ++i){
+    if(*i == 0 || *i == NumIndivs){//is monomorphic
+      isMM.push_back(true);
+      ++numMM;
+    }
+    else
+      isMM.push_back(false);
+  }
+  AlleleSums.clear();
+
+  //write new files, if any MM loci
+  if(numMM){
+    if(beVerbose)
+      cout << numMM << " monomorphic loci found" << endl;
+
+    //write new legend file
+    ofstream outlegendfile(outLegendFilename.c_str());
+    if(!outlegendfile.is_open()){
+      cerr << "ERROR: cannot open " << outLegendFilename << endl;
+      exit(1);
+    }
+    unsigned long locus = 0;
+    legendfile.open(LegendFilename.c_str());
+
+    string header;
+    getline(legendfile, header);
+    outlegendfile << header << endl;
+
+    while(! legendfile.getline(line, 100).eof()){
+      if(!isMM[locus])//write only polymorphic loci
+	outlegendfile << line << endl;
+      ++locus;
+    }
+    legendfile.close();
+    outlegendfile.close();
+
+    //write new genotypesfile
+    phasedfile.open(PhasedFilename.c_str());
+    ofstream outphasedfile(outPhasedFilename.c_str());
+    if(!outphasedfile.is_open()){
+      cerr << "ERROR: cannot open " << PhasedFilename << endl;
+      exit(1);
+    }
+
+    unsigned g;
+    for(unsigned i = 0; i < NumIndivs; ++i){
+      for(locus = 0; locus < NumLoci; ++locus){
+	phasedfile >> g;
+	if(!isMM[locus]){
+	  outphasedfile << g << " ";
+	}
+      }
+    }//end i loop
+    phasedfile.close();
+    outphasedfile.close();
+
+    int result = 0;
+    //back up old files
+    if(backup){
+      result = rename(LegendFilename.c_str(), (LegendFilename + ".bk").c_str());
+      if(result)
+	perror("Error backing up legend file\n");
+      result = rename(PhasedFilename.c_str(), (PhasedFilename + ".bk").c_str());
+      if(result)
+	perror("Error backing up phased file\n");
+    }
+    //rename temp files
+    result = rename(outLegendFilename.c_str(), LegendFilename.c_str());
+    if(result)
+      perror("Error overwriting legend file\n");
+    result = rename(outPhasedFilename.c_str(), PhasedFilename.c_str());
+    if(result)
+      perror("Error overwriting phased file\n");
+    if(beVerbose)
+      cout << "Finished removing monomorphic loci " << endl;
+  }
+  else{
+    if(beVerbose)
+      cout << "Hurray! No monomorphic loci found" << endl;
+  }
+
 }

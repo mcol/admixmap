@@ -40,4 +40,7 @@ void WriteLocusFile(HapMapLegend& Legend, const char* fileprefix,
 */
 void WriteGenotypesFile(HapMapLegend& Legend, const char* fileprefix, const std::string& dataprefix,  
 			unsigned first, unsigned last, bool beVerbose);
+
+///remove monomorphic loci from HapMap data. Call this before reading legend.
+void RemoveMonomorphicLoci( const std::string& prefix, bool beVerbose, bool backup);
 #endif

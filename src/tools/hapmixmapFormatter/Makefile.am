@@ -16,11 +16,10 @@ FPHD_SOURCES = \
   InitialValues.h \
   InitialValues.cpp
 
-
-FUD_SOURCES = FormatUnphasedData.cpp
-
 #TODO: only requires gsl_permutation.la sublibrary of gsl so wasteful to link against entire gsl
 FPHD_LDADD= -lbcppcl -lgsl
+
+FUD_SOURCES = FormatUnphasedData.cpp
 
 EXTRA_DIST = repairSecondColumn.pl getdata.pl README.txt
 
