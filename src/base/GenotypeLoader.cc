@@ -14,6 +14,10 @@
 #include "Genome.h"
 #include "bcppcl/DataReader.h"
 #include "bcppcl/StringConvertor.h"
+#include "bcppcl/LogWriter.h"
+
+//delimiters for diploid genotypes
+#define GENOTYPE_DELIMS ",/:"
 
 GenotypeLoader::GenotypeLoader(){
   NumIndividuals = 0;
@@ -61,7 +65,7 @@ vector<unsigned short> GenotypeLoader::GetGenotype(const string genostring)const
     return g;
   }
   //look for , or / or :
-  string::size_type i = str.find_first_of(",/:");
+  string::size_type i = str.find_first_of(GENOTYPE_DELIMS);
   //extract first allele as portion of string up to first ',' or '/' or ':'
   //NOTE: if string consists only of ',' or '/' or ':' or anything non-numeric, genotype is taken as missing
   g.push_back(atoi(str.substr(0,i).c_str()));
@@ -235,3 +239,53 @@ void GenotypeLoader::clear(){
 
 }
 
+bool GenotypeLoader::CheckForUnobservedAlleles(const DataMatrix& LocusData, bool hasSexCol, LogWriter& Log){
+  //sanity checks
+  if(!(geneticData_.size()))
+    throw runtime_error("CheckForMonomorphicLoci called when genotype data are not available\n");
+  if(LocusData.nRows() != geneticData_[0].size()-1)
+    throw string("Error in CheckForMonomorphicLoci: number of loci in locusfile and genotypesfile do not match");
+
+  //offset cols by 2 if sexcol, 1 (for ID) otherwise
+  const unsigned offset = hasSexCol ? 2 :1;
+  vector<string> MMLoci;//vector of names of monomorphic loci
+  for(unsigned locus = 0; locus < LocusData.nRows(); ++locus){
+    //create vector of counts of length number of alleles
+    vector<unsigned> AlleleCounts((unsigned)(LocusData.get(locus, 0)), 0);
+
+    //loop over individuals, counting alleles
+    for(unsigned i = 1; i < geneticData_.size(); ++i){
+      //find separator in diploid genotypes
+      string::size_type sep = geneticData_[i][locus+offset].find_first_of(GENOTYPE_DELIMS);
+      const unsigned allele1 = atoi(geneticData_[i][locus+offset].substr(0, sep).c_str());
+      const unsigned allele2 = atoi(geneticData_[i][locus+offset].substr(sep+1).c_str());
+      //increment count of first allele
+      if(allele1)++AlleleCounts[allele1-1];
+      //increment count of second allele
+      if(sep != string::npos)      
+	if(allele2)++AlleleCounts[allele2-1 ];
+    }
+    for(vector<unsigned>::const_iterator a = AlleleCounts.begin(); a != AlleleCounts.end(); ++a){
+      if(*a ==0 ){//found an unobserved allele
+	MMLoci.push_back(geneticData_[0][locus+1]);
+	break;
+      }
+    }
+
+  }
+
+  bool allClear = true;
+  if(MMLoci.size()){
+    allClear = false;
+    Log << "WARNING: found " << (int)(MMLoci.size());
+    if(MMLoci.size()==1) Log << " locus "; else Log << " loci ";
+    Log << "with unobserved alleles:\n";
+    if(MMLoci.size() < 10){
+      for(vector<string>::const_iterator i = MMLoci.begin(); i < MMLoci.end(); ++i)
+	Log << *i << "\n";
+    }
+    else
+      Log << "The first is " << MMLoci[0] << " and the last is " << MMLoci[MMLoci.size()-1] << "\n";
+  }
+  return allClear;
+}

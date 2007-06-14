@@ -43,9 +43,6 @@ void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  Log
   //set IC pointer in base class to the same address as HMIC
   IC = HMIC;
 
-  if(options.CheckData())
-    data.CheckForMonomorphicLoci(Log);
-
   //load Outcome and Covariate data into IC
   IC->LoadData(&options, &data, false);
 

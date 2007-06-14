@@ -43,8 +43,7 @@ void InputHapMixData::CheckData(HapMixOptions *options, LogWriter &Log){
   distanceUnit = DetermineUnitOfDistance();
 
   Log.setDisplayMode(Quiet);
-  DetermineSexColumn();
-
+ 
   double threshold = 100.0;//if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
   checkLocusFile(genotypesSexColumn, threshold, options->CheckData());
   //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file

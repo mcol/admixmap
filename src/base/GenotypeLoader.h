@@ -19,6 +19,7 @@
 
 class LogWriter;
 class Genome;
+class DataMatrix;
 
 typedef std::vector<std::vector<unsigned short> > genotype;
 
@@ -43,6 +44,9 @@ public:
   */
   virtual void GetGenotype(int i, int SexColumn, const Genome &Loci, 
 		   std::vector<genotype>* genotypes, bool **Missing)const;
+
+  //check genotypes for unobserved alleles
+  bool CheckForUnobservedAlleles(const DataMatrix& LocusData, bool hasSexCol, LogWriter& Log);
 
   ///returns number of individuals
   virtual unsigned getNumberOfIndividuals()const;

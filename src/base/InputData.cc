@@ -49,10 +49,15 @@ void InputData::ReadData(Options *options, LogWriter &Log){
     {
       // Read all input files.
       DataReader::ReadData(options->getLocusFilename(), locusData_, Log);   //locusfile
-      DataReader::convertMatrix(locusData_, locusMatrix_, 1, 1,2);//drop first row, first col and last col
+      //convert to DataMatrix, dropping header and first col and use only 2 cols
+      DataReader::convertMatrix(locusData_, locusMatrix_, 1, 1,2);
 
       //read genotype data
       genotypeLoader->Read(options->getGenotypesFilename(), Log);
+      DetermineSexColumn();
+      if(options->CheckData())
+	if(!genotypeLoader->CheckForUnobservedAlleles(locusMatrix_, genotypesSexColumn, Log))
+	  exit(1);
       
       DataReader::ReadData(options->getCovariatesFilename(), inputData_, covariatesMatrix_,Log);     //covariates file
       DataReader::ReadData(options->getOutcomeVarFilename(), outcomeVarData_,outcomeVarMatrix_, Log);//outcomevar file

@@ -22,9 +22,6 @@ HapMixGenotypeLoader::HapMixGenotypeLoader(){
 
 void HapMixGenotypeLoader::Read(const char* filename, LogWriter& Log){
   GenotypeLoader::Read(filename, Log);
-  //if we get this far, geneticData_ is guaranteed to be non-empty
-  alleleCounts[0].assign(geneticData_[0].size(), 0);
-  alleleCounts[1].assign(geneticData_[0].size(), 0);
 }
 
 void HapMixGenotypeLoader::ReadCaseControlGenotypes(const char* filename, LogWriter& Log){
@@ -67,7 +64,6 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, int SexColumn, const Genome 
         else{//exclude missing genotypes from counts
           if(isXChr)++numhaploidX;
           else ++numhaploid;
-	  if(!isCaseControl && alleleCounts[g[0]-1].size())++alleleCounts[g[0]-1][locus];
         }
         
       }
@@ -89,20 +85,14 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, int SexColumn, const Genome 
           }
           case 2:{//1,1
             genotypes->push_back(1);
-	    if(!isCaseControl && alleleCounts[0].size())++alleleCounts[0][locus];
             break;
           }
           case 3:{//1,2
             genotypes->push_back(3);
-	    if(!isCaseControl && alleleCounts[0].size()){
-	      ++alleleCounts[0][locus];
-	      ++alleleCounts[1][locus];
-	    }
             break;
           }
           case 4:{//2,2
             genotypes->push_back(2);
-	    if(!isCaseControl && alleleCounts[1].size())++alleleCounts[1][locus];
             break;
           }
           default:{
@@ -129,29 +119,6 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, int SexColumn, const Genome 
   bool isHaploid = (bool)(numdiploid+numdiploidX == 0); 
 
   return isHaploid;
-}
-
-void HapMixGenotypeLoader::CheckForMonomorphicLoci(LogWriter& Log)const{
-  std::vector<unsigned> MMLoci;
-
-  for(unsigned locus = 0; locus < geneticData_[0].size()-1; ++locus){
-    if(!alleleCounts[0][locus] || !alleleCounts[1][locus])
-      MMLoci.push_back(locus);  
-  }
-  if(MMLoci.size()){
-    Log << On << "ERROR: " << (int)(MMLoci.size()) << " loci are monomorphic. Check your genotypesfile.\n";
-    if(MMLoci.size() < 10){
-      for(vector<unsigned>::const_iterator j = MMLoci.begin(); j != MMLoci.end(); ++j){
-	Log << geneticData_[0][*j+1] << "\n";
-      }
-    }
-    else{
-      Log << "The first is " << geneticData_[0][MMLoci[0]+1]
-	  << "\n and the last is " << geneticData_[0][*(MMLoci.end()-1)+1] << "\n";
-    }
-    exit(1);
-  }
-
 }
 
 unsigned HapMixGenotypeLoader::getNumberOfCaseControlIndividuals()const{

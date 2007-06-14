@@ -38,8 +38,7 @@ public:
   */
   bool GetHapMixGenotype(int i, int SexColumn, const Genome &Loci,
 			 std::vector<unsigned short>* genotypes, bool** Missing);
-  ///check for monomorphic loci
-  void CheckForMonomorphicLoci(LogWriter& Log)const;
+
   ///returns number of individuals (including cases and controls)
   unsigned getNumberOfIndividuals()const;
   ///returns number of cases and controls
@@ -68,8 +67,6 @@ private:
   std::vector<bool> isCaseControlSNP;
   ///number of cases/controls
   int NumCCIndividuals;
-  /// counts of alleles in hapmix genotypesfile, to check for monomorphic loci
-  std::vector<unsigned> alleleCounts[2];
 
   /**
      gets a hapmix case-control genotype from the ccgenotypes file.
