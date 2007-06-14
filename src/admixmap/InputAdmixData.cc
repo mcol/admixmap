@@ -52,7 +52,8 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
   distanceUnit = DetermineUnitOfDistance();
 
   Log.setDisplayMode(Quiet);
- 
+  DetermineSexColumn();
+
   double threshold = 100.0;
   checkLocusFile(genotypesSexColumn, threshold, options->CheckData());
   //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file

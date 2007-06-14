@@ -54,10 +54,6 @@ void InputData::ReadData(Options *options, LogWriter &Log){
 
       //read genotype data
       genotypeLoader->Read(options->getGenotypesFilename(), Log);
-      DetermineSexColumn();
-      if(options->CheckData())
-	if(!genotypeLoader->CheckForUnobservedAlleles(locusMatrix_, genotypesSexColumn, Log))
-	  exit(1);
       
       DataReader::ReadData(options->getCovariatesFilename(), inputData_, covariatesMatrix_,Log);     //covariates file
       DataReader::ReadData(options->getOutcomeVarFilename(), outcomeVarData_,outcomeVarMatrix_, Log);//outcomevar file

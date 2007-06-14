@@ -54,9 +54,6 @@ public:
   */
   bool IsCaseControl(int i)const;
 
-  ///determine if there are any monomorphic loci
-  void CheckForMonomorphicLoci(LogWriter& Log)const;
-
   /**
      Determines if a locus is typed (case/control)
      \param locus index of locus

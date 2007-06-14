@@ -43,6 +43,10 @@ void InputHapMixData::CheckData(HapMixOptions *options, LogWriter &Log){
   distanceUnit = DetermineUnitOfDistance();
 
   Log.setDisplayMode(Quiet);
+  DetermineSexColumn();
+  if(options->CheckData())
+    if(!genotypeLoader->CheckForUnobservedAlleles(locusMatrix_, genotypesSexColumn, Log))
+      exit(1);
  
   double threshold = 100.0;//if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
   checkLocusFile(genotypesSexColumn, threshold, options->CheckData());
@@ -90,10 +94,6 @@ void InputHapMixData::GetGenotype(int i, const Genome &Loci,
 bool InputHapMixData::GetHapMixGenotype(int i, const Genome &Loci, 
 				  std::vector<unsigned short>* genotypes, bool** Missing){
   return hGenotypeLoader->GetHapMixGenotype(i, genotypesSexColumn, Loci, genotypes, Missing);
-}
-
-void InputHapMixData::CheckForMonomorphicLoci(LogWriter& Log)const{
-  hGenotypeLoader->CheckForMonomorphicLoci(Log);
 }
 
 void InputHapMixData::ReadBlockStateLabels(HapMixOptions *options){

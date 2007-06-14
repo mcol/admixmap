@@ -242,9 +242,9 @@ void GenotypeLoader::clear(){
 bool GenotypeLoader::CheckForUnobservedAlleles(const DataMatrix& LocusData, bool hasSexCol, LogWriter& Log){
   //sanity checks
   if(!(geneticData_.size()))
-    throw runtime_error("CheckForMonomorphicLoci called when genotype data are not available\n");
+    throw runtime_error("CheckForUnobservedAlleles called when genotype data are not available\n");
   if(LocusData.nRows() != geneticData_[0].size()-1)
-    throw string("Error in CheckForMonomorphicLoci: number of loci in locusfile and genotypesfile do not match");
+    throw string("Error in CheckForUnobservedAlleles: number of loci in locusfile and genotypesfile do not match");
 
   //offset cols by 2 if sexcol, 1 (for ID) otherwise
   const unsigned offset = hasSexCol ? 2 :1;
