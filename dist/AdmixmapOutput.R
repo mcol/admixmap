@@ -1,18 +1,56 @@
-# rm(list = ls())  ## remove (almost) everything in the working environment.
-#library(MASS)
-## to run this script from an R console session, set environment variable RESULTSDIR
+#######################################################
+## AdmixmapOutput.R
+## An R script to process ADMIXMAP or HAPMIXMAP output
+##
+## There are 4 ways to run the script:
+## In each case, 'resultsdir', refers to the ADMIXMAP/HAPMIXMAP output directory (default 'results')
+##           and 'plot_type' can be one of 'ps'(default), 'pdf', 'jpeg' or 'png'
+## On the command line:
+##  1a. (recommended): R binary with arguments
+##      R --vanilla --args [resultsdir [plot_type] ] <path/to/script/AdmixmapOutput.R >resultsdir/Rlog.txt
+##  1b. (used in perl scripts) batch mode with environment variables
+##      Either (Linux/Unix) export RESULTSDIR=resultsdir
+##                          export RPLOTS=plot_type
+##          or (Windows)    set RESULTSDIR=resultsdir
+##                          set RPLOTS=plot_type
+##      Then, R CMD BATCH --vanilla path/toscript/AdmixmapOutput.R resultsdir/Rlog.txt
+##  1c. (R version 2.5 or greater) Rscript front-end to BATCH mode
+##     Rscript path/to/script/AdmixmapOutput.R resultsdir plot_type >resultsdir/Rlog.txt
+##
+## 2. Interactively, in R console session: 
+## set environment variable RESULTSDIR
 ## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
+## Set RPLOTS similarly, then type
+## source("<path/to/script>/AdmixmapOutput.R")
+#######################################################
 message <- "\n\nStarting R script\n";
 
-if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
-  resultsdir <- Sys.getenv("RESULTSDIR")
-} else {
-  ## resultsdir set to default directory 
-  resultsdir <- "results"
+##retrieve args
+args <- commandArgs(TRUE);
+
+##find results dir
+if(length(args) > 0){
+  resultsdir <- args[1];
+}else{  
+  if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
+    resultsdir <- Sys.getenv("RESULTSDIR")
+  } else {
+    ## resultsdir set to default directory 
+    resultsdir <- "results"
+  }
 }
+if(!file.exists(resultsdir)){
+  cat("Error in AdmixmapOutput.R: cannot find resultsdir\n", file=stderr())
+  q()
+}
+
 ##determine plotting device
 ## can be postscript, pdf, jpeg or png
-plotDevice <- Sys.getenv("RPLOTS")
+if(length(args) > 1){
+  plotDevice <- args[2]
+}else{
+  plotDevice <- Sys.getenv("RPLOTS")
+}
 
 openPlotDevice <- function(filename){
   if(plotDevice == "pdf"){
@@ -1094,23 +1132,7 @@ if(is.null(user.options$paramfile)) {
                                         # global sum of intensities or gamma shape param if hierarchical
       param.samples <- read.table(paramfile, header=TRUE)
       n <- dim(param.samples)[1]
-      if(user.options$hapmixmodel ==1){
-        checkConvergence(param.samples, "Population sumintensities parameters",
-                         paste(resultsdir, "SumIntensitiesConvergenceDiags.txt", sep="/"));
-        openPlotDevice( paste(resultsdir, "PopSumIntensitiesAutocorrelations", sep="/" ))     
-        plotAutocorrelations(param.samples, user.options$every)
-        dev.off()
-      }else{
-        for(pop in 1:K) {##prepend "Dirichlet." to labels of Dirichlet params 
-          dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
-                                                     population.labels[pop], sep="")
-        }
-        ## Geweke convergence diagnostics,  autocorrelations and ergodic average plots
-        checkConvergence(param.samples, "Population admixture parameters",
-                         paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
-        openPlotDevice( paste(resultsdir, "PopAdmixParamAutocorrelations", sep="/" ))     
-        plotAutocorrelations(param.samples, user.options$every)
-        dev.off()
+      if(user.options$hapmixmodel !=1){#admixmap
 
         if(K > 1) {
           ## extract Dirichlet admixture parameters
@@ -1120,7 +1142,7 @@ if(is.null(user.options$paramfile)) {
         } else {
           pop.admix.prop <- NULL
         }
-      }##end nonhapmixmodel block
+      }##end admixmap block
       cat(" done\n", file=outfile, append=T)
     }
   }
@@ -1137,13 +1159,6 @@ if(is.null(user.options$regparamfile) ||
   cat("reading regression parameters...", file=outfile, append=T)
   regparam.samples <- read.table(paste(resultsdir, user.options$regparamfile, sep="/"), header=TRUE)
   n.covariates <- getNumCovariates(user.options)
-  
-  ## Geweke convergence diagnostics, autocorrelation and ergodic average plots
-  checkConvergence(regparam.samples, "Regression parameters",
-                   paste(resultsdir, "RegressionParamConvergenceDiags.txt", sep="/"))
-  openPlotDevice(paste(resultsdir, "RegressionParamAutocorrelations", sep="/" ))     
-  plotAutocorrelations(regparam.samples, user.options$every)
-  dev.off()
   
   #beta.admixture <- getRegressionParamsForAdmixture(user.options, K, n.covariates, population.labels)
   #if(K > 2 && !is.null(pop.admix.prop)) {
@@ -1172,11 +1187,6 @@ if(is.null(user.options$dispparamfile)||
   if(!is.null(user.options$historicallelefreqfile)) {
     dimnames(eta.samples)[[2]] <- paste("eta", population.labels, sep="." )
   }
-  checkConvergence(eta.samples, "Dispersion parameters",
-                   paste(resultsdir, "DispParamConvergenceDiags.txt", sep="/"))
-  openPlotDevice(paste(resultsdir, "DispParamAutocorrelations", sep="/" ))     
-  plotAutocorrelations(eta.samples, user.options$every)
-  dev.off()
   cat(" done\n", file=outfile, append=T)
 }   
 
@@ -1191,16 +1201,23 @@ if(user.options$hapmixmodel == 1){
 }
 
 ## combine samples of Dirichlet params, admixture proportions, dispersion params, regression params
-param.samples.all <- cbindIfNotNull(param.samples, pop.admix.prop)
+param.samples.all <- param.samples#cbindIfNotNull(param.samples, pop.admix.prop)
 param.samples.all <- cbindIfNotNull(param.samples.all, eta.samples)
 param.samples.all <- cbindIfNotNull(param.samples.all, hapmix.freq.precision.samples)
 param.samples.all <- cbindIfNotNull(param.samples.all, regparam.samples)
 param.samples.all <- cbindIfNotNull(param.samples.all, effect.pop)
-## calculate posterior quantiles
+
 if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
-  nvars <- dim(param.samples.all)[2]
-  post.quantiles <- calculateAndPlotQuantiles(param.samples.all, nvars)
-##plot traces
+  ## calculate posterior quantiles, including admixture proportions
+  nvars <- dim(param.samples.all)[2] + dim(pop.admix.prop)[2]
+  post.quantiles <- calculateAndPlotQuantiles(cbindIfNotNull(pop.admix.prop, param.samples.all), nvars)
+  ## plot autocorrelations
+  openPlotDevice(paste(resultsdir, "Autocorrelations", sep="/"))
+  plotAutocorrelations(param.samples.all, user.options$every)
+  dev.off()
+  ## calculate convergence diagnostics
+  checkConvergence(param.samples.all, "Parameters", paste(resultsdir,"ConvergenceDiagnostics.txt" , sep="/"))
+  ##plot traces
   openPlotDevice(paste(resultsdir, "TracePlots", sep="/"))
   nsamples <- dim(param.samples.all)[1]
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
