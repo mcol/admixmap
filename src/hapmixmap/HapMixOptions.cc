@@ -18,6 +18,12 @@
 using namespace std;
 using namespace bcppcl;
 
+//define names of initial/final value files
+#define ARRIVALRATESSTATEFILE "/state-arrivalrates.txt"
+#define MIXTUREPROPSSTATEFILE "/state-mixtureprops.txt"
+#define ALLELEFREQSTATEFILE "/state-allelefreqs.txt"
+#define FREQPRIORSTATEFILE "/state-freqpriors.txt"
+
 HapMixOptions::HapMixOptions(int argc,  char** argv){
   SetDefaultValues();
   DefineOptions();
@@ -31,30 +37,20 @@ void HapMixOptions::SetDefaultValues(){
   FixedMixtureProps = true;
   FixedMixturePropsPrecision = true;
   MixturePropsPrecision = 0.0;
+  NumStarts = 0;
 
   // option names and default option values are stored as strings in a map container 
   // these are default values
   // other specified options will be appended to this array 
 
-  //final values are always output to file, with these default filenames
-  AlleleFreqOutputFilename = "state-allelefreqs.txt";
-  FinalFreqPriorFilename = "state-freqpriors.txt";
-  FinalLambdaFilename = "state-arrivalrates.txt";
-  FinalMixturePropsFilename = "state-mixtureprops.txt";
-
-  useroptions["states"] = "4";
+  useroptions["states"] = "8";
   useroptions["arrivalrateprior"] = "12, 0.5, 2";
-  useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
-  useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
-  useroptions["finalarrivalratefile"] = FinalLambdaFilename;
-  useroptions["finalmixturepropsfile"] = FinalMixturePropsFilename;
   useroptions["residualadhiermodel"] = "0";
   useroptions["fixedmixtureprops"] = "1";
   useroptions["fixedmixturepropsprecision"] = "1";
 }
 
-HapMixOptions::~HapMixOptions()
-{
+HapMixOptions::~HapMixOptions(){
 }
 
 // each option has a function to return its value
@@ -97,18 +93,19 @@ bool HapMixOptions::getHapMixModelIndicator() const{
 bool HapMixOptions::isFreqPrecisionHierModel()const{
   return FreqPrecisionHierModel;
 }
-int HapMixOptions::getNumberOfBlockStates() const
-{
+int HapMixOptions::getNumberOfBlockStates() const{
   return NumBlockStates;
 }
-int HapMixOptions::getPopulations() const
-{
+int HapMixOptions::getPopulations() const{
   return NumBlockStates;
 }
 
-void HapMixOptions::setPopulations(int num)
-{
+void HapMixOptions::setPopulations(int num){
   NumBlockStates = num;
+}
+
+unsigned HapMixOptions::GetNumStarts()const{
+  return NumStarts;
 }
 const vector<float>& HapMixOptions::getLambdaSamplerParams()const{
   return rhoSamplerParams;
@@ -124,17 +121,39 @@ const std::vector<double>& HapMixOptions::getMixturePropsPrecisionPrior()const{
 float HapMixOptions::getMixturePropsPrecision()const{
   return MixturePropsPrecision;
 }
-const char* HapMixOptions::getInitialAlleleFreqFilename()const{
-  return InitialAlleleFreqFilename.c_str();
+
+string HapMixOptions::getInitialValuePath(unsigned startindex, const string& filename)const{
+  stringstream ss;
+  ss << InitialValueDir << "/start" << startindex+1 << filename;
+  return ss.str();
 }
-const char* HapMixOptions::getInitialArrivalRateFilename()const{
-  return InitialArrivalRateFilename.c_str();
+const char* HapMixOptions::getInitialAlleleFreqFilename(unsigned startindex)const{
+  if(NumStarts < 2)//no initial values (filename is empty) or a single start
+    return InitialAlleleFreqFilename.c_str();
+  else {
+    return getInitialValuePath(startindex, InitialAlleleFreqFilename).c_str();
+  }
 }
-const char* HapMixOptions::getInitialMixturePropsFilename()const{
-  return InitialMixturePropsFilename.c_str();
+const char* HapMixOptions::getInitialArrivalRateFilename(unsigned startindex)const{
+  if(NumStarts < 2)//no initial values (filename is empty) or a single start
+    return InitialArrivalRateFilename.c_str();
+  else {
+    return getInitialValuePath(startindex, InitialArrivalRateFilename).c_str();
+  }
 }
-const char* HapMixOptions::getInitialFreqPriorFilename()const{
-  return InitialFreqPriorFile.c_str();
+const char* HapMixOptions::getInitialMixturePropsFilename(unsigned startindex)const{
+  if(NumStarts < 2)//no initial values (filename is empty) or a single start
+    return InitialMixturePropsFilename.c_str();
+  else {
+    return getInitialValuePath(startindex, InitialMixturePropsFilename).c_str();
+  }
+}
+const char* HapMixOptions::getInitialFreqPriorFilename(unsigned startindex)const{
+  if(NumStarts < 2)//no initial values (filename is empty) or a single start
+    return InitialFreqPriorFilename.c_str();
+  else {
+    return getInitialValuePath(startindex, InitialFreqPriorFilename).c_str();
+  }
 }
 
 const std::vector<double> & HapMixOptions::getAlleleFreqPriorParams()const{
@@ -157,15 +176,20 @@ const vector<unsigned>& HapMixOptions::getMaskedLoci()const{
 bool HapMixOptions::OutputCGProbs()const{
   return (MaskedLoci.size() && MaskedIndividuals.size()); 
 }
-
+const char* HapMixOptions::getFinalAlleleFreqFilename()const{
+  return (FinalValueDir + ALLELEFREQSTATEFILE).c_str();
+}
 const char* HapMixOptions::getFinalFreqPriorFilename()const{
-  return FinalFreqPriorFilename.c_str();
+  return (FinalValueDir + FREQPRIORSTATEFILE).c_str();
 }
 const char* HapMixOptions::getFinalLambdaFilename()const{
-  return FinalLambdaFilename.c_str();
+  return (FinalValueDir + ARRIVALRATESSTATEFILE).c_str();
 }
 const char* HapMixOptions::getFinalMixturePropsFilename()const{
-  return FinalMixturePropsFilename.c_str();
+  return (FinalValueDir + MIXTUREPROPSSTATEFILE).c_str();
+}
+const string& HapMixOptions::getFinalValueDir()const{
+  return FinalValueDir;
 }
 unsigned HapMixOptions::GetNumMaskedIndividuals()const{
   return MaskedIndividuals.size();
@@ -182,10 +206,8 @@ void HapMixOptions::DefineOptions()
     data and initial values
   */
   addOption("ccgenotypesfile", stringOption, &CCGenotypesFilename);
-  addOption("initialarrivalratefile", stringOption, &InitialArrivalRateFilename);
-  addOption("initialmixturepropsfile", stringOption, &InitialMixturePropsFilename);
-  addOption("initialfreqpriorfile", stringOption, &InitialFreqPriorFile);
-  addOption("initialallelefreqfile", stringOption, &InitialAlleleFreqFilename);// synonym for allelefreqfile
+  addOption("initialvaluedir", stringOption, &InitialValueDir);
+  addOption("numberofstarts", intOption, &NumStarts);
 
   /*
      model specification
@@ -206,7 +228,7 @@ void HapMixOptions::DefineOptions()
   /*
     prior specification
   */
-  //vector of length 4, 2 Gamma priors on Gamma parameters
+  //vector of length 3 or 4, 2 Gamma priors on Gamma parameters
   addOption("arrivalrateprior", dvectorOption, &lambdaprior);
   //vector of length 2, Gamma prior on Dirichlet precision
   addOption("mixturepropsprecisionprior", dvectorOption, &MixturePropsPrecisionPrior);
@@ -225,10 +247,7 @@ void HapMixOptions::DefineOptions()
   addOption("residualadfile", outputfileOption, &FreqPrecisionOutputFilename);
 
   //final values
-  addOption("finalallelefreqfile", outputfileOption, &AlleleFreqOutputFilename);// synonym for allelefreqoutputfile
-  addOption("finalfreqpriorfile", outputfileOption, &FinalFreqPriorFilename);
-  addOption("finalarrivalratefile", outputfileOption, &FinalLambdaFilename);
-  addOption("finalmixturepropsfile", outputfileOption, &FinalMixturePropsFilename);
+  addOption("finalvaluedir", stringOption, &FinalValueDir);
 
   //posterior means
   addOption("allelefreqprecisionposteriormeanfile", outputfileOption, &AlleleFreqPriorOutputFilename);
@@ -380,10 +399,9 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     Log << "Analysis with prior allele frequencies.\n";
   }
   //default priors ('states' option)
-  else if(NumBlockStates > 0 )
-    {
-      Log << "Default priors will be set for the allele frequencies\n";
-      }
+  else if(NumBlockStates > 0 )  {
+    Log << "Default priors will be set for the allele frequencies\n";
+  }
   
   if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
@@ -392,6 +410,29 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     Log << "\nUsing thermodynamic integration to calculate marginal likelihood ";
   }
 
+  //check initial value dir is specified with multiple starts
+  if(NumStarts > 0){
+    if(!InitialValueDir.size()){
+      Log << "ERROR: multiple starts specified but initial value directory not set\n";
+      badOptions = true;
+    }
+  }
+
+  if(NumStarts == 0)
+    NumStarts = 1;
+  //set initial value filenames
+  if(InitialValueDir.size()){
+    InitialArrivalRateFilename = InitialValueDir + ARRIVALRATESSTATEFILE;
+    InitialMixturePropsFilename = InitialValueDir + MIXTUREPROPSSTATEFILE;
+    InitialAlleleFreqFilename = InitialValueDir + ALLELEFREQSTATEFILE;
+    InitialFreqPriorFilename = InitialValueDir + FREQPRIORSTATEFILE;
+  }
+
+  //default final value dir to results dir if not specified
+  if(!FinalValueDir.size()){
+    FinalValueDir = ResultsDir;
+    useroptions["finalvaluedir"] = ResultsDir;
+  }
 //check maskedloci and maskedindivs options
   if(MaskedLoci.size()){
       if(!MaskedIndividuals.size()){

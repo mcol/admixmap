@@ -99,20 +99,43 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
   double AISz = 0.0;
   if(!AnnealedRun) cout << endl;
 
-  for( int iteration = 0; iteration <= samples; iteration++ ) {
-     //Write Iteration Number to screen
-    if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
-      WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
-    }
+  const unsigned NumberOfRuns = ((HapMixOptions&)options).GetNumStarts();
 
-    //Sample Parameters
-    UpdateParameters(iteration, &options, Log, data.GetHiddenStateLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
-    SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
-	       AnnealedRun);
+  for(unsigned run = 0; run < NumberOfRuns; ++run){
+    if(run > 0)
+      ReadInitialValuesFromFile(run, (HapMixOptions&)options, Log);
+
+    for( int iteration = 0; iteration <= samples; iteration++ ) {
+      //Write Iteration Number to screen
+      if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
+	WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
+      }
+      
+      //Sample Parameters
+      UpdateParameters(iteration, &options, Log, data.GetHiddenStateLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
+      
+      //Output Parameters
+      if(!AnnealedRun){    
+	// output parameters every 'getSampleEvery()' iterations
+	if(!(iteration % options.getSampleEvery()) )
+	  OutputParameters(iteration, &options, Log);
 	
-  }// end loop over iterations
-  //use Annealed Importance Sampling to calculate marginal likelihood
-  if(coolness>0) AISsumlogz += log(AISz /= (double)(samples-burnin));
+	if( iteration > burnin &&
+	    // output every 'getSampleEvery() * 10' iterations after burnin
+	    !( (iteration - burnin) % (options.getSampleEvery() * 10))
+	    ){ 
+	  //Output ergodic averages
+	  OutputErgodicAverages( iteration - burnin, SumEnergy, SumEnergySq);
+	  //Output Test results
+	  OutputTests((HapMixOptions&)options, data, Log);	
+	}   
+      }
+      
+    }// end loop over iterations
+    //use Annealed Importance Sampling to calculate marginal likelihood
+    if(coolness>0) AISsumlogz += log(AISz /= (double)(samples-burnin));
+
+  }
 
 }
 void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogWriter&, 
@@ -207,52 +230,31 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   }
 }
 
-void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _options, InputData & data, 
-			     LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
-			     bool AnnealedRun){
-
-  //cast Options object to HapMixOptions for access to HAPMIXMAP options
-  HapMixOptions& options = (HapMixOptions&) _options;
-
-  //Output parameters to file and to screen
-  Log.setDisplayMode(Quiet);
-  if(!AnnealedRun){    
-    // output every 'getSampleEvery()' iterations
-    if(!(iteration % options.getSampleEvery()) )
-      OutputParameters(iteration, &options, Log);
+///write ergodic averages to file
+void HapMixModel::OutputErgodicAverages(int samples, double & SumEnergy, double & SumEnergySq){
+  if ( avgstream.is_open() ){
+    L->OutputErgodicAvg(samples, avgstream);//average arrival rates
+    A.OutputErgodicAvg(samples, &avgstream);//freq Dirichlet param prior rate
     
-    //Updates and Output after BurnIn     
-    if( !AnnealedRun && iteration > burnin ){
-		
-      // output every 'getSampleEvery() * 10' iterations (still after BurnIn)
-      if (!( (iteration - burnin) % (options.getSampleEvery() * 10))){    
-        //Ergodic averages
-        Log.setDisplayMode(On);
-        if ( strlen( options.getErgodicAverageFilename() ) ){
-          int samples = iteration - burnin;
+    for(unsigned r = 0; r < R.size(); ++r)//regression params
+      R[r]->OutputErgodicAvg(samples,&avgstream);
+    
+    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
+    avgstream << endl;
+  }
+}
 
-          L->OutputErgodicAvg(samples, avgstream);//average arrival rates
-          A.OutputErgodicAvg(samples, &avgstream);//freq Dirichlet param prior rate
-
-          for(unsigned r = 0; r < R.size(); ++r)//regression params
-            R[r]->OutputErgodicAvg(samples,&avgstream);
-
-          OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
-          avgstream << endl;
-        }
-        //Score Test output
-	ResidualAllelicAssocScoreTest.Output(false, data.getLocusLabels());
-	if( options.getTestForAllelicAssociation() )    {
-	  string filename; //ignored if !final
-	  AllelicAssocTest.Output(data.GetHiddenStateLabels(), Loci, false, filename.c_str());
-	}
-
-        if(options.getMHTest() ){
-          MHTest.Output(options.getMHTestFilename(), data.getLocusLabels(), false);
-        }
-      }//end "if every'*10" block
-    }//end "if after BurnIn" block
-  } // end "if not AnnealedRun" block
+///Write score test output
+void HapMixModel::OutputTests(HapMixOptions& options, InputData & data, LogWriter& Log  ){
+  ResidualAllelicAssocScoreTest.Output(false, data.getLocusLabels());
+  if( options.getTestForAllelicAssociation() )    {
+    string filename; //ignored if !final
+    AllelicAssocTest.Output(data.GetHiddenStateLabels(), Loci, false, filename.c_str());
+  }
+  
+  if(options.getMHTest() ){
+    MHTest.Output(options.getMHTestFilename(), data.getLocusLabels(), false);
+  }
 }
 
 void HapMixModel::OutputParameters(int iteration, const Options *options, LogWriter& Log){
@@ -329,7 +331,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
   A.OutputFinalValues(options.getFinalFreqPriorFilename(), Log);
   
   //output final values of allelefreqs
-  A.OutputAlleleFreqs(options.getAlleleFreqOutputFilename(), Log);
+  A.OutputAlleleFreqs(options.getFinalAlleleFreqFilename(), Log);
   
   //output posterior means of allele freq precision
   if(options.OutputAlleleFreqPrior())
@@ -412,3 +414,13 @@ double HapMixModel::getDevianceAtPosteriorMean(const Options* const options, Log
   return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho(), Loci.GetNumberOfChromosomes());
 }
 
+void HapMixModel::ReadInitialValuesFromFile(unsigned startnum, const HapMixOptions& options, LogWriter& Log){
+  L->ReadInitialArrivalRatesFromFile(options.getInitialArrivalRateFilename(startnum), Log);
+  if(options.getFixedMixtureProps())
+    L->ReadInitialMixturePropsFromFile(options.getInitialMixturePropsFilename(startnum), Log);
+
+  if(options.getFixedAlleleFreqs()){
+    A.LoadInitialAlleleFreqs(options.getInitialAlleleFreqFilename(startnum), Log);
+    A.ReadInitialPriorParamsFromFile(options.getInitialFreqPriorFilename(startnum), Log);
+  }
+}

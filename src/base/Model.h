@@ -31,7 +31,7 @@
 #include "Annealer.h"
 
 //prototypes for miscellaneous functions
-void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles=true);
+void CreateDirectory(const char* dirname, bool DeleteExistingFiles=true);
 
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
 
@@ -60,10 +60,6 @@ public:
 		       Options & options, InputData & data, LogWriter& Log, 
 		       double & SumEnergy, double & SumEnergySq, 
 		       bool AnnealedRun) = 0;
-  
-  virtual void SubIterate(int iteration, const int& burnin, Options & options, InputData & data, 
-                          LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
-                          bool AnnealedRun) = 0;
   
   //virtual void Initialise(Options & options, InputData& data,  LogWriter& Log) = 0;
   void InitialiseRegressionObjects(Options & options, InputData& data,  LogWriter& Log) ;

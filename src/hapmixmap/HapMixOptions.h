@@ -38,15 +38,17 @@ public:
   const char* getArrivalRateOutputFilename()const;
   const char* getFinalMixturePropsFilename()const;
   const char* getFinalLambdaFilename()const;
+  const char* getFinalAlleleFreqFilename()const;
   const char* getFinalFreqPriorFilename()const;
+  const string& getFinalValueDir()const;
 
   const std::vector<double>& getMixturePropsPrecisionPrior()const;
   const std::vector<double> &getLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
-  const char* getInitialArrivalRateFilename()const;
-  const char* getInitialMixturePropsFilename()const;
-  const char* getInitialAlleleFreqFilename()const;
-  const char* getInitialFreqPriorFilename()const;
+  const char* getInitialArrivalRateFilename(unsigned startindex=0)const;
+  const char* getInitialMixturePropsFilename(unsigned startindex=0)const;
+  const char* getInitialAlleleFreqFilename(unsigned startindex=0)const;
+  const char* getInitialFreqPriorFilename(unsigned startindex=0)const;
   const char* getCCGenotypesFilename()const;
 
   //indicators and model options
@@ -63,6 +65,7 @@ public:
   bool getTestOneIndivIndicator() const{return false;};//not supported in hapmixmodel
   bool isRandomMatingModel() const{return false;};//required to pass as Options object to some functions
   bool isGlobalRho() const{return false;};//                 "
+  unsigned GetNumStarts()const;
 
   //Score test file names
   const char* getMHTestFilename()const;
@@ -104,16 +107,15 @@ private:
   std::string MHTestFilename;
 
   //intitial values
+  unsigned NumStarts;//number of starts for a multistart run
+  std::string InitialValueDir;
   std::string InitialArrivalRateFilename;
   std::string InitialMixturePropsFilename;
   std::string InitialAlleleFreqFilename;
-  std::string InitialFreqPriorFile;
+  std::string InitialFreqPriorFilename;
 
   //final values
-  std::string FinalFreqPriorFilename;
-  std::string FinalLambdaFilename;
-  std::string FinalMixturePropsFilename;
-  //allelefreqoutputfile used in lieu of FinalAlleleFreqFile
+  std::string FinalValueDir;
 
   //indices for assessing prediction of missing genotypes in hapmixmodel
   std::vector<unsigned> MaskedIndividuals;
@@ -121,6 +123,7 @@ private:
   
   void SetDefaultValues();  
   void DefineOptions();
+  string getInitialValuePath(unsigned startindex, const string& filename)const;
 
   // UNIMPLEMENTED: to avoid use
   HapMixOptions();

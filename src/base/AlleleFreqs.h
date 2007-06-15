@@ -32,6 +32,7 @@ public:
   AlleleFreqs();
   virtual ~AlleleFreqs();
   //virtual void Initialise(Options* const options, InputData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
+  void LoadInitialAlleleFreqs(const char* filename, LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
   virtual void PrintPrior(const Vector_s&, LogWriter& Log)const;
   virtual void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
@@ -86,7 +87,6 @@ protected:
   std::ofstream allelefreqoutput;// object to output allele frequencies
 
   virtual void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
-  void LoadInitialAlleleFreqs(const char* filename, LogWriter &Log);
   virtual void OpenOutputFile(const char* filename);
   virtual void SampleAlleleFreqs(int, const double coolness);
   void SetDefaultAlleleFreqs(int i);

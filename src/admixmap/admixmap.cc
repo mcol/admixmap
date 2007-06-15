@@ -42,7 +42,7 @@ int main( int argc , char** argv ){
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
 
   //create results directory, or if it exists, deletes the contents
-  MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/);
+  CreateDirectory(options.getResultsDir().c_str());
  
   //open logfile, start timer and print start message
   LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));

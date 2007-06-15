@@ -247,7 +247,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   const bool useinitfile = (strlen(initfilename) > 0);
 
   if(useinitfile){
-    ReadInitialArrivalRatesFromFile(initfilename, numIntervals, Log);
+    ReadInitialArrivalRatesFromFile(initfilename, Log);
   }
   
   for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
@@ -267,7 +267,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   
 }
 
-void PopHapMix::ReadInitialArrivalRatesFromFile(const char* initfilename, unsigned numIntervals, LogWriter& Log){
+void PopHapMix::ReadInitialArrivalRatesFromFile(const char* initfilename, LogWriter& Log){
   ifstream initfile(initfilename);
   
   if(initfile.is_open()){
@@ -285,7 +285,7 @@ void PopHapMix::ReadInitialArrivalRatesFromFile(const char* initfilename, unsign
       if(!(initfile >>*ar)){
       //reached end of file before vector full -> file too small
 	Log << On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
-	    << numIntervals + 2 << ", found " << numIntervals - (int)(lambda.end() - ar)+2 << "\n";
+	    << lambda.size() + 2 << ", found " << lambda.size() - (int)(lambda.end() - ar)+2 << "\n";
 	exit(1);
       }
       if(*ar <= 0.0)

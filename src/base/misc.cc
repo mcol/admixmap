@@ -30,9 +30,9 @@ void PrintUsage(const char* ProgName) {
 }
 
 /**
-   Opens a directory for program output
+   Opens a directory for program output or if one exists, empties contents.
 */
-void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles){
+void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
   if(strlen(dirname) && strcmp(dirname, ".") && strcmp(dirname, "..")){
     DIR *pdir;
     struct dirent *pent;
@@ -71,8 +71,6 @@ void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles)
            && strncmp(pent->d_name, "state", 5)){//skip any files starting 
 	  string filepath = dirpath + "/"; 
 	  filepath.append(pent->d_name);
-	  if(verbose)
-	    cout << "Deleting  " <<  filepath <<endl;
 	  remove(filepath.c_str());//delete
 	}
       }
@@ -86,7 +84,7 @@ void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles)
     }
   }
   else {
-    cerr << "Invalid resultsdir. Exiting\n";
+    cerr << "Invalid directory name: " << dirname << " Exiting\n";
     exit(1);
   }
 }

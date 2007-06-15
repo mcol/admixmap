@@ -86,7 +86,7 @@ void Model::Start(Options& options, InputData& data, LogWriter& Log, int NumAnne
 }
 
 void Model::Run(Options& options, InputData& data, LogWriter& Log,  
-		      int NumAnnealedRuns){
+		int NumAnnealedRuns){
   int samples = options.getTotalSamples();
   int burnin = options.getBurnIn();
   double coolness = 1.0; // default

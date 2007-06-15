@@ -160,21 +160,38 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
   //initialise sampler for freq precision Dirichlet prior proportions, bounded by 0 and 1
   MuSampler.Initialise(true, true, 1.0, 0.0, fmu_hapmix, dfmu_hapmix );
 
-  std::ifstream initialvaluefile;
   const char* initialvaluefilename = options->getInitialFreqPriorFilename();
   if(strlen(initialvaluefilename)){
-    Log << Quiet << "Reading initial values of allele freq prior from " << initialvaluefilename << "\n";
-    initialvaluefile.open(initialvaluefilename);
+    //TODO??: check prior is consistent with initial values
+    ReadInitialPriorParamsFromFile(initialvaluefilename, Log);
+  }
+  else{
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+      //set precision to prior mean
+      Eta[i] = (EtaShape / EtaRate);
+      //set proportions to 0.5
+      DirichletParams[i] =  Eta[i] * 0.5;
+    }
+  }
+  //initialise sampler and set cumulative sums to 0
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    EtaSampler[i].SetParameters(0.1, 0.00001, 100.0, 0.26);
+    if(accumulateEta)SumEta[i] = 0.0;
   }
 
-  //TODO??: check prior is consistent with initial values
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    if(initialvaluefile.is_open()){//read values from file
+}
+
+void HapMixFreqs::ReadInitialPriorParamsFromFile(const char* filename, LogWriter& Log){
+  std::ifstream initialvaluefile(filename);
+  if(initialvaluefile.is_open()){
+    Log << Quiet << "Reading initial values of allele freq prior from " << filename << "\n";
+
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       //read eta (precision) and alpha (mean)
       if(!( initialvaluefile >> Eta[i] >> DirichletParams[i]))
 	{//reached end-of-file too early
-        throw string("ERROR: Too few entries in initialfreqpriorfile\n");
-      }
+	  throw string("ERROR: Too few entries in initialfreqpriorfile\n");
+	}
       //check values read are ok
       if(Eta[i] < 0.0)
 	throw DataOutOfRangeException("residual allelic diversity parameter", ">0", "initialfreqpriorfile");
@@ -182,17 +199,7 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
 	throw DataOutOfRangeException("allele frequency mean", "between 0 and 1", "initialfreqpriorfile");
       DirichletParams[i] *= Eta[i]; //multiply mean by precision to get Dir params
     }
-    else{
-      //set precision to prior mean
-      Eta[i] = (EtaShape / EtaRate);
-      //set proportions to 0.5
-      DirichletParams[i] =  Eta[i] * 0.5;
-    }
-    EtaSampler[i].SetParameters(0.1, 0.00001, 100.0, 0.26);
-    if(accumulateEta)SumEta[i] = 0.0;
-  }
 
-  if(initialvaluefile.is_open()){
    //see if anything more than whitespace left in file
     string test;
     initialvaluefile >> test;
@@ -200,9 +207,14 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
       throw string("ERROR: too many entries in initialfreqpriorfile\n");
     }
     initialvaluefile.close();
+    
+  }else{
+    string err("ERROR: cannot open initialfreqpriorfile: ");
+    err.append(filename);
+    throw err;
   }
-}
 
+}
 void HapMixFreqs::PrintPrior(LogWriter& Log)const{
   Log << "Dirichlet prior on allele frequencies. \n"
       << "Uniform prior on Dirichlet proportions.\n"
@@ -229,9 +241,7 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
   CompositeLocus::SetNumberOfPopulations(Populations);
 
   //read initial values from file
-  bool useinitfile = false;
   if(strlen( options->getInitialAlleleFreqFilename() )){
-    useinitfile=true;
     LoadInitialAlleleFreqs(options->getInitialAlleleFreqFilename(), Log);
   }
   else{

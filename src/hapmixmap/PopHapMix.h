@@ -67,7 +67,9 @@ public:
   
   ~PopHapMix();
   
-  void Initialise(const string& distanceUnit, LogWriter& Log);  
+  void Initialise(const string& distanceUnit, LogWriter& Log);
+  void ReadInitialMixturePropsFromFile(const char* initfilename, LogWriter& Log);
+  void ReadInitialArrivalRatesFromFile(const char* initfilename, LogWriter& Log);  
   
   void SampleArrivalRate(const int* SumAncestry, bool sumlogrho) ;
 
@@ -121,9 +123,7 @@ private:
   DirichletParamSampler MixturePropsPrecisionSampler;
 
   void InitialiseMixtureProportions(LogWriter& Log);
-  void ReadInitialMixturePropsFromFile(const char* initfilename, LogWriter& Log);
   void InitialiseArrivalRates(LogWriter& Log);
-  void ReadInitialArrivalRatesFromFile(const char* initfilename, unsigned numIntervals, LogWriter& Log);
   void InitializeOutputFile(const string& distanceUnit);
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);

@@ -97,11 +97,6 @@ my $arg_hash =
  #regparamfile          => 'regparamfile.txt',
  ergodicaveragefile => 'ergodicaverage.txt',
  
-#final values
- finalallelefreqfile  => "initialallelefreqs.txt",
- finalfreqpriorfile   =>"initialallelefreqpriors.txt",
- finalarrivalratefile =>"initialarrivalratess.txt",
- finalmixturepropsfile => "initialmixtureprops.txt",
  
  #posterior means
  arrivalrateposteriormeanfile => "lambdaPosteriorMeans.txt",
@@ -135,27 +130,21 @@ CompareThenMove($arg_hash->{resultsdir});
 #haploid, random allele freqs with default prior, random mixture props
 $arg_hash->{genotypesfile} = "$datadir/genotypes_haploid.txt";
 $arg_hash->{resultsdir}            = 'ResultsHaploid';
+$arg_hash->{finalvaluedir} = 'InitialValuesHaploid';
 $arg_hash->{fixedmixtureprops} = 0;
 callDoAnalysis();
 CompareThenMove($arg_hash->{resultsdir});
 
 #haploid, resume
-#system("$copy $arg_hash->{resultsdir}$slash"."initial*.txt $datadir");
-
 $arg_hash->{resultsdir}            = 'ResultsHaploidRerun';
-$arg_hash->{initialallelefreqfile}="$datadir/initialallelefreqs.txt";
-$arg_hash->{initialarrivalratefile}="$datadir/initialarrivalrates.txt";
-$arg_hash->{initialfreqpriorfile} = "$datadir/initialfreqpriors.txt";
-$arg_hash->{initialarrivalratefile}="$datadir/initialmixtureprops.txt";
+$arg_hash->{initialvaluedir} = 'InitialValuesHaploid';
+delete $arg_hash->{finalvaluedir};
 callDoAnalysis();
 CompareThenMove($arg_hash->{resultsdir});
 
 
 #Case-control analysis
-delete $arg_hash->{initialallelefreqfile};
-delete $arg_hash->{initialarrivalratefile};
-delete $arg_hash->{initialfreqpriorfile};
-delete $arg_hash->{initialarrivalratefile};
+delete $arg_hash->{initialvaluedir};
 $arg_hash->{resultsdir}      = 'ResultsCaseControl';
 $arg_hash->{ccgenotypesfile} = "$datadir/genotypes_casectrl.txt";
 $arg_hash->{outcomevarfile} = "$datadir/outcome.txt";

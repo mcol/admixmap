@@ -42,8 +42,8 @@ int main( int argc , char** argv ){
     exit(1);
 
   //create results directory, or if it exists, deletes the contents
-  MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/, options.getDeleteOldResultsIndicator());
- 
+  CreateDirectory(options.getResultsDir().c_str(), options.getDeleteOldResultsIndicator());
+
   //open logfile, start timer and print start message
   LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
@@ -82,6 +82,12 @@ int main( int argc , char** argv ){
 	  << "-------------------------------------------------------\n";
       exit(0);
     }
+
+    //create directory to write final parameter values, unless it is the same as resultsdir
+    const string& finalvaluedir = options.getFinalValueDir();
+    if(finalvaluedir.compare(options.getResultsDir()))
+      CreateDirectory(finalvaluedir.c_str(), options.getDeleteOldResultsIndicator());
+
 
     HapMixModel M;
     M.Initialise(options, data, Log);
