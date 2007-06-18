@@ -285,7 +285,8 @@ void PopHapMix::ReadInitialArrivalRatesFromFile(const char* initfilename, LogWri
       if(!(initfile >>*ar)){
       //reached end of file before vector full -> file too small
 	Log << On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
-	    << lambda.size() + 2 << ", found " << lambda.size() - (int)(lambda.end() - ar)+2 << "\n";
+	    << (unsigned)(lambda.size() + 2) << ", found " 
+	    << (unsigned)(lambda.size() - (lambda.end() - ar)+2) << "\n";
 	exit(1);
       }
       if(*ar <= 0.0)
