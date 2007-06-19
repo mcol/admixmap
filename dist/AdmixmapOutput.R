@@ -1227,8 +1227,10 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
   ##plot cumulative averages from paramfiles
   openPlotDevice(paste(resultsdir, "CumulativeAverages", sep="/"))
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
-  for(var in 1:nvars)
-    plot(iters, cumsum(param.samples.all[,var])/c(1:nsamples), xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
+  for(var in 1:dim(param.samples.all)[2]) {
+    plot(iters, cumsum(param.samples.all[,var])/c(1:nsamples),
+         xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
+  }
   dev.off()
   
 }
@@ -1338,7 +1340,8 @@ if(!is.null(user.options$haplotypeassociationscorefile) && file.exists(paste(res
 }
 
 ## read output of regression model score test for ancestry, and plot cumulative results
-if(!is.null(user.options$ancestryassociationscorefile) && file.exists(paste(resultsdir,user.options$ancestryassociationscorefile, sep="/"))) {
+if(!is.null(user.options$ancestryassociationscorefile) &&
+   file.exists(paste(resultsdir,user.options$ancestryassociationscorefile, sep="/"))) {
   cat("plotting scores in test for ancestry association...", file=outfile, append=T)
   ## produces warning
   plotAncestryScoreTest(user.options$ancestryassociationscorefile, "TestsAncestryAssoc",K, population.labels, user.options$every)
