@@ -14,6 +14,7 @@
 #include "gsl/gsl_cdf.h"
 #include "bcppcl/linalg.h"//for HH_solve to compute chi-sq
 #include "FreqArrays.h"
+#include "bcppcl/TableWriter.h"
 
 ResidualLDTest::ResidualLDTest(){
   options = 0;
@@ -24,21 +25,33 @@ ResidualLDTest::ResidualLDTest(){
 
 ResidualLDTest::~ResidualLDTest(){
   //Tcount.clear();
+  if(test){
+    
+    vector<vector<string> >labels(1);
+    labels[0].push_back("Loci");
+    labels[0].push_back("log10Pvalue");
+
+    vector<int> dimensions(3,0);
+    dimensions[0] = labels[0].size();
+    dimensions[1] = Lociptr->GetNumberOfCompositeLoci() - Lociptr->GetNumberOfChromosomes();
+    dimensions[2] = (int)(numPrintedIterations);
+
+    //R_output3DarrayDimensions(&outputfile, dimensions, labels);
+    R.close(dimensions, labels);
+  }
 }
 
-void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci, 
-				LogWriter &Log){
+void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci){
   options = op;
   individuals = indiv;
   chrm = Loci->getChromosomes();
   Lociptr = Loci;
-  Log.setDisplayMode(Quiet);
   test = options->getTestForResidualAllelicAssoc();
 
   if(test){
-    //open output file
-    OpenFile(Log, &outputfile, options->getResidualAllelicAssocScoreFilename(), "Tests for residual allelic association", true);
-    
+    //open cumulative output file
+    R.open(options->getResidualAllelicAssocScoreFilename());
+
     SumScore.resize(Lociptr->GetNumberOfChromosomes());
     SumScore2.resize(Lociptr->GetNumberOfChromosomes());
     SumInfo.resize(Lociptr->GetNumberOfChromosomes());
@@ -256,40 +269,33 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus
   }
 }
 
-void ResidualLDTest::Output(bool final, const std::vector<std::string>& LocusLabels){
-  string sep = final ? "\t" : ",";//separator
-  ofstream* outfile;
-  
+void ResidualLDTest::Output(const std::vector<std::string>& LocusLabels){
   if(test){
-    //vector<string> labels;
-    if(final){
-      string filename(options->getResultsDir());
-      filename.append("/ResidualLDTestFinal.txt");
-      outfile = new ofstream(filename.c_str(), ios::out);
-      *outfile << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue\n";
-    }else outfile = &outputfile;
-    OutputTestsForResidualAllelicAssociation(outfile, final, LocusLabels);
-    //     for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
-    //       for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
-    // 	int abslocus = chrm[c]->GetLocus(j);
-    // 	labels.clear();
-    // 	labels.push_back("\"" + (*Lociptr)(abslocus)->GetLabel(0) + "/" + (*Lociptr)(abslocus+1)->GetLabel(0) + "\"");
-    // 	int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
-    // 	int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
-    // 	OutputScoreTest(iterations, outfile, M*N, labels, SumScore[c][j], SumScore2[c][j], SumInfo[c][j], final);
-    //       }
-    if(final)
-      delete outfile;
-    else
-      ++numPrintedIterations;
+    OutputTestsForResidualAllelicAssociation(R, false, LocusLabels);
+    ++numPrintedIterations;
   }
 }
 
-void ResidualLDTest::OutputTestsForResidualAllelicAssociation(ofstream* outputstream, bool final, 
+void ResidualLDTest::WriteFinalTable(const std::vector<std::string>& LocusLabels, LogWriter& Log){
+  if(test){
+    TableWriter finaltable;
+    string filename(options->getResultsDir());
+    filename.append("/ResidualLDTestFinal.txt");
+    finaltable.open(filename.c_str());
+    Log << Quiet << "Tests for residual allelic association" << " written to " 
+ 	<< filename << "\n";
+
+    finaltable << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue" << newline;
+    
+    OutputTestsForResidualAllelicAssociation(finaltable, true, LocusLabels);
+    finaltable.close();
+  }
+}
+
+void ResidualLDTest::OutputTestsForResidualAllelicAssociation(FileWriter& outputstream, bool final,
 							      const std::vector<std::string>& LocusLabels){
   //cannot function in base class as it output a line for each dimension of score
   double *score = 0, *ObservedInfo = 0;
-  string separator = final? "\t" : ",";
 
   int abslocus = 0;
   //vector<unsigned>::iterator T_iter = Tcount.begin();
@@ -320,12 +326,17 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(ofstream* outputst
       }
 
       //output labels
-      *outputstream << "\"" << label1 << "/" << label2 << "\""<< separator;
-      if(final)*outputstream << setiosflags(ios::fixed) << setprecision(3) //output 3 decimal places
-			     << score[0] << separator << compinfo << separator <<obsinfo << separator
-			     << double2R((obsinfo*100)/compinfo) << separator<< dim << separator; 
+      const string label = "\"" + label1 + "/" + label2 + "\"";
+      outputstream << label;
+      //output 3 decimal places
+      outputstream.setDecimalPrecision(3);
+      if(final)outputstream << score[0] 
+			    << compinfo 
+			    << obsinfo
+			    << double2R((obsinfo*100)/compinfo) 
+			    << dim;
 
-      //*outputstream << (float)*T_iter /(float)iterations << endl;
+      //outputstream << (float)*T_iter /(float)iterations << newline;
       //++T_iter; 
 
       //compute chi-squared statistic
@@ -339,29 +350,29 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(ofstream* outputst
 	delete[] VinvU;
 	
 	if(chisq < 0.0){
-	  *outputstream << "NA" << separator;
-	  if(final) *outputstream << "NA" << separator;
-	  *outputstream << endl;
+	  outputstream << "NA" ;
+	  if(final) outputstream << "NA";
+	  outputstream << newline;
 	}
 	else {
 	  //compute p-value
 	  gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
 	  try{
 	    double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-	    if(final)*outputstream << double2R(chisq) << separator << double2R(pvalue) << separator << endl;
-	    else *outputstream << double2R(-log10(pvalue)) << separator << endl;
+	    if(final)outputstream << double2R(chisq) << double2R(pvalue)<< newline;
+	    else outputstream << double2R(-log10(pvalue)) << newline;
 	  }
 	  catch(...){
-	    if(final)*outputstream << double2R(chisq) << separator << "NA" << separator << endl;
-	    else *outputstream << "NA" << separator << endl;
+	    if(final)outputstream << double2R(chisq) << "NA" << newline;
+	    else outputstream << "NA" << newline;
 	  }
 	  gsl_set_error_handler(old_handler);
 	}
       }
       catch(...){//in case ObservedInfo is rank deficient
-	*outputstream  << "NA" << separator ;
-	if(final)*outputstream << dim << separator << "NA" << separator << "NA" << separator;
-	*outputstream << endl;
+	outputstream  << "NA";
+	if(final)outputstream << dim << "NA" << "NA" ;
+	outputstream << newline;
       }
 
 
@@ -373,17 +384,3 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(ofstream* outputst
   }
 }
 
-void ResidualLDTest::ROutput(){
-  if(test){
-    vector<int> dimensions(3,0);
-    dimensions[0] = 2;
-    dimensions[1] = Lociptr->GetNumberOfCompositeLoci() - Lociptr->GetNumberOfChromosomes();
-    dimensions[2] = (int)(numPrintedIterations);
-    
-    vector<string> labels(dimensions[0],"");
-    labels[0] = "Loci";
-    labels[1] = "log10Pvalue";
-
-    R_output3DarrayDimensions(&outputfile, dimensions, labels);
-  }
-}

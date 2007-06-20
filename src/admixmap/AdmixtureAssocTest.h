@@ -14,8 +14,10 @@
 #define ADMIXTUREASSOCTEST_H 1
 
 #include "ScoreTestBase.h"
+#include <fstream>
 
 class IndividualCollection;
+class LogWriter;
 
 /**
    Class to implement score test for admixture association (admixturescoretest)
@@ -43,6 +45,7 @@ private:
   double* SumScore2; 
   double* SumInfo;
   unsigned NumPopulations, NumOutcomeVars;
+  std::ofstream outputfile;
 
   void InitialiseAssocScoreFile(const Vector_s&);
 };

@@ -13,6 +13,7 @@
 #include "InputHapMixData.h"
 #include "HapMixOptions.h"
 #include "bcppcl/DataReader.h"
+#include "bcppcl/StringConvertor.h"
 #include <sstream>
 
 InputHapMixData::InputHapMixData(HapMixOptions *options, LogWriter &Log){
@@ -230,7 +231,7 @@ void InputHapMixData::CheckOutcomeVarFile(Options* const options, LogWriter& Log
       }
       Log << outcomeVarData_[0][j+Firstcol];
       Log << ".\n";
-      OutcomeLabels.push_back(outcomeVarData_[0][j+Firstcol]);
+      OutcomeLabels.push_back(StringConvertor::dequote(outcomeVarData_[0][j+Firstcol]));
     }
     Log << "\n";
     delete[] OutcomeVarLabels;

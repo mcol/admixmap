@@ -20,13 +20,15 @@
 #include <fstream>
 #include "bcppcl/LogWriter.h"
 #include "bcppcl/DataMatrix.h"
+#include "bcppcl/RObjectWriter.h"
 
 ///Abstract Base Class for a generic Bayesian Regression
 class Regression{
 public:
   Regression();
   virtual ~Regression();
-  virtual void Initialise(unsigned RegNumber, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, LogWriter &) = 0;
+  virtual void Initialise(unsigned RegNumber, double priorPrecision, 
+			  const DataMatrix& Covars, const DataMatrix& Outcome, LogWriter &) = 0;
   void Initialise(unsigned RegNumber, unsigned numCovariates);
   virtual void Update(bool sumbeta, const std::vector<double>& Outcome, double coolness) = 0;
   virtual double getLogLikelihood(const std::vector<double>& Outcome)const = 0;
@@ -66,7 +68,7 @@ protected:
   double* XtY;
 
   static std::ofstream outputstream;///< stream for regression parameters
-  static std::ofstream EYStream;///< stream for expected outcomes
+  static RObjectWriter EYStream;///< stream for expected outcomes
 
   void Initialise(unsigned Number, unsigned nCovariates, unsigned nIndivs, const double* const Covars);
   void SumParameters();

@@ -10,32 +10,67 @@
  * 
  */
 #include "AncestryAssocTest.h"
+#include "Genome.h"
+#include "bcppcl/LogWriter.h"
+#include "bcppcl/TableWriter.h"
 #include <vector>
 #include <string>
 
 AncestryAssocTest::AncestryAssocTest(){
   useprevb = true;
+  firstpoplabel = 0;
 }
 
-void AncestryAssocTest::OpenOutputFile(LogWriter &Log, const char* filename){
-  OpenFile(Log, &outputfile, filename, "Tests for locus linkage", true);
+void AncestryAssocTest::Initialise(const char* filename, const int NumStrata, const int NumLoci){
+  if(NumStrata == 2){
+    firstpoplabel = 1;//skip first pop label if 2 pops
+  }
+  CopyNumberAssocTest::Initialise(filename, NumStrata, NumLoci);
 }
 
-void AncestryAssocTest::ROutput(){
+void AncestryAssocTest::Output(const Vector_s& PopLabels, const Genome& Loci){
+
+  for(unsigned int j = 0; j < L; j++ ){
+    const string locuslabel = Loci(j)->GetLabel(0);
+    for( unsigned k = 0; k < NumOutputStrata; k++ ){//end at 1 for 2pops
+      std::string label = locuslabel;
+      label += "\",\"" + PopLabels[k+firstpoplabel];//label is output in quotes
+      OutputCopyNumberAssocTest(j, k, R, label, false);
+    }
+  }
+  ++numPrintedIterations;
+}
+
+void AncestryAssocTest::WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
+					const Genome& Loci, LogWriter& Log){
+  TableWriter finaltable(filename);
+  Log << Quiet << "Tests for locus linkage written to " << filename << "\n";
+  finaltable <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
+      << newline;
+
+  for(unsigned int j = 0; j < L; j++ ){
+    const string locuslabel = Loci(j)->GetLabel(0);
+    for( unsigned k = 0; k < NumOutputStrata; k++ ){//end at 1 for 2pops
+      std::string label = locuslabel;
+      label += "\"\t\"" + PopLabels[k+firstpoplabel];//label is output in quotes
+      OutputCopyNumberAssocTest(j, k, finaltable, label, true);
+    }
+  }
+  finaltable.close();
+}
+
+AncestryAssocTest::~AncestryAssocTest(){
   if(test){
-    int KK = K;
-    if(KK ==2 )KK = 1;
-    
-    std::vector<std::string> labels;
-    labels.push_back("Locus");
-    labels.push_back("Population");  
-    labels.push_back("minusLog10PValue");
+    std::vector<std::vector<std::string> > labels(1);
+    labels[0].push_back("Locus");
+    labels[0].push_back("Population");  
+    labels[0].push_back("minusLog10PValue");
 
     std::vector<int> dimensions(3,0);
-    dimensions[0] = labels.size();
-    dimensions[1] = L * KK;
+    dimensions[0] = labels[0].size();
+    dimensions[1] = L * NumOutputStrata;
     dimensions[2] = (int)(numPrintedIterations);
     
-    R_output3DarrayDimensions(&outputfile, dimensions, labels);
+    R.close(dimensions, labels);
   }
 }

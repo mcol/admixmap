@@ -15,78 +15,79 @@
  */
 
 #include "AllelicAssocTest.h"
+#include "bcppcl/TableWriter.h"
 
 AllelicAssocTest::AllelicAssocTest(){
   locusObsIndicator = 0;
-
   options = 0;
   individuals = 0;
-
   NumOutputs = 0;
-  onFirstLineAllelicAssoc = true;
-  onFirstLineHapAssoc = true;
-
   test = false;
   numUpdates = 0;
   numPrintedIterations = 0;
+  NumCompositeLoci = 0;
 }
 
 AllelicAssocTest::~AllelicAssocTest(){
+  if(test)
+    ROutput();
   delete[] locusObsIndicator;
 }
 
-void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
-			    LogWriter &Log){
+void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci,
+				  LogWriter& Log){
   test = true;
   options = op;
   individuals = indiv;
-  chrm = Loci->getChromosomes();
   Lociptr = Loci;
+  chrm = Loci->getChromosomes();
+  NumCompositeLoci = Loci->GetNumberOfCompositeLoci();
   Log.setDisplayMode(Quiet);
 
   const int L = Lociptr->GetNumberOfCompositeLoci();
 
-  OpenFile(Log, &outputfile, options->getAllelicAssociationScoreFilename(), 
-	   "Tests for allelic association", true);
-      
-      locusObsIndicator = new int[L];
-      
-      //search for loci with no observed genotypes
-      for(int j = 0; j < L; ++j){
-	locusObsIndicator[j] = false;
+  AllelicAssocRObject.open(options->getAllelicAssociationScoreFilename());      
+
+  locusObsIndicator = new int[L];
+  
+  //search for loci with no observed genotypes
+  for(int j = 0; j < L; ++j){
+    locusObsIndicator[j] = false;
 	for(int i = indiv->getFirstScoreTestIndividualNumber(); i < indiv->getNumberOfIndividualsForScoreTests(); i++){
 	  if(!indiv->getIndividual(i)->GenotypeIsMissing(j)){
 	    locusObsIndicator[j] = true;
 	  }
 	}
-      }
+  }
+  
+  unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
+  AllelicAssocSubTest::SetNumCovars(NumCovars);
+  
+  for( int j = 0; j < L; j++ ){
+    const int NumberOfStates = Lociptr->GetNumberOfStates(j);
+    const int NumberOfLoci = Lociptr->getNumberOfLoci(j);
+    NumLoci.push_back(NumberOfLoci);
     
-      unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
-      AllelicAssocSubTest::SetNumCovars(NumCovars);
-
-      for( int j = 0; j < L; j++ ){
-	const int NumberOfStates = Lociptr->GetNumberOfStates(j);
-	const int NumberOfLoci = Lociptr->getNumberOfLoci(j);
-	
-	if(NumberOfLoci > 1 )//haplotype
-	  SubTests.push_back(new WithinHaplotypeTest(NumberOfLoci, true));
-	else if(NumberOfStates == 2 )//simple diallelic locus
-	  SubTests.push_back(new SNPTest(true));
-	else//simple multiallelic locus
-	  SubTests.push_back(new MultiAllelicLocusTest(NumberOfStates, true));
-	
-
-      }//end loop over loci
-
+    if(NumberOfLoci > 1 )//haplotype
+      SubTests.push_back(new WithinHaplotypeTest(NumberOfLoci, true));
+    else if(NumberOfStates == 2 )//simple diallelic locus
+      SubTests.push_back(new SNPTest(true));
+    else//simple multiallelic locus
+      SubTests.push_back(new MultiAllelicLocusTest(NumberOfStates, true));
+    
+    
+  }//end loop over loci
+  
   /*----------------------
     | haplotype association |
     ----------------------*/  
   if( strlen( options->getHaplotypeAssociationScoreFilename() ) ){
-    if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
-      OpenFile(Log, &HaplotypeAssocScoreStream, options->getHaplotypeAssociationScoreFilename(), 
-	       "Tests for haplotype associations", true);
-      for( int j = 0; j < L; j++ ){
+    //cannot test for SNPs in Haplotype if only simple loci
+    if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){
+      HaplotypeAssocRObject.open(options->getHaplotypeAssociationScoreFilename());
 
+      NumMergedHaplotypes.assign(NumCompositeLoci, 1);
+      for( int j = 0; j < L; j++ ){
 	if( Lociptr->getNumberOfLoci(j) > 1 )
 	  HaplotypeAssocTests.push_back(new HaplotypeTest(1, true));
 	else
@@ -100,7 +101,7 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
   }
 }
 
-void AllelicAssocTest::SetAllelicAssociationTest(const std::vector<double> &alpha0){
+void AllelicAssocTest::MergeRareHaplotypes(const std::vector<double> &alpha0){
   /*
     Invokes merging of haplotypes in CompositeLocus and resizes arrays for allelic association test accordingly  
     alpha0 = alpha[0], pop admixture dirichlet params, from Latent
@@ -114,12 +115,14 @@ void AllelicAssocTest::SetAllelicAssociationTest(const std::vector<double> &alph
     alphaScaled[k] = alpha0[k] / sum;
 
   //merge rare haplotypes
-  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){//skip simple loci
+  NumMergedHaplotypes.clear();
+  NumMergedHaplotypes.assign(NumCompositeLoci, 1);
+  for(unsigned int j = 0; j < NumCompositeLoci; j++ ){
+    if( NumLoci[j] > 1 ){//skip simple loci
       (*Lociptr)(j)->SetDefaultMergeHaplotypes( alphaScaled);
-      const unsigned NumMergedHaplotypes = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
+      NumMergedHaplotypes[j] = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
 
-      HaplotypeAssocTests[j]->Resize(NumMergedHaplotypes);
+      HaplotypeAssocTests[j]->Resize(NumMergedHaplotypes[j]);
     }
   }
 
@@ -137,7 +140,8 @@ void AllelicAssocTest::Reset(){
   }
 }
 
-void AllelicAssocTest::Update( const Individual* const ind, double YMinusEY, double phi, double DInvLink, bool missingOutcome)
+void AllelicAssocTest::Update( const Individual* const ind, double YMinusEY, double phi, 
+			       double DInvLink, bool missingOutcome)
 {
   int locus = 0;
 
@@ -145,7 +149,7 @@ void AllelicAssocTest::Update( const Individual* const ind, double YMinusEY, dou
     for(unsigned int jj = 0; jj < Lociptr->GetSizeOfChromosome(j); jj++ ){
       //skip loci with missing genotypes as hap pairs have not been sampled for these
       bool condition = true;
-
+      
       if(options->getHapMixModelIndicator())condition = !missingOutcome;
       else condition = !ind->GenotypeIsMissing(locus);
       //in hapmixmodel, skip individuals with observed outcome
@@ -155,13 +159,13 @@ void AllelicAssocTest::Update( const Individual* const ind, double YMinusEY, dou
 	const unsigned numLoci = Lociptr->getNumberOfLoci(locus);
 	
 	SubTests[locus]->Update(happair, (*Lociptr)(locus), ind->getAdmixtureProps(), YMinusEY, phi, DInvLink);
-	  
+	
 	if( options->getTestForHaplotypeAssociation() && numLoci > 1){
-	  HaplotypeAssocTests[locus]->Update(happair, (*Lociptr)(locus), ind->getAdmixtureProps(), YMinusEY, phi, DInvLink);
+	  HaplotypeAssocTests[locus]->Update(happair, (*Lociptr)(locus), 
+					     ind->getAdmixtureProps(), YMinusEY, phi, DInvLink);
 	}
-
-    }
-    locus++;
+      }
+      locus++;
     }
   }
 }
@@ -189,69 +193,84 @@ void AllelicAssocTest::Accumulate(){
 }
 
 
-void AllelicAssocTest::Output(const Vector_s& LocusLabels, bool final){
+void AllelicAssocTest::Output(const Vector_s& LocusLabels){
 
-  string sep = final ? "\t" : ",";//separator
-  ofstream* outfile;
-  if(!final)++numPrintedIterations;
+  ++numPrintedIterations;
 
-  if(final){
-    string filename(options->getResultsDir());
-    filename.append("/AllelicAssocTestsFinal.txt");
-    outfile = new ofstream(filename.c_str(), ios::out);
-    *outfile << "Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare\n";
-  }
-  else {
-    outfile = &outputfile;
-  }
   for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
     if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
-      const string locuslabel = LocusLabels[j];
-      
-      SubTests[j]->Output(outfile, locuslabel, Lociptr->GetLocus(j), final, onFirstLineAllelicAssoc, numUpdates);
+      SubTests[j]->Output(AllelicAssocRObject, LocusLabels[j], Lociptr->GetLocus(j), false, numUpdates);
 
-      onFirstLineAllelicAssoc = false;
     }//end j loop over comp loci
-  if(final)delete outfile;
+
 
   //haplotype association
   if( options->getTestForHaplotypeAssociation() ){
-    if(final){
-      string filename(options->getResultsDir());
-      filename.append("/HaplotypeAssocTestsFinal.txt");
-      outfile = new ofstream(filename.c_str(), ios::out);
-      *outfile << "Locus\tHaplotype\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare\n";
-    }
-    else outfile = &HaplotypeAssocScoreStream;
 
     const string dummystring;
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ) 
       if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-	HaplotypeAssocTests[j]->Output(outfile, dummystring, Lociptr->GetLocus(j), final, onFirstLineHapAssoc, numUpdates);
-      
-      onFirstLineHapAssoc = false;
+	HaplotypeAssocTests[j]->Output(HaplotypeAssocRObject, dummystring, Lociptr->GetLocus(j), false, numUpdates);
     }
-    if(final)delete outfile;
+  }//end if hap assoc test
+}
+
+void AllelicAssocTest::WriteFinalTables(const Vector_s& LocusLabels, LogWriter& Log){
+  {
+  string filename(options->getResultsDir());
+  filename.append("/AllelicAssocTestsFinal.txt");
+  TableWriter finaltable(filename.c_str());
+  Log << Quiet << "Tests for allelic association written to " << filename << "\n";
+  finaltable << "Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"
+	     << newline;
+
+  for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
+    if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
+       SubTests[j]->Output(finaltable, LocusLabels[j], Lociptr->GetLocus(j), true, numUpdates);
+    }//end j loop over comp loci
+
+  finaltable.close();
+  }
+
+  //haplotype association
+  if( options->getTestForHaplotypeAssociation() ){
+    
+    string filename(options->getResultsDir());
+    filename.append("/HaplotypeAssocTestsFinal.txt");
+    
+    TableWriter finaltable(filename.c_str());
+    Log << Quiet << "Tests for haplotype association written to " << filename << "\n";
+    finaltable << "Locus\tHaplotype\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"
+	       << newline;
+
+    const string dummystring;
+    for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ) 
+      if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
+	HaplotypeAssocTests[j]->Output(finaltable, dummystring, Lociptr->GetLocus(j), true, numUpdates);
+      
+    }
+    finaltable.close();
   }//end if hap assoc test
 }
 
 void AllelicAssocTest::ROutput(){
    int count = 0;
-   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
+   for(unsigned int j = 0; j < NumCompositeLoci; j++ )
     if(locusObsIndicator[j]){
-    const int NumberOfLoci = (* Lociptr)(j)->GetNumberOfLoci();
-
-    if( NumberOfLoci == 1 ) count += SubTests[j]->getDim();
-    else count += NumberOfLoci;
+    if( NumLoci[j] == 1 ) count += SubTests[j]->getDim();
+    else count += NumLoci[j];
   }         
+
+  vector<vector<string> >labels(1);
+  labels[0].push_back( "Locus");
+  labels[0].push_back( "log10Pvalue");
+
   vector<int> dimensions(3,0);
-  dimensions[0] = 2;
+  dimensions[0] = labels[0].size();
   dimensions[1] = count;
   dimensions[2] = (int)(numPrintedIterations);
-  vector<string> labels(dimensions[0],"");
-  labels[0] = "Locus";
-  labels[1] = "log10Pvalue";
-  R_output3DarrayDimensions(&outputfile, dimensions, labels);
+
+  AllelicAssocRObject.close(dimensions, labels);
 
   /** 
    * writes out the dimensions and labels of the        
@@ -259,20 +278,23 @@ void AllelicAssocTest::ROutput(){
    */ 
   if( options->getTestForHaplotypeAssociation()  ){      
     count = 0;
-    for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-      if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-	count += (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
+    for(unsigned int j = 0; j < NumCompositeLoci; j++ ){
+      if( NumLoci[j] > 1 ){
+	count += NumMergedHaplotypes[j];
       }
     }         
+
+    vector<vector<string> > labels(1);
+    labels[0].push_back("Locus");
+    labels[0].push_back("Haplotype");
+    labels[0].push_back("log10PValue");
+
     vector<int> dimensions(3,0);
-    dimensions[0] = 3;
+    dimensions[0] = labels[0].size();
     dimensions[1] = count;
     dimensions[2] = (int)(numPrintedIterations);
-    vector<string> labels(dimensions[0],"");
-    labels[0] = "Locus";
-    labels[1] = "Haplotype";
-    labels[2] = "log10PValue";
-    R_output3DarrayDimensions(&HaplotypeAssocScoreStream,dimensions,labels);
+
+    HaplotypeAssocRObject.close(dimensions,labels);
   }
  }
 

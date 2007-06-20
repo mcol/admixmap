@@ -17,8 +17,8 @@
 #include "AdmixOptions.h"
 #include "IndividualCollection.h"
 #include "Genome.h"
-
 #include "AllelicAssocSubTest.h"
+#include "bcppcl/RObjectWriter.h"
 
 /**
  *  Class to implement 
@@ -36,11 +36,10 @@ public:
 
   void Reset();
 
-  void Output(const Vector_s& LocusLabels, bool final);
+  void Output(const Vector_s& LocusLabels);
+  void WriteFinalTables(const Vector_s& LocusLabels, LogWriter& Log);
 
-  void ROutput();
-
-  void SetAllelicAssociationTest(const std::vector<double> &alpha0);
+  void MergeRareHaplotypes(const std::vector<double> &alpha0);
 
   void Update( const Individual* const , double, double, double, bool);
 
@@ -52,22 +51,22 @@ private:
 
   std::vector<HaplotypeTest*> HaplotypeAssocTests; 
 
-  bool onFirstLineAllelicAssoc;
-
   int *locusObsIndicator;
 
-  bool onFirstLineHapAssoc;
-
-  std::ofstream HaplotypeAssocScoreStream;
+  RObjectWriter AllelicAssocRObject;
+  RObjectWriter HaplotypeAssocRObject;
   //outputfile = allelicAssocStream
   //std::ofstream allelicAssocScoreStream;
 
   const AdmixOptions *options;
   const IndividualCollection *individuals;
-  const Genome* Lociptr;//Pointer to Loci
+  const Genome* Lociptr;
+  unsigned NumCompositeLoci;
+  std::vector<unsigned> NumLoci;//number of loci within each comp locus
+  std::vector<unsigned> NumMergedHaplotypes;
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
   unsigned NumOutputs;//counts calls to output function for dimensions of R objects
-
+  void ROutput();
 };
 
 #endif /* !defined ALLELICASSOCTEST_H */

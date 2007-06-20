@@ -13,9 +13,14 @@
 #include "bcppcl/linalg.h"
 #include <iomanip>
 #include <algorithm>
+#include <vector>
+#include <string>
+
+using std::vector;
+using std::string;
 
 std::ofstream Regression::outputstream;
-std::ofstream Regression::EYStream;
+RObjectWriter Regression::EYStream;
 int Regression::NumIndividuals;
 int Regression::NumOutcomeVars;
 
@@ -79,17 +84,15 @@ void Regression::InitializeOutputFile(const std::vector<std::string>& CovariateL
 }
 
 void Regression::OpenExpectedYFile(const char* Filename, LogWriter & Log){
-  EYStream.open(Filename, std::ios::out);
-  if( !EYStream.is_open() )
-    {
-      Log.setDisplayMode(On);
-      Log<< "WARNING: Couldn't open expectedoutcomefile\n";
-    }
-  else{
-    Log.setDisplayMode(Quiet);
-    Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
-    EYStream << "structure(.Data=c(" << std::endl;
+  try{
+    EYStream.open(Filename);
   }
+  catch(...){
+    Log.setDisplayMode(On);
+    Log<< "WARNING: Couldn't open expectedoutcomefile\n";
+  }
+  Log.setDisplayMode(Quiet);
+  Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
 }
 
 void Regression::Initialise(unsigned Number, const unsigned numCovariates){
@@ -183,24 +186,25 @@ void Regression::OutputExpectedY(){
   //output kth Expected Outcome to file
   if(EYStream.is_open()){
     for(int i = 0; i < NumIndividuals; ++i)
-      EYStream << ExpectedY[i] << ",";
-    EYStream << std::endl;
+      EYStream << ExpectedY[i];
+    EYStream << newline;
   }  
 }
 
 ///finish writing expected outcome as R object
 void Regression::FinishWritingEYAsRObject(unsigned NumIterations, const std::vector<std::string>& Labels){
   //dimensions are NumIndividuals, NumOutcomes, NumIterations
+  vector<int> dims(3);
+  dims[0] = NumIndividuals;
+  dims[1] = Labels.size();
+  dims[2] = NumIterations;
+
+  vector<vector<string> > dimnames(3);
+  for(unsigned j = 0; j < Labels.size(); ++j){
+    dimnames[1].push_back( Labels[j]);
+  }
   if(EYStream.is_open()){
-    EYStream << ")," << std::endl << ".Dim = c(" << NumIndividuals << "," << Labels.size() << "," << NumIterations << ")," << std::endl
-	     << ".Dimnames=list(character(0),c(";
-    //write outcome var labels
-    for(unsigned j = 0; j < Labels.size(); ++j){
-      EYStream << "\"" << Labels[j] << "\"";
-      if(j < Labels.size()-1) EYStream << ",";
-    }
-    EYStream << ") , character(0)))" << std::endl;
-    EYStream.close();  
+    EYStream.close(dims, dimnames);
   }
 }
 

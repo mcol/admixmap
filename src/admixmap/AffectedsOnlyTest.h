@@ -15,8 +15,10 @@
 #define AFFECTEDSONLYTEST_H 1
 
 #include "ScoreTestBase.h"
+#include "bcppcl/RObjectWriter.h"
 
 class Genome;
+class LogWriter;
 
 /**
    Class to implement affecteds-only score test for linkage with locus ancestry
@@ -27,7 +29,7 @@ public:
   AffectedsOnlyTest();
   ~AffectedsOnlyTest();
 
-  void Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log);
+  void Initialise(const char* filename, const int NumPopulations, const int NumLoci);
 
   void Reset();
   void Update(unsigned int locus, int k0, const double* const Theta, 
@@ -35,8 +37,9 @@ public:
 
   void Accumulate();
 
-  void Output(const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
-  void ROutput();
+  void Output(const Vector_s& PopLabels, const Genome& Loci);
+  void WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
+		       const Genome& Loci, LogWriter& Log);
   void OutputLikRatios(const char* const filename, const Vector_s& PopLabels, const Genome& Loci);
 
 private:
@@ -55,6 +58,10 @@ private:
   double *LikRatio1;
   double *LikRatio2;
 
+  RObjectWriter R;
+
+  void OutputAffectedsOnlyTest(FileWriter& outfile, const Vector_s& PopLabels, 
+			       const Genome& Loci, const std::string& sep, bool final);
 };
 
 

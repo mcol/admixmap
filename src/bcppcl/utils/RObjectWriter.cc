@@ -1,3 +1,15 @@
+/** 
+ *   \file RObjectWriter.cc
+ *   This class encapsulates the details of writing an R object
+ *   log-concave distributions. 
+ *   Copyright (c) 2007 David O'Donnell
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "bcppcl/RObjectWriter.h"
 #include <sstream>
 #include <numeric>
@@ -32,19 +44,14 @@ RObjectWriter::RObjectWriter(const string& filename){
 }
 
 void RObjectWriter::open(const char* filename){
-  file.open(filename);
-  if(!file.is_open()){
-    string error_string = "ERROR: could not open ";
-    error_string.append(filename);
-    throw(error_string);
-  }
+  FileWriter::open(filename);
 
   //start writing R object
   file << "structure(.Data=c(" << endl;
 }
 
 void RObjectWriter::open(const string& filename){
-  file.open(filename.c_str());
+  this->open(filename.c_str());
 }
 
 void RObjectWriter::close(const vector<int>& dim, const vector<vector<string> >& DimNames){
@@ -83,11 +90,15 @@ void RObjectWriter::WriteDimensions(const vector<int>& dim, const vector<vector<
   
   unsigned d = 0;
   for(; d < DimNames.size(); ++d){
-    if(dim[d] != (int)DimNames[d].size())
-      throw string("Error in RobjectWriter::WriteDimensions : dimnames do not match dimension");
-
     if(d > 0)//seperate dimnames with comma
       file << ", ";    
+
+    if(DimNames[d].size()==0){
+      file << "character(0)";
+      continue;
+    }
+    if(dim[d] != (int)DimNames[d].size())
+      throw string("Error in RobjectWriter::WriteDimensions : dimnames do not match dimension");
 
     //write dimnames for labeled dimensions
     file << "c(";
@@ -112,13 +123,6 @@ void RObjectWriter::WriteDimensions(const vector<int>& dim, const vector<vector<
 
 }
 
-void RObjectWriter::setDecimalPrecision(unsigned p){
-  file << setfill(' ');
-  file.setf(ios::fixed); 
-  file.precision(p);
-  file.width(p);
-}
-
 void RObjectWriter::comment(const char* c){
   if(needNewLine){
     if(needComma)
@@ -134,7 +138,7 @@ void RObjectWriter::comment(const std::string& s){
 }
 
 template <class T>
-RObjectWriter& RObjectWriter::operator<<(const T t){
+RObjectWriter& RObjectWriter::write(const T t){
   if(needComma) file << ",";
   if(needNewLine){
     if(comment_cache.size()){
@@ -149,15 +153,43 @@ RObjectWriter& RObjectWriter::operator<<(const T t){
   return *this;
 }
 
-template RObjectWriter& RObjectWriter::operator<<(const unsigned);
-template RObjectWriter& RObjectWriter::operator<<(const int);
-template RObjectWriter& RObjectWriter::operator<<(const long);
-template RObjectWriter& RObjectWriter::operator<<(const float);
-template RObjectWriter& RObjectWriter::operator<<(const double);
-template RObjectWriter& RObjectWriter::operator<<(const string);
-template RObjectWriter& RObjectWriter::operator<<(const char*);
-template RObjectWriter& RObjectWriter::operator<<(const bool);
-template RObjectWriter& RObjectWriter::operator<<(const char);
+template RObjectWriter& RObjectWriter::write(const unsigned);
+template RObjectWriter& RObjectWriter::write(const int);
+template RObjectWriter& RObjectWriter::write(const long);
+template RObjectWriter& RObjectWriter::write(const float);
+template RObjectWriter& RObjectWriter::write(const double);
+template RObjectWriter& RObjectWriter::write(const std::string);
+template RObjectWriter& RObjectWriter::write(const char*);
+template RObjectWriter& RObjectWriter::write(const bool);
+template RObjectWriter& RObjectWriter::write(const char);
+
+RObjectWriter& RObjectWriter::operator<<(const int t){
+  return write(t);
+}
+RObjectWriter& RObjectWriter::operator<<(const unsigned t){
+  return write(t);
+}
+RObjectWriter& RObjectWriter::operator<<(const long t){
+  return write(t);
+}
+RObjectWriter& RObjectWriter::operator<<(const float t){
+  return write(t);
+}
+RObjectWriter& RObjectWriter::operator<<(const double t){
+  return write(t);
+}
+RObjectWriter& RObjectWriter::operator<<(const char t){
+  return write(t);
+}
+RObjectWriter& RObjectWriter::operator<<(const bool t){
+  return write(t);
+}
+RObjectWriter& RObjectWriter::operator<<(const char* t){
+  return write(t);
+}
+RObjectWriter& RObjectWriter::operator<<(const std::string t){
+  return write(t);
+}
 
 RObjectWriter& operator<<(RObjectWriter& R, void (*manip)(RObjectWriter& R)){
   manip(R);

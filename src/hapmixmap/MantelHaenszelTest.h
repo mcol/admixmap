@@ -1,9 +1,11 @@
 // *-*-C++-*-*
 #include "ScoreTestBase.h"
+#include "bcppcl/RObjectWriter.h"
 #include <vector>
 #include <fstream>
 class IndividualCollection;
 class Genome;
+class LogWriter;
 
 class MantelHaenszelTest : public ScoreTestBase{
 public:
@@ -11,9 +13,11 @@ public:
   ~MantelHaenszelTest();
 
   void Reset(){};
-  void Initialise(unsigned NumStates, const Genome* const Loci, const char* filename, LogWriter& Log);
+  void Initialise(unsigned NumStates, const Genome* const Loci, const char* filename);
   void Update(const IndividualCollection* , const Genome&);
-  void Output(const char* filename, const std::vector<std::string>& LocusLabels, bool final);
+  void Output(const std::vector<std::string>& LocusLabels);
+  void WriteFinalTable(const char* filename, 
+		       const std::vector<std::string>& LocusLabels, LogWriter& Log);
 
 private:
   unsigned K, Ksq;//number of states (populations or block states)
@@ -23,4 +27,6 @@ private:
   std::vector<double> ScoreSq;
   std::vector<double> Info;
 
+  RObjectWriter R;
+  void OutputTest( FileWriter& outfile, const std::vector<std::string>& LocusLabels, bool final);
 };

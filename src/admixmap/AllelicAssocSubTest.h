@@ -13,11 +13,10 @@
 #ifndef ALLELICASSOCSUBTEST_H
 #define ALLELICASSOCSUBTEST_H 1
 
-#include <fstream>
 #include <string>
 #include <vector>
 class CompositeLocus;
-
+class FileWriter;
 
 ///base class for tests in the AllelicAssocTest class
 class AllelicAssocSubTest{
@@ -29,8 +28,8 @@ public:
   virtual void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 			    double YMinusEY, double phi, double DInvLink) = 0;
   virtual void Accumulate() = 0;
-  virtual void Output(std::ofstream* outfile, std::string label, const CompositeLocus* const Locus, 
-		      bool final, bool onFirstLine, unsigned numUpdates) = 0;
+  virtual void Output(FileWriter& outfile, std::string label, const CompositeLocus* const Locus, 
+		      bool final, unsigned numUpdates) = 0;
   static void SetNumCovars(unsigned);
 
   unsigned getDim()const;
@@ -48,13 +47,13 @@ protected:
   static void CentreAndSum(unsigned dim, double *score, double* info, 
 			   double *sumscore, double* sumscoresq, double* suminfo);
 
-  static void OutputScoreTest(std::ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
+  static void OutputScoreTest(FileWriter& outputstream, unsigned dim, std::vector<std::string> labels,
 			      const double* score, const double* scoresq, const double* info, 
-			      bool final, bool firstline, unsigned, unsigned numUpdates );
+			      bool final, unsigned, unsigned numUpdates );
   
-  static void OutputScalarScoreTest( std::ofstream* outputstream, std::string label,
+  static void OutputScalarScoreTest( FileWriter& outputstream, std::string label,
 				     const double score, const double scoresq, const double info, 
-				     bool final, bool firstline, unsigned numUpdates);
+				     bool final, unsigned numUpdates);
 
 };
 
@@ -66,8 +65,8 @@ public:
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(std::ofstream* outfile, std::string label, const CompositeLocus* const Locus, 
-	      bool final, bool onFirstLine, unsigned numUpdates);
+  void Output(FileWriter& outfile, std::string label, const CompositeLocus* const Locus, 
+	      bool final, unsigned numUpdates);
 private:
   SNPTest();
   double SumScore;
@@ -84,8 +83,8 @@ public:
   virtual void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 		      double YMinusEY, double phi, double DInvLink);
   virtual void Accumulate();
-  virtual void Output(std::ofstream* outfile, std::string label, const CompositeLocus* const, 
-		      bool final, bool onFirstLine, unsigned numUpdates);
+  virtual void Output(FileWriter& outfile, std::string label, const CompositeLocus* const, 
+		      bool final, unsigned numUpdates);
 protected:
   double* SumScore;
   double* SumScore2;
@@ -104,8 +103,8 @@ public:
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(std::ofstream* outfile, std::string label, const CompositeLocus* const, 
-	      bool final, bool onFirstLine, unsigned numUpdates);
+  void Output(FileWriter& outfile, std::string label, const CompositeLocus* const, 
+	      bool final, unsigned numUpdates);
 private:
   HaplotypeTest();
 };
@@ -120,8 +119,8 @@ public:
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(std::ofstream* outfile, std::string, const CompositeLocus* const Locus, 
-	      bool final, bool onFirstLine, unsigned numUpdates);
+  void Output(FileWriter& outfile, std::string, const CompositeLocus* const Locus, 
+	      bool final, unsigned numUpdates);
 
 private:
   double** WithinHaplotypeScore;

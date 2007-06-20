@@ -288,7 +288,7 @@ bool Options::SetOptions(){
     if(ProgOptions[i->first].second == outputfileOption)
       *((string*)(ProgOptions[i->first].first)) = ResultsDir + "/" + i->second;
   }
-  EYFilename = ResultsDir + "/" + EYFilename;//TODO: make a user option?
+  EYFilename = ResultsDir + "/" + EYFilename;
   //set indicators
   OutputAlleleFreq = (AlleleFreqOutputFilename.size()>0);
   TestForAllelicAssociation = (AllelicAssociationScoreFilename.size()>0);

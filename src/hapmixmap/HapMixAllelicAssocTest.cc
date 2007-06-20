@@ -16,26 +16,27 @@
 #include "HapMixIndividualCollection.h"
 #include "InputHapMixData.h"
 #include "bcppcl/Regression.h"
+#include "bcppcl/TableWriter.h"
+#include "bcppcl/LogWriter.h"
 
 HapMixAllelicAssocTest::HapMixAllelicAssocTest(){
   useprevb = false;
-  K = 1;
+  NumStrata = 1;
 }
 
 //public function
-void HapMixAllelicAssocTest::Initialise(const char* filename, const int NumLoci, LogWriter &Log){
-  this->Initialise(filename, 1, NumLoci, Log);
+void HapMixAllelicAssocTest::Initialise(const char* filename, const int NumLoci){
+  this->Initialise(filename, 1, NumLoci);
+
 }
 
 //private function - calls base function
-void HapMixAllelicAssocTest::Initialise(const char* filename, const int , const int NumLoci, LogWriter &Log){
-  CopyNumberAssocTest::Initialise(filename, 1, NumLoci, Log);
+void HapMixAllelicAssocTest::Initialise(const char* filename, const int , const int NumLoci){
+  CopyNumberAssocTest::Initialise(filename, 1, NumLoci);
 }
 
-void HapMixAllelicAssocTest::OpenOutputFile(LogWriter &Log, const char* filename){
-  OpenFile(Log, &outputfile, filename, "Tests for allelic association", true);
-}
-void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, const Regression* const R, const Genome& Loci){
+void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, 
+				    const Regression* const R, const Genome& Loci){
   this->Reset();
   const double dispersion = R->getDispersion();
   const double* const EY = R->getExpectedOutcome();
@@ -65,18 +66,40 @@ void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, 
   this->Accumulate();
 }
 
-void HapMixAllelicAssocTest::ROutput(){
+void HapMixAllelicAssocTest::Output(const Genome& Loci){
+  for(unsigned int j = 0; j < L; j++ ){
+    const string locuslabel = Loci(j)->GetLabel(0);
+     OutputCopyNumberAssocTest(j, 0, R, locuslabel, false);
+  }
+  ++numPrintedIterations;
+}
+
+void HapMixAllelicAssocTest::WriteFinalTable(const Genome& Loci, const char* filename, LogWriter& Log){
+  TableWriter finaltable(filename);
+  Log << Quiet << "Tests for allelic association written to " << filename << "\n";
+  finaltable <<"Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
+	     << newline;
+
+  for(unsigned int j = 0; j < L; j++ ){
+    const string locuslabel = Loci(j)->GetLabel(0);
+    std::string label = locuslabel;
+    OutputCopyNumberAssocTest(j, 0, finaltable, locuslabel, true);
+  }
+  finaltable.close();
+}
+
+HapMixAllelicAssocTest::~HapMixAllelicAssocTest(){
   if(test){
-    vector<string> labels;
-    labels.push_back("Locus");
-    labels.push_back("minusLog10PValue");
+    vector<vector<string> > labels(1);
+    labels[0].push_back("Locus");
+    labels[0].push_back("minusLog10PValue");
 
     vector<int> dimensions(3,0);
-    dimensions[0] = labels.size();
+    dimensions[0] = labels[0].size();
     dimensions[1] = L;
     dimensions[2] = (int)(numPrintedIterations);
     
-    R_output3DarrayDimensions(&outputfile, dimensions, labels);
+   R.close(dimensions, labels);
   }
 }
 

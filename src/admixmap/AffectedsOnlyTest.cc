@@ -13,6 +13,8 @@
 
 #include "AffectedsOnlyTest.h"
 #include "Genome.h"
+#include "bcppcl/TableWriter.h"
+#include "bcppcl/LogWriter.h"
 #include <gsl/gsl_cdf.h>
 #include <math.h>
 
@@ -35,9 +37,22 @@ AffectedsOnlyTest::~AffectedsOnlyTest(){
   delete[] SumAffectedsInfo;
   delete[] SumAffectedsVarScore;
 
+  if (test){
+    std::vector<std::vector<std::string> > labels(1);
+    labels[0].push_back("Locus");
+    labels[0].push_back("Population");
+    labels[0].push_back("minusLogPValue");
+    
+    std::vector<int> dimensions(3,0);
+    dimensions[0] = labels[0].size(); 
+    dimensions[1] = L * K;
+    dimensions[2] = (int)(numPrintedIterations);
+
+    R.close(dimensions,labels);
+  }
 }
 
-void AffectedsOnlyTest::Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log){
+void AffectedsOnlyTest::Initialise(const char* filename, const int NumPopulations, const int NumLoci){
   test = true;
   //K is the number of populations for which to perform test. For 2-way admixture, we only want 2nd population.
   K = NumPopulations;
@@ -50,7 +65,7 @@ void AffectedsOnlyTest::Initialise(const char* filename, const int NumPopulation
   L = NumLoci;
 
   //open output file and start writing R object
-  OpenFile(Log, &outputfile, filename, "Affected-only tests for association", true);
+  R.open(filename);
   
   const int dim = L*K;
   AffectedsScore = new double[dim];
@@ -82,18 +97,23 @@ void AffectedsOnlyTest::Reset(){
   }
 }
 
-void AffectedsOnlyTest::Output(const Vector_s& PopLabels, const Genome& Loci, bool final, const char* filename){
-  std::ofstream* outfile;
-  if(final){
-    outfile = new ofstream(filename);
-    *outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
-  }
-  else{
-    outfile = &outputfile;
+void AffectedsOnlyTest::Output(const Vector_s& PopLabels, const Genome& Loci){
+  OutputAffectedsOnlyTest(R, PopLabels, Loci, ",", false);
     ++numPrintedIterations;
-  }
+}
 
-  string sep = final? "\t" : ",";
+void AffectedsOnlyTest::WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
+					const Genome& Loci, LogWriter& Log){
+  TableWriter finaltable(filename);
+  Log << Quiet << "Affected-only tests for association written to " << filename << "\n";
+  finaltable <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
+	     << newline;
+
+  OutputAffectedsOnlyTest(finaltable, PopLabels, Loci, "\t", true);
+  finaltable.close();
+}
+void AffectedsOnlyTest::OutputAffectedsOnlyTest(FileWriter& outfile, const Vector_s& PopLabels, 
+						const Genome& Loci, const string& sep, bool final){
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = Loci(j)->GetLabel(0);
     for( unsigned k = 0; k < K; k++ ){//end at 1 for 2pops
@@ -102,30 +122,8 @@ void AffectedsOnlyTest::Output(const Vector_s& PopLabels, const Genome& Loci, bo
 					SumAffectedsVarScore[ j*K + k ],SumAffectedsInfo[ j*K + k ], final); 
     }
   }
-  if(final)outfile->close();
+
 }
-
-/**
- * writes out the dimensions and labels of the 
- * R-matrix already written to file
- */
-void AffectedsOnlyTest::ROutput(){
-  if (test){
-    
-    std::vector<std::string> labels(3);
-    labels[0] = "Locus";
-    labels[1] = "Population";
-    labels[2] = "minusLogPValue";
-
-    std::vector<int> dimensions(3,0);
-    dimensions[0] = labels.size(); 
-    dimensions[1] = L * K;
-    dimensions[2] = (int)(numPrintedIterations);
-
-    R_output3DarrayDimensions(&outputfile,dimensions,labels);
-  }
-}
-
 /**
    Updates score, variance of score and info for a single individual at a single locus
 */
@@ -200,23 +198,22 @@ void AffectedsOnlyTest::Accumulate(){
 ///outputs ergodic averages of Likelihood Ratios as R object
 void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector_s& PopLabels, const Genome& Loci){
   //open outut file
-  std::ofstream likratiostream(filename);
-
-  //start writing R object
-  likratiostream<< "structure(.Data=c(" << endl;
+  RObjectWriter likratiostream(filename);
 
   double L1, L2;
 
   for(unsigned int j = 0; j < L; j++ ){
+    const string locuslabel = "\"" + Loci(j)->GetLabel(0) + "\"";
     for( unsigned k = 0; k < K; k++ ){//end at 1 for 2pops
-      likratiostream << "\"" << Loci(j)->GetLabel(0) << "\",";
-      likratiostream << "\""<<PopLabels[k+firstpoplabel] << "\","; //need offset to get second poplabel for 2pops
+      const string poplabel = "\"" + PopLabels[k+firstpoplabel] + "\"";
+      likratiostream << locuslabel
+		     << poplabel; //need offset to get second poplabel for 2pops
       
       L1 = LikRatio1[ j*K + k] / ( numUpdates );
       L2 = LikRatio2[ j*K + k] / ( numUpdates );
       
-      likratiostream << double2R(L1)<< ","
-		   << double2R(L2)<< ","<<endl;
+      likratiostream << double2R(L1)
+		     << double2R(L2)<< newline;
     }
   }
   
@@ -224,13 +221,11 @@ void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector
   dim[0] = 4;
   dim[1] = L * K;
   
-  std::vector<std::string> labels(4,"");
-  labels[0] = "Locus";
-  labels[1] = "Population";
-  labels[2] = "L1";
-  labels[3] = "L2";
+  std::vector<std::vector<std::string> > labels(1);
+  labels[0].push_back("Locus");
+  labels[0].push_back("Population");
+  labels[0].push_back("L1");
+  labels[0].push_back("L2");
 
-  R_output3DarrayDimensions(&likratiostream, dim, labels);
-  
-  likratiostream.close();
+  likratiostream.close(dim, labels);
 }

@@ -258,7 +258,7 @@ void InputData::CheckOutcomeVarFile(Options* const options, LogWriter& Log){
       }
       Log << outcomeVarData_[0][j+Firstcol];
       Log << ".\n";
-      OutcomeLabels.push_back(outcomeVarData_[0][j+Firstcol]);
+      OutcomeLabels.push_back(StringConvertor::dequote(outcomeVarData_[0][j+Firstcol]));
     }
     Log << "\n";
     delete[] OutcomeVarLabels;

@@ -18,6 +18,7 @@
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
 #include "bcppcl/linalg.h"
+#include "bcppcl/TableWriter.h"
 
 HWTest::HWTest(){
   score = 0;
@@ -41,33 +42,23 @@ HWTest::~HWTest(){
 }
 
 //void HWTest::Initialise(Options *options, int nind, int nloci, LogWriter *Log){
-void HWTest::Initialise(const Options* const options, int nloci, LogWriter &Log){
+void HWTest::Initialise(int nloci){
 
   //NumInd = nind;
   NumLoci = nloci;
-  Log.setDisplayMode(Quiet);
+  test=true;
 
-  if( options->getHWTestIndicator() ){//not really necessary
-
-    if ( strlen( options->getHWTestFilename() ) ){
-      OpenFile(Log, &outputfile, options->getHWTestFilename(), "Tests for Hardy-Weinberg equilibrium", false);
-	
-	//sumscore = alloc2D_d(NumInd, NumLoci);
-	//sumscore2 = alloc2D_d(NumInd, NumLoci);
-	//suminfo = alloc2D_d(NumInd, NumLoci);
-	score = new double[NumLoci];
-	sumscore = new double[NumLoci];
-	sumscore2 = new double[NumLoci];
-	suminfo = new double[NumLoci];
-	for(int i = 0; i < NumLoci; ++i){
-	  sumscore[i] = 0.0;
-	  sumscore2[i] = 0.0;
-	  suminfo[i] = 0.0;
-	}
-    }
-    else{
-      Log << "No hwtestfile given\n";
-    }
+  //sumscore = alloc2D_d(NumInd, NumLoci);
+  //sumscore2 = alloc2D_d(NumInd, NumLoci);
+  //suminfo = alloc2D_d(NumInd, NumLoci);
+  score = new double[NumLoci];
+  sumscore = new double[NumLoci];
+  sumscore2 = new double[NumLoci];
+  suminfo = new double[NumLoci];
+  for(int i = 0; i < NumLoci; ++i){
+    sumscore[i] = 0.0;
+    sumscore2[i] = 0.0;
+    suminfo[i] = 0.0;
   }
 }    
 
@@ -157,13 +148,25 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
   ++numUpdates;
 }
 
-void HWTest::Output(const Vector_s LocusLabels){
-  //header line
-  outputfile <<"Locus\tScore\tCompleteInfo\tMissingInfo\tObservedInfo\tPercentInfo\tz-score\tp-value"<<endl;
+void HWTest::Output(const char* filename, const Vector_s LocusLabels, LogWriter& Log){
+  try{
+    TableWriter outputfile(filename);
+    Log << Quiet << "Tests for Hardy-Weinberg equilibrium writen to " << filename << "\n";
+    //header line
+    outputfile <<"Locus\tScore\tCompleteInfo\tMissingInfo\tObservedInfo\tPercentInfo\tz-score\tp-value" << newline;
 
-  for(int j = 0; j < NumLoci; j++ ){
-    //call function in base class
-    OutputScalarScoreTest(numUpdates, &outputfile, LocusLabels[j], sumscore[j], sumscore2[j], suminfo[j], true);
+    for(int j = 0; j < NumLoci; j++ ){
+      //call function in base class
+      OutputScalarScoreTest(numUpdates, outputfile, LocusLabels[j], sumscore[j], sumscore2[j], suminfo[j], true);
+    }
+  }
+  //if something goes wrong just exit
+  catch(string s){
+    Log << s;
+    return;
+  }
+  catch(...){
+    return;
   }
 }
 

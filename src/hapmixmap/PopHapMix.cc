@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <numeric>
 #include <sstream>
+#include <iomanip>
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
 #include "bcppcl/GSLExceptions.h" //for catching gsl exceptions

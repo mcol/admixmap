@@ -18,6 +18,7 @@
 #include "bcppcl/misc.h"
 #include "bcppcl/linalg.h"
 #include "bcppcl/MuSampler.h"
+#include <iomanip>
 #include <math.h>
 #include <numeric>
 

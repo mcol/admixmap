@@ -3,6 +3,8 @@
 #include "Genome.h"
 #include "gsl/gsl_cdf.h"
 #include "gsl/gsl_math.h"//for gsl_finite
+#include "bcppcl/TableWriter.h"
+#include "bcppcl/LogWriter.h"
 
 MantelHaenszelTest::MantelHaenszelTest(){
   numUpdates = 0;
@@ -10,26 +12,27 @@ MantelHaenszelTest::MantelHaenszelTest(){
 }
 MantelHaenszelTest::~MantelHaenszelTest(){
   if(test){
+    
+    vector<vector<string> >labels(1);
+    labels[0].push_back("Loci");
+    labels[0].push_back("log10Pvalue");
+    
     vector<int> dimensions(3,0);
-    dimensions[0] = 2;
+    dimensions[0] = labels[0].size();
     dimensions[1] = Score.size();
     dimensions[2] = (int)(numPrintedIterations);
     
-    vector<string> labels(dimensions[0],"");
-    labels[0] = "Loci";
-    labels[1] = "log10Pvalue";
-
-    R_output3DarrayDimensions(&outputfile, dimensions, labels);
+    R.close(dimensions, labels);
   }
 }
 
-void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci, const char* filename, LogWriter& Log){
+void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci, const char* filename){
   K = NumStates;
   Ksq = K*K;
   Loci = loci;
   test = true;
 
-  OpenFile(Log, &outputfile, filename, "M-H Test", true);
+  R.open(filename);
   //assign K^2 2x2 tables
   //NOTE: asssuming all SNPs
   for(unsigned k = 0; k < Ksq; ++k){
@@ -96,20 +99,22 @@ void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Lo
   ++numUpdates;
 }
 
-void MantelHaenszelTest::Output(const char* filename, const std::vector<std::string>& LocusLabels, bool final){
-  std::ofstream finaltable;
-  std::ofstream* outfile; 
-  if(!final){
-    ++numPrintedIterations;
-    outfile = &outputfile;
-  }
-  else {
-    finaltable.open(filename);
-    outfile = &finaltable;
-    //write header
-    *outfile << "Loci\tScore\tCompInfo\tObsInfo\tPercentInfo\tzscore\tPValue\n";
-  }
+void MantelHaenszelTest::Output(const std::vector<std::string>& LocusLabels){
+  OutputTest(R, LocusLabels, false);
+  ++numPrintedIterations;
+}
 
+void MantelHaenszelTest::WriteFinalTable(const char* filename, 
+					 const std::vector<std::string>& LocusLabels, LogWriter& Log){
+  TableWriter finaltable(filename);
+  Log << Quiet << "Mantel-Haentszel tests writen to " << filename << "\n";
+  //write header
+  finaltable << "Loci\tScore\tCompInfo\tObsInfo\tPercentInfo\tzscore\tPValue" << newline;
+  OutputTest(finaltable, LocusLabels, true);
+  finaltable.close(); 
+}
+
+void MantelHaenszelTest::OutputTest( FileWriter& outfile, const std::vector<std::string>& LocusLabels, bool final){
   unsigned locus = 0;
   //loop over pairs of loci
   //NOTE: Exp = sum_over_tables ((obs first cell) - (Exp first cell))
@@ -134,6 +139,4 @@ void MantelHaenszelTest::Output(const char* filename, const std::vector<std::str
     }
     ++locus;//skip last locus on chromosome
   }
-  
-  if(final)outfile->close();
 }

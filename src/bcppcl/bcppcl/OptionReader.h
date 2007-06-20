@@ -96,7 +96,7 @@ public:
   void addFlag(char, const string&);
   void addFlag(char, const char*);
 
-  ///set a user options manually (good for defaults)
+  ///set a use options manually (good for defaults)
   void setUserOption(const string&, const string&);
   ///print user options to file
   virtual void PrintUserOptions(const char* filename);
@@ -126,6 +126,7 @@ protected:
   map<char, string> Short2LongMap;
   vector<string> RequiredOptions;
 
+  bool SetOption(const map<string, string>::iterator i);
 private:
   string separators;
   bool hasoptions;
@@ -136,7 +137,7 @@ private:
   ///set a flag. returns false if any unrecognized flags.
   bool SetFlag(const string&);
   ///assigns a options value to a variable
-  int assign(OptionPair& opt, const string value);
+  int assign(OptionPair& opt, const string& value);
   ///reduces an option to standard form (lower case, no non-graph chars)
   void ParseOptionName(string& name);
   void ReportBadUserOption(std::ostream& os, string& line, unsigned linenum, const char* filename)const;

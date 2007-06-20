@@ -13,9 +13,7 @@
 #ifndef LOGWRITER_H
 #define LOGWRITER_H 1
 
-#include <fstream>
-#include <iostream>
-#include <iomanip>
+#include "FileWriter.h"
 
 /**
    enum for three different display modes.
@@ -32,16 +30,15 @@
 */
 enum DisplayMode {Off, Quiet, On};
 
-#define NEWLINE "\n"
-
 ///Class to write to a logfile.
 ///Use insertion operator after setting appropriate display mode.
 //Currently does not accept manipulators like flush, endl;
-class LogWriter
+class LogWriter : public FileWriter
 {
 public:
   ///constructor - supply filename and indicate behaviour for quiet mode
   LogWriter(const char *LogFilename, const bool isverbose);
+  void open(const char *LogFilename, const bool isverbose = false);
   ///default constructor, makes verbose output, no logfile
   LogWriter();
   ~LogWriter();
@@ -65,7 +62,6 @@ public:
   void ProcessingTime();
 
 private:
-  std::ofstream LogFileStream;
   bool verbose;///< determines if output goes to screen in quiet mode
   time_t StartTime;
   DisplayMode toscreen;
@@ -73,4 +69,4 @@ private:
 
 };
 
-#endif /* !defined LATENT_H */
+#endif 

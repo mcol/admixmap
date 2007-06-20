@@ -15,6 +15,7 @@
 #include "HapMixOptions.h"
 #include "bcppcl/misc.h"
 #include "bcppcl/Exceptions.h"
+#include <iomanip>
 
 HapMixFreqs::HapMixFreqs(){
   DirichletParams = 0;

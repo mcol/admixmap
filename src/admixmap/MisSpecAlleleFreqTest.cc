@@ -18,6 +18,10 @@
  */
 
 #include "MisSpecAlleleFreqTest.h"
+#include "bcppcl/LogWriter.h"
+#include "bcppcl/TableWriter.h"
+#include "AlleleFreqs.h"
+#include "Genome.h"
 #include "gsl/gsl_cdf.h"//for pvalues
 #include "bcppcl/linalg.h"
 
@@ -53,7 +57,8 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
  }
 }
 
-void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci){
+void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals, 
+				   const AlleleFreqs* const A, const Genome* const Loci){
   if(doTest1)
     Test1.Update(individuals, A, Loci);
 
@@ -61,12 +66,13 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
     Test2.Update(individuals, A, Loci);
 }
 
-void MisSpecAlleleFreqTest::Output(const Genome* const Loci, const Vector_s& PopLabels){
+void MisSpecAlleleFreqTest::Output(const AdmixOptions& options, const Genome* const Loci, 
+				   const Vector_s& PopLabels, LogWriter& Log){
     if( doTest1){
-      Test1.Output(Loci, PopLabels);
+      Test1.Output(options.getAlleleFreqScoreFilename(), Loci, PopLabels, Log);
     }
     if( doTest2 ){
-      Test2.Output(Loci, PopLabels);
+      Test2.Output(options.getAlleleFreqScoreFilename2(), Loci, PopLabels, Log);
     }
 }
 
@@ -104,7 +110,7 @@ MisSpecifiedAlleleFreqTest::~MisSpecifiedAlleleFreqTest(){
 }
 
 
-void MisSpecifiedAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log )
+void MisSpecifiedAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter& Log)
 {
  if( strlen( options->getAlleleFreqFilename() ) || options->getFixedAlleleFreqs()){
 
@@ -133,14 +139,6 @@ void MisSpecifiedAlleleFreqTest::Initialise(const AdmixOptions* const options, c
        SumScoreSq[i] = new double[ Populations * Populations ];
        fill(SumScoreSq[i], SumScoreSq[i]+Populations*Populations, 0.0);
     }
-     outputfile.open( options->getAlleleFreqScoreFilename() );
-     if(!outputfile.is_open()){
-       string error_string = "ERROR: could not open ";
-       error_string.append(options->getAlleleFreqScoreFilename());
-       throw(error_string);
-     }
-     Log << "Writing score tests for mis-specified allele frequencies(1) to " << options->getAlleleFreqScoreFilename() << "\n";
-     outputfile << "Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tsPValue\tChiSquared\tPValue"<< endl;
    }
 
  }
@@ -262,12 +260,19 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
 	    Info[j][ k*Populations + kk ] += score[k] * score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[2];}
 }
 
-void MisSpecifiedAlleleFreqTest::Output( const Genome* const Loci, const Vector_s& PopLabels)
+void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* const Loci, 
+					 const Vector_s& PopLabels, LogWriter& Log)
 {
   if( test){
+
+     Log << "Writing score tests for mis-specified allele frequencies(1) to " 
+	 << filename << "\n";
+     TableWriter outputfile(filename);
+     outputfile << "Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tsPValue\tChiSquared\tPValue"<< newline;
+
     double* ObservedMatrix = new double[Populations*Populations];
     double* ScoreSq = new double[Populations*Populations];
-    outputfile << setiosflags(ios::fixed) << setprecision(2);//output 2 decimal places
+    outputfile.setDecimalPrecision(2);//output 2 decimal places
     for(int j = 0; j < NumCompLoci; j++ ){
       if( (*Loci)(j)->GetNumberOfLoci() == 1 ){
 	
@@ -285,38 +290,39 @@ void MisSpecifiedAlleleFreqTest::Output( const Genome* const Loci, const Vector_
 	  double observedinfo = ObservedMatrix[ k*Populations + k ];
 	  double completeinfo = SumInfo[j][ k*Populations + k ];
 	  // Test for mis-specification within each continental-population.
-	  outputfile << (*Loci)(j)->GetLabel(0) << "\t"
-		     << PopLabels[k] << "\t"
-		     << SumScore[j][ k ]  << "\t" //score
-		     << completeinfo  << "\t"//complete info
-		     << observedinfo  << "\t";//observed info
+	  outputfile << (*Loci)(j)->GetLabel(0) 
+		     << PopLabels[k] 
+		     << SumScore[j][ k ] //score
+		     << completeinfo     //complete info
+		     << observedinfo ;   //observed info
 	  if(completeinfo > 0.0)
-	    outputfile << 100*observedinfo / completeinfo  << "\t";
-	  else outputfile << "NA\t";
+	    outputfile << 100*observedinfo / completeinfo ;
+	  else outputfile << "NA";
 	  
 	  if(observedinfo > 0.0){
 	    double zscore = SumScore[j][ k ] / sqrt( observedinfo );
 	    double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	    outputfile << zscore << "\t" << pvalue  << "\t";
+	    outputfile << zscore << pvalue ;
 	  }
-	  else outputfile << "NA\tNA\t";
+	  else outputfile << "NA" << "NA";
 	  
 	  if( k < Populations - 1 )
-	    outputfile  << "NA\tNA" << endl;//output NA in chisq column
+	    outputfile  << "NA" << "NA" << newline;//output NA in chisq column
 	}
 	// Summary chi-sq test for mis-specification in all continental-populations.
 	try{
 	  double chisq = GaussianMarginalQuadraticForm(Populations, SumScore[j], ObservedMatrix, Populations);
 	  double pvalue = 1.0 - gsl_cdf_chisq_P (chisq, 2.0);
-	  outputfile << chisq<< "\t" << pvalue << endl;
+	  outputfile << chisq << pvalue << newline;
 	}
 	catch(...){
-	  outputfile << "NA\tNA" << endl;
+	  outputfile << "NA" << "NA" << newline;
 	}
       }
     }//end locus loop
     delete[] ObservedMatrix;
     delete[] ScoreSq; 
+    outputfile.close();
   }//end if test
 }
 
@@ -380,14 +386,6 @@ void MisSpecifiedAlleleFreqTest2::Initialise(const AdmixOptions* const options, 
 	 fill(SumScoreSq[i][k], SumScoreSq[i][k] + (NumberOfStates-1)*(NumberOfStates-1), 0.0);
        }
      }
-     outputfile.open( options->getAlleleFreqScoreFilename2() );
-     if(!outputfile.is_open()){
-       string error_string = "ERROR: could not open ";
-       error_string.append(options->getAlleleFreqScoreFilename2());
-       throw(error_string);
-     }
-     Log << "Writing score tests for mis-specified allele frequencies(2) to " << options->getAlleleFreqScoreFilename2() << "\n";
-     outputfile << "Locus\tPopulation\tCompleteInfo\tObservedInfo\tPercentInfo\tChiSquared" << endl;
    }
  }
  else{
@@ -397,7 +395,8 @@ void MisSpecifiedAlleleFreqTest2::Initialise(const AdmixOptions* const options, 
  }
 }
 
-void MisSpecifiedAlleleFreqTest2::Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci){
+void MisSpecifiedAlleleFreqTest2::Update(const IndividualCollection* const individuals, 
+					 const AlleleFreqs* const A, const Genome* const Loci){
   if( test ){
     for( int j = 0; j < NumCompLoci; j++ ){
       for( int i = 0; i < individuals->getSize(); i++ ){
@@ -448,9 +447,15 @@ void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int 
    delete[] NewInfo;
 }
 
-void MisSpecifiedAlleleFreqTest2::Output(const Genome* const Loci, const Vector_s& PopLabels)
+void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* const Loci, 
+					 const Vector_s& PopLabels, LogWriter& Log)
 {
   if( test ){
+     Log << "Writing score tests for mis-specified allele frequencies(2) to " 
+	 << filename << "\n";
+     TableWriter outputfile(filename);
+     outputfile << "Locus\tPopulation\tCompleteInfo\tObservedInfo\tPercentInfo\tChiSquared" << newline;
+
     //allelefreqscorestream2 << setiosflags(ios::fixed) << setprecision(2);//output 2 decimal places
     for(int j = 0; j < NumCompLoci; j++ ){
       int NumberOfStates = (*Loci)(j)->GetNumberOfStates();
@@ -474,25 +479,25 @@ void MisSpecifiedAlleleFreqTest2::Output(const Genome* const Loci, const Vector_
 	//score = SumScore[j][k] / numUpdates;
 	//completeinfo = SumInfo[j][k] / numUpdates;
 	//observedinfo = completeinfo + score * score.Transpose() - SumScoreSq[j][k] / numUpdates;
-	outputfile << (*Loci)(j)->GetLabel(0) << "\t"
-		   << PopLabels[k] << "\t";
+	outputfile << (*Loci)(j)->GetLabel(0) 
+		   << PopLabels[k] ;
 	try{
 	  double det1 = determinant(completeinfo, NumberOfStates-1);
 	  double det2 = determinant(observedinfo, NumberOfStates-1);
-	  outputfile << det1 << "\t"
-		     << det2 << "\t"
-		     << 100*det2 / det1 << "\t";
+	  outputfile << det1 
+		     << det2 
+		     << 100*det2 / det1 ;
 	}
 	catch(...){
-	  outputfile << "NA\tNA\tNA\t";
+	  outputfile << "NA" << "NA" << "NA";
 	}
 	try{
 	  double chisq = GaussianMarginalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
 	  //observedinfo.InvertUsingLUDecomposition();
-	  outputfile << chisq/*double2R((score.Transpose() * observedinfo * score)(0,0))*/  << endl;
+	  outputfile << chisq/*double2R((score.Transpose() * observedinfo * score)(0,0))*/  << newline;
 	}
 	catch(...){
-	  outputfile <<"NA" << endl;
+	  outputfile << "NA" << newline;
 	}
 	
       }
@@ -501,6 +506,7 @@ void MisSpecifiedAlleleFreqTest2::Output(const Genome* const Loci, const Vector_
       delete[] observedinfo;
       delete[] scoresq;
     }//end comploci loop
+    outputfile.close();
   }//end if test
 }
 

@@ -22,11 +22,11 @@
 
 #include "IndividualCollection.h"
 #include "Individual.h"
-#include "AlleleFreqs.h"
-#include "Genome.h"
 #include "AdmixOptions.h"
-#include "bcppcl/LogWriter.h"
 #include "ScoreTestBase.h"
+
+class AlleleFreqs;
+class Genome;
 
 ///a scalar test for SNPs only
 class MisSpecifiedAlleleFreqTest : public ScoreTestBase{
@@ -36,7 +36,7 @@ public:
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(const Genome* const Loci, const Vector_s& PopLabels);
+  void Output(const char* filename, const Genome* const Loci, const Vector_s& PopLabels, LogWriter& Log);
   void Reset();
   
 private:
@@ -45,9 +45,10 @@ private:
   double **SumScore;
   double **SumScoreSq;
   double **SumInfo;
-  int NumTestLoci;     //number of comp loci with a single locus ie those used in scalar score test for misspecified allelefreqs
-   int NumCompLoci; //number of composite loci
-  int Populations;           //number of populations
+  int NumTestLoci;     //number of comp loci with a single locus 
+                       //ie those used in scalar score test for misspecified allelefreqs
+  int NumCompLoci; //number of composite loci
+  int Populations;  //number of populations
   
   void UpdateLocus(int j, const double* const* phi, int NumCopiesAllele1,
 		   const double* const AlleleFreqs, int NumStates);
@@ -62,7 +63,7 @@ public:
   
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(const Genome* const Loci, const Vector_s& PopLabels);
+  void Output(const char* filename, const Genome* const Loci, const Vector_s& PopLabels, LogWriter& Log);
   void Reset(){};
 
 private:
@@ -89,7 +90,8 @@ public:
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(const Genome* const Loci, const Vector_s& PopLabels);
+  void Output(const AdmixOptions& options, const Genome* const Loci, 
+	      const Vector_s& PopLabels, LogWriter& Log);
 
 private:
   bool doTest1, doTest2;//indicators for the two tests

@@ -14,15 +14,20 @@
 #define ANCESTRYASSOCTEST_H
 
 #include "CopyNumberAssocTest.h"
+class Genome;
+class LogWriter;
 
 class AncestryAssocTest : public CopyNumberAssocTest{
 
 public:
   AncestryAssocTest();
-  void ROutput();
-
+  ~AncestryAssocTest();
+  void Initialise(const char* filename, const int NumPopulations, const int NumLoci);
+  void Output(const Vector_s& PopLabels, const Genome& Loci);
+  void WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
+		       const Genome& Loci, LogWriter& Log);
 private:
-  void OpenOutputFile(LogWriter &Log, const char* filename);
+  unsigned firstpoplabel;
 
 };
 

@@ -11,8 +11,10 @@
  * 
  */
 #include "AdmixtureAssocTest.h"
+#include "bcppcl/LogWriter.h"
 #include <math.h>//for sqrt
 #include <algorithm> //for fill
+#include <iomanip>
 
 using namespace std;
 

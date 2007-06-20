@@ -88,7 +88,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  Log
   }
 
   if(options.getMHTest())
-    MHTest.Initialise(options.getPopulations(), &Loci, options.getMHTestFilename(), Log);
+    MHTest.Initialise(options.getPopulations(), &Loci, options.getMHTestFilename());
 }
 
 void HapMixModel::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
@@ -159,9 +159,9 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
     
   if( options->getHWTestIndicator() || options->getMHTest() || options->getTestForResidualAllelicAssoc() ) {
-  // loops over individuals to sample hap pairs, not skipping missing genotypes. 
-  // Does not update counts since done already
-  IC->SampleHapPairs(options, &A, &Loci, false, anneal, false); 
+    // loops over individuals to sample hap pairs, not skipping missing genotypes. 
+    // Does not update counts since done already
+    IC->SampleHapPairs(options, &A, &Loci, false, anneal, false); 
   }
 
     //accumulate conditional genotype probs for masked individuals at masked loci
@@ -246,14 +246,13 @@ void HapMixModel::OutputErgodicAverages(int samples, double & SumEnergy, double 
 
 ///Write score test output
 void HapMixModel::OutputTests(HapMixOptions& options, InputData & data, LogWriter& Log  ){
-  ResidualAllelicAssocScoreTest.Output(false, data.getLocusLabels());
+  ResidualAllelicAssocScoreTest.Output(data.getLocusLabels());
   if( options.getTestForAllelicAssociation() )    {
-    string filename; //ignored if !final
-    AllelicAssocTest.Output(data.GetHiddenStateLabels(), Loci, false, filename.c_str());
+    AllelicAssocTest.Output(Loci);
   }
   
   if(options.getMHTest() ){
-    MHTest.Output(options.getMHTestFilename(), data.getLocusLabels(), false);
+    MHTest.Output(data.getLocusLabels());
   }
 }
 
@@ -305,17 +304,15 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
   if(options.getMHTest()){
     std::string s = options.getResultsDir();
     s.append("/MHTestFinal.txt");
-    MHTest.Output(s.c_str(), data.getLocusLabels(), true);
+    MHTest.WriteFinalTable(s.c_str(), data.getLocusLabels(), Log);
   }
   //Write final score test tables  
-  ResidualAllelicAssocScoreTest.ROutput();
-  ResidualAllelicAssocScoreTest.Output(true, data.getLocusLabels());
+  ResidualAllelicAssocScoreTest.WriteFinalTable(data.getLocusLabels(), Log);
   
   if( options.getTestForAllelicAssociation() )    {
     string filename = options.getResultsDir();
     filename.append("/AllelicAssocTestsFinal.txt");
-    AllelicAssocTest.Output(data.GetHiddenStateLabels(), Loci, true, filename.c_str());
-    AllelicAssocTest.ROutput();
+    AllelicAssocTest.WriteFinalTable(Loci, filename.c_str(), Log);
     AllelicAssocTest.PrintAverageInfo(Log, (InputHapMixData&)data, filename.c_str());
   }
   
@@ -354,9 +351,9 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
 }
 void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWriter& Log){
   if( options.getTestForAllelicAssociation() ){
-    AllelicAssocTest.Initialise(options.getAllelicAssociationScoreFilename(), Loci.GetNumberOfCompositeLoci(), Log);
+    AllelicAssocTest.Initialise(options.getAllelicAssociationScoreFilename(), Loci.GetNumberOfCompositeLoci());
   }
-  ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci, Log);
+  ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci);
   
   InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
 }

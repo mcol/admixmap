@@ -266,10 +266,15 @@ string OptionReader::short2Long(char shortname){
 
 }
 
+//return codes for option assignment
+#define OPTION_ASSIGNED 0
+#define UNRECOGNIZED_OPTION_TYPE 1
+#define ERASE_OPTION 2
+
 /// sets the value of a data member corresponding to a user option.
 /// converts the value string to an appropriate type, with method indicated by opt.second
 /// and assigns converted value to the data member with address opt.first
-int OptionReader::assign(OptionPair& opt, const string value){
+int OptionReader::assign(OptionPair& opt, const string& value){
   if(opt.second == intOption)
     *((int*)opt.first) = atoi(value.c_str());
   else if(opt.second ==longOption)
@@ -279,8 +284,10 @@ int OptionReader::assign(OptionPair& opt, const string value){
   else if(opt.second ==floatOption)
     *((float*)opt.first) = atof(value.c_str());
   else if(opt.second == boolOption){
-    if (atoi(value.c_str()) ==1) *((bool*)opt.first) = true;
-    else *((bool*)opt.first) = false;
+    const int b = atoi(value.c_str());
+    if ( b == 1 ) *((bool*)opt.first) = true;
+    else if(b == 0) *((bool*)opt.first) = false;
+    else return ERASE_OPTION;
   }
   else if(opt.second == charOption)
     *((char*)opt.first) = value[0];
@@ -288,52 +295,58 @@ int OptionReader::assign(OptionPair& opt, const string value){
   else if(opt.second == stringOption)
     *((string*)opt.first) = value;
 
-  else if(opt.second ==dvectorOption){
+  else if(opt.second == dvectorOption){
     StringConvertor::StringToVec(value, *((vector<double>*)opt.first));
   }
-  else if(opt.second ==fvectorOption){
+  else if(opt.second == fvectorOption){
     StringConvertor::StringToVec(value, *((vector<float>*)opt.first));
   }
-  else if(opt.second ==uivectorOption){
+  else if(opt.second == uivectorOption){
     StringConvertor::StringToVec(value, *((vector<unsigned>*)opt.first));
   }
   else if(opt.second == rangeOption){//may be range or list of numbers
     vector<unsigned>* range = (vector<unsigned>*)opt.first;
     string::size_type colon = value.find(":" , 0);
     if(colon != string::npos){//read as range of numbers
-       for(unsigned i = (unsigned)atoi((value.substr(0, colon)).c_str()); i <= (unsigned)atoi((value.substr(colon+1)).c_str()); ++i)
-	    range->push_back(i);
-	  }
+      for(unsigned i = (unsigned)atoi((value.substr(0, colon)).c_str()); i <= (unsigned)atoi((value.substr(colon+1)).c_str()); ++i)
+	range->push_back(i);
+    }
     else StringConvertor::StringToVec(value, *range);//read as list
   }
-  else if(opt.second ==oldOption){//deprecated option - return signal to erase
-    return 2;
+  else if(opt.second == oldOption){//deprecated option - return signal to erase
+    return ERASE_OPTION;
   }
   else if(opt.second != nullOption && opt.second != outputfileOption){
     //skipping output file names as they are set later, prefixing resultsdir
-    return 1;//unrecognised option
+    return UNRECOGNIZED_OPTION_TYPE;//unrecognised option
   }
-  return 0;//success
+  return OPTION_ASSIGNED;//success
 }
 
 bool OptionReader::SetOptions(){
   //parse user options
   bool badOptions = false;
   for(map<string, string>::iterator i = useroptions.begin(); i != useroptions.end(); ++i){
-    if(ProgOptions.find(i->first)!=ProgOptions.end()){
-      int status = assign(ProgOptions[i->first], i->second);
-      if (status==2) useroptions.erase(i->first);
-    }
-    //    if(status == 1){
-    else{
-      if(Verbose){
-	cerr << "Unknown option: " << i->first
-	     << " with arg: " << i->second
-	     << endl;
-      }
-      useroptions.erase(i->first);
+    if(!SetOption(i))
       badOptions = true;
+  }
+  return !badOptions;
+}
+
+bool OptionReader::SetOption(const map<string, string>::iterator i){
+  bool badOptions = false;
+  if(ProgOptions.find(i->first)!=ProgOptions.end()){//if option has been defined
+    int status = assign(ProgOptions[i->first], i->second);
+    if (status==ERASE_OPTION) useroptions.erase(i->first);
+  }
+  //    if(status == BAD_OPTION){
+  else{
+    if(Verbose){
+      cerr << "Unknown option: " << i->first
+	   << " with arg: " << i->second
+	   << endl;
     }
+    badOptions = true;
   }
   return !badOptions;
 }

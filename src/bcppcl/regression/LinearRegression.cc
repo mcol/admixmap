@@ -5,6 +5,7 @@
 #include "bcppcl/linalg.h"
 #include "bcppcl/rand.h"//for sampling data precision
 #include <math.h>//for sqrt and exp
+#include <iomanip>
 
 using namespace::std;
 LinearRegression::LinearRegression(){

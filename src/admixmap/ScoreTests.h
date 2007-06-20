@@ -41,10 +41,10 @@ public:
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
 		  const Vector_s&, LogWriter &);
 
-  void Output(const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
+  void Output(const Vector_s& PLabels, const Vector_s& LocusLabels);
+  void WriteFinalTables(const Vector_s& PLabels, const Vector_s& LocusLabels, LogWriter& Log);
 
-  void ROutput();
-  void SetAllelicAssociationTest(const std::vector<double> &alpha0);
+  void MergeRareHaplotypes(const std::vector<double> &alpha0);
   void Update(const vector<Regression* >& R);
   void UpdateScoresForResidualAllelicAssociation(const FreqArray& Allelefreqs);
 

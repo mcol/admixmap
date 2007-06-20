@@ -1,90 +1,79 @@
+/* 
+ *   ScoreTestBase.cc 
+ *   Abstract Base Class for score tests
+ *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "ScoreTestBase.h"
 #include <sstream>
+#include <iomanip>
 #include <numeric>
 #include "gsl/gsl_cdf.h"
 #include <math.h>
 #include "bcppcl/linalg.h"
+#include "bcppcl/FileWriter.h"
 
 using namespace std;
 
+ScoreTestBase::ScoreTestBase(){
+  test = false;
+}
 ScoreTestBase::~ScoreTestBase(){
-  if(outputfile.is_open())outputfile.close();
 }
-
-void ScoreTestBase::OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname, bool Robj){
-  outputstream->open(filename, ios::out);
-  if(!outputstream->is_open()){
-    string error_string = "ERROR: could not open ";
-    error_string.append(filename);
-    throw(error_string);
-  }
-  Log << testname << " written to " << filename << "\n";
-  if(Robj)
-    //start writing R object
-    *outputstream << "structure(.Data=c(";
-
-  onFirstLine = true;
-}
-
 
 ///generic scalar score test
-void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
+void ScoreTestBase::OutputScalarScoreTest( int iterations, FileWriter& outputstream, string label,
 					const double score, const double scoresq, const double info, bool final)
 {
-  string sep = final? "\t" : ",";
   const double Score = score / ( double )iterations;
   const double CompleteInfo = info / (double) iterations;
   const double MissingInfo = scoresq / (double) iterations - Score * Score;
   const double ObservedInfo = CompleteInfo - MissingInfo;
 
-  if(!onFirstLine){
-    //if not the first line, output a separator after previous output
-    *outputstream << sep;
-  }
-  //now start a new line (for ease of human reading)
-  *outputstream << endl;
-  //after this function call there will be at least one line in output
-  onFirstLine = false;
-
   //output label
-  *outputstream << "\"" << label << "\"" << sep;
+  outputstream << ("\"" + label + "\"") ;
   if(final)
-    *outputstream << double2R(Score, 3)        << sep
-		  << double2R(CompleteInfo, 3) << sep
-		  << double2R(ObservedInfo, 3) << sep;
+    outputstream << double2R(Score, 3)  
+		  << double2R(CompleteInfo, 3)
+		  << double2R(ObservedInfo, 3);
 
   if(CompleteInfo > 0.0 && ObservedInfo > 0.0) {
     const double PercentInfo = 100.0 * ObservedInfo / CompleteInfo;
-    if(final) *outputstream << double2R(PercentInfo, 2) << sep;
+    if(final) outputstream << double2R(PercentInfo, 2);
 
     if(PercentInfo >= 10.0){ //only output p-values if >10% info extracted
       const double zscore = Score / sqrt( ObservedInfo );
       const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
       if(final){
 	//output zscore and pvalue in final table
-	*outputstream << double2R(zscore,3) << sep 
+	outputstream << double2R(zscore,3) 
 		      << double2R(pvalue) ;
       }
       else //not final table - output log p-value
-	*outputstream << double2R(-log10(pvalue));
+	outputstream << double2R(-log10(pvalue));
     }
     else{ // %info is <10
       if(final)//2 NAs in final table (z-score, p-value)
-	*outputstream << "NA" << sep << "NA";
+	outputstream << "NA" << "NA";
       else//1 NA in cumulative output (log p-value)
-	*outputstream << "NA";
+	outputstream << "NA";
     }
 
   }// negative CI or MissingInfo > CompleteInfo
   else{                       //%Info        z-score
-    if(final)*outputstream << "NA" << sep << "NA" << sep;
+    if(final)outputstream << "NA" << "NA" ;
     //NA for (log)p-value
-    *outputstream << "NA" ;
+    outputstream << "NA" ;
   }
-  //*outputstream << endl;
+  outputstream << newline;
 }
 
-void ScoreTestBase::OutputRaoBlackwellizedScoreTest( ofstream* outputstream, string label,
+void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  FileWriter& outputstream, string label,
 						     const double score, const double scoresq, const double varscore, 
 						     const double info, bool final )
 {
@@ -92,19 +81,7 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( ofstream* outputstream, str
     throw string("Unable to output scoretest as no updates have been made");
   }
 
-  string separator = final? "\t" : ",";
-
-  if(!onFirstLine){
-    //if not the first line, output a separator after previous output
-    *outputstream << separator;
-  }
-  //now start a new line (for ease of human reading)
-  *outputstream << endl;
-  //after this function call there will be at least one line in output
-  onFirstLine = false;
-
-
-  *outputstream << "\"" << label << "\"" << separator;
+  outputstream << ("\"" + label + "\"");
 
   const double scaleFactor = 1.0 / (double)numUpdates;      
   const double EU = score * scaleFactor;
@@ -113,20 +90,20 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( ofstream* outputstream, str
   const double complete =  info * scaleFactor;
   
   if(final){
-    *outputstream << double2R(EU, 3)                                << separator//score
-		  << double2R(complete, 3)                          << separator//complete info
-		  << double2R(complete - missing, 3)                << separator;//observed info
+    outputstream << double2R(EU, 3)                 //score
+		  << double2R(complete, 3)           //complete info
+		  << double2R(complete - missing, 3);//observed info
 
   }
   if(complete > 0.0){
     const double PercentInfo = 100.0*(complete - missing)/complete;
     if(final){
       if(PercentInfo >= 0.0)
-	*outputstream << double2R(PercentInfo, 2) << separator;//%observed info
+	outputstream << double2R(PercentInfo, 2) ;//%observed info
       else
-	*outputstream << "NA" << separator;
-      *outputstream << double2R(100.0*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
-		    << double2R(100.0*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
+	outputstream << "NA" ;
+      outputstream << double2R(100.0*(VU/complete), 2)         //%missing info attributable to hidden state
+		    << double2R(100.0*(missing-VU)/complete, 2);//%remainder of missing info      
     }
     if(missing < complete) {
       if(PercentInfo >= 10.0){ //only output p-values if >10% info extracted
@@ -134,52 +111,41 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( ofstream* outputstream, str
 	const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
 	if(final){
 	  //output zscore and pvalue in final table
-	  *outputstream << double2R(zscore,3) << separator 
+	  outputstream << double2R(zscore,3) 
 			<< double2R(pvalue) ;
 	}
 	else //not final table - output log p-value
-	  *outputstream << double2R(-log10(pvalue));
+	  outputstream << double2R(-log10(pvalue));
       }
       else{ // %info is <10
 	if(final)//2 NAs in final table
-	  *outputstream << "NA" << separator << "NA";
+	  outputstream << "NA" << "NA";
 	else//1 NA in cumulative output
-	  *outputstream << "NA";
+	  outputstream << "NA";
       }
     }
     else{// MissingInfo > CompleteInfo
-      if(final)*outputstream << "NA" << separator;
-      *outputstream << "NA";
+      if(final)outputstream << "NA";
+      outputstream << "NA";
     }
   }
   else{//complete info <= 0
     if(final)
-      *outputstream << "NA" << separator << "NA" << separator << "NA" << separator << "NA" << separator;
-    *outputstream << "NA" ; 
+      outputstream << "NA" << "NA" << "NA" << "NA" ;
+    outputstream << "NA" ; 
   }
-  //*outputstream << endl;
+  outputstream << newline;
 }
 
 ///generic vector score test
-void ScoreTestBase::OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, vector<string> labels,
+void ScoreTestBase::OutputScoreTest( int iterations,  FileWriter& outputstream, unsigned dim, vector<string> labels,
 				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
 {
   //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element.
   //if final=false, only the log(-pvalue)'s are printed
 
   double *ScoreVector = 0, *CompleteInfo = 0, *ObservedInfo = 0;
-  string sep = final? "\t" : ",";
 
-  if(!onFirstLine){
-    //if not the first line, output a separator after previous output
-    *outputstream << sep;
-  }
-  //now start a new line (for ease of human reading)
-  *outputstream << endl;
-  //after this function call there will be at least one line in output
-  onFirstLine = false;
-
-  
   ScoreVector = new double[dim];
   copy(score, score+dim, ScoreVector);
   scale_matrix(ScoreVector, 1.0/( iterations), dim, 1);
@@ -194,25 +160,27 @@ void ScoreTestBase::OutputScoreTest( int iterations, ofstream* outputstream, uns
       scoresq[d1*dim+d2]/( iterations );
   for( unsigned k = 0; k < dim; k++ ){
     // ** output labels
-    *outputstream << labels[k] << sep;
+    outputstream << labels[k] ;
     if(final){
-      *outputstream  << double2R(ScoreVector[k], 3) << sep
-		     << double2R(CompleteInfo[k*dim+k], 3) << sep//prints diagonal of CI matrix
-		     << double2R(ObservedInfo[k*dim+k], 3) << sep;//   "      "     "  MI   "
+      outputstream  << double2R(ScoreVector[k], 3) 
+		     << double2R(CompleteInfo[k*dim+k], 3) //prints diagonal of CI matrix
+		     << double2R(ObservedInfo[k*dim+k], 3);//   "      "     "  MI   "
       if(CompleteInfo[k*dim+k]>0.0)
-	*outputstream<< double2R(100*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
+	outputstream<< double2R(100*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2);//%Observed Info
       else 
-	*outputstream << "NA" << sep;
+	outputstream << "NA" ;
     }
     double zscore = ScoreVector[ k ] / sqrt( ObservedInfo[k*dim+k] );
-    if(final)*outputstream  << double2R(zscore, 3) << sep;//z-score
+    if(final)outputstream  << double2R(zscore, 3) ;//z-score
     double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-    if(final)*outputstream << double2R(pvalue) << sep;
-    else *outputstream << double2R(-log10(pvalue));
+    if(final){
+      outputstream << double2R(pvalue) ;
+      if( k != dim - 1 ){
+	outputstream  << "NA" << newline;
+      }
+     }
+    else outputstream << double2R(-log10(pvalue)) << newline;
     // if not last allele at locus, output unquoted "NA" in chi-square column
-    if( final && k != dim - 1 ){
-      *outputstream  << "NA";
-    }
   }//end loop over alleles
   if(final){
     double chisq=0.0;
@@ -220,43 +188,19 @@ void ScoreTestBase::OutputScoreTest( int iterations, ofstream* outputstream, uns
       if(dim2==dim) chisq = GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
       else chisq = GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
       if(chisq < 0.0)
-	*outputstream << "NA";
-      else *outputstream << double2R(chisq);
+	outputstream << "NA";
+      else outputstream << double2R(chisq);
     }
     catch(...){//in case ObservedInfo is rank deficient
-      *outputstream  << "NA";
+      outputstream  << "NA";
     }
+    outputstream << newline;
   }
   //TODO:?? output p-value for chisq
 	
   delete[] ScoreVector;
   delete[] CompleteInfo;
   delete[] ObservedInfo;
-}
-
-///finishes writing scoretest output as 3-dimensional R object
-void ScoreTestBase::R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels)
-{
-  *stream << endl << ")," << endl;
-  *stream << ".Dim = c(";
-  for(unsigned int i=0;i<dim.size();i++){
-    *stream << dim[i];
-    if(i != dim.size() - 1){
-      *stream << ",";
-    }
-  }
-  *stream << ")," << endl;
-
-  //output dimnames for the first dimension (column labels)
-  *stream << ".Dimnames=list(c(";
-  for(unsigned int i=0;i<labels.size();i++){
-    *stream << "\"" << labels[i] << "\"";
-    if(i != labels.size() - 1){
-      *stream << ",";
-    }
-  }
-  //output 'chcracter(0)' for last 2 dimensions
-  *stream << "), character(0), character(0)))" << endl;
 }
 
 ///converts a double to a string for R to read

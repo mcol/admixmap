@@ -41,9 +41,9 @@ class HWTest : public ScoreTestBase{
 public:
   HWTest();
 
-  void Initialise(const Options* const options, int nloci, LogWriter &Log);
+  void Initialise(int nloci);
 
-  void Output(const Vector_s locuslabels);
+  void Output(const char* filename, const Vector_s LocusLabels, LogWriter& Log);
 
   void Update(const IndividualCollection* const IC, const Genome* const Loci);
 

@@ -55,14 +55,14 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     |affecteds only linkage with ancestry |
     ------------------------------------*/ 
   if( options->getTestForAffectedsOnly() ){
-    AffectedsOnlyScoreTest.Initialise(options->getAffectedsOnlyScoreFilename(), K, L, Log);
+    AffectedsOnlyScoreTest.Initialise(options->getAffectedsOnlyScoreFilename(), K, L);
   }
 
   /*-----------------------
     | Linkage with ancestry  |
     -----------------------*/
   if( options->getTestForLinkageWithAncestry() ){
-    AncestryAssocScoreTest.Initialise(options->getAncestryAssociationScoreFilename(), K, L, Log);
+    AncestryAssocScoreTest.Initialise(options->getAncestryAssociationScoreFilename(), K, L);
   }
   
   /*----------------------
@@ -82,8 +82,8 @@ void ScoreTests::Reset(){
   AllelicAssociationTest.Reset();
   
 }
-void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
-  AllelicAssociationTest.SetAllelicAssociationTest(alpha0);
+void ScoreTests::MergeRareHaplotypes(const std::vector<double> &alpha0){
+  AllelicAssociationTest.MergeRareHaplotypes(alpha0);
 }
 
 // ****************************** UPDATES ****************************
@@ -154,64 +154,46 @@ void ScoreTests::Update(const vector<Regression* >& R)
 
 // ********** OUTPUT **********************************************************
 
-void ScoreTests::Output(const Vector_s& PLabels, const Vector_s& LocusLabels, bool final){
+void ScoreTests::Output(const Vector_s& PLabels, const Vector_s& LocusLabels){
   //Allelic association
   if( options->getTestForAllelicAssociation() )    {
-    AllelicAssociationTest.Output(LocusLabels, final);
+    AllelicAssociationTest.Output(LocusLabels);
   }//end if allelic assoc test  
 
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
-    const char* finalfilename = 0;
-    if(final){
-      string filename(options->getResultsDir());
-      filename.append("/TestsAncestryAssocFinal.txt");
-      finalfilename = filename.c_str();
-     }
-    AncestryAssocScoreTest.Output(PLabels, *Lociptr, final, finalfilename);
+    AncestryAssocScoreTest.Output(PLabels, *Lociptr);
   }
-  //affectedonly
+  //affectedsonly
   if( options->getTestForAffectedsOnly() ){
-    const char* finalfilename = 0;
-    if(final){
-      string filename(options->getResultsDir());
-      filename.append("/TestsAffectedsOnlyFinal.txt");
-      finalfilename = filename.c_str();
-    }
-    AffectedsOnlyScoreTest.Output(PLabels, *Lociptr, final, finalfilename);
+    AffectedsOnlyScoreTest.Output(PLabels, *Lociptr);
   }
   
   //admixture association
-  if( !final && options->getTestForAdmixtureAssociation() ){
+  if( options->getTestForAdmixtureAssociation() ){
     AdmixtureAssocScoreTest.Output();
   }
 }
 
+void ScoreTests::WriteFinalTables(const Vector_s& PLabels, const Vector_s& LocusLabels, LogWriter& Log){
+  //Allelic association
+  if( options->getTestForAllelicAssociation() )    {
+    AllelicAssociationTest.WriteFinalTables(LocusLabels, Log);
+  }//end if allelic assoc test  
 
-void ScoreTests::ROutput(){
-  /**
-   * writes out the dimensions and labels of the 
-   * R object previously written to allelicAssocScoreStream
-   */
-  if(options->getTestForAllelicAssociation()){
-      AllelicAssociationTest.ROutput();
-  }  
-  
-  /**
-   * writes out the dimensions and labels of the 
-   * R-matrix previously written to ancestryAssociationScoreStream
-   */
-  if (options->getTestForLinkageWithAncestry()){
-    AncestryAssocScoreTest.ROutput();
+  //ancestry association
+  if( options->getTestForLinkageWithAncestry() ){
+    string finalfilename = options->getResultsDir();
+    finalfilename.append("/TestsAncestryAssocFinal.txt");
+    AncestryAssocScoreTest.WriteFinalTable(finalfilename.c_str(), PLabels, *Lociptr, Log);
+  }
+  //affectedsonly
+  if( options->getTestForAffectedsOnly() ){
+    string finalfilename(options->getResultsDir());
+    finalfilename.append("/TestsAffectedsOnlyFinal.txt");
+    AffectedsOnlyScoreTest.WriteFinalTable(finalfilename.c_str(), PLabels, *Lociptr, Log);
   }
   
-  /**
-   * writes out the dimensions and labels of the 
-   * R-matrix previously written to affectedsOnlyScoreStream
-   */
-  if (options->getTestForAffectedsOnly()){
-    AffectedsOnlyScoreTest.ROutput();
-  }
 }
 
 AffectedsOnlyTest& ScoreTests::getAffectedsOnlyTest(){

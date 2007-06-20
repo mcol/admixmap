@@ -16,6 +16,7 @@
 #include <sstream>
 #include "ScoreTestBase.h"
 #include "Options.h"
+#include "bcppcl/RObjectWriter.h"
 
 class Chromosome;
 class Genome;
@@ -30,11 +31,10 @@ class ResidualLDTest : public ScoreTestBase{
 public:
   ResidualLDTest();
 
-  void Initialise(Options* , const IndividualCollection* const, const Genome* const ,
-		  LogWriter &);
+  void Initialise(Options* , const IndividualCollection* const, const Genome* const);
 
-  void Output(bool final, const std::vector<std::string>& LocusLabels);
-  void ROutput();
+  void Output(const std::vector<std::string>& LocusLabels);
+  void WriteFinalTable(const std::vector<std::string>& LocusLabels, LogWriter& Log);
 
   void Update(double);
   void Update(const FreqArray& Allelefreqs, bool ishapmixmodel);
@@ -43,6 +43,7 @@ public:
   ~ResidualLDTest();
 
 private:
+  RObjectWriter R;
   std::vector<std::vector<std::vector<double> > > Score;
   std::vector<std::vector<std::vector<double> > > Info;
   std::vector<std::vector<std::vector<double> > > SumScore;
@@ -56,7 +57,7 @@ private:
   //std::vector<unsigned> Tcount;
   
   //OUTPUT
-  void OutputTestsForResidualAllelicAssociation(ofstream* outputstream, bool final, 
+  void OutputTestsForResidualAllelicAssociation(FileWriter& outputstream, bool final, 
 						const std::vector<std::string>& LocusLabels);
   
   void UpdateScoresForResidualAllelicAssociation(int c, int locus, const double* const AlleleFreqsA, const double* const AlleleFreqsB);

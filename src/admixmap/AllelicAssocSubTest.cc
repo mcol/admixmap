@@ -2,6 +2,7 @@
 #include "CompositeLocus.h"
 #include "ScoreTestBase.h"
 #include "bcppcl/linalg.h"
+#include "bcppcl/FileWriter.h"
 #include <gsl/gsl_cdf.h>
 #include <cmath>
 #include <string>
@@ -93,66 +94,53 @@ void AllelicAssocSubTest::CentreAndSum(unsigned dim, double *score, double* info
 
 // generic scalar score test
 //TODO: move output of NA in chisq column outside as it is only required if along with vector tests
-void AllelicAssocSubTest::OutputScalarScoreTest(ofstream* outputstream, string label, const double score, const double scoresq, const double info, bool final, bool firstline, unsigned numUpdates)
+void AllelicAssocSubTest::OutputScalarScoreTest(FileWriter& outputstream, string label, 
+						const double score, const double scoresq, 
+						const double info, bool final, unsigned numUpdates)
 {
-  string sep = final? "\t" : ",";
   double Score = score / (double) numUpdates;
   double CompleteInfo = info / (double) numUpdates;
   double MissingInfo = scoresq / ( double)numUpdates - Score * Score;
   double ObservedInfo = CompleteInfo - MissingInfo;
 
-  if(!firstline){
-    //if not the first line, output a separator after previous output
-    *outputstream << sep;
-  }
-  //now start a new line (for ease of human reading)
-  *outputstream << endl;
-
-
   //output label
-  *outputstream << "\"" << label << "\"" << sep;
+  const string quotedlabel = "\"" + label + "\"" ;
+  outputstream << quotedlabel;
+
   if(final)
-    *outputstream << ScoreTestBase::double2R(Score, 3)        << sep
-		  << ScoreTestBase::double2R(CompleteInfo, 3) << sep
-		  << ScoreTestBase::double2R(ObservedInfo, 3) << sep;
+    outputstream << ScoreTestBase::double2R(Score, 3)       
+		  << ScoreTestBase::double2R(CompleteInfo, 3)
+		  << ScoreTestBase::double2R(ObservedInfo, 3);
 
   if( (MissingInfo < CompleteInfo) && (CompleteInfo > 0.0) ) {
     double PercentInfo = 100.0*ObservedInfo / CompleteInfo;
     double zscore = Score / sqrt( ObservedInfo );
     double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
     if(final)
-      *outputstream << ScoreTestBase::double2R(PercentInfo, 2) << sep
-		    << ScoreTestBase::double2R(zscore,3)   << sep 
+      outputstream << ScoreTestBase::double2R(PercentInfo, 2)
+		    << ScoreTestBase::double2R(zscore,3)
 		    << ScoreTestBase::double2R(pvalue);
     else
-      *outputstream << ScoreTestBase::double2R(-log10(pvalue));
+      outputstream << ScoreTestBase::double2R(-log10(pvalue));
   }
   else{
-    if(final)*outputstream << "NA" << sep << "NA" << sep;
-    *outputstream << "NA" ;
+    if(final)outputstream << "NA" << "NA" ;
+    outputstream << "NA" ;
   }
-  if(final)*outputstream << sep << "NA";//NA in chisquare column in final table 
-  //*outputstream << endl;
+  if(final)outputstream << "NA";//NA in chisquare column in final table 
+  outputstream << newline;
 }
 
 //generic vector score test
-void AllelicAssocSubTest::OutputScoreTest( ofstream* outputstream, unsigned dim, vector<string> labels,
-				  const double* score, const double* scoresq, const double* info, bool final, bool firstline, unsigned dim2, unsigned numUpdates)
+void AllelicAssocSubTest::OutputScoreTest( FileWriter& outputstream, unsigned dim, vector<string> labels,
+					   const double* score, const double* scoresq, const double* info, 
+					   bool final, unsigned dim2, unsigned numUpdates)
 {
   //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element.
   //if final=false, only the log(-pvalue)'s are printed
 
   double *ScoreVector = 0, *CompleteInfo = 0, *ObservedInfo = 0;
-  string sep = final? "\t" : ",";
 
-  if(!firstline){
-    //if not the first line, output a separator after previous output
-    *outputstream << sep;
-  }
-  //now start a new line (for ease of human reading)
-  *outputstream << endl;
-
-  
   ScoreVector = new double[dim];
   copy(score, score+dim, ScoreVector);
   scale_matrix(ScoreVector, 1.0/( numUpdates), dim, 1);
@@ -166,28 +154,29 @@ void AllelicAssocSubTest::OutputScoreTest( ofstream* outputstream, unsigned dim,
     ObservedInfo[d1*dim + d2] = CompleteInfo[d1*dim+d2] + ScoreVector[d1]*ScoreVector[d2] -
       scoresq[d1*dim+d2]/(double) numUpdates;
   for( unsigned k = 0; k < dim; k++ ){
-    if(k > 0)
-      *outputstream << sep << endl;
+
     // ** output labels
-    *outputstream << labels[k] << sep;
+    outputstream << labels[k];
     if(final){
-      *outputstream  << ScoreTestBase::double2R(ScoreVector[k], 3) << sep
-		     << ScoreTestBase::double2R(CompleteInfo[k*dim+k], 3) << sep//prints diagonal of CI matrix
-		     << ScoreTestBase::double2R(ObservedInfo[k*dim+k], 3) << sep;//   "      "     "  MI   "
+      outputstream  << ScoreTestBase::double2R(ScoreVector[k], 3)
+		     << ScoreTestBase::double2R(CompleteInfo[k*dim+k], 3) //prints diagonal of CI matrix
+		     << ScoreTestBase::double2R(ObservedInfo[k*dim+k], 3);//   "      "     "  MI   "
       if(CompleteInfo[k*dim+k]>0.0)
-	*outputstream<< ScoreTestBase::double2R(100.0*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
+	outputstream<< ScoreTestBase::double2R(100.0*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) ;//%Observed Info
       else 
-	*outputstream << "NA" << sep;
+	outputstream << "NA" ;
     }
     double zscore = ScoreVector[ k ] / sqrt( ObservedInfo[k*dim+k] );
-    if(final)*outputstream  << ScoreTestBase::double2R(zscore, 3) << sep;//z-score
+    if(final)outputstream  << ScoreTestBase::double2R(zscore, 3);//z-score
     double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-    if(final)*outputstream << ScoreTestBase::double2R(pvalue) << sep;
-    else *outputstream << ScoreTestBase::double2R(-log10(pvalue));
-    // if not last allele at locus, output unquoted "NA" in chi-square column
-    if( final && k != dim - 1 ){
-      *outputstream  << "NA" ;
+    if(final){
+      outputstream << ScoreTestBase::double2R(pvalue);
+      if( k != dim - 1 ){
+	outputstream  << "NA" << newline;
+      }
     }
+    else outputstream << ScoreTestBase::double2R(-log10(pvalue)) << newline;
+    // if not last allele at locus, output unquoted "NA" in chi-square column
   }//end loop over alleles
   if(final){
     double chisq=0.0;
@@ -195,12 +184,13 @@ void AllelicAssocSubTest::OutputScoreTest( ofstream* outputstream, unsigned dim,
       if(dim2==dim) chisq = GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
       else chisq = GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
       if(chisq < 0.0)
-	*outputstream << "NA" ;
-      else *outputstream << ScoreTestBase::double2R(chisq) ;
+	outputstream << "NA" ;
+      else outputstream << ScoreTestBase::double2R(chisq) ;
     }
     catch(...){//in case ObservedInfo is rank deficient
-      *outputstream  << "NA";
+      outputstream  << "NA";
     }
+    outputstream << newline;
   }
   //TODO:?? output p-value for chisq
 	
@@ -208,6 +198,10 @@ void AllelicAssocSubTest::OutputScoreTest( ofstream* outputstream, unsigned dim,
   delete[] CompleteInfo;
   delete[] ObservedInfo;
 }
+
+/*************************************
+           SNP Test
+*************************************/
 
 SNPTest::SNPTest(bool master) : AllelicAssocSubTest(1, master){
 
@@ -235,12 +229,15 @@ void SNPTest::Accumulate(){
   CentreAndSum(dim, Score, Info, &SumScore, &SumScore2, &SumInfo); 
 }
 
-void SNPTest::Output(std::ofstream* outfile, std::string label, const CompositeLocus* const, 
-		     bool final, bool onFirstLine, unsigned numUpdates){
+void SNPTest::Output(FileWriter& outfile, std::string label, const CompositeLocus* const, 
+		     bool final,unsigned numUpdates){
   OutputScalarScoreTest(outfile, label, SumScore, SumScore2, 
-			SumInfo, final, onFirstLine, numUpdates);
+			SumInfo, final, numUpdates);
 }
 
+/*************************************
+           Multiallelic locus test
+*************************************/
 MultiAllelicLocusTest::MultiAllelicLocusTest(unsigned d, bool master) : AllelicAssocSubTest(d, master){
   //next two lines may not be necessary as these arrays are sized later
 
@@ -277,8 +274,8 @@ void MultiAllelicLocusTest::Accumulate(){
   CentreAndSum(dim, Score, Info, SumScore, SumScore2, SumInfo); 
 }
 
-void MultiAllelicLocusTest::Output(std::ofstream* outfile, std::string label, const CompositeLocus* const, 
-				   bool final, bool onFirstLine, unsigned numUpdates){
+void MultiAllelicLocusTest::Output(FileWriter& outfile, std::string label, const CompositeLocus* const, 
+				   bool final, unsigned numUpdates){
 
   vector<string> labels;
   for(unsigned i = 0; i < dim; ++i){
@@ -287,9 +284,12 @@ void MultiAllelicLocusTest::Output(std::ofstream* outfile, std::string label, co
     labels.push_back(ss.str());
   }
   OutputScoreTest(outfile, dim, labels, 
-		  SumScore, SumScore2, SumInfo, final, onFirstLine, dim, numUpdates);
+		  SumScore, SumScore2, SumInfo, final, dim, numUpdates);
 }
 
+/*************************************
+           Haplotype Test
+*************************************/
 HaplotypeTest::HaplotypeTest(unsigned d, bool master) 
   : MultiAllelicLocusTest(d, master){
 }
@@ -330,8 +330,8 @@ void HaplotypeTest::Accumulate(){
     CentreAndSum(dim, Score, Info, SumScore, SumScore2, SumInfo); 
 }
 
-void HaplotypeTest::Output(std::ofstream* outfile, std::string, const CompositeLocus* const Locus, 
-			   bool final, bool onFirstLine, unsigned numUpdates){
+void HaplotypeTest::Output(FileWriter& outfile, std::string, const CompositeLocus* const Locus, 
+			   bool final, unsigned numUpdates){
   //here, dim = NumberOfMergedHaplotypes
   //create labels as "locuslabel","haplabel"
   vector<string> labels;
@@ -354,9 +354,12 @@ void HaplotypeTest::Output(std::ofstream* outfile, std::string, const CompositeL
       ss  << "\"others\"";
     labels.push_back(ss.str());
   }
-  OutputScoreTest(outfile, dim, labels, SumScore, SumScore2, SumInfo, final, onFirstLine, dim-1, numUpdates);
+  OutputScoreTest(outfile, dim, labels, SumScore, SumScore2, SumInfo, final, dim-1, numUpdates);
 }
 
+/*************************************
+           Within-haplotype Test
+*************************************/
 WithinHaplotypeTest::WithinHaplotypeTest(unsigned d, bool master){
   dim = d;
   isMaster = master;
@@ -444,14 +447,14 @@ void WithinHaplotypeTest::Accumulate(){
   }
 }
 
-void WithinHaplotypeTest::Output(std::ofstream* outfile, std::string, const CompositeLocus* const Locus, 
-			   bool final, bool onFirstLine, unsigned numUpdates){
+void WithinHaplotypeTest::Output(FileWriter& outfile, std::string, const CompositeLocus* const Locus, 
+			   bool final, unsigned numUpdates){
 
   //for(int i = 0; i < (*Lociptr)(j)->GetNumberOfLoci(); ++i)labels.push_back("\""+(*Lociptr)(j)->GetLabel(i)+"\"");
   for(unsigned simplelocus = 0; simplelocus < dim; ++simplelocus){
     string simplelocuslabel = Locus->GetLabel(simplelocus);
     OutputScalarScoreTest(outfile, simplelocuslabel, SumWithinHaplotypeScore[simplelocus], 
 			  SumWithinHaplotypeScore2[simplelocus], SumWithinHaplotypeInfo[simplelocus], 
-			  final, onFirstLine, numUpdates);
+			  final, numUpdates);
   }
 }

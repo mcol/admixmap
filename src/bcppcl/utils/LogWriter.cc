@@ -10,6 +10,8 @@
  * 
  */
 #include "bcppcl/LogWriter.h"
+#include <iostream>
+#include <iomanip>
 #ifdef PARALLEL
 #include <mpi++.h>
 #endif
@@ -31,9 +33,13 @@ LogWriter::LogWriter(const char *LogFilename, const bool isverbose){
 #ifdef PARALLEL 
     rank = MPI::COMM_WORLD.Get_rank();
 #endif
+    this->open(LogFilename, isverbose);
+}
+
+void LogWriter::open(const char *LogFilename, const bool isverbose){
     if(rank==0){ 
-      LogFileStream.open(LogFilename, ios::out );
-      if(!LogFileStream.is_open()){
+      file.open(LogFilename, ios::out );
+      if(!file.is_open()){
 	cerr << "ERROR: unable to open logfile"<<endl;
 	exit(1);
       }
@@ -43,7 +49,7 @@ LogWriter::LogWriter(const char *LogFilename, const bool isverbose){
 }
 
 LogWriter::~LogWriter(){
-  if(LogFileStream.is_open())LogFileStream.close();
+
 }
 
 /**
@@ -60,42 +66,42 @@ void LogWriter::setDisplayMode(DisplayMode d){
  * switched off
  */
 LogWriter& LogWriter::operator<<(const int message){
-  LogFileStream << message;
+  file << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const unsigned message){
-  LogFileStream << message;
+  file << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const long message){
-  LogFileStream << message;
+  file << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const double message){
-  LogFileStream << message;
+  file << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const string message){
-  LogFileStream << message << flush;
+  file << message << flush;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message << flush;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const char* message){
-  LogFileStream << message << flush;
+  file << message << flush;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message << flush;
   }
@@ -108,11 +114,11 @@ LogWriter& LogWriter::operator<<(DisplayMode d){
 }
 
 void LogWriter::width(const unsigned w){
-  if(rank==0)LogFileStream.width(w);
+  if(rank==0)file.width(w);
 }
 void LogWriter::setPrecision(int p){
   if(rank==0){
-    LogFileStream<<setprecision(p);
+    file<<setprecision(p);
     cout<<setprecision(p);
   }
 }

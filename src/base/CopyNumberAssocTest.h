@@ -14,8 +14,7 @@
 #define COPYNUMBERASSOCTEST_H 1
 
 #include "ScoreTestBase.h"
-
-class Genome;
+#include "bcppcl/RObjectWriter.h"
 
 /**
    Class originally designed to implement score test for linkage with locus ancestry
@@ -25,7 +24,7 @@ class CopyNumberAssocTest : public ScoreTestBase{
 public:
   CopyNumberAssocTest();
   virtual ~CopyNumberAssocTest();
-  virtual void Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log);
+  virtual void Initialise(const char* filename, const int NumPopulations, const int NumLoci);
 
   void Reset();
   virtual void Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
@@ -34,16 +33,12 @@ public:
 
   void Accumulate();
 
-  void Output(const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
-  virtual void ROutput() = 0;
-
 protected:
-  virtual void OpenOutputFile(LogWriter &Log, const char* filename) = 0;
   bool useprevb;
-  unsigned K, L;
+  unsigned NumStrata, NumOutputStrata, L;
+  RObjectWriter R;
+  void OutputCopyNumberAssocTest(unsigned j, unsigned k, FileWriter& outfile, std::string label, bool final);
 private:
-  unsigned firstpoplabel;
-
   double **Score;
   double **Info;
   double **VarScore;
