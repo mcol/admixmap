@@ -103,9 +103,9 @@ my $arg_hash =
  allelefreqprecisionposteriormeanfile => "freqDispersionPosteriorMeans.txt",
  
  #optional tests
- mhscoretestfile => 'MantelHaenszelTest.txt'
- #residualallelicassocscorefile => 'residualLDscores.txt',
- #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
+ mhstest => 1
+ #residualldtest => 1,
+ #allelicassociationtest  => 1,
 };
 
 #haploid data, from scratch, fixed allele freqs
@@ -148,7 +148,7 @@ delete $arg_hash->{initialvaluedir};
 $arg_hash->{resultsdir}      = 'ResultsCaseControl';
 $arg_hash->{ccgenotypesfile} = "$datadir/genotypes_casectrl.txt";
 $arg_hash->{outcomevarfile} = "$datadir/outcome.txt";
-$arg_hash->{allelicassociationscorefile} = 'AllelicAssocTests.txt';
+$arg_hash->{allelicassociationtest} = 1;
 callDoAnalysis();
 CompareThenMove($arg_hash->{resultsdir});
 

@@ -119,17 +119,15 @@ arrivalratesamplerparams => "0.5, 0.00001, 10, 0.9, 20",
     ergodicaveragefile => 'ergodicaverage.txt',
 
 #final values
-    finalallelefreqfile  => "initialallelefreqs.txt",
-    finalfreqpriorfile   =>"initialallelefreqpriors.txt",
-    finalarrivalratefile =>"initiallambdas.txt",
+finalvaluedir => "initialValues",
 
 #posterior means
     arrivalrateposteriormeanfile => "lambdaPosteriorMeans.txt",
     allelefreqprecisionposteriormeanfile => "freqDispersionPosteriorMeans.txt"
 
 #optional tests
-    #residualallelicassocscorefile => 'residualLDscores.txt',
-    #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
+    #residualldtest => 1,
+    #allelicassociationtest  => 1
 };
 
 # Initial run 
@@ -146,9 +144,7 @@ callDoAnalysis();
 # rerun with final values of previous run as intial values of this
 #system("cp $arg_hash->{resultsdir}/initialallelefreqs.txt data");
 $arg_hash->{resultsdir}            = 'ResultsRerun';
-$arg_hash->{initialallelefreqfile}="$datadir/initialallelefreqs.txt";
-$arg_hash->{initialarrivalratefile}="$datadir/initiallambdas.txt";
-$arg_hash->{initialfreqpriorfile} = "$datadir/initialfreqpriors.txt";
+$arg_hash->{initialvaluedir}="initialValues";
 #$arg_hash->{fixedallelefreqs} = 0;
 #delete $arg_hash->{priorallelefreqfile};
 #doAnalysis($executable,$arg_hash);

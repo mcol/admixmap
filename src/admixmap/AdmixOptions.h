@@ -29,9 +29,10 @@ public:
   void PrintUserOptions(const char* filename);
   bool SetOptions();
 
-  //main output files
+  //output files
   const char *getEtaOutputFilename() const;
   const char *getIndAdmixtureFilename() const;
+  const char* getIndAdmixModeFilename()const;
 
   //input file names
   const char *getAlleleFreqFilename() const;
@@ -68,16 +69,6 @@ public:
   void setPopulations(int num);
   bool getFixedAlleleFreqs() const;
 
-  //Score test file names
-  const char *getAffectedsOnlyScoreFilename() const;
-  const char *getHaplotypeAssociationScoreFilename() const;
-  const char *getAncestryAssociationScoreFilename() const;
-  const char *getAlleleFreqScoreFilename() const;
-  const char *getAlleleFreqScoreFilename2() const;
-  const char *getAssocScoreFilename() const;
-  const char* getLikRatioFilename() const;
-  const char* getIndAdmixModeFilename()const;
-
   //score test indicators 
   bool getScoreTestIndicator() const;
   bool getTestForAdmixtureAssociation() const;
@@ -90,11 +81,6 @@ public:
   bool getTestForMisspecifiedAlleleFreqs() const;
   bool getTestForMisspecifiedAlleleFreqs2() const;
   
-  //other test file names
-  const char *getStratTestFilename() const;
-  const char *getDispersionTestFilename() const;
-  const char *getFSTOutputFilename() const;
-  
   //other test indicators
   bool getTestForDispersion() const;
   bool getStratificationTest() const;
@@ -105,7 +91,6 @@ public:
   
 private:
   int Populations;
-  bool OutputFST;
   bool locusForTestIndicator;
   int LocusForTest;
   bool correlatedallelefreqs;
@@ -116,8 +101,10 @@ private:
   bool chibIndicator;//calculate marginal likelihood using Chib method
   bool TestOneIndivIndicator;//calculate marginal likelihood for one individual only
   bool PopAdmixPropsAreEqual;
+
   bool TestForAdmixtureAssociation;
   bool StratificationTestIndicator;
+  bool OutputFST;
   bool TestForAffectedsOnly;
   bool TestForHaplotypeAssociation;
   bool TestForDispersion;
@@ -140,19 +127,10 @@ private:
   double etamean, etavar;//gamma parameters for dispersion parameter
 
   std::vector<float> popAdmixSamplerParams;//parameters for sampler of population admixture
-  string AffectedsOnlyScoreFilename;
+
   //string AlleleFreqPriorOutputFilename;
-  string AlleleFreqScoreFilename;
-  string AlleleFreqScoreFilename2;
-  string AssocScoreFilename;
-  string StratTestFilename;
   string EtaOutputFilename;
-  string DispersionTestFilename;
   string IndAdmixtureFilename;
-  string FSTOutputFilename;
-  string HaplotypeAssociationScoreFilename;
-  string AncestryAssociationScoreFilename;
-  string LikRatioFilename;
   string IndAdmixModeFilename;
   string alleleFreqFilename;  
   string HistoricalAlleleFreqFilename;
@@ -163,6 +141,7 @@ private:
   void DefineOptions();
   void setInitAlpha(LogWriter &Log);
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
+  void AddFilenamesToUserOptions();
 
   // UNIMPLEMENTED: to avoid use
   AdmixOptions();

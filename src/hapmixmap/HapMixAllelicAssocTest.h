@@ -28,13 +28,13 @@ class HapMixAllelicAssocTest : public CopyNumberAssocTest{
 public:
   HapMixAllelicAssocTest();
   ~HapMixAllelicAssocTest();
-  void Initialise(const char* filename, const int NumLoci);
+  void Initialise(const std::string& ResultsDir, const int NumLoci);
   void Update(const HapMixIndividualCollection* const IC, const Regression* const R, const Genome& Loci);
   void Output(const Genome& Loci);
-  void WriteFinalTable(const Genome& Loci, const char* filename, LogWriter& Log);
-  void PrintAverageInfo(LogWriter& Log, const InputHapMixData& data, const char* filename);
+  void WriteFinalTable(const std::string& ResultsDir, const Genome& Loci, const InputHapMixData& data, LogWriter& Log);
 
 private:
+  void PrintAverageInfo(LogWriter& Log, const InputHapMixData& data, const char* filename);
   //override base functions, making them private
   void Initialise(const char* filename, const int NumPopulations, const int NumLoci);
   void Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 

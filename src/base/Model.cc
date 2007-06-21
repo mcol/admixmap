@@ -55,7 +55,7 @@ void Model::InitialiseRegressionObjects(Options& options, InputData& data,  LogW
   }
 }
 
-void Model::Start(Options& options, InputData& data, LogWriter& Log, int NumAnnealedRuns){
+void Model::Start(Options& options, InputData& data, LogWriter& Log){
   // ******************* Initialize test objects and ergodicaveragefile *******************************
   InitialiseTests(options, data, Log);
   
@@ -69,7 +69,7 @@ void Model::Start(Options& options, InputData& data, LogWriter& Log, int NumAnne
   // ******************* Set annealing schedule ************************************************
   
   s = options.getResultsDir()+"/annealmon.txt";
-  A.Initialise(options.getThermoIndicator(), NumAnnealedRuns, options.getTotalSamples(), options.getBurnIn(), s.c_str());
+  A.Initialise(options.getThermoIndicator(), options.getNumAnnealedRuns(), options.getTotalSamples(), options.getBurnIn(), s.c_str());
   AISsumlogz = 0.0; //for computing marginal likelihood by Annealed Importance Sampling
   
   A.PrintRunLengths(Log, options.getTestOneIndivIndicator());
@@ -85,15 +85,15 @@ void Model::Start(Options& options, InputData& data, LogWriter& Log, int NumAnne
   //     }
 }
 
-void Model::Run(Options& options, InputData& data, LogWriter& Log,  
-		int NumAnnealedRuns){
-  int samples = options.getTotalSamples();
-  int burnin = options.getBurnIn();
+void Model::Run(Options& options, InputData& data, LogWriter& Log){
+  unsigned samples = options.getTotalSamples();
+  unsigned burnin = options.getBurnIn();
   double coolness = 1.0; // default
+  const unsigned NumAnnealedRuns = options.getNumAnnealedRuns();
 
-  Start(options, data, Log, NumAnnealedRuns);
+  Start(options, data, Log);
 
-  for(int run=0; run <= NumAnnealedRuns; ++run) { //loop over coolnesses from 0 to 1
+  for(unsigned run=0; run <= NumAnnealedRuns; ++run) { //loop over coolnesses from 0 to 1
     // should call a posterior mode-finding algorithm before last run at coolness of 1
     //resets for start of each run
     double SumEnergy = 0.0;//cumulative sum of modified loglikelihood
@@ -123,17 +123,16 @@ void Model::Run(Options& options, InputData& data, LogWriter& Log,
   Finish(options, data, Log);    
 }
 
-void Model::TestIndivRun(Options& options, InputData& data, LogWriter& Log, 
-			 int NumAnnealedRuns){
+void Model::TestIndivRun(Options& options, InputData& data, LogWriter& Log){
   double SumEnergy = 0.0;//cumulative sum of modified loglikelihood
   double SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
   int samples = options.getTotalSamples();
   int burnin = options.getBurnIn();
 
-  Start(options, data, Log, NumAnnealedRuns);
+  Start(options, data, Log);
 
   // call with argument AnnealedRun false - copies of test individual will be annealed anyway  
-  Iterate(samples, burnin, A.GetCoolnesses(), NumAnnealedRuns, options, data, Log, 
+  Iterate(samples, burnin, A.GetCoolnesses(), 0, options, data, Log, 
 	  SumEnergy, SumEnergySq, false);
   
   // arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls

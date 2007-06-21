@@ -82,14 +82,11 @@ int main( int argc , char** argv ){
       // nothing to do except calculate likelihood
       M.getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
     else {
-      int NumAnnealedRuns = options.getNumAnnealedRuns();
-      if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
-
       if(options.getTestOneIndivIndicator()) { 
-	M.TestIndivRun(options, data, Log, NumAnnealedRuns);
+	M.TestIndivRun(options, data, Log);
       } 
       else
-	M.Run(options, data, Log, NumAnnealedRuns);
+	M.Run(options, data, Log);
     }
 
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);

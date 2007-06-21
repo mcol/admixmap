@@ -72,11 +72,6 @@ public:
   virtual bool getTestOneIndivIndicator() const = 0;
   bool getDeleteOldResultsIndicator()const;
 
-  //Score test file names
-  const char *getAllelicAssociationScoreFilename() const; 
-  const char* getResidualAllelicAssocScoreFilename()const;
-  const char *getHWTestFilename() const;
-
   //score test indicators 
   bool getTestForAllelicAssociation() const;
   void setTestForAllelicAssociation(bool); 
@@ -111,9 +106,6 @@ protected:
   string ErgodicAverageFilename;
   string ParameterFilename;
   string RegressionOutputFilename;
-  string AllelicAssociationScoreFilename;
-  string ResidualAllelicAssocScoreFilename;
-  string HWTestFilename;
   string PriorAlleleFreqFilename;
   string CovariatesFilename;
   string OutcomeVarFilename;

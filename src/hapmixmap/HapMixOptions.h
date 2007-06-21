@@ -36,10 +36,10 @@ public:
   const char *getAlleleFreqPriorOutputFilename() const;
   bool OutputAlleleFreqPrior()const;
   const char* getArrivalRateOutputFilename()const;
-  const char* getFinalMixturePropsFilename()const;
-  const char* getFinalLambdaFilename()const;
-  const char* getFinalAlleleFreqFilename()const;
-  const char* getFinalFreqPriorFilename()const;
+  string getFinalMixturePropsFilename()const;
+  string getFinalLambdaFilename()const;
+  string getFinalAlleleFreqFilename()const;
+  string getFinalFreqPriorFilename()const;
   const string& getFinalValueDir()const;
 
   const std::vector<double>& getMixturePropsPrecisionPrior()const;
@@ -66,9 +66,6 @@ public:
   bool isRandomMatingModel() const{return false;};//required to pass as Options object to some functions
   bool isGlobalRho() const{return false;};//                 "
   unsigned GetNumStarts()const;
-
-  //Score test file names
-  const char* getMHTestFilename()const;
 
   //score test indicators 
   bool getMHTest()const;  
@@ -104,7 +101,7 @@ private:
   std::string ArrivalRateOutputFilename;
 
   //tests
-  std::string MHTestFilename;
+  bool MHTestIndicator;
 
   //intitial values
   unsigned NumStarts;//number of starts for a multistart run
@@ -123,6 +120,7 @@ private:
   
   void SetDefaultValues();  
   void DefineOptions();
+  void AddFilenamesToUserOptions();
   string getInitialValuePath(unsigned startindex, const string& filename)const;
 
   // UNIMPLEMENTED: to avoid use

@@ -61,23 +61,19 @@ ergodicaveragefile => "ergodicaverage.txt"
 if($train){
   # Initial run with HapMap data
   $arg_hash->{resultsdir} = "ResultsTraining";
+  $arg_hash->{finalvaluedir} = "data";
   if($resume){#use initial values from previous run
-    $arg_hash->{initialallelefreqfile} = "ResultsTraining/state-allelefreqs.txt";
-    $arg_hash->{initialfreqpriorfile} = "ResultsTraining/state-freqpriors.txt";
-    $arg_hash->{initialarrivalratefile} => "ResultsTraining/state-arrivalrates.txt";
+    $arg_hash->{initialvaluedir} = "data";
   }
   doAnalysis($executable, $rscript, $arg_hash);
 }
 
 if($test){
+  $arg_hash->{finalvaluedir} = "data";
   if($resume){#use initial values from previous run
-    $arg_hash->{initialallelefreqfile} = "Results/state-allelefreqs.txt";
-    $arg_hash->{initialfreqpriorfile} = "Results/state-freqpriors.txt";
-    $arg_hash->{initialarrivalratefile} => "Results/state-arrivalrates.txt";
-  }else{#use initial values from traiing run
-    $arg_hash->{initialallelefreqfile} = "ResultsTraining/state-allelefreqs.txt";
-    $arg_hash->{initialfreqpriorfile} = "ResultsTraining/state-freqpriors.txt";
-    $arg_hash->{initialarrivalratefile} => "ResultsTraining/state-arrivalrates.txt";
+    $arg_hash->{initialvaluedir} = "initialValues";
+  }else{#use initial values from training run
+    $arg_hash->{initialvaluedir} = "data";
   }
   # Run with HapMap + Case/Control data
   $arg_hash->{resultsdir} = "Results";

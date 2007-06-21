@@ -52,7 +52,7 @@ public:
 
   AffectedsOnlyTest& getAffectedsOnlyTest();
   CopyNumberAssocTest& getAncestryAssocTest();
-  void OutputLikelihoodRatios(const char* const filename, const Vector_s& PopLabels);
+  void OutputLikelihoodRatios(const std::string& ResultsDir, const Vector_s& PopLabels);
 
 private:
   const AdmixOptions *options;

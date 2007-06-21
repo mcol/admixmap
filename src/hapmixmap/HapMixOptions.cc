@@ -12,17 +12,12 @@
  */
 
 #include "HapMixOptions.h"
+#include "HapMixFilenames.h"
 #include <string.h>
 #include <sstream>
 
 using namespace std;
 using namespace bcppcl;
-
-//define names of initial/final value files
-#define ARRIVALRATESSTATEFILE "/state-arrivalrates.txt"
-#define MIXTUREPROPSSTATEFILE "/state-mixtureprops.txt"
-#define ALLELEFREQSTATEFILE "/state-allelefreqs.txt"
-#define FREQPRIORSTATEFILE "/state-freqpriors.txt"
 
 HapMixOptions::HapMixOptions(int argc,  char** argv){
   SetDefaultValues();
@@ -37,6 +32,7 @@ void HapMixOptions::SetDefaultValues(){
   FixedMixtureProps = true;
   FixedMixturePropsPrecision = true;
   MixturePropsPrecision = 0.0;
+  MHTestIndicator = false;
   NumStarts = 0;
 
   // option names and default option values are stored as strings in a map container 
@@ -81,12 +77,8 @@ bool HapMixOptions::OutputAlleleFreqPrior()const{
 
 
 bool HapMixOptions::getMHTest()const{
-  return (bool)(MHTestFilename.size());
+  return MHTestIndicator;
 }
-const char* HapMixOptions::getMHTestFilename()const{
-  return MHTestFilename.c_str();
-}
-
 bool HapMixOptions::getHapMixModelIndicator() const{
   return true;
 }
@@ -124,7 +116,7 @@ float HapMixOptions::getMixturePropsPrecision()const{
 
 string HapMixOptions::getInitialValuePath(unsigned startindex, const string& filename)const{
   stringstream ss;
-  ss << InitialValueDir << "/start" << startindex+1 << filename;
+  ss << InitialValueDir << "/start" << startindex+1  << "/" << filename;
   return ss.str();
 }
 const char* HapMixOptions::getInitialAlleleFreqFilename(unsigned startindex)const{
@@ -176,17 +168,17 @@ const vector<unsigned>& HapMixOptions::getMaskedLoci()const{
 bool HapMixOptions::OutputCGProbs()const{
   return (MaskedLoci.size() && MaskedIndividuals.size()); 
 }
-const char* HapMixOptions::getFinalAlleleFreqFilename()const{
-  return (FinalValueDir + ALLELEFREQSTATEFILE).c_str();
+string HapMixOptions::getFinalAlleleFreqFilename()const{
+  return (FinalValueDir + "/" + ALLELEFREQSTATEFILE);
 }
-const char* HapMixOptions::getFinalFreqPriorFilename()const{
-  return (FinalValueDir + FREQPRIORSTATEFILE).c_str();
+string HapMixOptions::getFinalFreqPriorFilename()const{
+  return (FinalValueDir + "/" + FREQPRIORSTATEFILE);
 }
-const char* HapMixOptions::getFinalLambdaFilename()const{
-  return (FinalValueDir + ARRIVALRATESSTATEFILE).c_str();
+string HapMixOptions::getFinalLambdaFilename()const{
+  return (FinalValueDir + "/" + ARRIVALRATESSTATEFILE);
 }
-const char* HapMixOptions::getFinalMixturePropsFilename()const{
-  return (FinalValueDir + MIXTUREPROPSSTATEFILE).c_str();
+string HapMixOptions::getFinalMixturePropsFilename()const{
+  return (FinalValueDir + "/" + MIXTUREPROPSSTATEFILE);
 }
 const string& HapMixOptions::getFinalValueDir()const{
   return FinalValueDir;
@@ -259,7 +251,7 @@ void HapMixOptions::DefineOptions()
     test options
   */
   //Mantel-Haentszel test
-  addOption("mhscoretestfile", outputfileOption, &MHTestFilename);
+  addOption("mhtest", boolOption, &MHTestIndicator);
   //for output of posterior predictive genotype probs
   addOption("maskedindivs", rangeOption, &MaskedIndividuals);
   addOption("maskedloci", rangeOption, &MaskedLoci);
@@ -457,6 +449,7 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
       }
   }
 
+  AddFilenamesToUserOptions();
 
   if(badOptions) return 1;
   else return 0;
@@ -471,4 +464,20 @@ void HapMixOptions::PrintUserOptions(const char* filename){
     }
   //Now output Options table to file
   Options::PrintUserOptions(filename);
+}
+
+///add names of output files to useroptions so they can be read by R script in args.txt
+//TODO: ?? add final table filenames too
+void HapMixOptions::AddFilenamesToUserOptions(){
+  if(TestForAllelicAssociation )
+    useroptions["allelicassociationscorefile"] = ALLELICASSOCTEST_PVALUES;
+
+  if(HWTest)
+    useroptions["hwtestfile"] = HARDY_WEINBERG_TEST;
+
+  if(TestForResidualAllelicAssoc)
+    useroptions["residualallelicassocscorefile"] = RESIDUAL_LD_TEST_PVALUES;
+
+  if(MHTestIndicator)
+    useroptions["mhscoretestfile"] = MH_TEST_PVALUES;
 }

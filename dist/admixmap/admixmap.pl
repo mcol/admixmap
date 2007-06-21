@@ -50,14 +50,14 @@ my $arg_hash =
  #allelefreqoutputfile => 'allelefreqoutputfile.txt',
 
  ##optional tests
- #dispersiontestfile            => 'dispersiontest.txt',
- #admixturescorefile            => 'admixscorefile.txt',
- #residualallelicassocscorefile => 'resallelicassocscores.txt',
- allelicassociationscorefile    => 'allelicassociationscorefile.txt',
- #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
- #affectedsonlyscorefile        => 'affectedsonlyscorefile.txt',
- haplotypeassociationscorefile  => 'hapassocscore.txt',
- stratificationtestfile         => 'strat_test.txt'
+ #dispersiontest            => 1,
+ #admixtureassoctest        => 1,
+ #residualldtest            => 1,
+ allelicassociationtest     => 1,
+ #ancestryassociationtest   => 1,
+ #affectedsonlytest         => 1,
+ haplotypeassociationtest   => 1,
+ stratificationtest         => 1
 };
 
 print "script began: ";

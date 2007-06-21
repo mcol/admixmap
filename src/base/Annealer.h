@@ -24,14 +24,14 @@ public:
 
   void PrintRunLengths(LogWriter& Log, bool testoneindiv);
   void SetAnnealingSchedule();
-  bool SetRunLengths(int run, int*samples, int* burnin, double* coolness);
+  bool SetRunLengths(int run, unsigned* samples, unsigned* burnin, double* coolness);
   void CalculateLogEvidence(int run, double coolness, double SumEnergy, double SumEnergySq, unsigned samples);
   void CalculateLogEvidence(double *SumEnergy, double*SumEnergySq, unsigned size);
   void PrintResults(LogWriter& Log, double D_hat);
   const double* GetCoolnesses()const;
 private:
   bool Thermo;
-  int _samples, _burnin;
+  unsigned _samples, _burnin;
   double IntervalRatio;
   int NumAnnealedRuns;
   double SumEnergy, SumEnergySq, LogEvidence;

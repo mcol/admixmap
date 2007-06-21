@@ -29,7 +29,7 @@ my $arg_hash =
     
 # output files
     logfile                    => 'logfile.txt',
-    hwscoretestfile            => 'HWtest.txt',
+    hwtest                     => 1,
     resultsdir                 => 'DRD2freqresultsNAm',
     allelefreqoutputfile       => 'hapfreq.txt'
 };

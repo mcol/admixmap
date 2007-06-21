@@ -31,9 +31,9 @@ my $arg_hash = {
     ergodicaveragefile         => 'ergodicaverage.txt',
 
 # extra output files
-    haplotypeassociationscorefile  => 'hapassocscore.txt',
-    allelicassociationscorefile    => 'allelicassocscore.txt',
-    allelefreqoutputfile           => 'allelefreqoutput.txt'
+    haplotypeassociationtest  => 1,
+    allelicassociationtest    => 1,
+    allelefreqoutputfile      => 'allelefreqoutput.txt'
 };
 
 # single population, thermodynamic  
@@ -47,7 +47,7 @@ if(doAnalysis($executable,$arg_hash, $resultsdir)){
 # single population, reference prior on allele freqs, annealing  
 $arg_hash->{thermo} = 0;
 $arg_hash->{indadmixhiermodel} = 1;
-$arg_hash->{stratificationtestfile}  = 'strat_test.txt';
+$arg_hash->{stratificationtest}  = 1;
 if(doAnalysis($executable,$arg_hash, $resultsdir)){
   &CompareThenMove("results", "results1");
 }
@@ -65,10 +65,10 @@ delete $arg_hash->{populations};
 delete $arg_hash->{allelefreqoutputfile};
 $arg_hash->{fixedallelefreqs} = 1;
 $arg_hash->{priorallelefreqfile}  = '../dist/admixmap/tutorial/data/priorallelefreqs.txt',
-$arg_hash->{allelefreqscorefile}  = 'allelefreqscorefile.txt';
-$arg_hash->{allelefreqscorefile2} = 'allelefreqscorefile2.txt';
-$arg_hash->{ancestryassociationscorefile} = 'ancestryassocscorefile.txt';
-$arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
+$arg_hash->{allelefreqtest}  = 1;
+$arg_hash->{allelefreqtest2} = 1;
+$arg_hash->{ancestryassociationtest} = 1;
+$arg_hash->{affectedsonlytest}       = 1;
 $arg_hash->{globalrho} = 0;
 $arg_hash->{numannealedruns} = 5;
 $arg_hash->{thermo} = 0;
@@ -84,10 +84,10 @@ $arg_hash->{fixedallelefreqs} = 0;
 $arg_hash->{globalrho}        = 1;
 $arg_hash->{randommatingmodel} = 1;
 $arg_hash->{allelefreqoutputfile}     = 'allelefreqoutput.txt';
-delete $arg_hash->{allelefreqscorefile};
-delete $arg_hash->{allelefreqscorefile2};
-delete $arg_hash->{affectedsonlyscorefile};
-$arg_hash->{dispersiontestfile}  = 'dispersiontest.txt';
+delete $arg_hash->{allelefreqtest};
+delete $arg_hash->{allelefreqtest2};
+delete $arg_hash->{affectedsonlytest};
+$arg_hash->{dispersiontest}  = 1;
 $arg_hash->{targetindicator} = 1; # skin reflectance
 if(doAnalysis($executable,$arg_hash)){
     &CompareThenMove("results", "results4");
@@ -97,8 +97,8 @@ if(doAnalysis($executable,$arg_hash)){
 delete $arg_hash->{priorallelefreqfile};
 delete $arg_hash->{dispersiontestfile};
 $arg_hash->{historicallelefreqfile} = '../dist/admixmap/tutorial/data/priorallelefreqs.txt';
-$arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
-$arg_hash->{fstoutputfile} = 'FSToutputfile.txt';
+$arg_hash->{affectedsonlytest}       = 1;
+$arg_hash->{fstoutput} = 1;
 $arg_hash->{dispparamfile} = 'disppar.txt';
 $arg_hash->{randommatingmodel} = 0;
 $arg_hash->{targetindicator} = 0; # diabetes
@@ -109,11 +109,11 @@ if(doAnalysis($executable,$arg_hash)){
 # prior on allele freqs, testoneindiv, no regression, thermo
 # possible problem here - changing numannealedruns should not change output except for annealmon.txt
 delete $arg_hash->{historicallelefreqfile};
-delete $arg_hash->{affectedsonlyscorefile};
-delete $arg_hash->{ancestryassociationscorefile};
-delete $arg_hash->{allelicassociationscorefile};
-delete $arg_hash->{haplotypeassociationscorefile};
-delete $arg_hash->{fstoutputfile};
+delete $arg_hash->{affectedsonlytest};
+delete $arg_hash->{ancestryassociationtest};
+delete $arg_hash->{allelicassociationtest};
+delete $arg_hash->{haplotypeassociationtest};
+delete $arg_hash->{fstoutput};
 delete $arg_hash->{dispparamfile};
 delete $arg_hash->{regparamfile};
 delete $arg_hash->{outcomes};
@@ -145,11 +145,11 @@ my $arg_hash = {
     indadmixturefile     => 'indadmixture.txt',
     ergodicaveragefile => 'ergodicaverages.txt',
     allelefreqoutputfile  => 'allelefreqs.txt',
-    #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
-    #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
-    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    #haplotypeassociationscorefile => 'hapassocscore.txt',
-    #stratificationtestfile                   => 'strat_test.txt'
+    #allelicassociationtest   => 1,
+    #ancestryassociationtest  => 1,
+    #affectedsonlytest        => 1,
+    #haplotypeassociationtest => 1,
+    #stratificationtest       => 1
 };
 if(doAnalysis($executable,$arg_hash)){
     &CompareThenMove("results", "cattleresults");
@@ -169,8 +169,8 @@ my $arg_hash = {
     randommatingmodel            => 1,
     globalrho                    => 0,
     fixedallelefreqs             => 1,
-    admixtureprior                   => "1,1,0",
-    admixtureprior1                   => "1,1,1",
+    admixtureprior               => "1,1,0",
+    admixtureprior1              => "1,1,1",
     logfile                      => "logfile.txt",
     chib                         => 1,
     indadmixturefile             => "indadmixture.txt"

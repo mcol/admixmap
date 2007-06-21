@@ -96,7 +96,7 @@ void Annealer::SetAnnealingSchedule(){
   }
 }
 
-bool Annealer::SetRunLengths(int run, int*samples, int* burnin, double* coolness){
+bool Annealer::SetRunLengths(int run, unsigned* samples, unsigned* burnin, double* coolness){
   bool AnnealedRun = false;
 
   if(run == NumAnnealedRuns) {

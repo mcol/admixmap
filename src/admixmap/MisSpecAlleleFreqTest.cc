@@ -18,6 +18,7 @@
  */
 
 #include "MisSpecAlleleFreqTest.h"
+#include "AdmixFilenames.h"
 #include "bcppcl/LogWriter.h"
 #include "bcppcl/TableWriter.h"
 #include "AlleleFreqs.h"
@@ -66,13 +67,15 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
     Test2.Update(individuals, A, Loci);
 }
 
-void MisSpecAlleleFreqTest::Output(const AdmixOptions& options, const Genome* const Loci, 
+void MisSpecAlleleFreqTest::Output(const string& ResultsDir, const Genome* const Loci, 
 				   const Vector_s& PopLabels, LogWriter& Log){
     if( doTest1){
-      Test1.Output(options.getAlleleFreqScoreFilename(), Loci, PopLabels, Log);
+      const string filename = ResultsDir + "/" + MISSPECALLELEFREQTEST_1;
+      Test1.Output(filename.c_str(), Loci, PopLabels, Log);
     }
     if( doTest2 ){
-      Test2.Output(options.getAlleleFreqScoreFilename2(), Loci, PopLabels, Log);
+      const string filename = ResultsDir + "/" + MISSPECALLELEFREQTEST_2;
+      Test2.Output(filename.c_str(), Loci, PopLabels, Log);
     }
 }
 

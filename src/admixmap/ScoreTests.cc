@@ -20,6 +20,7 @@
 #include <numeric>
 #include "ScoreTests.h"
 #include "bcppcl/Regression.h"
+#include "AdmixFilenames.h"
 
 using namespace std;
 
@@ -48,21 +49,24 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     -----------------------*/
   //TODO check conditions on this test
   if( options->getTestForAdmixtureAssociation() ){
-    AdmixtureAssocScoreTest.Initialise(K, indiv->getNumberOfOutcomeVars(), options->getAssocScoreFilename(), PLabels, Log);
+    const string filename = options->getResultsDir() + "/" + ADMIXTUREASSOCTESTFILE;
+    AdmixtureAssocScoreTest.Initialise(K, indiv->getNumberOfOutcomeVars(), filename.c_str(), PLabels, Log);
   }
 
   /*------------------------------------
     |affecteds only linkage with ancestry |
     ------------------------------------*/ 
   if( options->getTestForAffectedsOnly() ){
-    AffectedsOnlyScoreTest.Initialise(options->getAffectedsOnlyScoreFilename(), K, L);
+    const string filename = options->getResultsDir() + "/" + AFFECTEDSONLYTEST_PVALUES;
+    AffectedsOnlyScoreTest.Initialise(filename.c_str(), K, L);
   }
 
   /*-----------------------
     | Linkage with ancestry  |
     -----------------------*/
   if( options->getTestForLinkageWithAncestry() ){
-    AncestryAssocScoreTest.Initialise(options->getAncestryAssociationScoreFilename(), K, L);
+    const string filename = options->getResultsDir() + "/" + ANCESTRYASSOCTEST_PVALUES;
+    AncestryAssocScoreTest.Initialise(filename.c_str(), K, L);
   }
   
   /*----------------------
@@ -183,14 +187,12 @@ void ScoreTests::WriteFinalTables(const Vector_s& PLabels, const Vector_s& Locus
 
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
-    string finalfilename = options->getResultsDir();
-    finalfilename.append("/TestsAncestryAssocFinal.txt");
+    string finalfilename = options->getResultsDir() + "/" + ANCESTRYASSOCTEST_FINAL;
     AncestryAssocScoreTest.WriteFinalTable(finalfilename.c_str(), PLabels, *Lociptr, Log);
   }
   //affectedsonly
   if( options->getTestForAffectedsOnly() ){
-    string finalfilename(options->getResultsDir());
-    finalfilename.append("/TestsAffectedsOnlyFinal.txt");
+    string finalfilename = options->getResultsDir() + "/" + AFFECTEDSONLYTEST_FINAL;
     AffectedsOnlyScoreTest.WriteFinalTable(finalfilename.c_str(), PLabels, *Lociptr, Log);
   }
   
@@ -203,6 +205,6 @@ CopyNumberAssocTest& ScoreTests::getAncestryAssocTest(){
   return AncestryAssocScoreTest;
 }
 
-void ScoreTests::OutputLikelihoodRatios(const char* const filename, const Vector_s& PopLabels){
-  AffectedsOnlyScoreTest.OutputLikRatios(filename, PopLabels, *Lociptr);
+void ScoreTests::OutputLikelihoodRatios(const string& ResultsDir, const Vector_s& PopLabels){
+  AffectedsOnlyScoreTest.OutputLikRatios((ResultsDir + "/" + AFFECTEDSONLY_LIKRATIOFILE).c_str(), PopLabels, *Lociptr);
 }

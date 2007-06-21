@@ -1,6 +1,7 @@
 #include "MantelHaenszelTest.h"
 #include "IndividualCollection.h"
 #include "Genome.h"
+#include "HapMixFilenames.h"
 #include "gsl/gsl_cdf.h"
 #include "gsl/gsl_math.h"//for gsl_finite
 #include "bcppcl/TableWriter.h"
@@ -26,13 +27,13 @@ MantelHaenszelTest::~MantelHaenszelTest(){
   }
 }
 
-void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci, const char* filename){
+void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci, const string& ResultsDir){
   K = NumStates;
   Ksq = K*K;
   Loci = loci;
   test = true;
 
-  R.open(filename);
+  R.open((ResultsDir + "/" + MH_TEST_PVALUES).c_str());
   //assign K^2 2x2 tables
   //NOTE: asssuming all SNPs
   for(unsigned k = 0; k < Ksq; ++k){
@@ -104,9 +105,10 @@ void MantelHaenszelTest::Output(const std::vector<std::string>& LocusLabels){
   ++numPrintedIterations;
 }
 
-void MantelHaenszelTest::WriteFinalTable(const char* filename, 
+void MantelHaenszelTest::WriteFinalTable(const string& ResultsDir, 
 					 const std::vector<std::string>& LocusLabels, LogWriter& Log){
-  TableWriter finaltable(filename);
+  const string filename = ResultsDir + "/" + MH_TEST_FINAL;
+  TableWriter finaltable(filename.c_str());
   Log << Quiet << "Mantel-Haentszel tests writen to " << filename << "\n";
   //write header
   finaltable << "Loci\tScore\tCompInfo\tObsInfo\tPercentInfo\tzscore\tPValue" << newline;

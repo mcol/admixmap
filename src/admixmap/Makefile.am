@@ -7,7 +7,8 @@ SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS)
 
 bin_PROGRAMS = admixmap
-admixmap_SOURCES = AdmixedIndividual.cc AdmixedIndividual.h \
+admixmap_SOURCES = AdmixFilenames.h \
+AdmixedIndividual.cc AdmixedIndividual.h \
 AdmixIndividualCollection.cc AdmixIndividualCollection.h \
 admixmap.cc \
 AdmixMapModel.cc AdmixMapModel.h \

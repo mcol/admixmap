@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   DispersionTest.h 
  *   header file for DispersionTest class
- *   Copyright (c) 2005 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,21 +27,18 @@
 #include "AlleleFreqs.h"
 #include "bcppcl/LogWriter.h"
 
-class AdmixOptions;
-
 ///Class to implement test for dispersion of allele frequencies between unadmixed populations sampled and the corresponding ancestry-specific allele frequencies in the admixed population under study
 class DispersionTest{
- public:
+public:
   DispersionTest();
   ~DispersionTest();
-  void Initialise(const AdmixOptions* const, LogWriter &, int);
+  void Initialise(const std::string& resultsDir, LogWriter &Log, int NumLoci, int NumPopulations);
   void Output(int, const Genome &, const Vector_s& PopLabels);
   void TestForDivergentAlleleFrequencies(const AlleleFreqs* const, const IndividualCollection* const IC);
-
- private:
+  
+private:
   int NumberOfCompositeLoci;
   int NumberOfPopulations;
-  const AdmixOptions *options;
   std::ofstream dispersionoutputstream;
   int **divergentallelefreqstest;
 

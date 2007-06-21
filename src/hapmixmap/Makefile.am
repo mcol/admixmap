@@ -12,6 +12,7 @@ hapmixmap_LDADD = $(top_builddir)/$(subdir)/../base/libbase.a -lbcppcl -lgsl -lg
 hapmixmap_DEPENDENCIES=$(top_builddir)/$(subdir)/../base/libbase.a 
 
 hapmixmap_SOURCES = hapmixmap.cc \
+HapMixFilenames.h \
 HapMixFreqs.cc HapMixFreqs.h \
 HapMixGenome.cc HapMixGenome.hh \
 HapMixHMM.cc HapMixHMM.hh \

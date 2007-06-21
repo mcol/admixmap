@@ -51,10 +51,8 @@ public:
   Model();
   virtual ~Model();
 
-  void Run(Options& options, InputData& data, LogWriter& Log, 
-		 int NumAnnealedRuns);
-  void TestIndivRun(Options& options, InputData& data, LogWriter& Log,  
-		    int NumAnnealedRuns);
+  void Run(Options& options, InputData& data, LogWriter& Log);
+  void TestIndivRun(Options& options, InputData& data, LogWriter& Log);
 
   virtual void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
 		       Options & options, InputData & data, LogWriter& Log, 
@@ -100,7 +98,7 @@ private:
   std::ofstream loglikelihoodfile;
   Annealer A;
 
-  void Start(Options& options, InputData& data, LogWriter& Log, int NumAnnealedRuns);
+  void Start(Options& options, InputData& data, LogWriter& Log);
   void Finish(Options& options, InputData& data, LogWriter& Log);
 };
 

@@ -13,10 +13,10 @@ public:
   ~MantelHaenszelTest();
 
   void Reset(){};
-  void Initialise(unsigned NumStates, const Genome* const Loci, const char* filename);
+  void Initialise(unsigned NumStates, const Genome* const Loci, const std::string& ResultsDir);
   void Update(const IndividualCollection* , const Genome&);
   void Output(const std::vector<std::string>& LocusLabels);
-  void WriteFinalTable(const char* filename, 
+  void WriteFinalTable(const std::string& ResultsDir, 
 		       const std::vector<std::string>& LocusLabels, LogWriter& Log);
 
 private:

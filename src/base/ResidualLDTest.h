@@ -31,10 +31,10 @@ class ResidualLDTest : public ScoreTestBase{
 public:
   ResidualLDTest();
 
-  void Initialise(Options* , const IndividualCollection* const, const Genome* const);
+  void Initialise(const char* filename , const IndividualCollection* const, const Genome* const);
 
   void Output(const std::vector<std::string>& LocusLabels);
-  void WriteFinalTable(const std::vector<std::string>& LocusLabels, LogWriter& Log);
+  void WriteFinalTable(const char* filename, const std::vector<std::string>& LocusLabels, LogWriter& Log);
 
   void Update(double);
   void Update(const FreqArray& Allelefreqs, bool ishapmixmodel);
@@ -50,11 +50,11 @@ private:
   std::vector<std::vector<std::vector<double> > > SumScore2;
   std::vector<std::vector<std::vector<double> > > SumInfo;
 
-  const Options *options;
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
   //std::vector<unsigned> Tcount;
+  unsigned NumIntervals;
   
   //OUTPUT
   void OutputTestsForResidualAllelicAssociation(FileWriter& outputstream, bool final, 

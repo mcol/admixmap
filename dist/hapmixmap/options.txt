@@ -45,19 +45,13 @@ logfile        = log.txt #name of logfile
 ########################################
 #   initial values                     #
 ########################################
-#initialarrivalratefile  # arrival rates
-#initialallelefreqfile   # allele frequencies
-#initialfreqpriorfile    # allele frequency prior parameters
-#initialmixturepropsfile # mixture proportions
+#initialvaluedir = initialvalues  
 #mixturepropsprecision = 1 # mixture proportion precision parameter
 
 ########################################
 #   final values                       #
 ########################################
-finalarrivalratefile = state-arrivalrates.txt# arrival rates and their prior parameters
-finalallelefreqfile  = state-allelefreqs.txt # allele frequencies
-finalfreqpriorfile   = state-freqpriors.txt  # allele frequency prior parameters
-finalmixtureropsfile = state-mixtureprops.txt# mixture proportions
+finalvaluedir=results
 
 ########################################
 #   arrival rates                      #
@@ -123,10 +117,11 @@ regressionpriorprecision = 0.25 #prior precision of the regression parameters
 ########################################
 #     test options                     # 
 ########################################
-#allelicassociationscorefile # Score test for allelic association. Requires regression model. -log10(p-values) are written to this file and
-                             #  a final table is written to AllelicAssocTestsFinal.txt
-#hwscoretestfile             # Score test for Hardy-Weinberg equilibrium. Useful for detecting genotyping errors.
-#mhscoretestfile             # Mantel-Haenszel test for detecting residual allelic association
+#allelicassociationtest=0 # Score test for allelic association. Requires regression model. -log10(p-values) are written to this file and
+                          #  a final table is written to AllelicAssocTestsFinal.txt
+#residualldtest=0         # score test for residual LD
+#hwtest=0                 # Score test for Hardy-Weinberg equilibrium. Useful for detecting genotyping errors.
+#mhtest=0                 # Mantel-Haenszel test for detecting residual allelic association
 
 #maskedindivs                # **expert users only ** list of indices of individuals whose genotypes have been masked
 #maskedloci                  # **expert users only ** list of indices of loci at which the above individuals' genotypes have been masked

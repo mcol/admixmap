@@ -13,6 +13,7 @@
  */
 #include "DispersionFreqs.h"
 #include "AdmixOptions.h"
+#include "AdmixFilenames.h"
 #include "InputAdmixData.h"
 #include "bcppcl/AdaptiveRejection.h"
 #include "bcppcl/misc.h"
@@ -241,7 +242,7 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
     }
     // ** open fst output file if specified **
     if( options->getOutputFST() ){
-      OpenFSTFile(options,Log);
+      OpenFSTFile(options->getResultsDir(),Log);
     }
   } //end if dispersion parameter
   
@@ -916,10 +917,11 @@ void DispersionFreqs::OutputEta(int iteration, const AdmixOptions *options, LogW
 }
 
 // *** FST functions ****************************
-void DispersionFreqs::OpenFSTFile(const AdmixOptions* const options, LogWriter &Log){
+void DispersionFreqs::OpenFSTFile(const string& ResultsDir, LogWriter &Log){
   Log.setDisplayMode(On);
-  Log << "Writing ergodic averages of FSTs to: " << options->getFSTOutputFilename() << "\n";
-  fstoutputstream.open( options->getFSTOutputFilename(), ios::out );
+  const string FSTfilename = ResultsDir + "/" + FST_OUTPUT_FILE;
+  Log << "Writing ergodic averages of FSTs to: " << FSTfilename << "\n";
+  fstoutputstream.open( FSTfilename.c_str(), ios::out );
   if( !fstoutputstream ){
     Log << "ERROR: Couldn't open fstoutputfile\n";
     exit( 1 );

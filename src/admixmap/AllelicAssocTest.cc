@@ -16,6 +16,7 @@
 
 #include "AllelicAssocTest.h"
 #include "bcppcl/TableWriter.h"
+#include "AdmixFilenames.h"
 
 AllelicAssocTest::AllelicAssocTest(){
   locusObsIndicator = 0;
@@ -46,7 +47,7 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
 
   const int L = Lociptr->GetNumberOfCompositeLoci();
 
-  AllelicAssocRObject.open(options->getAllelicAssociationScoreFilename());      
+  AllelicAssocRObject.open((options->getResultsDir() + "/" + ALLELICASSOCTEST_PVALUES).c_str());      
 
   locusObsIndicator = new int[L];
   
@@ -81,10 +82,11 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
   /*----------------------
     | haplotype association |
     ----------------------*/  
-  if( strlen( options->getHaplotypeAssociationScoreFilename() ) ){
+  if( options->getTestForHaplotypeAssociation() ){
     //cannot test for SNPs in Haplotype if only simple loci
     if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){
-      HaplotypeAssocRObject.open(options->getHaplotypeAssociationScoreFilename());
+      const string hapassocfilename = options->getResultsDir() + "/" + HAPLOTYPEASSOCTEST_PVALUES;
+      HaplotypeAssocRObject.open(hapassocfilename.c_str());
 
       NumMergedHaplotypes.assign(NumCompositeLoci, 1);
       for( int j = 0; j < L; j++ ){
@@ -217,8 +219,7 @@ void AllelicAssocTest::Output(const Vector_s& LocusLabels){
 
 void AllelicAssocTest::WriteFinalTables(const Vector_s& LocusLabels, LogWriter& Log){
   {
-  string filename(options->getResultsDir());
-  filename.append("/AllelicAssocTestsFinal.txt");
+  string filename = options->getResultsDir() + "/" + ALLELICASSOCTEST_FINAL;
   TableWriter finaltable(filename.c_str());
   Log << Quiet << "Tests for allelic association written to " << filename << "\n";
   finaltable << "Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"
@@ -235,9 +236,7 @@ void AllelicAssocTest::WriteFinalTables(const Vector_s& LocusLabels, LogWriter& 
   //haplotype association
   if( options->getTestForHaplotypeAssociation() ){
     
-    string filename(options->getResultsDir());
-    filename.append("/HaplotypeAssocTestsFinal.txt");
-    
+    string filename = options->getResultsDir() + "/" + HAPLOTYPEASSOCTEST_FINAL;
     TableWriter finaltable(filename.c_str());
     Log << Quiet << "Tests for haplotype association written to " << filename << "\n";
     finaltable << "Locus\tHaplotype\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"

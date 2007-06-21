@@ -8,21 +8,23 @@
 settings.file <-"simHapMixSettings.R" 
 
 ##where to write data files
-datadir <- "hapmixsimdata"
+datadir <- "hapdata"
 
 N <- 60 ##number of haploid individuals
 K <- 8 ##number of block states
-NumCases <- 100
-NumControls<-200
+NumCases <- 10
+NumControls<-10
 
 ## chromosome lengths in Mb
 
-chr.L <- 0.5        ##single chromosome
+##chr.L <- 0.5        ##single chromosome
 #chr.L <- c(10, 10) ## trial runs with 2 chr
+##numChr <- length(chr.L)##number of chromosomes
 
-numChr <- length(chr.L)##number of chromosomes
-
+numChr <- 1
+L <- 100# number of intervals
 spacing <- 0.002 # spacing in Mb
+chr.L <- spacing * L
 
 h <- 400         ##average number arrivals per unit distance
 lambda.rate <- 10##rgamma(1, shape=rhobeta0, rate=rhobeta1)
@@ -37,9 +39,9 @@ fixed.mixture.proportions <- F##set to True for mixture proportions fixed at 1/K
                               ##set to F to sample mixture proportions for each locus  
 
 ##read from external file and overwrite settings above. Useful when calling from a script.
-if(file.exists(settings.file)){
-  source(settings.file)
-}
+#if(file.exists(settings.file)){
+#  source(settings.file)
+#}
 ########################################################################
 ####################################
 ## functions required for script   #

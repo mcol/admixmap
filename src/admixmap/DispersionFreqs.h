@@ -86,7 +86,7 @@ private:
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
-  void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
+  void OpenFSTFile(const std::string& ResultsDir, LogWriter &Log); 
 
   void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
   void LoadAlleleFreqs(AdmixOptions* const options, InputAdmixData* const data, LogWriter &Log);

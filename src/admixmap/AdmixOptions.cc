@@ -12,6 +12,7 @@
  */
 
 #include "AdmixOptions.h"
+#include "AdmixFilenames.h"
 #include <string.h>
 #include <sstream>
 #include <numeric> // for checkInitAlpha
@@ -61,9 +62,6 @@ void AdmixOptions::SetDefaultValues(){
   etamean = 100.0; 
   etavar = 2500.0; 
 
-
-  LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
-
   // option names and default option values are stored as strings in a map container 
   // these are default values
   // other specified options will be appended to this array 
@@ -86,19 +84,64 @@ AdmixOptions::~AdmixOptions()
 }
 
 // each option has a function to return its value
-const char *AdmixOptions::getStratTestFilename() const
-{
-  return StratTestFilename.c_str();
-}
-
-const char *AdmixOptions::getFSTOutputFilename() const
-{
-  return FSTOutputFilename.c_str();
-}
-
-bool AdmixOptions::getOutputFST() const
-{
+bool AdmixOptions::getOutputFST() const{
   return OutputFST;
+}
+
+bool AdmixOptions::getScoreTestIndicator() const{
+  return ScoreTestIndicator;
+}
+
+bool AdmixOptions::getTestForAdmixtureAssociation() const{
+  return TestForAdmixtureAssociation;
+}
+bool AdmixOptions::getStratificationTest() const{
+  return StratificationTestIndicator;
+}
+
+void AdmixOptions::setStratificationTest(bool b){
+  StratificationTestIndicator = b;
+}
+
+bool AdmixOptions::getTestForAffectedsOnly() const{
+  return TestForAffectedsOnly;
+}
+
+void AdmixOptions::setTestForAffectedsOnly(bool b){
+  TestForAffectedsOnly = b;
+  if(!b)
+    useroptions.erase("affectedsonlytest");
+}
+
+bool AdmixOptions::getTestForDispersion() const{
+  return TestForDispersion;
+}
+
+bool AdmixOptions::getTestForLinkageWithAncestry() const{
+  return TestForLinkageWithAncestry;
+}
+
+void AdmixOptions::setTestForLinkageWithAncestry(bool b){
+  TestForLinkageWithAncestry = b;
+  if(!b)
+    useroptions.erase("ancestryassociationtest");
+}
+
+bool AdmixOptions::getTestForMisspecifiedAlleleFreqs() const{
+  return TestForMisspecifiedAlleleFreqs;
+}
+
+bool AdmixOptions::getTestForMisspecifiedAlleleFreqs2() const{
+  return TestForMisspecifiedAlleleFreqs2;
+}
+
+bool AdmixOptions::getTestForHaplotypeAssociation() const{
+  return TestForHaplotypeAssociation;
+}
+
+void AdmixOptions::setTestForHaplotypeAssociation(bool b){
+  TestForHaplotypeAssociation = b;
+  if(!b)useroptions.erase("haplotypeassociationtest");
 }
 
 bool AdmixOptions::getFixedAlleleFreqs() const
@@ -123,31 +166,6 @@ const char *AdmixOptions::getEtaOutputFilename() const
 const char *AdmixOptions::getReportedAncestryFilename() const
 {
   return ReportedAncestryFilename.c_str();
-}
-
-const char *AdmixOptions::getAffectedsOnlyScoreFilename() const
-{
-  return AffectedsOnlyScoreFilename.c_str();
-}
-
-const char *AdmixOptions::getAlleleFreqScoreFilename() const
-{
-  return AlleleFreqScoreFilename.c_str();
-}
-
-const char *AdmixOptions::getAlleleFreqScoreFilename2() const
-{
-  return AlleleFreqScoreFilename2.c_str();
-}
-
-const char *AdmixOptions::getAssocScoreFilename() const
-{
-  return AssocScoreFilename.c_str();
-}
-
-const char *AdmixOptions::getDispersionTestFilename() const
-{
-  return DispersionTestFilename.c_str();
 }
 
 const char *AdmixOptions::getAlleleFreqFilename() const
@@ -194,16 +212,6 @@ int AdmixOptions::getLocusForTest() const
   return LocusForTest;
 }
 
-bool AdmixOptions::getScoreTestIndicator() const
-{
-  return ScoreTestIndicator;
-}
-
-const char *AdmixOptions::getAncestryAssociationScoreFilename() const
-{
-  return AncestryAssociationScoreFilename.c_str();
-}
-
 int AdmixOptions::getPopulations() const
 {
   return Populations;
@@ -212,11 +220,6 @@ int AdmixOptions::getPopulations() const
 void AdmixOptions::setPopulations(int num)
 {
   Populations = num;
-}
-
-bool AdmixOptions::getTestForAdmixtureAssociation() const
-{
-  return TestForAdmixtureAssociation;
 }
 
 double AdmixOptions::getRhoPriorMean()const{
@@ -252,72 +255,6 @@ double AdmixOptions::getEtaVar() const{
   return etavar;
 }
 
-bool AdmixOptions::getStratificationTest() const
-{
-  return StratificationTestIndicator;
-}
-
-void AdmixOptions::setStratificationTest(bool b){
-  StratificationTestIndicator = b;
-}
-
-bool AdmixOptions::getTestForAffectedsOnly() const
-{
-  return TestForAffectedsOnly;
-}
-
-void AdmixOptions::setTestForAffectedsOnly(bool b){
-  TestForAffectedsOnly = b;
-  if(b && AffectedsOnlyScoreFilename.length()==0){
-    //set default filename
-  }
-  else
-    useroptions.erase("affectedsonlyscorefile");
-}
-
-bool AdmixOptions::getTestForDispersion() const
-{
-  return TestForDispersion;
-}
-
-bool AdmixOptions::getTestForLinkageWithAncestry() const
-{
-  return TestForLinkageWithAncestry;
-}
-
-void AdmixOptions::setTestForLinkageWithAncestry(bool b){
-  TestForLinkageWithAncestry = b;
-  if(b && AncestryAssociationScoreFilename.length()==0){
-    //set default filename
-  }
-  else
-    useroptions.erase("ancestryassociationscorefile");
-}
-
-bool AdmixOptions::getTestForMisspecifiedAlleleFreqs() const
-{
-  return TestForMisspecifiedAlleleFreqs;
-}
-
-bool AdmixOptions::getTestForMisspecifiedAlleleFreqs2() const
-{
-  return TestForMisspecifiedAlleleFreqs2;
-}
-
-const char *AdmixOptions::getHaplotypeAssociationScoreFilename() const
-{
-  return HaplotypeAssociationScoreFilename.c_str();
-}
-
-bool AdmixOptions::getTestForHaplotypeAssociation() const
-{
-  return TestForHaplotypeAssociation;
-}
-
-void AdmixOptions::setTestForHaplotypeAssociation(bool b){
-  TestForHaplotypeAssociation = b;
-  if(!b)useroptions.erase("haplotypeassociationscorefile");
-}
 
 const char *AdmixOptions::getEtaPriorFilename() const
 {
@@ -356,9 +293,6 @@ bool AdmixOptions::isAdmixed(unsigned gamete)const{
   return _admixed[gamete];
 }
 
-const char*AdmixOptions::getLikRatioFilename() const{
-  return LikRatioFilename.c_str();
-}
 const char* AdmixOptions::getIndAdmixModeFilename()const{
   return IndAdmixModeFilename.c_str();
 }
@@ -404,26 +338,22 @@ void AdmixOptions::DefineOptions(){
   addOption("rhosamplerparams", fvectorOption, &rhoSamplerParams);
   addOption("popadmixsamplerparams", fvectorOption, &popAdmixSamplerParams);
   // test options
-  addOption("ancestryassociationscorefile", outputfileOption, &AncestryAssociationScoreFilename);
-  addOption("affectedsonlyscorefile", outputfileOption, &AffectedsOnlyScoreFilename);
-  addOption("admixturescorefile", outputfileOption, &AssocScoreFilename);
-  addOption("haplotypeassociationscorefile", outputfileOption, &HaplotypeAssociationScoreFilename);
-  addOption("stratificationtestfile", outputfileOption, &StratTestFilename);
-  addOption("allelefreqscorefile", outputfileOption, &AlleleFreqScoreFilename);
-  addOption("allelefreqscorefile2", outputfileOption, &AlleleFreqScoreFilename2);
-  addOption("dispersiontestfile", outputfileOption, &DispersionTestFilename);
-  addOption("fstoutputfile", outputfileOption, &FSTOutputFilename);
-  addOption("likratiofile", outputfileOption, &LikRatioFilename);
+  addOption("ancestryassociationtest", boolOption, &TestForLinkageWithAncestry);
+  addOption("affectedsonlytest", boolOption, &TestForAffectedsOnly);
+  addOption("admixtureassoctest", boolOption, &TestForAdmixtureAssociation);
+  addOption("haplotypeassociationtest", boolOption, &TestForHaplotypeAssociation);
+  addOption("stratificationtest", boolOption, &StratificationTestIndicator);
+  addOption("allelefreqtest", boolOption, &TestForMisspecifiedAlleleFreqs);
+  addOption("allelefreqtest2", boolOption, &TestForMisspecifiedAlleleFreqs2);
+  addOption("dispersiontest", boolOption, &TestForDispersion);
+  addOption("fstoutput", boolOption, &OutputFST);
+
   addOption("indadmixmodefile", outputfileOption, &IndAdmixModeFilename);
   addOption("testgenotypesfile", nullOption, 0);
   addOption("locusfortest", intOption, &LocusForTest);
   // Other options
   addOption("chib", boolOption, &chibIndicator);//  Marginal likelihood by Chib algo
   addOption("testoneindiv", boolOption, &TestOneIndivIndicator);//  ML for one individual in a collection 
-  //old options - do nothing but kept for backward-compatibility with old scripts
-  addOption("analysistypeindicator", oldOption, 0);
-  addOption("coutindicator", oldOption, 0);
-  addOption("truncationpoint", oldOption, 0);
 
 }
 bool AdmixOptions::SetOptions(){
@@ -431,16 +361,6 @@ bool AdmixOptions::SetOptions(){
     return false;
 
   //set indicators
-  TestForLinkageWithAncestry = (AncestryAssociationScoreFilename.size()>0);
-  TestForAffectedsOnly = (AffectedsOnlyScoreFilename.size()>0);
-  TestForAdmixtureAssociation = (AssocScoreFilename.size()>0);
-  TestForHaplotypeAssociation = (HaplotypeAssociationScoreFilename.size()>0);
-  StratificationTestIndicator = (StratTestFilename.size()>0);
-  TestForMisspecifiedAlleleFreqs = (AlleleFreqScoreFilename.size()>0);
-  TestForMisspecifiedAlleleFreqs2 = (AlleleFreqScoreFilename2.size()>0);
-  TestForDispersion = (DispersionTestFilename.size()>0);
-  OutputFST = (FSTOutputFilename.size()>0);
-  HWTest = (HWTestFilename.size()>0);
   locusForTestIndicator = (LocusForTest>-1);
 
   return true;
@@ -473,7 +393,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     Log << "One individual analysis";
   } else if (RegType == None) { //no regression
     NumberOfOutcomes = 0;
-    if(AffectedsOnlyScoreFilename.length()>0) {
+    if(TestForAffectedsOnly) {
       Log << "Affecteds-only analysis";
     } else {
       Log << "Cross sectional analysis, no outcome";
@@ -647,12 +567,11 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       }
     }
   
-  if( (FSTOutputFilename.length() > 0) && (HistoricalAlleleFreqFilename.length() == 0) ){
+  if( OutputFST && !TestForHaplotypeAssociation ){
     Log << "ERROR: fstoutputfile option is only valid with historicallelefreqfile option\n"
 	<< "       this option will be ignored\n";
     OutputFST = false;
-    FSTOutputFilename = "";
-    useroptions.erase("fstoutputfile");
+    useroptions.erase("fstoutput");
   }
 
   // **** score tests ****
@@ -682,7 +601,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	  << " This option will be ignored.\n";
       setTestForAffectedsOnly(false);
     }
-    else   useroptions["likratiofile"] = "LikRatioFile.txt";
+
   if( TestForLinkageWithAncestry ){
     if(NumberOfOutcomes < 1){
       Log << "ERROR: ancestryassociation score test is not valid without a regression model."
@@ -705,6 +624,8 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || 
 			TestForAdmixtureAssociation || TestForHaplotypeAssociation );
+
+  AddFilenamesToUserOptions();
 
   if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
@@ -804,4 +725,44 @@ void AdmixOptions::PrintUserOptions(const char* filename){
   useroptions["hapmixmodel"] = "0";
   //Now output Options table to file
   Options::PrintUserOptions(filename);
+}
+
+///add names of output files to useroptions so they can be read by R script in args.txt
+//TODO: ?? add final table filenames too
+void AdmixOptions::AddFilenamesToUserOptions(){
+  if(TestForAllelicAssociation )
+    useroptions["allelicassociationscorefile"] = ALLELICASSOCTEST_PVALUES;
+
+  if(TestForAffectedsOnly)
+    useroptions["affectedsonlyscorefile"] = AFFECTEDSONLYTEST_PVALUES;
+
+  if(TestForAdmixtureAssociation)
+    useroptions["admixturescorefile"] = ADMIXTUREASSOCTESTFILE;
+
+  if(TestForLinkageWithAncestry)
+    useroptions["ancestryassociationscorefile"] = ANCESTRYASSOCTEST_PVALUES;
+
+  if(TestForHaplotypeAssociation)
+    useroptions["haplotypeassociationscorefile"] = HAPLOTYPEASSOCTEST_PVALUES;
+
+  if(TestForMisspecifiedAlleleFreqs)
+    useroptions["allelefreqscorefile"] = MISSPECALLELEFREQTEST_1;
+
+  if(TestForMisspecifiedAlleleFreqs2)
+    useroptions["allelefreqscorefile2"] = MISSPECALLELEFREQTEST_2;
+
+  if(StratificationTestIndicator)
+    useroptions["stratificationtestfile"] = STRAT_TEST_FILE;
+
+  if(TestForDispersion)
+    useroptions["dispersiontestfile"] = DISPERSION_TEST_FILE;
+
+  if(OutputFST)
+    useroptions["fstoutputfile"] = FST_OUTPUT_FILE;
+
+  if(HWTest)
+    useroptions["hwtestfile"] = HARDY_WEINBERG_TEST;
+
+  if(TestForResidualAllelicAssoc)
+    useroptions["residualallelicassocscorefile"] = RESIDUAL_LD_TEST_PVALUES;
 }

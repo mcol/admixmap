@@ -29,11 +29,11 @@ my $arg_hash = {
     regparamfile                => 'regparam.txt',
     ergodicaveragefile          => 'cumulativeAverages.txt',
 # optional tests
-    residualallelicassocscorefile       => 'residualLDscoretests.txt',
-    allelicassociationscorefile       => 'allelicassociationscoretests.txt',
-    haplotypeassociationscorefile     => 'hapassocscoretests.txt',
-    stratificationtestfile            => 'stratificationtest.txt',
-    hwscoretestfile                   => 'HardyWeinbergTests.txt'
+    residualldtest               => 1,
+    allelicassociationtest       => 1,
+    haplotypeassociationtest     => 1,
+    stratificationtest           => 1,
+    hwtest                       => 1
 };
 
 # model with reference prior on allele freqs in 1 population, skin reflectance as continuous outcome var
@@ -62,16 +62,16 @@ $arg_hash->{resultsdir}                    = 'PriorFreqResultsSkin';
 $arg_hash->{samples}    = 1200;
 $arg_hash->{burnin}    = 200;
 $arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqs.txt';
-$arg_hash->{dispersiontestfile}            = 'dispersionTest.txt';
+$arg_hash->{dispersiontest}            = 1;
 $arg_hash->{indadmixturefile}              = 'indivadmixture.txt';
-$arg_hash->{ancestryassociationscorefile}  = 'ancestryassociationscorefile.txt';
+$arg_hash->{ancestryassociationtest}  = 1;
 &doAnalysis($executable, $rscript, $arg_hash);
 
 # model with prior allele freqs and diabetes as binary outcome var 
 delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                = 'PriorFreqResultsDiabetes';  
 $arg_hash->{targetindicator}           = 0; # diabetes as outcome
-$arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
+$arg_hash->{affectedsonlytest}    = 1
 #$arg_hash->{thermo}    = 1;
 #$arg_hash->{numannealedruns}    = 100;
 &doAnalysis($executable, $rscript, $arg_hash);
@@ -80,7 +80,7 @@ $arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
 delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                = 'FixedAlleleFreqResultsDiabetes';  
 $arg_hash->{targetindicator}           = 0; # diabetes as outcome
-$arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
+$arg_hash->{affectedsonlytest}   = 1;
 $arg_hash->{fixedallelefreqs}    = 1;
 #$arg_hash->{numannealedruns}    = 100;
 doAnalysis($executable, $rscript, $arg_hash);
@@ -89,7 +89,7 @@ doAnalysis($executable, $rscript, $arg_hash);
 delete $arg_hash->{targetindicator};  
 delete $arg_hash->{priorallelefreqfile};
 delete $arg_hash->{dispersiontestfile};
-delete $arg_hash->{affectedsonlyscorefile};
+delete $arg_hash->{affectedsonlytest};
 $arg_hash->{fixedallelefreqs}    = 0;
 $arg_hash->{numannealedruns}    = 0;
 $arg_hash->{resultsdir}                = 'HistoricFreqResults';  

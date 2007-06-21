@@ -35,14 +35,14 @@ my $arg_hash = {
     allelefreqoutputfile  => 'allelefreqoutputfile.txt',
 
 #optional tests
-    #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
-    #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
-    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    #haplotypeassociationscorefile => 'hapassocscore.txt',
-    #dispersiontestfile                   => 'dispersiontest.txt',
-    #hwscoretestfile                  => 'HardyWeinbergTest.txt',
-    #stratificationtestfile           => 'stratificationtest.txt',
-    residualallelicassocscorefile    => 'residualLDscoretest.txt'
+    #allelicassociationtest   => 1,
+    #ancestryassociationtest  => 1,
+    #affectedsonlytest        => 1,
+    #haplotypeassociationtest => 1,
+    #dispersiontest           => 1,
+    #hwtest                   => 1,
+    #stratificationtest       => 1,
+    residualldtest            => 1
 };
 
 doAnalysis($executable, $rscript, $arg_hash);

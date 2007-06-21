@@ -56,6 +56,7 @@ void Options::SetDefaultValues(){
   RegType = None;
   TestForAllelicAssociation = false;
   TestForResidualAllelicAssoc = false;
+  HWTest = false;
   OutputAlleleFreq = false;
   regressionPriorPrecision = 0.25;
   EYFilename = "ExpectedOutcomes.txt";
@@ -179,10 +180,7 @@ const char *Options::getCovariatesFilename() const
 {
   return CovariatesFilename.c_str();
 }
-const char *Options::getAllelicAssociationScoreFilename() const
-{
-  return AllelicAssociationScoreFilename.c_str();
-}
+
 const char *Options::getPriorAlleleFreqFilename() const
 {
   return PriorAlleleFreqFilename.c_str();
@@ -190,18 +188,12 @@ const char *Options::getPriorAlleleFreqFilename() const
 bool Options::getTestForResidualAllelicAssoc()const{
   return TestForResidualAllelicAssoc;
 }
-const char* Options::getResidualAllelicAssocScoreFilename()const{
-  return ResidualAllelicAssocScoreFilename.c_str();
-}
+
 bool Options::getHWTestIndicator() const
 {
   return HWTest;
 }
 
-const char *Options::getHWTestFilename() const
-{
-  return HWTestFilename.c_str();
-}
 double Options::getRegressionPriorPrecision()const{
   return regressionPriorPrecision;
 }
@@ -221,7 +213,7 @@ bool Options::getTestForAllelicAssociation() const
 
 void Options::setTestForAllelicAssociation(bool b){
   TestForAllelicAssociation = b;
-  if(!b)useroptions.erase("allelicassociationscorefile");
+  if(!b)useroptions.erase("allelicassociationtest");
 }
 const char* Options::getEYFilename()const{
   return EYFilename.c_str();
@@ -251,21 +243,20 @@ void Options::DefineOptions(){
   addOption("covariatesfile", stringOption, &CovariatesFilename);
   addOption("outcomes", intOption, &NumberOfOutcomes);
   addOption("targetindicator", intOption, &TargetIndicator);
-  //standard output files (optional)
+  //output files 
   addOption("logfile", outputfileOption, &LogFilename);
   addOption("paramfile", outputfileOption, &ParameterFilename);
   addOption("regparamfile", outputfileOption, &RegressionOutputFilename);
   addOption("allelefreqoutputfile", outputfileOption, &AlleleFreqOutputFilename);
   addOption("ergodicaveragefile", outputfileOption, &ErgodicAverageFilename);
-
-  //optional results directory name option - default is 'results'
   addOption("resultsdir", stringOption, &ResultsDir);
+
   addOption("regressionpriorprecision", doubleOption, &regressionPriorPrecision);
   addOption("fixedallelefreqs", boolOption, &fixedallelefreqs);
   // test options
-  addOption("allelicassociationscorefile", outputfileOption, &AllelicAssociationScoreFilename);
-  addOption("residualallelicassocscorefile", outputfileOption, &ResidualAllelicAssocScoreFilename);
-  addOption("hwscoretestfile", outputfileOption, &HWTestFilename);
+  addOption("allelicassociationtest", boolOption, &TestForAllelicAssociation);
+  addOption("residualldtest", boolOption, &TestForResidualAllelicAssoc);
+  addOption("hwtest", boolOption, &HWTest);
 
   // Other options
   addOption("numannealedruns", intOption, &NumAnnealedRuns);// number of coolnesses 
@@ -291,8 +282,6 @@ bool Options::SetOptions(){
   EYFilename = ResultsDir + "/" + EYFilename;
   //set indicators
   OutputAlleleFreq = (AlleleFreqOutputFilename.size()>0);
-  TestForAllelicAssociation = (AllelicAssociationScoreFilename.size()>0);
-  TestForResidualAllelicAssoc = (ResidualAllelicAssocScoreFilename.size()>0);
 
   return true;
 }

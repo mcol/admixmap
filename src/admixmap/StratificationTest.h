@@ -31,7 +31,7 @@ public:
   
   void Initialize( AdmixOptions* const options, const Genome &Loci,  
 		   const IndividualCollection* const IC, LogWriter &Log);
-  void OpenOutputFile( const char * , LogWriter &);
+  void OpenOutputFile( const std::string& , LogWriter &);
 
   void calculate( const IndividualCollection* const individuals, const FreqArray& AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );

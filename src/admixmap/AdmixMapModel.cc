@@ -12,6 +12,7 @@
  */
 
 #include "AdmixMapModel.h"
+#include "AdmixFilenames.h"
 
 // AdmixMapModel::AdmixMapModel(){
 
@@ -74,24 +75,23 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
 
   for( int iteration = 0; iteration <= samples; iteration++ ) {
     if( iteration > burnin) {
-      if( !options.getTestOneIndivIndicator() ) {
-	GetEnergy(Coolnesses, coolness, options, SumEnergy, SumEnergySq, AISz, AnnealedRun, iteration );
+      if( options.getTestOneIndivIndicator() ) {
+	AdmixedIndividuals->accumulateEnergyArrays(&options);
       }
-    } else {  
-      AdmixedIndividuals->accumulateEnergyArrays(&options);
+      GetEnergy(Coolnesses, coolness, options, SumEnergy, SumEnergySq, AISz, AnnealedRun, iteration );
     }
   
 
-     //Write Iteration Number to screen
+    //Write Iteration Number to screen
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
-
+    
     //Sample Parameters
     UpdateParameters(iteration, &options, Log, data.GetHiddenStateLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
     SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
 	       AnnealedRun);
-	
+    
   }// end loop over iterations
   //use Annealed Importance Sampling to calculate marginal likelihood
   if(coolness>0) AISsumlogz += log(AISz /= (double)(samples-burnin));
@@ -266,7 +266,8 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 	  //Score Test output
 	  if( options.getScoreTestIndicator() )  
 	    Scoretests.Output(data.GetHiddenStateLabels(), data.getLocusLabels());
-	  ResidualAllelicAssocScoreTest.Output(data.getLocusLabels());
+	  if(options.getTestForResidualAllelicAssoc())
+	    ResidualAllelicAssocScoreTest.Output(data.getLocusLabels());
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
     } // end "if not AnnealedRun" block
@@ -364,10 +365,10 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
 							Loci, data.GetHiddenStateLabels());
   //tests for mis-specified allele frequencies
   if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-    AlleleFreqTest.Output(options, &Loci, data.GetHiddenStateLabels(), Log); 
+    AlleleFreqTest.Output(options.getResultsDir(), &Loci, data.GetHiddenStateLabels(), Log); 
   //test for H-W eq
   if( options.getHWTestIndicator() )
-    HWtest.Output(options.getHWTestFilename(), data.getLocusLabels(), Log); 
+    HWtest.Output( (options.getResultsDir() + "/" + HARDY_WEINBERG_TEST).c_str(), data.getLocusLabels(), Log); 
 
   if( options.getScoreTestIndicator() ) {
     //finish writing score test output as R objects
@@ -375,12 +376,12 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     //write final tables
     Scoretests.WriteFinalTables(data.GetHiddenStateLabels(), data.getLocusLabels(), Log);
   }
-  ResidualAllelicAssocScoreTest.WriteFinalTable(data.getLocusLabels(), Log);
+  if(options.getTestForResidualAllelicAssoc())
+    ResidualAllelicAssocScoreTest.WriteFinalTable((options.getResultsDir() + "/" + RESIDUAL_LD_TEST_FINAL).c_str(), data.getLocusLabels(), Log);
 
   //output to likelihood ratio file
   if(options.getTestForAffectedsOnly())
-    Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), 
-				      data.GetHiddenStateLabels());	
+    Scoretests.OutputLikelihoodRatios(options.getResultsDir(), data.GetHiddenStateLabels());	
 }
 void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, LogWriter& Log){
 
@@ -389,13 +390,14 @@ void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, Lo
   if( options.getScoreTestIndicator() ){
     Scoretests.Initialise(&options, IC, &Loci, data.GetHiddenStateLabels(), Log);
   }
-  ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci);
+  if(options.getTestForResidualAllelicAssoc())
+    ResidualAllelicAssocScoreTest.Initialise((options.getResultsDir() + "/" + RESIDUAL_LD_TEST_PVALUES).c_str(), IC, &Loci);
 
   if( options.getTestForDispersion() ){
-    DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
+    DispTest.Initialise(options.getResultsDir(), Log, Loci.GetNumberOfCompositeLoci(), options.getPopulations());    
   }
   if(options.getStratificationTest())
-      StratTest.OpenOutputFile(options.getStratTestFilename(), Log);
+      StratTest.OpenOutputFile(options.getResultsDir(), Log);
   if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
     AlleleFreqTest.Initialise(&options, &Loci, Log );  
   if( options.getHWTestIndicator() )

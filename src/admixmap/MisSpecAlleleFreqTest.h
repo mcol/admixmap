@@ -90,7 +90,7 @@ public:
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(const AdmixOptions& options, const Genome* const Loci, 
+  void Output(const string& ResultsDir, const Genome* const Loci, 
 	      const Vector_s& PopLabels, LogWriter& Log);
 
 private:

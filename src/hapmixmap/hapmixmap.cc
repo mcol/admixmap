@@ -13,8 +13,8 @@
 #include "HapMixModel.h"
 #include <fstream>
 
-#define HAPMIXMAP_VERSION 0
-#define SUBVERSION 9
+#define HAPMIXMAP_VERSION 1
+#define SUBVERSION 0
 
 using namespace std;
 
@@ -86,7 +86,7 @@ int main( int argc , char** argv ){
     //create directory to write final parameter values, unless it is the same as resultsdir
     const string& finalvaluedir = options.getFinalValueDir();
     if(finalvaluedir.compare(options.getResultsDir()))
-      CreateDirectory(finalvaluedir.c_str(), options.getDeleteOldResultsIndicator());
+      CreateDirectory(finalvaluedir.c_str(), false);
 
 
     HapMixModel M;
@@ -94,7 +94,7 @@ int main( int argc , char** argv ){
 
     data.Delete();
  
-    M.Run(options, data, Log, options.getNumAnnealedRuns());
+    M.Run(options, data, Log);
 
   } 
   catch (const string& msg) {//catch any stray error messages thrown upwards

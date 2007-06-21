@@ -12,6 +12,7 @@
  */
 #include "StratificationTest.h"
 #include "AdmixOptions.h"
+#include "AdmixFilenames.h"
 #include <numeric>
 #include "gsl/gsl_eigen.h"
 #include "gsl/gsl_linalg.h"
@@ -252,14 +253,15 @@ vector<unsigned short> StratificationTest::SampleHeterozygotePhase( const double
   return genotype;
 }
 
-void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter &Log){
+void StratificationTest::OpenOutputFile( const std::string& ResultsDir, LogWriter &Log){
   Log.setDisplayMode(Quiet);
-  outputstream.open(OutputFilename, ios::out );
+  std::string filename = ResultsDir + "/" + STRAT_TEST_FILE;
+  outputstream.open(filename.c_str(), ios::out );
   if( !outputstream.is_open() ){
     throw string("ERROR: Couldn't open stratificationtestfile");
   }
   Log << "Writing results of test for residual population stratification to "
-      << OutputFilename << "\n";
+      << filename << "\n";
 }
 
 void StratificationTest::Output(LogWriter &Log){

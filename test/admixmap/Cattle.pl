@@ -21,9 +21,7 @@ my $arg_hash =
     populations => 2,
 
 #main options
-    analysistypeindicator     => 1, #no outcome var
-    coutindicator   => 1, #verbose output
-globalrho => 1,
+ globalrho => 1,
 #randommatingmodel => 0,
 
     samples  => 2500,
@@ -40,11 +38,11 @@ globalrho => 1,
 
 #optional tests
 #admixturescorefile => 'admixscorefile.txt',
-    #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
-    #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
-    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    #haplotypeassociationscorefile => 'hapassocscore.txt',
-    #stratificationtestfile                   => 'strat_test.txt'
+    #allelicassociationtest   => 1,
+    #ancestryassociationtest  => 1,
+    #affectedsonlytest        => 1,
+    #haplotypeassociationtest => 1,
+    #stratificationtest       => 1
 };
 
 

@@ -17,10 +17,10 @@
 #include "bcppcl/TableWriter.h"
 
 ResidualLDTest::ResidualLDTest(){
-  options = 0;
   individuals = 0;
   numUpdates = 0;
   numPrintedIterations = 0;
+  NumIntervals = 0;
 }
 
 ResidualLDTest::~ResidualLDTest(){
@@ -33,7 +33,7 @@ ResidualLDTest::~ResidualLDTest(){
 
     vector<int> dimensions(3,0);
     dimensions[0] = labels[0].size();
-    dimensions[1] = Lociptr->GetNumberOfCompositeLoci() - Lociptr->GetNumberOfChromosomes();
+    dimensions[1] = NumIntervals;
     dimensions[2] = (int)(numPrintedIterations);
 
     //R_output3DarrayDimensions(&outputfile, dimensions, labels);
@@ -41,51 +41,48 @@ ResidualLDTest::~ResidualLDTest(){
   }
 }
 
-void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci){
-  options = op;
+void ResidualLDTest::Initialise(const char* filename, const IndividualCollection* const indiv, const Genome* const Loci){
   individuals = indiv;
   chrm = Loci->getChromosomes();
   Lociptr = Loci;
-  test = options->getTestForResidualAllelicAssoc();
+  test = true;
+  NumIntervals = Loci->GetNumberOfCompositeLoci() - Loci->GetNumberOfChromosomes();
 
-  if(test){
-    //open cumulative output file
-    R.open(options->getResidualAllelicAssocScoreFilename());
-
-    SumScore.resize(Lociptr->GetNumberOfChromosomes());
-    SumScore2.resize(Lociptr->GetNumberOfChromosomes());
-    SumInfo.resize(Lociptr->GetNumberOfChromosomes());
-
-    Score.resize(Lociptr->GetNumberOfChromosomes());
-    Info.resize(Lociptr->GetNumberOfChromosomes());
-
-    int locus = 0;
-    for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
-      unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
+  //open cumulative output file
+  R.open(filename);
+  
+  SumScore.resize(Lociptr->GetNumberOfChromosomes());
+  SumScore2.resize(Lociptr->GetNumberOfChromosomes());
+  SumInfo.resize(Lociptr->GetNumberOfChromosomes());
+  
+  Score.resize(Lociptr->GetNumberOfChromosomes());
+  Info.resize(Lociptr->GetNumberOfChromosomes());
+  
+  int locus = 0;
+  for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
+    unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
+    
+    SumScore[j].resize(NumberOfLoci-1);
+    SumScore2[j].resize(NumberOfLoci-1);
+    SumInfo[j].resize(NumberOfLoci-1);
+    
+    Score[j].resize(NumberOfLoci-1);
+    Info[j].resize(NumberOfLoci-1);
+    
+    for(unsigned k = 0; k < NumberOfLoci-1; ++k){
+      unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
       
-      SumScore[j].resize(NumberOfLoci-1);
-      SumScore2[j].resize(NumberOfLoci-1);
-      SumInfo[j].resize(NumberOfLoci-1);
-
-      Score[j].resize(NumberOfLoci-1);
-      Info[j].resize(NumberOfLoci-1);
-
-      for(unsigned k = 0; k < NumberOfLoci-1; ++k){
-	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
-
-	SumScore[j][k].assign(dim, 0.0);
-	SumScore2[j][k].assign(dim*dim, 0.0);
-	SumInfo[j][k].assign(dim*dim, 0.0);
-	//Tcount.push_back(0);
-
-	Score[j][k].assign(dim, 0.0);
+      SumScore[j][k].assign(dim, 0.0);
+      SumScore2[j][k].assign(dim*dim, 0.0);
+      SumInfo[j][k].assign(dim*dim, 0.0);
+      //Tcount.push_back(0);
+      
+      Score[j][k].assign(dim, 0.0);
 	Info[j][k].assign(dim*dim, 0.0);
 	++locus;
-      }
-      ++locus;//for last locus on chrm
     }
+    ++locus;//for last locus on chrm
   }
-  
 }
 
 void ResidualLDTest::Reset(){
@@ -276,12 +273,9 @@ void ResidualLDTest::Output(const std::vector<std::string>& LocusLabels){
   }
 }
 
-void ResidualLDTest::WriteFinalTable(const std::vector<std::string>& LocusLabels, LogWriter& Log){
+void ResidualLDTest::WriteFinalTable(const char* filename, const std::vector<std::string>& LocusLabels, LogWriter& Log){
   if(test){
-    TableWriter finaltable;
-    string filename(options->getResultsDir());
-    filename.append("/ResidualLDTestFinal.txt");
-    finaltable.open(filename.c_str());
+    TableWriter finaltable(filename);
     Log << Quiet << "Tests for residual allelic association" << " written to " 
  	<< filename << "\n";
 

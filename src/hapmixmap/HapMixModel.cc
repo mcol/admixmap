@@ -13,6 +13,7 @@
 
 #include "HapMixModel.h"
 #include "HapMixIndividual.h"
+#include "HapMixFilenames.h"
 
 #define SCORETEST_UPDATE_EVERY 2
 int numdiploidIndivs = 0;
@@ -88,7 +89,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  Log
   }
 
   if(options.getMHTest())
-    MHTest.Initialise(options.getPopulations(), &Loci, options.getMHTestFilename());
+    MHTest.Initialise(options.getPopulations(), &Loci, options.getResultsDir());
 }
 
 void HapMixModel::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
@@ -246,7 +247,9 @@ void HapMixModel::OutputErgodicAverages(int samples, double & SumEnergy, double 
 
 ///Write score test output
 void HapMixModel::OutputTests(HapMixOptions& options, InputData & data, LogWriter& Log  ){
-  ResidualAllelicAssocScoreTest.Output(data.getLocusLabels());
+  if(options.getTestForResidualAllelicAssoc())
+    ResidualAllelicAssocScoreTest.Output(data.getLocusLabels());
+
   if( options.getTestForAllelicAssociation() )    {
     AllelicAssocTest.Output(Loci);
   }
@@ -302,33 +305,29 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
 
   //Output results of Mantel-Haentszel Test
   if(options.getMHTest()){
-    std::string s = options.getResultsDir();
-    s.append("/MHTestFinal.txt");
-    MHTest.WriteFinalTable(s.c_str(), data.getLocusLabels(), Log);
+    MHTest.WriteFinalTable(options.getResultsDir(), data.getLocusLabels(), Log);
   }
   //Write final score test tables  
-  ResidualAllelicAssocScoreTest.WriteFinalTable(data.getLocusLabels(), Log);
+  if(options.getTestForResidualAllelicAssoc())
+    ResidualAllelicAssocScoreTest.WriteFinalTable((options.getResultsDir() + "/" + RESIDUAL_LD_TEST_FINAL).c_str(), data.getLocusLabels(), Log);
   
   if( options.getTestForAllelicAssociation() )    {
-    string filename = options.getResultsDir();
-    filename.append("/AllelicAssocTestsFinal.txt");
-    AllelicAssocTest.WriteFinalTable(Loci, filename.c_str(), Log);
-    AllelicAssocTest.PrintAverageInfo(Log, (InputHapMixData&)data, filename.c_str());
+    AllelicAssocTest.WriteFinalTable(options.getResultsDir(), Loci, (InputHapMixData&)data, Log);
   }
   
   //output posterior means of lambda (expected number of arrivals)
   L->OutputArrivalRatePosteriorMeans(options.getArrivalRateOutputFilename(), options.getTotalSamples()-options.getBurnIn(), 
 				     data.getUnitOfDistanceAsString());
   //output final values of arrival rates and their prior params
-  L->OutputArrivalRates(options.getFinalLambdaFilename());
+  L->OutputArrivalRates(options.getFinalLambdaFilename().c_str());
   //output final values of mixture proportions
-  L->OutputMixtureProps(options.getFinalMixturePropsFilename());
+  L->OutputMixtureProps(options.getFinalMixturePropsFilename().c_str());
   
   //output final values of allele freq prior
-  A.OutputFinalValues(options.getFinalFreqPriorFilename(), Log);
+  A.OutputFinalValues(options.getFinalFreqPriorFilename().c_str(), Log);
   
   //output final values of allelefreqs
-  A.OutputAlleleFreqs(options.getFinalAlleleFreqFilename(), Log);
+  A.OutputAlleleFreqs(options.getFinalAlleleFreqFilename().c_str(), Log);
   
   //output posterior means of allele freq precision
   if(options.OutputAlleleFreqPrior())
@@ -351,9 +350,10 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
 }
 void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWriter& Log){
   if( options.getTestForAllelicAssociation() ){
-    AllelicAssocTest.Initialise(options.getAllelicAssociationScoreFilename(), Loci.GetNumberOfCompositeLoci());
+    AllelicAssocTest.Initialise(options.getResultsDir(), Loci.GetNumberOfCompositeLoci());
   }
-  ResidualAllelicAssocScoreTest.Initialise(&options, IC, &Loci);
+  if(options.getTestForResidualAllelicAssoc())
+    ResidualAllelicAssocScoreTest.Initialise((options.getResultsDir() + "/" + RESIDUAL_LD_TEST_PVALUES).c_str(), IC, &Loci);
   
   InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
 }

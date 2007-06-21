@@ -15,6 +15,7 @@
 #include "HapMixAllelicAssocTest.h"
 #include "HapMixIndividualCollection.h"
 #include "InputHapMixData.h"
+#include "HapMixFilenames.h"
 #include "bcppcl/Regression.h"
 #include "bcppcl/TableWriter.h"
 #include "bcppcl/LogWriter.h"
@@ -25,8 +26,8 @@ HapMixAllelicAssocTest::HapMixAllelicAssocTest(){
 }
 
 //public function
-void HapMixAllelicAssocTest::Initialise(const char* filename, const int NumLoci){
-  this->Initialise(filename, 1, NumLoci);
+void HapMixAllelicAssocTest::Initialise(const string& ResultsDir, const int NumLoci){
+  this->Initialise((ResultsDir + "/" + ALLELICASSOCTEST_PVALUES).c_str(), 1, NumLoci);
 
 }
 
@@ -74,8 +75,9 @@ void HapMixAllelicAssocTest::Output(const Genome& Loci){
   ++numPrintedIterations;
 }
 
-void HapMixAllelicAssocTest::WriteFinalTable(const Genome& Loci, const char* filename, LogWriter& Log){
-  TableWriter finaltable(filename);
+void HapMixAllelicAssocTest::WriteFinalTable(const string& ResultsDir, const Genome& Loci, const InputHapMixData& data, LogWriter& Log){
+  const string filename  = ResultsDir + "/" + ALLELICASSOCTEST_FINAL;
+  TableWriter finaltable(filename.c_str());
   Log << Quiet << "Tests for allelic association written to " << filename << "\n";
   finaltable <<"Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
 	     << newline;
@@ -86,6 +88,8 @@ void HapMixAllelicAssocTest::WriteFinalTable(const Genome& Loci, const char* fil
     OutputCopyNumberAssocTest(j, 0, finaltable, locuslabel, true);
   }
   finaltable.close();
+
+  PrintAverageInfo(Log, data, filename.c_str());
 }
 
 HapMixAllelicAssocTest::~HapMixAllelicAssocTest(){

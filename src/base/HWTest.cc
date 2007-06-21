@@ -14,7 +14,6 @@
  * 
  */
 #include "HWTest.h"
-#include "Options.h"
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
 #include "bcppcl/linalg.h"

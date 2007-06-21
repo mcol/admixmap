@@ -5,7 +5,7 @@
  *   and the corresponding ancestry-specific allele frequencies in the admixed population under study.  
  *   This is evaluated for each subpopulation at each locus, and as a global test over all loci.  
  *   Valid only if option priorallelefreqfile is specified. The results are "Bayesian p-values". 
- *   Copyright (c) 2005,2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -15,10 +15,10 @@
  */
 
 #include "DispersionTest.h"
-#include "AdmixOptions.h"
 #include <numeric>
 #include "bcppcl/linalg.h"
 #include "bcppcl/dist.h"
+#include "AdmixFilenames.h"
 
 using namespace ::std;
 
@@ -26,26 +26,24 @@ DispersionTest::DispersionTest(){
   divergentallelefreqstest = 0;
   NumberOfCompositeLoci = -1;
   NumberOfPopulations = 0;
-  options = 0;
 }
 
-void DispersionTest::Initialise(const AdmixOptions* const op, LogWriter &Log, int NumLoci){
-  options = op;
+void DispersionTest::Initialise(const string& resultsDir, LogWriter &Log, int NumLoci, int NumPopulations){
   NumberOfCompositeLoci = NumLoci;
-  NumberOfPopulations = options->getPopulations();
+  NumberOfPopulations = NumPopulations;
 
   divergentallelefreqstest = alloc2D_i(NumberOfCompositeLoci + 1, NumberOfPopulations );
   
-  if( options->getTestForDispersion() ){
-    Log.setDisplayMode(Quiet);
-    Log << "Writing dispersion test results to " << options->getDispersionTestFilename() << "\n";
-    dispersionoutputstream.open( options->getDispersionTestFilename(), ios::out );
-    if( !dispersionoutputstream ){
+  Log.setDisplayMode(Quiet);
+  const string filename = resultsDir + "/" + DISPERSION_TEST_FILE;
+  Log << "Writing dispersion test results to " << filename << "\n";
+  dispersionoutputstream.open( filename.c_str(), ios::out );
+  if( !dispersionoutputstream.is_open() ){
     Log.setDisplayMode(On);
     Log << "ERROR: Couldn't open dispersiontestfile\n";
-   exit( 1 );
-    }
+    exit( 1 );
   }
+
 }
 
 DispersionTest::~DispersionTest(){
@@ -91,7 +89,7 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
   }
 
   //test statistic for population
-  for( int k = 0; k < options->getPopulations(); k++ ){
+  for( int k = 0; k < NumberOfPopulations; k++ ){
     if(!( sum[k] < repsum[k]) )
       divergentallelefreqstest[NumberOfCompositeLoci][k] ++;
   }
