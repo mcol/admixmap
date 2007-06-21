@@ -42,8 +42,8 @@ hapmixmodel =>  1,
 displaylevel => 3,
 
 residualadhiermodel => 0,
-arrivalrateprior => 12. 0.1, 2000,1000,
-residualadprior => 0.25, 1,
+arrivalrateprior => "12, 0.1, 2000,1000",
+residualadprior => "0.25, 1",
 arrivalratesamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 
 resultsdir => "results",
@@ -69,7 +69,7 @@ if($train){
 }
 
 if($test){
-  $arg_hash->{finalvaluedir} = "data";
+  $arg_hash->{finalvaluedir} = "initialValues";
   if($resume){#use initial values from previous run
     $arg_hash->{initialvaluedir} = "initialValues";
   }else{#use initial values from training run

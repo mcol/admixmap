@@ -414,10 +414,10 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     NumStarts = 1;
   //set initial value filenames
   if(InitialValueDir.size()){
-    InitialArrivalRateFilename = InitialValueDir + ARRIVALRATESSTATEFILE;
-    InitialMixturePropsFilename = InitialValueDir + MIXTUREPROPSSTATEFILE;
-    InitialAlleleFreqFilename = InitialValueDir + ALLELEFREQSTATEFILE;
-    InitialFreqPriorFilename = InitialValueDir + FREQPRIORSTATEFILE;
+    InitialArrivalRateFilename = InitialValueDir + "/" + ARRIVALRATESSTATEFILE;
+    InitialMixturePropsFilename = InitialValueDir + "/" + MIXTUREPROPSSTATEFILE;
+    InitialAlleleFreqFilename = InitialValueDir + "/" + ALLELEFREQSTATEFILE;
+    InitialFreqPriorFilename = InitialValueDir + "/" + FREQPRIORSTATEFILE;
   }
 
   //default final value dir to results dir if not specified

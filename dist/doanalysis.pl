@@ -18,13 +18,13 @@ sub doAnalysis {
     my ($prog, $rscript, $args) = @_;
     print "\nResults will be written to subdirectory $args->{resultsdir}\n";
 
-    if($^O eq "MSWin32") {
-	$prog =~ s/\//\\/g;
-	if( !($prog =~ m/\.exe/) ) {
-	    $prog = "$prog.exe";##check: should run ok without .exe extension
-	}
-    }
-    if( !(-e $prog) ) {die "$prog not found\n"}; 
+#    if($^O eq "MSWin32") {
+#	$prog =~ s/\//\\/g;
+#	if( !($prog =~ m/\.exe/) ) {
+#	    $prog = "$prog.exe";##check: should run ok without .exe extension
+#	}
+ #   }
+#    if( !(-e $prog) ) {die "$prog not found\n"}; 
 
     runProgram($prog, $args);
     runRScript($rscript, $args);
