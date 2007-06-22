@@ -54,7 +54,7 @@ void FileWriter::close(){
   file.close();
 }
 
-bool FileWriter::is_open()const{
+bool FileWriter::is_open(){
   return file.is_open();
 }
 

@@ -26,7 +26,7 @@ public:
   virtual void open(const char*);
   virtual void open(const std::string&);
   virtual void close();
-  bool is_open()const;
+  bool is_open();
 
   //set decimal precision
   void setDecimalPrecision(unsigned );
