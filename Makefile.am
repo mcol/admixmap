@@ -34,7 +34,7 @@ admixmap-bindist:
 	mkdir -p dist/admixmap/admixmap/tutorial
 	mkdir -p dist/admixmap/admixmap/tutorial/data
 	mkdir -p dist/admixmap/admixmap/tutorial/HapFreqs
-	cp -uf $(top_srcdir)/dist/admixmap/tutorial/*.txt $(top_srcdir)/dist/admixmap/tutorial/*.pl dist/admixmap/admixmap/tutorial
+	cp -uf $(top_srcdir)/dist/admixmap/tutorial/*.pl dist/admixmap/admixmap/tutorial
 	cp -uf $(top_srcdir)/dist/admixmap/tutorial/data/*.txt dist/admixmap/admixmap/tutorial/data
 	cp -uf $(top_srcdir)/dist/admixmap/tutorial/HapFreqs/*.txt $(top_srcdir)/dist/admixmap/tutorial/HapFreqs/*.pl dist/admixmap/admixmap/tutorial/HapFreqs
 	@echo =================================================

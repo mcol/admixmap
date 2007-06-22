@@ -21,8 +21,8 @@ HapMixIndividualCollection.cc HapMixIndividualCollection.h \
 HapMixModel.cc HapMixModel.h \
 HapMixOptions.cc HapMixOptions.h \
 HapMixAllelicAssocTest.cc HapMixAllelicAssocTest.h  \
-HapMixGenotypeLoader.c HapMixGenotypeLoader.h \
-InputHapMixData.c InputHapMixData.h \
+HapMixGenotypeLoader.cc HapMixGenotypeLoader.h \
+InputHapMixData.cc InputHapMixData.h \
 MantelHaenszelTest.cc MantelHaenszelTest.h \
 PopHapMix.cc PopHapMix.h
 
