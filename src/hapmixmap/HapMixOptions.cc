@@ -119,32 +119,32 @@ string HapMixOptions::getInitialValuePath(unsigned startindex, const string& fil
   ss << InitialValueDir << "/start" << startindex+1  << "/" << filename;
   return ss.str();
 }
-const char* HapMixOptions::getInitialAlleleFreqFilename(unsigned startindex)const{
+std::string HapMixOptions::getInitialAlleleFreqFilename(unsigned startindex)const{
   if(NumStarts < 2)//no initial values (filename is empty) or a single start
-    return InitialAlleleFreqFilename.c_str();
+    return InitialAlleleFreqFilename;
   else {
-    return getInitialValuePath(startindex, InitialAlleleFreqFilename).c_str();
+    return getInitialValuePath(startindex, InitialAlleleFreqFilename);
   }
 }
-const char* HapMixOptions::getInitialArrivalRateFilename(unsigned startindex)const{
+std::string HapMixOptions::getInitialArrivalRateFilename(unsigned startindex)const{
   if(NumStarts < 2)//no initial values (filename is empty) or a single start
-    return InitialArrivalRateFilename.c_str();
+    return InitialArrivalRateFilename;
   else {
-    return getInitialValuePath(startindex, InitialArrivalRateFilename).c_str();
+    return getInitialValuePath(startindex, InitialArrivalRateFilename);
   }
 }
-const char* HapMixOptions::getInitialMixturePropsFilename(unsigned startindex)const{
+std::string HapMixOptions::getInitialMixturePropsFilename(unsigned startindex)const{
   if(NumStarts < 2)//no initial values (filename is empty) or a single start
-    return InitialMixturePropsFilename.c_str();
+    return InitialMixturePropsFilename;
   else {
-    return getInitialValuePath(startindex, InitialMixturePropsFilename).c_str();
+    return getInitialValuePath(startindex, InitialMixturePropsFilename);
   }
 }
-const char* HapMixOptions::getInitialFreqPriorFilename(unsigned startindex)const{
+std::string HapMixOptions::getInitialFreqPriorFilename(unsigned startindex)const{
   if(NumStarts < 2)//no initial values (filename is empty) or a single start
-    return InitialFreqPriorFilename.c_str();
+    return InitialFreqPriorFilename;
   else {
-    return getInitialValuePath(startindex, InitialFreqPriorFilename).c_str();
+    return getInitialValuePath(startindex, InitialFreqPriorFilename);
   }
 }
 
@@ -255,6 +255,14 @@ void HapMixOptions::DefineOptions()
   //for output of posterior predictive genotype probs
   addOption("maskedindivs", rangeOption, &MaskedIndividuals);
   addOption("maskedloci", rangeOption, &MaskedLoci);
+
+  /*
+    old names for test options, kept for compatibility with R script
+  */
+  addOption("mhscoretestfile", oldOption, 0);
+  addOption("allelicassociationscorefile", oldOption, 0);
+  addOption("residualallelicassocscorefile", oldOption, 0);
+  addOption("hwtestfile", oldOption, 0);
 
 }
 
@@ -414,10 +422,18 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     NumStarts = 1;
   //set initial value filenames
   if(InitialValueDir.size()){
-    InitialArrivalRateFilename = InitialValueDir + "/" + ARRIVALRATESSTATEFILE;
-    InitialMixturePropsFilename = InitialValueDir + "/" + MIXTUREPROPSSTATEFILE;
-    InitialAlleleFreqFilename = InitialValueDir + "/" + ALLELEFREQSTATEFILE;
-    InitialFreqPriorFilename = InitialValueDir + "/" + FREQPRIORSTATEFILE;
+    if(NumStarts < 2){
+      InitialArrivalRateFilename = InitialValueDir + "/" + ARRIVALRATESSTATEFILE;
+      InitialMixturePropsFilename = InitialValueDir + "/" + MIXTUREPROPSSTATEFILE;
+      InitialAlleleFreqFilename = InitialValueDir + "/" + ALLELEFREQSTATEFILE;
+      InitialFreqPriorFilename = InitialValueDir + "/" + FREQPRIORSTATEFILE;
+    }
+    else{
+      InitialArrivalRateFilename = ARRIVALRATESSTATEFILE;
+      InitialMixturePropsFilename = MIXTUREPROPSSTATEFILE;
+      InitialAlleleFreqFilename = ALLELEFREQSTATEFILE;
+      InitialFreqPriorFilename = FREQPRIORSTATEFILE;
+    }
   }
 
   //default final value dir to results dir if not specified

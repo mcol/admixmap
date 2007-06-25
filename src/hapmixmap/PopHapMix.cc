@@ -76,10 +76,10 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
   MixtureProps = new double[KL];
 
   //set initial values
-  const char* initfilename = options->getInitialMixturePropsFilename();
+  const string initfilename = options->getInitialMixturePropsFilename();
   //get initial values from file
-  if(strlen(initfilename)){
-    ReadInitialMixturePropsFromFile(initfilename, Log);
+  if(initfilename.size()){
+    ReadInitialMixturePropsFromFile(initfilename.c_str(), Log);
   }
   //set initial values of Mixture Props as uniform  
   else{
@@ -245,11 +245,11 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   //initialise lambda vector
   int locus = 0;//indexes loci
   int d = 0; //indexes intervals
-  const char* initfilename = options->getInitialArrivalRateFilename();
-  const bool useinitfile = (strlen(initfilename) > 0);
+  const string initfilename = options->getInitialArrivalRateFilename();
+  const bool useinitfile = (initfilename.size() > 0);
 
   if(useinitfile){
-    ReadInitialArrivalRatesFromFile(initfilename, Log);
+    ReadInitialArrivalRatesFromFile(initfilename.c_str(), Log);
   }
   
   for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){

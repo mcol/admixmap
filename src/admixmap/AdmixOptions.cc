@@ -355,6 +355,20 @@ void AdmixOptions::DefineOptions(){
   addOption("chib", boolOption, &chibIndicator);//  Marginal likelihood by Chib algo
   addOption("testoneindiv", boolOption, &TestOneIndivIndicator);//  ML for one individual in a collection 
 
+  /*
+    old names for test options, kept for compatibility with R script
+  */
+  addOption("allelicassociationscorefile", oldOption, 0);
+  addOption("affectedsonlyscorefile", oldOption, 0);
+  addOption("admixturescorefile", oldOption, 0);
+  addOption("ancestryassociationscorefile", oldOption, 0);
+  addOption("haplotypeassociationscorefile", oldOption, 0);
+  addOption("allelefreqscorefile", oldOption, 0);
+  addOption("allelefreqscorefile2", oldOption, 0);
+  addOption("stratificationtestfile", oldOption, 0);
+  addOption("fstoutputfile", oldOption, 0);
+  addOption("hwtestfile", oldOption, 0);
+  addOption("residualallelicassocscorefile", oldOption, 0);
 }
 bool AdmixOptions::SetOptions(){
   if(!Options::SetOptions())

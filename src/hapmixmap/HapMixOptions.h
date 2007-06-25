@@ -45,10 +45,10 @@ public:
   const std::vector<double>& getMixturePropsPrecisionPrior()const;
   const std::vector<double> &getLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
-  const char* getInitialArrivalRateFilename(unsigned startindex=0)const;
-  const char* getInitialMixturePropsFilename(unsigned startindex=0)const;
-  const char* getInitialAlleleFreqFilename(unsigned startindex=0)const;
-  const char* getInitialFreqPriorFilename(unsigned startindex=0)const;
+  std::string getInitialArrivalRateFilename(unsigned startindex=0)const;
+  std::string getInitialMixturePropsFilename(unsigned startindex=0)const;
+  std::string getInitialAlleleFreqFilename(unsigned startindex=0)const;
+  std::string getInitialFreqPriorFilename(unsigned startindex=0)const;
   const char* getCCGenotypesFilename()const;
 
   //indicators and model options

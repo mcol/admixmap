@@ -56,7 +56,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  Log
   Loci.SetHMMDimensions(options.getNumberOfBlockStates(), (bool)(numdiploidIndivs !=0));
 
   A.setSampler(options.getThermoIndicator(), (!numdiploidIndivs), 
-	       ( !strlen(options.getPriorAlleleFreqFilename()) && !strlen(options.getInitialAlleleFreqFilename()) ));
+	       ( !strlen(options.getPriorAlleleFreqFilename()) && !(options.getInitialAlleleFreqFilename().size()) ));
 
   //if there are any diploid individuals, allocate space for diploid genotype probs
   if(numdiploidIndivs){
@@ -103,8 +103,10 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
   const unsigned NumberOfRuns = ((HapMixOptions&)options).GetNumStarts();
 
   for(unsigned run = 0; run < NumberOfRuns; ++run){
-    if(run > 0)
+    if(run > 0){
+      Log << Quiet << "\n** Restarting **\n";
       ReadInitialValuesFromFile(run, (HapMixOptions&)options, Log);
+    }
 
     for( int iteration = 0; iteration <= samples; iteration++ ) {
       //Write Iteration Number to screen
@@ -412,12 +414,12 @@ double HapMixModel::getDevianceAtPosteriorMean(const Options* const options, Log
 }
 
 void HapMixModel::ReadInitialValuesFromFile(unsigned startnum, const HapMixOptions& options, LogWriter& Log){
-  L->ReadInitialArrivalRatesFromFile(options.getInitialArrivalRateFilename(startnum), Log);
-  if(options.getFixedMixtureProps())
-    L->ReadInitialMixturePropsFromFile(options.getInitialMixturePropsFilename(startnum), Log);
+  L->ReadInitialArrivalRatesFromFile(options.getInitialArrivalRateFilename(startnum).c_str(), Log);
+  if(!options.getFixedMixtureProps())
+    L->ReadInitialMixturePropsFromFile(options.getInitialMixturePropsFilename(startnum).c_str(), Log);
 
-  if(options.getFixedAlleleFreqs()){
-    A.LoadInitialAlleleFreqs(options.getInitialAlleleFreqFilename(startnum), Log);
-    A.ReadInitialPriorParamsFromFile(options.getInitialFreqPriorFilename(startnum), Log);
+  if(!options.getFixedAlleleFreqs()){
+    A.LoadInitialAlleleFreqs(options.getInitialAlleleFreqFilename(startnum).c_str(), Log);
+    A.ReadInitialPriorParamsFromFile(options.getInitialFreqPriorFilename(startnum).c_str(), Log);
   }
 }

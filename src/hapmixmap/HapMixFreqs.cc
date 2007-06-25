@@ -161,10 +161,10 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
   //initialise sampler for freq precision Dirichlet prior proportions, bounded by 0 and 1
   MuSampler.Initialise(true, true, 1.0, 0.0, fmu_hapmix, dfmu_hapmix );
 
-  const char* initialvaluefilename = options->getInitialFreqPriorFilename();
-  if(strlen(initialvaluefilename)){
+  const string initialvaluefilename = options->getInitialFreqPriorFilename();
+  if(initialvaluefilename.size()){
     //TODO??: check prior is consistent with initial values
-    ReadInitialPriorParamsFromFile(initialvaluefilename, Log);
+    ReadInitialPriorParamsFromFile(initialvaluefilename.c_str(), Log);
   }
   else{
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -242,8 +242,9 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
   CompositeLocus::SetNumberOfPopulations(Populations);
 
   //read initial values from file
-  if(strlen( options->getInitialAlleleFreqFilename() )){
-    LoadInitialAlleleFreqs(options->getInitialAlleleFreqFilename(), Log);
+  const string initfilename = options->getInitialAlleleFreqFilename();
+  if(initfilename.size() ){
+    LoadInitialAlleleFreqs(initfilename.c_str(), Log);
   }
   else{
     int offset = 0;
