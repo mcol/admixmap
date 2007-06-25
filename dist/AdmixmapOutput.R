@@ -25,12 +25,18 @@
 #######################################################
 message <- "\n\nStarting R script\n";
 
-##retrieve args
+##retrieve command-line arguments
+##args is the full command used to invoke R
+##typically /path/to/Rterm <R args like --vanilla> [--args [args to script]] 
 args <- commandArgs();
+##check if --args used. This avoids a problem with earlier versions of R
+##or when script run without '--args'. args.pos is the index of '--args' in the args array.
+args.pos <- match("--args", args)
 
 ##find results dir
-if(length(args) > 0){
-  resultsdir <- args[1];
+if(!is.na(args.pos) && length(args) > args.pos){
+  ##first arga after --args is resultsdir
+  resultsdir <- args[args.pos+1];
 }else{  
   if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
     resultsdir <- Sys.getenv("RESULTSDIR")
@@ -46,8 +52,9 @@ if(!file.exists(resultsdir)){
 
 ##determine plotting device
 ## can be postscript, pdf, jpeg or png
-if(length(args) > 1){
-  plotDevice <- args[2]
+if(!is.na(args.pos) && length(args) > args.pos+1){
+  ##second arg after --args is plotDevice
+  plotDevice <- args[args.pos+2]
 }else{
   plotDevice <- Sys.getenv("RPLOTS")
 }
@@ -81,7 +88,7 @@ cbindIfNotNull <- function(table1, table2) {
 getUserOptions <- function(argsfilename) {
   ## read table of user options
   if(!file.exists(argsfilename)){
-    cat("Error: cannot find argsfile\n", file=outfile, append=T)
+    cat("Error: cannot find argsfile:", argsfilename, "\n", file=stderr(), append=T)
     quit(save="no", status=1, runLast=F)
   }else{
     args <- read.table(argsfilename, sep="=", header=FALSE, comment.char="")
