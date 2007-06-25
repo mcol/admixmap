@@ -13,7 +13,7 @@
 ##                          export RPLOTS=plot_type
 ##          or (Windows)    set RESULTSDIR=resultsdir
 ##                          set RPLOTS=plot_type
-##      Then, R CMD BATCH --vanilla path/toscript/AdmixmapOutput.R resultsdir/Rlog.txt
+##      Then, R CMD BATCH --vanilla path/to/script/AdmixmapOutput.R resultsdir/Rlog.txt
 ##  1c. (R version 2.5 or greater) Rscript front-end to BATCH mode
 ##     Rscript path/to/script/AdmixmapOutput.R resultsdir plot_type >resultsdir/Rlog.txt
 ##
@@ -26,7 +26,7 @@
 message <- "\n\nStarting R script\n";
 
 ##retrieve args
-args <- commandArgs(TRUE);
+args <- commandArgs();
 
 ##find results dir
 if(length(args) > 0){
@@ -81,8 +81,7 @@ cbindIfNotNull <- function(table1, table2) {
 getUserOptions <- function(argsfilename) {
   ## read table of user options
   if(!file.exists(argsfilename)){
-    message <- c(message,"Error: cannot find argsfile\n")
-    ##cat("Error: cannot find argsfile\n", file=outfile, append=T)
+    cat("Error: cannot find argsfile\n", file=outfile, append=T)
     quit(save="no", status=1, runLast=F)
   }else{
     args <- read.table(argsfilename, sep="=", header=FALSE, comment.char="")
@@ -128,7 +127,7 @@ getIsAdmixed <- function(AdmixturePrior) {
 readLoci <- function(){
   filename <- paste(resultsdir, "LocusTable.txt", sep="/")
   ##cols are locus name, number of allele/haplotypes, map distance in cM, chromosome number
-  loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "integer"))
+  loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "character"))
   return(loci.compound)
 }
 
@@ -370,14 +369,14 @@ effectEstimates <- function(beta, pop.admix.prop, n, k) {
   return(effect.pop)
 }
 
-calculateAndPlotQuantiles <- function(param.samples, nvars) {
+calculateAndPlotQuantiles <- function(param.samples) {
   ## calculate means and 95% credible intervals
-  post.quantiles <- matrix(data=NA, nrow=nvars, ncol=4, 
+  post.quantiles <- matrix(data=NA, nrow=ncol(param.samples), ncol=4, 
                            dimnames=list(dimnames(param.samples)[[2]], 
                              c("Median", "Mean", "Pct2.5", "Pct97.5")))
   outputfile <- paste(resultsdir, "ParameterPosteriorDensities", sep="/" )
   openPlotDevice(outputfile)
-  for(j in 1:nvars) {
+  for(j in 1:ncol(param.samples)) {
     post.quantiles[j, c(1,3,4)] <- quantile(param.samples[,j], probs = c(0.5, 0.025, 0.975), na.rm = T)
     post.quantiles[j, 2] <- mean(param.samples[,j], na.rm=T) 
     ## plots kernel density of each variable
@@ -577,7 +576,7 @@ plotScoreMap <- function(loci.compound, zscores, K, testname){
   outputfile <- paste(resultsdir, testname, sep="/")
   outputfile <- paste(outputfile, "ScoreMap", sep="")
   openPlotDevice(outputfile)
-  for(chr in 1:n.chr) {
+  for(chr in chr.labels) {
     for(pop in 1:K) {
       plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
            zscores[pop, loci.compound$Chromosome==chr], 
@@ -595,7 +594,7 @@ plotScoreMap <- function(loci.compound, zscores, K, testname){
 }
 
 plotExclusionMap <- function(loci.compound, info.content, cutoffs.lo, cutoffs.hi) {
-  for(chr in 1:n.chr) {
+  for(chr in chr.labels) {
     ## cutoffs plotted for risk ratio associated with 1st population only
     plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
          cutoffs.lo[loci.compound$Chromosome==chr], 
@@ -616,7 +615,7 @@ plotInfoMap <- function(loci.compound, info.content, K, testname) {
   outputfile <- paste(resultsdir, testname, sep="/")
   outputfile <- paste(outputfile, "InformationContentMap", sep="")
   openPlotDevice(outputfile)
-  for(chr in 1:n.chr) {
+  for(chr in chr.labels) {
     for(pop in 1:K) {
       plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
            info.content[pop, loci.compound$Chromosome==chr], 
@@ -1052,7 +1051,15 @@ plotArrivalRates <- function(arrival.rate.pm.file, locus.table, ps.filename){
 
   
   openPlotDevice(paste(resultsdir, ps.filename, sep="/"))
-  plot(map.pos[-1], ar.pm, xlab=x.label, ylab=dimnames(ar.pm)[[2]], main="Arrival Rate Map",type='l')  
+    for(chr in chr.labels) {
+    plot(locus.table$MapPosition[locus.table$Chromosome==chr],
+         ar.pm[locus.table$Chromosome==chr], 
+         type="l",
+         xlab=x.label, ylab=dimnames(ar.pm)[[2]],
+         main=paste("Arrival Rate Map, chromosome ", chr)
+         )
+  }
+  ##plot(map.pos[-1], ar.pm, xlab=x.label, ylab=dimnames(ar.pm)[[2]], main="Arrival Rate Map",type='l')  
   dev.off()
 }
 
@@ -1070,11 +1077,20 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filena
   rm(final.table)
   
   ##read map positions from LocusTable
-  map.pos <- locus.table[,3]
+  ##map.pos <- locus.table[,3]
   x.label <- dimnames(locus.table)[[2]][3]
-  
+
   openPlotDevice(paste(resultsdir, info.map.filename, sep="/"))
-  plot(map.pos, percent.info, xlab=x.label, ylab="%Info Extracted", main="Extracted Info Map",type='l')  
+  for(chr in chr.labels) {
+    plot(locus.table$MapPosition[locus.table$Chromosome==chr],
+         percent.info[locus.table$Chromosome==chr], 
+         type="l",
+         xlab=x.label, ylab="percent info extracted",
+         main=paste("chromosome ", chr)
+         )
+  }
+  
+  ##plot(map.pos, percent.info, xlab=x.label, ylab="%Info Extracted", main="Extracted Info Map",type='l')  
   dev.off()
 
   ##QQ plot of zscores
@@ -1104,7 +1120,8 @@ rm(message)
 
 ## read table of loci and calculate map positions
 loci.compound <- readLoci()
-n.chr <- nlevels(factor(loci.compound$Chromosome))
+##n.chr <- nlevels(factor(loci.compound$Chromosome))
+chr.labels <- unique(loci.compound$Chromosome)
 
 K <- getNumSubpopulations(user.options)
 population.labels <- getPopulationLabels(K, user.options)
@@ -1209,8 +1226,7 @@ param.samples.all <- cbindIfNotNull(param.samples.all, effect.pop)
 
 if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
   ## calculate posterior quantiles, including admixture proportions
-  nvars <- dim(param.samples.all)[2] + dim(pop.admix.prop)[2]
-  post.quantiles <- calculateAndPlotQuantiles(cbindIfNotNull(pop.admix.prop, param.samples.all), nvars)
+  post.quantiles <- calculateAndPlotQuantiles(cbindIfNotNull(pop.admix.prop, param.samples.all))
   ## plot autocorrelations
   openPlotDevice(paste(resultsdir, "Autocorrelations", sep="/"))
   plotAutocorrelations(param.samples.all, user.options$every)
@@ -1221,16 +1237,14 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
   openPlotDevice(paste(resultsdir, "TracePlots", sep="/"))
   nsamples <- dim(param.samples.all)[1]
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
-  for(var in 1:nvars)
+  for(var in 1:ncol(param.samples.all))
     plot(iters, param.samples.all[,var], xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
   dev.off()
   ##plot cumulative averages from paramfiles
   openPlotDevice(paste(resultsdir, "CumulativeAverages", sep="/"))
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
-  for(var in 1:dim(param.samples.all)[2]) {
-    plot(iters, cumsum(param.samples.all[,var])/c(1:nsamples),
-         xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
-  }
+  for(var in 1:ncol(param.samples.all))
+    plot(iters, cumsum(param.samples.all[,var])/c(1:nsamples), xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
   dev.off()
   
 }
@@ -1316,16 +1330,18 @@ if(!is.null(user.options$allelicassociationscorefile)
   if(user.options$hapmixmodel == 1){
     if(!is.null(user.options$arrivalrateposteriormeanfile) && !is.null(user.options$residualadposteriormeanfile)){
       cat("appending posterior means of arrival rates and freq precision to score table...", file=outfile, append=T)
-      lambda <- c(NA, dget(paste(resultsdir,
-  user.options$arrivalrateposteriormeanfile, sep="/"))) # dget not scan
+      lambda <- dget(paste(resultsdir,
+                           user.options$arrivalrateposteriormeanfile, sep="/")) # dget not scan
       eta <- c(scan(paste(resultsdir, user.options$residualadposteriormeanfile, sep="/")))
-      scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T),
+      scoretest.final.table <- data.frame(read.table(paste(resultsdir, "TestAllelicAssocFinal.txt", sep="/"),
+                                                     na.strings="NA", header=T),
                                           ArrivalRate=lambda, ResidualAD=eta)
-      write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=F, col.names=T)
+      write.table(scoretest.final.table, file=paste(resultsdir, "TestAllelicAssocFinal.txt", sep="/"),
+                  row.names=F, col.names=T)
       cat(" done\n", file=outfile, append=T)
     }
     cat("plotting map of information extracted...", file=outfile, append=T)
-    plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap", "QQPlotAllelicAssocTests")
+    plotExtractedInfoMap("TestAllelicAssocFinal.txt", loci.compound, "InfoExtractedMap", "QQPlotAllelicAssocTests")
     ##write average information extraction to logfile
     cat(" done\n", file=outfile, append=T)
   }
@@ -1340,8 +1356,7 @@ if(!is.null(user.options$haplotypeassociationscorefile) && file.exists(paste(res
 }
 
 ## read output of regression model score test for ancestry, and plot cumulative results
-if(!is.null(user.options$ancestryassociationscorefile) &&
-   file.exists(paste(resultsdir,user.options$ancestryassociationscorefile, sep="/"))) {
+if(!is.null(user.options$ancestryassociationscorefile) && file.exists(paste(resultsdir,user.options$ancestryassociationscorefile, sep="/"))) {
   cat("plotting scores in test for ancestry association...", file=outfile, append=T)
   ## produces warning
   plotAncestryScoreTest(user.options$ancestryassociationscorefile, "TestsAncestryAssoc",K, population.labels, user.options$every)

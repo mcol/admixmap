@@ -21,6 +21,7 @@
 #include "gsl/gsl_specfunc.h"
 #include "bcppcl/GSLExceptions.h" //for catching gsl exceptions
 #include "bcppcl/Exceptions.h"//for throwing InfiniteGradient to Hamiltonian
+#include "bcppcl/RObjectWriter.h"
 
 using namespace std;
 
@@ -701,18 +702,37 @@ void PopHapMix::OutputMixtureProps(const char* filename)const{
 
 ///output posterior means of arrival rates per unit distance, as R object
 void PopHapMix::OutputArrivalRatePosteriorMeans(const char* filename, int samples, const string& distanceUnit)const{
-  ofstream outfile(filename);
+  RObjectWriter outfile(filename);
   if(!outfile.is_open()){
     cerr << "Error: cannot open " << filename << endl;
   }
   else{
-    outfile << "structure(c(" << exp(SumLogLambda[0] / (double)samples) / hargs.distances[0];
-    unsigned d = 1;//to index distances
-    for(vector<double>::const_iterator i = SumLogLambda.begin()+1; i < SumLogLambda.end(); ++i, ++d)
-      //distances are stored in hargs
-      outfile << "," << exp(*i / samples) /hargs.distances[d];
-    outfile << "), .Dim=c(" << SumLogLambda.size() << ", 1), .Dimnames=list(NULL, \"ArrivalRatePer" << distanceUnit << "\"))";
-    outfile.close();
+    //    outfile << "structure(c(" << exp(SumLogLambda[0] / (double)samples) / hargs.distances[0];
+    unsigned d = 0;//to index distances
+    vector<double>::const_iterator i = SumLogLambda.begin();
+    for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+      //write NA for first position
+      outfile << "NA";
+      for(unsigned j  = 1; j < Loci->GetSizeOfChromosome(c); ++j){//step through rest of loci on chromosome
+	//distances are stored in hargs
+	outfile << exp(*i / samples) /hargs.distances[d];
+	++i;
+	++d;
+      }
+    }
+    vector<vector< string> > dimnames(2);
+    dimnames[1].push_back("ArrivalRatePer" + distanceUnit);
+
+    vector<int> dims(2);
+    dims[0] = Loci->GetNumberOfCompositeLoci();
+    dims[1] = 1;
+
+
+//     for(vector<double>::const_iterator i = SumLogLambda.begin()+1; i < SumLogLambda.end(); ++i, ++d)
+
+//       outfile << "," << exp(*i / samples) /hargs.distances[d];
+//     outfile << "), .Dim=c(" << SumLogLambda.size() << ", 1), .Dimnames=list(NULL, \"ArrivalRatePer" << distanceUnit << "\"))";
+    outfile.close(dims, dimnames);
   }
 }
 

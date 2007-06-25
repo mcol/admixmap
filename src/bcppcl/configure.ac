@@ -1,6 +1,6 @@
 AC_PREREQ(2.59)
 
-AC_INIT([bcppcl],[1.0])
+AC_INIT([bcppcl],[1.1])
 
 #put auxiliary files here
 AC_CONFIG_AUX_DIR(config)

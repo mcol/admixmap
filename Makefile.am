@@ -128,11 +128,9 @@ hapmixmap-srcdist: dist
 
 #make bcppcl (only) source distribution
 bcppcl-srcdist:
-	@(cd src/bcppcl && \
-autoreconf -fi && \
-./configure && \
+	@(cd $(top_srcdir)/src/bcppcl && autoreconf -fi)
+	@($(top_srcdir)/src/bcppcl/configure && \
 make dist) || exit 1;
-	mv src/bcppcl/bcppcl-*.tar.gz .
 	@echo ===============================================
 	@echo bcppcl source package is ready for distribution
 	@echo ===============================================
