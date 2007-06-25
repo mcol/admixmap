@@ -222,6 +222,10 @@ void AdmixOptions::setPopulations(int num)
   Populations = num;
 }
 
+const string& AdmixOptions::getPopLabelString()const{
+  return PopLabels;
+}
+
 double AdmixOptions::getRhoPriorMean()const{
   if( GlobalRho || !IndAdmixHierIndicator  )
     return globalrhoPrior[0] / globalrhoPrior[1];
@@ -312,6 +316,7 @@ void AdmixOptions::DefineOptions(){
   addOption("populations", intOption, &Populations);
   addOption("allelefreqfile", stringOption, &alleleFreqFilename);
   addOption("historicallelefreqfile", stringOption, &HistoricalAlleleFreqFilename);
+  addOption("poplabels", stringOption, &PopLabels);
   addOption("reportedancestry", stringOption, &ReportedAncestryFilename);
   //standard output files (optional)
 

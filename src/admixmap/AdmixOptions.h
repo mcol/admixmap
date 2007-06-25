@@ -68,6 +68,7 @@ public:
   int getPopulations() const;
   void setPopulations(int num);
   bool getFixedAlleleFreqs() const;
+  const string& getPopLabelString()const;
 
   //score test indicators 
   bool getScoreTestIndicator() const;
@@ -136,6 +137,7 @@ private:
   string HistoricalAlleleFreqFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;
+  string PopLabels;
   
   void SetDefaultValues();  
   void DefineOptions();

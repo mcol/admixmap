@@ -101,11 +101,17 @@ void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
   
   //  }
   else{
-    //set default pop labels
-    for( int j = 0; j < options->getPopulations(); j++ ){
-      stringstream poplabel;
-      poplabel << "Pop" << j+1;
-      HiddenStateLabels.push_back(poplabel.str());
+    //read labels from 'poplabels' option
+    StringSplitter::Tokenize(options->getPopLabelString(), HiddenStateLabels, " ,");
+    if(HiddenStateLabels.size() != (unsigned)options->getPopulations()){
+      HiddenStateLabels.clear();
+
+      //set default pop labels
+      for( int j = 0; j < options->getPopulations(); j++ ){
+	stringstream poplabel;
+	poplabel << "Pop" << j+1;
+	HiddenStateLabels.push_back(poplabel.str());
+      }
     }
   }
 }
