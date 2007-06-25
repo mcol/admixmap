@@ -113,61 +113,86 @@ const string& InputData::getUnitOfDistanceAsString()const{
   return GeneticDistanceUnitString[getUnitOfDistance()];
 }
 
-void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
-  // if check = true, Checks that loci labels in locusfile are unique and that they match the names in the genotypes file.
-  //also extracts locus labels
-  bool flag = false;
+bool InputData::checkLocusFile(LogWriter& Log){
+  bool badData = false;
 
-  if(getUnitOfDistance()==centimorgans)threshold *= 100.0;
+  const vector<string>& GenotypesFileHeader = genotypeLoader->getHeader();
+  const float threshold = getLocusDistanceThreshold();
+
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
-    if(check){
-      //check number of alleles is >1
-      if(locusMatrix_.get(i-1,0) <2){
-	cerr << "ERROR on line " << i+1 << " of locusfile: number of alleles must be >1." << endl;
-	flag = true;
-      }
 
-      //check distances are not negative
-      if(locusMatrix_.get(i-1,1) < 0.0){
-	flag = true;
-	cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
-      }
-      //check distances are not too large 
-      if(locusMatrix_.get(i-1,1) >= threshold) {
-	//flag = true;
-	if(locusMatrix_.get(i-1,1) != 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome      
-	  cerr << "Warning: distance of " <<locusMatrix_.get(i-1,1)<< "  at locus " <<i<<endl;
-	locusMatrix_.isMissing(i-1,1, true);//missing value for distance denotes new chromosome
-      }
-      
-      // Check loci names are unique    
-      for (size_t j = 0; j < i-1; ++j) {   
-	if (locusData_[i][0] == locusData_[j][0]) {
-	  flag = true;
-	  cerr << "Error in locusfile. Two different loci have the same name: "
-	       << locusData_[i][0] << endl;
-	}
-      }
+    const float distance = locusMatrix_.get(i-1,1);
+    const string locusName = locusData_[i][0];
 
-    }//end if check
-    LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
-  }//end loop over loci
-  if(flag)exit(1);
-  if(check){
-    const size_t numLoci = locusData_.size() - 1;//number of simple loci
-    const vector<string>& GenotypesFileHeader = genotypeLoader->getHeader();
-
-    // Compare loci names in locus file and genotypes file.
-    for (size_t i = 1; i <= numLoci; ++i) {
-      if (StringConvertor::dequote(locusData_[i][0]) != StringConvertor::dequote(GenotypesFileHeader[i + sexColumn])) {
-	cout << "Error. Locus names in locus file and genotypes file are not the same." << endl;
-	cout << "Locus names causing an error are: " << locusData_[i][0] << " and " 
-	     << GenotypesFileHeader[i + sexColumn] << endl;
-	//cout << options->getgenotypesSexColumn() << endl;
-	exit(2);
+    //check number of alleles is >1
+    if(locusMatrix_.get(i-1,0) <2){
+      Log << On << "ERROR on line " << i+1 << " of locusfile: number of alleles must be >1.\n";
+      badData = true;
+    }
+    
+    //check distances are not negative
+    if( distance < 0.0){
+      badData = true;
+      Log << On << "Error: distance on line "<< i <<" of locusfile is negative.\n";
+    }
+    //check distances are not too large 
+    if(distance >= threshold) {
+      //badData = true;
+      if(distance != 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome      
+	Log << On << "Warning: distance of " << distance << " " << GeneticDistanceUnitString[distanceUnit] << "  at locus " << i << "\n";
+      locusMatrix_.isMissing(i-1,1, true);//missing value for distance denotes new chromosome
+    }
+    
+    // Check loci names are unique    
+    for (size_t j = 0; j < i-1; ++j) {   
+      if (locusName == locusData_[j][0]) {
+	badData = true;
+	Log << On << "Error in locusfile. Two different loci have the same name: "
+	    << locusName << "\n";
       }
     }
-  } 
+    // Compare loci names in locus file and genotypes file.
+    if (StringConvertor::dequote(locusName) != StringConvertor::dequote(GenotypesFileHeader[i + genotypesSexColumn])) {
+      Log << On << "Error. Locus names in locus file and genotypes file are not the same.\n"
+	  << "Locus names causing an error are: " << locusName << " and " 
+	  << GenotypesFileHeader[i + genotypesSexColumn] << "\n";
+      return false;
+    }
+    
+  }//end loop over loci
+  return !badData;
+
+}
+
+///determines the distance threshold for a new chromosome
+//100 Morgans or 10 Mb
+float InputData::getLocusDistanceThreshold()const{
+  switch(distanceUnit){
+  case basepairs:{
+    return (1e7);
+    }
+  case kilobases:{
+    return(10000.0);
+    }
+  case megabases:{
+    return(10.0);
+    }
+  case centimorgans:{
+    return(10000.0);
+  }
+  case Morgans:{
+    return (100.0);
+  }
+  default:{
+    return(100.0);
+   }
+  }
+}
+
+void InputData::SetLocusLabels(){
+  for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
+    LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
+  }
 }
 
 ///checks number of loci in genotypes file is the same as in locusfile, 

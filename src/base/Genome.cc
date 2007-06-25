@@ -68,6 +68,8 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
 
   //determine if distances are given in Morgans or centimorgans
   GeneticDistanceUnit unit = data_->getUnitOfDistance();
+  const float threshold = data_->getLocusDistanceThreshold();//threshold for new chromosome
+
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     LocusTable[i].resize(2);
     
@@ -80,7 +82,8 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     if(unit == centimorgans)Distances[i] /= 100.0;//convert to Morgans
     //      SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
 
-    if(locifileData.isMissing(row, 1) || locifileData.get(row, 1)>=100.0){//new chromosome, triggered by missing value or value of >=100 for distance
+    if(locifileData.isMissing(row, 1) || locifileData.get(row, 1)>= threshold){
+      //new chromosome, triggered by missing value or distance of >= threshold
       cnum++;
       lnum = 0; 
       cstart.push_back(i);//locus number of first locus on new chromosome

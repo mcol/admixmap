@@ -54,9 +54,14 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
   Log.setDisplayMode(Quiet);
   DetermineSexColumn();
 
-  double threshold = 100.0;
-  checkLocusFile(genotypesSexColumn, threshold, options->CheckData());
-  //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
+  bool badData = false;
+  if(options->CheckData())
+    badData = !checkLocusFile(Log);
+
+  if(badData)
+    exit(1);
+
+  SetLocusLabels();
 
   CheckAlleleFreqs(options, Log);
   ReadPopulationLabels(options);
