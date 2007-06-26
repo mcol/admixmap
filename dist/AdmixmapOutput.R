@@ -399,32 +399,38 @@ calculateAndPlotQuantiles <- function(param.samples) {
   return(post.quantiles)
 }
 
-plotlogpvalues <- function(psfilename, log10pvalues, table.every, title, hist ) {
+plotlogpvalues <- function(psfilename, minuslog10pvalues, table.every, title, hist ) {
   ## function to plot cumulative p-values
   ## arguments: psfilename, matrix of -log10pvalues, table.every, plot title
+  ## table.every: 'every' option
+  
   openPlotDevice(psfilename)
-  ntests <- dim(log10pvalues)[1]
-  evaluations <- dim(log10pvalues)[2]
-  ## generate plot for test 1
-  plot(table.every*seq(1:evaluations), log10pvalues[1,],
-       type="l", ylim=c(0, 4), ## c( 0, max(log10pvalues*is.finite(log10pvalues), na.rm=T) ),
-       main=title, xlab="Iterations", ylab="-log10(p-value)")
-  ## add lines to plot for all other tests 
-  for(test in seq(2,ntests, by=(1+floor(ntests/1000)))) {
-    lines(table.every*seq(1:evaluations), log10pvalues[test,], type="l")
+  par(bty='l', las=1)
+  ntests <- dim(minuslog10pvalues)[1]
+  evaluations <- dim(minuslog10pvalues)[2]
+  
+  ## generate empty plot using test 1
+  plot(table.every*seq(1:evaluations), minuslog10pvalues[1,],
+       ylim= c( 0, max(minuslog10pvalues*is.finite(minuslog10pvalues), na.rm=T) ),
+       main=title, xlab="Iterations", ylab="-log10(p-value)", type='n')
+  ## add lines to plot for all tests with pvalues < 0.01 ie (-log10 pvalues) > 2
+  ind <- rowSums(minuslog10pvalues>2, na.rm=T)
+  for(test in 1:ntests) {
+    if( ind[test] > 0)##plot if any avaluation of the pvalue < 0.01
+      lines(table.every*seq(1:evaluations), minuslog10pvalues[test,], type="l")
   }
   ## label lines for which final p<0.01
-#  log10pvalues.final <- log10pvalues[, dim(log10pvalues)[2]]
-#  siglabels <- dimnames(log10pvalues)[[1]][log10pvalues.final > 2 | is.na(log10pvalues.final)]
-#  siglabels.x <- 0.9*table.every*dim(log10pvalues)[2]
-#  siglabels.y <- as.vector(log10pvalues.final[log10pvalues.final > 2])
+#  log10pvalues.final <- minuslog10pvalues[, dim(minuslog10pvalues)[2]]
+#  siglabels <- dimnames(minuslog10pvalues)[[1]][minuslog10pvalues.final > 2 | is.na(minuslog10pvalues.final)]
+#  siglabels.x <- 0.9*table.every*dim(minuslog10pvalues)[2]
+#  siglabels.y <- as.vector(minuslog10pvalues.final[minuslog10pvalues.final > 2])
 #  siglabels.y[is.na(siglabels.y)] <- -1
 #  if(length(siglabels) > 0) {
 #    text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
 #  }
   if(hist){
     ## histogram of p-values
-    hist(10^(-log10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
+    hist(10^(-minuslog10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
          main="Histogram of one-sided p-values")
   }
   dev.off()
@@ -484,16 +490,16 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
   if (!haplotypes) {
     testnames <- as.vector(scoretest[1,,1])
     ## convert pvalues to numeric
-    log10pvalues <- matrix(as.numeric(scoretest[-1, ,]), nrow=dim(scoretest)[[2]], ncol=dim(scoretest)[[3]])
+    minuslog10pvalues <- matrix(as.numeric(scoretest[-1, ,]), nrow=dim(scoretest)[[2]], ncol=dim(scoretest)[[3]])
   } else {
     testnames <- as.vector(paste(scoretest[1,,1], scoretest[2,,1]))
-    log10pvalues <- matrix(as.numeric(scoretest[-c(1:2), ,]), nrow=dim(scoretest)[[2]], ncol=dim(scoretest)[[3]])
+    minuslog10pvalues <- matrix(as.numeric(scoretest[-c(1:2), ,]), nrow=dim(scoretest)[[2]], ncol=dim(scoretest)[[3]])
   }
 
-  dimnames(log10pvalues) <- list(testnames, NULL)
-  log10pvalues[is.nan(log10pvalues)] <- NA
+  dimnames(minuslog10pvalues) <- list(testnames, NULL)
+  minuslog10pvalues[is.nan(minuslog10pvalues)] <- NA
 
-  plotlogpvalues(outputfilePlot, log10pvalues,
+  plotlogpvalues(outputfilePlot, minuslog10pvalues,
               10*thinning, "Running computation of p-values for allelic association", F)
 }
 
