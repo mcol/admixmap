@@ -119,14 +119,15 @@ bool InputData::checkLocusFile(LogWriter& Log){
   const vector<string>& GenotypesFileHeader = genotypeLoader->getHeader();
   const float threshold = getLocusDistanceThreshold();
 
-  for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
+  for (unsigned i = 1; i < locusData_.size(); ++i) {//rows of locusfile
 
     const float distance = locusMatrix_.get(i-1,1);
     const string locusName = locusData_[i][0];
 
     //check number of alleles is >1
+
     if(locusMatrix_.get(i-1,0) <2){
-      Log << On << "ERROR on line " << i+1 << " of locusfile: number of alleles must be >1.\n";
+      Log << On << "ERROR on line " << i << " of locusfile: number of alleles must be >1.\n";
       badData = true;
     }
     

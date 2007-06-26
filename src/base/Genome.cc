@@ -214,9 +214,9 @@ const CompositeLocus* Genome::GetLocus(int ElementNumber)const{
 void Genome::PrintSizes(LogWriter &Log, const string& distanceUnit)const{
   
   Log.setDisplayMode(Quiet);
-  Log << "\n" << TotalLoci << " simple loci\n"
-      << NumberOfCompositeLoci << " compound loci; "
-      << NumberOfChromosomes << " chromosome"; if(NumberOfChromosomes > 1) Log << "s";
+  Log << "\n" << (int)TotalLoci << " simple loci\n"
+      << (int)NumberOfCompositeLoci << " compound loci; "
+      << (int)NumberOfChromosomes << " chromosome"; if(NumberOfChromosomes > 1) Log << "s";
   Log << "\n";
 
   Log << "Effective length of autosomes under study: ";
