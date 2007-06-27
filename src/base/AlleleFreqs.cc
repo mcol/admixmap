@@ -31,7 +31,7 @@ AlleleFreqs::AlleleFreqs(){
   Freqs.array = 0;
   AlleleFreqsMAP.array = 0;
   PriorParams = 0;
-
+  SumKLInfo = 0;
 }
 
 AlleleFreqs::~AlleleFreqs(){
@@ -54,9 +54,24 @@ AlleleFreqs::~AlleleFreqs(){
       delete *i;
   FreqSampler.clear();
 
-  if( allelefreqoutput.is_open()) allelefreqoutput.close();
+  //delete[] SumKLInfo;
 }
 
+void AlleleFreqs::Initialise(bool OutputFreqs){
+  if(OutputFreqs){
+//     SumKLInfo = new float[NumberOfCompositeLoci];
+//     fill(SumKLInfo, SumKLInfo + NumberOfCompositeLoci, 0.0);
+
+    if(Populations > 1){
+      SumLocusInfo = new float*[NumberOfCompositeLoci];
+      const int NumPopPairs = (Populations*(Populations-1))/2;
+      for(int j = 0; j < NumberOfCompositeLoci; ++j){
+	SumLocusInfo[j] = new float[NumPopPairs];
+	fill(SumLocusInfo[j], SumLocusInfo[j] + NumPopPairs, 0.0);
+      }
+    }
+  }
+}
 void AlleleFreqs::PrintPrior(const Vector_s& , LogWriter& )const{
 }
 
@@ -360,6 +375,48 @@ void AlleleFreqs::setAlleleFreqsMAP()
   }
 }
 
+void AlleleFreqs::AccumulateKLInfo(){
+  if(SumKLInfo){
+  for(int j = 0; j < NumberOfCompositeLoci; ++j){
+    vector<double> psum(Populations, 0);
+    double p_entropy = 0.0;
+    const int numstates = Loci->GetNumberOfStates(j);
+    for(int k = 0; k < Populations; ++k){
+      for(int s = 0; s < numstates; ++s){
+	double p = Freqs[j][k*numstates + s];
+	psum[k] += p;
+	p_entropy -= p*log(p);
+      }
+    }
+    double pbar_entropy = 0.0;
+    for(int k = 0; k < Populations; ++k){
+      psum[k] /= (double) numstates;
+      pbar_entropy -= psum[k]*log(psum[k]);
+    }
+    SumKLInfo[j] += pbar_entropy - p_entropy / (double)Populations;
+  }
+  }
+}
+
+void AlleleFreqs::AccumulateLocusInfo(){
+  if(SumLocusInfo && Populations >1){
+    for(int j = 0; j < NumberOfCompositeLoci; ++j){
+      const int numstates = Loci->GetNumberOfStates(j);
+      int k = 0;
+      for(int k1 = 0; k1 < Populations; ++k1)
+	for(int k2 = k1+1; k2 < Populations; ++k2){
+	  
+	  float f = 0.0; 
+	  for(int s = 0; s < numstates; ++s){
+	    f += Freqs[j][k1*numstates+s]*Freqs[j][k2*numstates + s] / (Freqs[j][k1*numstates+s] + Freqs[j][k2*numstates + s]);
+	  }
+	  SumLocusInfo[j][k] += 1.0 - 2.0*f;
+	  ++k;
+	}
+    }
+  }
+}
+
 // ************ Accessors **********************************************************
 
 /// Indicates whether allele frequencies are fixed or random.
@@ -452,12 +509,7 @@ const FreqArray& AlleleFreqs::GetAlleleFreqs()const{
 void AlleleFreqs::OpenOutputFile(const char* filename)
 {
   //open file to output freqs as R object
-  allelefreqoutput.open(filename, ios::out );
-  if( !allelefreqoutput){
-    cerr << "Warning: Couldn't open allelefreqoutputfile: " << filename << endl;
-    exit( 1 );
-  }
-  allelefreqoutput << "structure(.Data=c(" << endl;
+  allelefreqoutput.open(filename);
 }
 
 //output of freqs as R object (start and finish of file are written elsewhere)
@@ -465,17 +517,18 @@ void AlleleFreqs::OutputAlleleFreqs()
 {
   if( IsRandom() ){
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
+      const string LocusLabel = "\"" + (*Loci)(locus)->GetLabel(0) + "\"";
       for( int state = 0; state < Loci->GetNumberOfStates(locus)-1; state++ ){
-	allelefreqoutput << "\"" << (*Loci)(locus)->GetLabel(0) << "\",";
+	allelefreqoutput << LocusLabel;
 	for( int pop = 0; pop < Populations; pop++ ){
-	  allelefreqoutput <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] << ",";
+	  allelefreqoutput <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] ;
 	  // allelefreqoutput << "count " << AlleleCounts[locus][state*Populations + pop] <<"; ";
 	}
-	allelefreqoutput << endl;
+	allelefreqoutput << newline;
       }
-      allelefreqoutput << endl;
+      allelefreqoutput << newline;
     }
-    allelefreqoutput << endl;
+    allelefreqoutput << newline;
   }
 }
 
@@ -510,21 +563,18 @@ void AlleleFreqs::CloseOutputFile(int iterations, const Vector_s& PopulationLabe
   int nrows = 0;
   for(int j = 0; j < NumberOfCompositeLoci; ++j)
     nrows += Loci->GetNumberOfStates(j)-1;
-  allelefreqoutput << ")," << endl;
-  allelefreqoutput << ".Dim = c(";
-  allelefreqoutput << Populations+1 << ",";
-  allelefreqoutput << nrows << ",";
-  allelefreqoutput << iterations;
-  allelefreqoutput << ")," << endl;
-  allelefreqoutput << ".Dimnames=list(c(\"Locus\",";
+
+  vector<vector<string> > dimnames(1);
+  dimnames[0].push_back("Locus");
   for (int i = 0; i < Populations; i++){
-    allelefreqoutput << "\""<<PopulationLabels[i]<<"\"";
-    if(i < Populations-1){
-      allelefreqoutput << ",";
-    }
+    dimnames[0].push_back(PopulationLabels[i]);
   }
-  allelefreqoutput << "), character(0), character(0)))" << endl;
-  allelefreqoutput.close();
+  vector<int> dims;
+  dims.push_back(Populations+1);
+  dims.push_back(nrows);
+  dims.push_back(iterations);
+
+  allelefreqoutput.close(dims, dimnames);
 } 
 
 void AlleleFreqs::OutputErgodicAvg( int , std::ofstream *)const
@@ -541,4 +591,41 @@ void AlleleFreqs::OutputAlleleFreqSamplerAcceptanceRates(const char* filename){
   }
 }
 
+#include <iomanip>
+#include "Filenames.h"
+void AlleleFreqs::WriteKLInfo(unsigned samples, ostream& os){
+  if(SumKLInfo){
+    os << "Locus\tKLInfo" << endl;
+    for(int j = 0; j < NumberOfCompositeLoci; ++j){
+      os << "\""<< (*Loci)(j)->GetLabel(0) << "\"\t" << SumKLInfo[j] / (float)samples << endl;
+    }
+  }
+}
+
+void AlleleFreqs::WriteLocusInfo(unsigned samples, const string& ResultsDir, const vector<string>& PopLabels){
+  if(SumLocusInfo && Populations >1){
+    ofstream os((ResultsDir + "/" + LOCUS_F_VALUES).c_str());
+
+    os << "Locus";
+    for(int k1 = 0; k1 < Populations; ++k1)
+      for(int k2 = k1+1; k2 < Populations; ++k2){
+	os << "\tf." << PopLabels[k1] << "." << PopLabels[k2];
+      }
+    os << endl;
+
+    os << std::setfill(' ');
+    os.setf(std::ios::fixed); 
+    os.precision(3);
+    os.width(3);
+
+    const int NumPopPairs = (Populations*(Populations-1))/2;
+    for(int j = 0; j < NumberOfCompositeLoci; ++j){
+      os << "\""<< (*Loci)(j)->GetLabel(0) << "\"";
+      for(int k = 0; k < NumPopPairs; ++k)
+	os << "\t" << SumLocusInfo[j][k] / (float)samples;
+      os << endl;
+    }
+    os.close();
+  }
+}
 

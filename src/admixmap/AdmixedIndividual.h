@@ -62,11 +62,6 @@ public:
   void updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
 	    double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
 
-  static void SumScoresForLinkageAffectedsOnly(int j, double *SumAffectedsScore, double *SumAffectedsVarScore, 
-					       double *SumAffectedsScore2, double *SumAffectedsInfo);
-  static void SumScoresForAncestry(int j, double *SumAncestryScore, double *SumAncestryInfo, 
-				   double *SumAncestryScore2, double *SumAncestryVarScore);
-  static void OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels);
   double getLogPosteriorTheta()const;
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
@@ -75,6 +70,7 @@ public:
   void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
   void AnnealGenotypeProbs(int j, const double coolness);
   
+  void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
 private:
   bool IAmUnderTest;//true if not in Individual array
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
@@ -132,6 +128,7 @@ private:
 			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
+  void getPosteriorMeans(double* ThetaMean, vector<double>& rhoMean, unsigned samples)const;
 
 };
 

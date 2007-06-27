@@ -20,6 +20,7 @@ binstall: all
 
 #make admixmap binary distribution
 admixmap-bindist:
+	@ (cd src/base && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 	@ (cd src/admixmap && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 	rm -Rf dist/admixmap/admixmap
 	mkdir -p dist/admixmap/admixmap
@@ -43,6 +44,7 @@ admixmap-bindist:
 
 #make hapmixmap binary distribution
 hapmixmap-bindist:
+	@ (cd src/base && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 	@ (cd src/hapmixmap && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 	rm -Rf dist/hapmixmap/hapmixmap
 	mkdir -p dist/hapmixmap/hapmixmap

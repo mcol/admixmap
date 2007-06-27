@@ -22,6 +22,7 @@
 #include "AlleleFreqSampler.h"
 #include "common.h"
 #include "FreqArrays.h"
+#include "bcppcl/RObjectWriter.h"
 
 class LogWriter;
 
@@ -69,6 +70,9 @@ public:
 
   virtual void resetStepSizeApproximator(int k);
 
+  void WriteKLInfo(unsigned samples, ostream& os);
+  void WriteLocusInfo(unsigned samples, const std::string& ResultsDir, const std::vector<std::string>& PopLabels);
+
 protected:
   int Populations, NumberOfCompositeLoci;
   FreqArray Freqs;// allele frequencies
@@ -84,7 +88,9 @@ protected:
   bool hapmixmodel;
 
   Genome *Loci;//pointer to Loci object
-  std::ofstream allelefreqoutput;// object to output allele frequencies
+  RObjectWriter allelefreqoutput;// object to output allele frequencies
+  float* SumKLInfo;// to accumulate Kullback-Liebler info
+  float** SumLocusInfo;//to accumulate locus information content (f)
 
   virtual void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
   virtual void OpenOutputFile(const char* filename);
@@ -92,7 +98,9 @@ protected:
   void SetDefaultAlleleFreqs(int i);
   virtual void SetDefaultPriorParams(int i, double defaultpriorparams);
 
-
+  void Initialise(bool OutputFreqs);
+  void AccumulateKLInfo();
+  void AccumulateLocusInfo();
 private:
   //void LoadAlleleFreqs(Options* const options, InputData* const data, LogWriter &Log);
 

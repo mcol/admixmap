@@ -348,30 +348,16 @@ double AdmixedIndividual::getLogLikelihood(const Options* const options, const d
 
 double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options* const options) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
-  double* ThetaBar;
+  double* ThetaBar = new double[NumGametes*NumHiddenStates];
+  vector<double> rhobar;
 
-  //obtain ergodic averages of (inv_softmax)admixture props and (log)sumintensities and transform back
-  //to original scales
-  unsigned size = NumHiddenStates * NumGametes;
-  for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (options->getTotalSamples() - options->getBurnIn());
-  for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] = exp(sumlogrho[i]/(options->getTotalSamples() - options->getBurnIn()));
-  
-  //apply softmax transformation to obtain thetabar
-  ThetaBar = new double[NumGametes*NumHiddenStates];
-  bool* b = new bool[NumHiddenStates];
-  for( unsigned int g = 0; g < NumGametes; g++ ){
-    for(int k = 0; k < NumHiddenStates; ++k)if(Theta[g*NumHiddenStates + k] > 0.0){
-      b[k] = true; //to skip elements set to zero
-    } else b[k] = false;
-    softmax(NumHiddenStates, ThetaBar+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
-  }
-  delete[] b;
-  
+  getPosteriorMeans(ThetaBar, rhobar, options->getTotalSamples() - options->getBurnIn());
+
   double LogLikelihood = 0.0;
   if(NumHiddenStates == 1) LogLikelihood = getLogLikelihoodOnePop();
   else {
     for( unsigned int j = 0; j < numChromosomes; j++ ) {
-      UpdateHMMInputs(j, options, ThetaBar, sumlogrho); // sumlogrho is posterior mean of rho
+      UpdateHMMInputs(j, options, ThetaBar, rhobar); 
       LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
     }
   }
@@ -390,6 +376,41 @@ double AdmixedIndividual::getLogLikelihoodOnePop(){ //convenient for a single po
   }
   delete[] Prob;
   return LogLikelihood;
+}
+
+void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, vector<double>& rhoMean, unsigned samples)const{
+  unsigned size = NumHiddenStates * NumGametes;
+  for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (double) samples;
+  rhoMean.clear();
+  for(unsigned i = 0; i < _rho.size(); ++i)
+    rhoMean.push_back( exp(sumlogrho[i]/(double)samples) );
+  
+  //apply softmax transformation to obtain thetabar
+  if(ThetaMean == 0){
+    throw string("ERROR in AdmixedIndividual::getPosteriorMeans");
+    //TODO: some more helpful message here?
+  }
+  bool* b = new bool[NumHiddenStates];
+  for( unsigned int g = 0; g < NumGametes; g++ ){
+    for(int k = 0; k < NumHiddenStates; ++k)if(Theta[g*NumHiddenStates + k] > 0.0){
+      b[k] = true; //to skip elements set to zero
+    } else b[k] = false;
+    softmax(NumHiddenStates, ThetaMean+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
+  }
+  delete[] b;
+}
+
+void AdmixedIndividual::WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const{
+  double* ThetaBar = new double[NumGametes*NumHiddenStates];
+  vector<double> rhobar;
+  
+  getPosteriorMeans(ThetaBar, rhobar, samples);
+
+  copy(ThetaBar, ThetaBar + NumHiddenStates * NumGametes, ostream_iterator<double>(os, "\t"));
+  if(!globalrho)
+    copy(rhobar.begin(), rhobar.end(), ostream_iterator<double>(os, "\t"));
+
+  delete[] ThetaBar;
 }
 
 //************** Updating (Public) **********************************************************
@@ -1101,3 +1122,4 @@ double AdmixedIndividual::getLogPosteriorAlleleFreqs()const{
   std::vector<double>::const_iterator max = max_element(logPosterior[2].begin(), logPosterior[2].end());
   return AverageOfLogs(logPosterior[2], *max);
 }
+

@@ -346,10 +346,14 @@ void AdmixMapModel::PrintAcceptanceRates(const Options& _options, LogWriter& Log
 
 void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const InputData& data){
   const AdmixOptions& options = (const AdmixOptions&)_options;
-  if( options.getChibIndicator()) {
-    //AdmixedIndividuals->OutputChibEstimates(options.isRandomMatingAdmixMapModel(), Log, options.getPopulations());
-    //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
-    if(AdmixedIndividuals->getSize()==1) AdmixedIndividuals->OutputChibResults(Log);
+  if(AdmixedIndividuals->getSize()==1){
+    if( options.getChibIndicator()) {
+      //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
+      AdmixedIndividuals->OutputChibResults(Log);
+    }
+  }
+  else{
+    AdmixedIndividuals->WritePosteriorMeans(options, data.GetHiddenStateLabels());
   }
   //FST
   if( strlen( options.getHistoricalAlleleFreqFilename()) ){
@@ -357,6 +361,14 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
   }
   A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), 
 		    data.GetHiddenStateLabels());
+
+  if(options.getOutputAlleleFreq()){
+//     ofstream klinfofile((options.getResultsDir() + "/KLinfo.txt").c_str());
+//     A.WriteKLInfo((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), klinfofile);
+//     klinfofile.close();
+
+    A.WriteLocusInfo((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), options.getResultsDir(), data.GetHiddenStateLabels());
+  }
 
   //stratification test
   if( options.getStratificationTest() ) StratTest.Output(Log);

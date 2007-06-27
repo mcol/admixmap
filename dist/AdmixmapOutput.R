@@ -816,8 +816,8 @@ calculateLocusKLInfo <- function(allelefreq.samples.list) {
       pbar <- apply(p, 2, mean) # mean freq of allele over K populations
       KLInfo.samples[draw, locus]  <- entropy(pbar) - mean(apply(p, 2, entropy))
     }
-    KLInfo.means <- apply(KLInfo.samples, 2, mean)
   }
+  KLInfo.means <- apply(KLInfo.samples, 2, mean)
   return(KLInfo.means) 
 }
 
@@ -1428,8 +1428,7 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
       fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=4))
       dimnames(fValues.means)[[2]] <- c("LocusName",
                                         paste(population.labels[1], population.labels[2], sep="."))
-      write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
-                  row.names=TRUE, col.names=TRUE)
+
       write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
                   file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
                   row.names=FALSE, col.names=TRUE)
@@ -1438,7 +1437,7 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
 
     ## calculate posterior means of KL info for ancestry at each locus
     if(K > 1) {
-      cat("calculating posterior means ok KL info...", file=outfile, append=T)
+      cat("calculating posterior means of KL info...", file=outfile, append=T)
       KLInfo.means <- calculateLocusKLInfo(allelefreq.samples.list)
       KLInfo.means <- data.frame(as.vector(loci.compound[,1]), round(KLInfo.means, digits=4))
       dimnames(KLInfo.means)[[2]] <- c("LocusName", "KLInfo")
@@ -1502,14 +1501,6 @@ if(!is.null(user.options$indadmixturefile) && K >1 && file.exists(paste(resultsd
   if(n.individuals > 1) { # dim(samples.meanparents)[2] > 1) {
     cat("plotting posterior distribution of admixture...", file=outfile, append=T)
     plotAdmixtureDistribution(alphas, samples.bothparents, K)
-    cat(" done\n", file=outfile, append=T)
-    ##if(K > 1) {
-    ##writePosteriorMeansIndivAdmixture(t(samples), K)
-    ##}
-    cat("writing posterior means of individual admixture...", file=outfile, append=T)
-    sample.means <- apply(samples, 1:2, mean)
-    write.table(format(round(t(sample.means),3), nsmall=3),
-                paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), quote=F, row.names=F, sep="\t")
     cat(" done\n", file=outfile, append=T)
     
   } else { # n.individuals = 1

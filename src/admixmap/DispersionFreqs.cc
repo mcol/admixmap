@@ -97,7 +97,8 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
   RandomAlleleFreqs = !options->getFixedAlleleFreqs();
   CorrelatedAlleleFreqs = options->getCorrelatedAlleleFreqs();
 
-  
+  AlleleFreqs::Initialise(options->getOutputAlleleFreq());  
+
   LoadAlleleFreqs(options, data, Log);
   Log.setDisplayMode(On);
   //open allelefreqoutputfile
@@ -520,6 +521,11 @@ void DispersionFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double 
   }
   if( calculateFST && afterBurnIn && IsHistoricAlleleFreq ){
     UpdateFst();
+  }
+
+  if(afterBurnIn){
+    //AccumulateKLInfo();
+    AccumulateLocusInfo();
   }
 }
 
@@ -995,7 +1001,7 @@ double fMu( double alpha, const void* const args )
     f += lngamma( alpha+counts1[pop*2] ) + lngamma( eta-alpha+counts1[1+pop*2] );//historic pop
   }
   catch (string s){
-    throw string("Error in ALleleFreqs::fMu - " + s);
+    throw string("Error in AlleleFreqs::fMu - " + s);
   }
   return f;
 }

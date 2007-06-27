@@ -527,3 +527,40 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* cons
 
   return(-2.0*Lhat);
 }
+
+#include "AdmixFilenames.h"
+///write posterior means of individual admixture params to file
+void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels)const{
+  ofstream meanfile((options.getResultsDir() + "/" + IND_ADMIXTURE_POSTERIOR_MEANS).c_str());
+  //set 3 decimal places
+  meanfile << std::setfill(' ');
+  meanfile.setf(std::ios::fixed); 
+  meanfile.precision(3);
+  meanfile.width(3);
+
+  //write header
+  for(int k = 0; k < options.getPopulations(); ++k){
+    meanfile << PopLabels[k];
+    if(options.isRandomMatingModel())
+      meanfile << "1";
+    meanfile << "\t";
+  }
+  if(options.isRandomMatingModel())
+    for(int k = 0; k < options.getPopulations(); ++k){
+      meanfile << PopLabels[k] << "2\t";
+    }
+  if(!options.isGlobalRho()){
+    meanfile << "rho";
+    if(options.isRandomMatingModel()){
+      meanfile << "1\trho2";
+    }
+  }
+  meanfile << endl;
+
+  const unsigned samples = options.getTotalSamples() - options.getBurnIn();
+  for(unsigned int i = 0; i < size; i++ ){
+    AdmixedChild[i]->WritePosteriorMeans(meanfile, samples, options.isGlobalRho());
+    meanfile << endl;
+  }
+  meanfile.close();
+}

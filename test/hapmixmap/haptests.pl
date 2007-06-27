@@ -103,7 +103,7 @@ my $arg_hash =
  allelefreqprecisionposteriormeanfile => "freqDispersionPosteriorMeans.txt",
  
  #optional tests
- mhstest => 1
+ mhtest => 1
  #residualldtest => 1,
  #allelicassociationtest  => 1,
 };

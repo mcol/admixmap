@@ -61,6 +61,8 @@ public:
   void OutputIndAdmixture();
   double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
 							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
+
+  void WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels)const;
   void OutputChibResults(LogWriter&)const;
 
   AdmixedIndividual* getIndividual(int)const;
