@@ -225,7 +225,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
       // ** set merged haplotypes for allelic association score test 
       if( iteration == options.getBurnIn() ){
 
-	if(options.getTestForAllelicAssociation())
+	if(options.getTestForHaplotypeAssociation())
 	  Scoretests.MergeRareHaplotypes(L->getalpha0());
 
 	if( options.getStratificationTest() )
@@ -265,7 +265,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 	  }
 	  //Score Test output
 	  if( options.getScoreTestIndicator() )  
-	    Scoretests.Output(data.GetHiddenStateLabels(), data.getLocusLabels());
+	    Scoretests.Output(data.GetHiddenStateLabels());
 	  if(options.getTestForResidualAllelicAssoc())
 	    ResidualAllelicAssocScoreTest.Output(data.getLocusLabels());
 	}//end "if every'*10" block
@@ -386,7 +386,7 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     //finish writing score test output as R objects
     //Scoretests.ROutput();
     //write final tables
-    Scoretests.WriteFinalTables(data.GetHiddenStateLabels(), data.getLocusLabels(), Log);
+    Scoretests.WriteFinalTables(data.GetHiddenStateLabels(), Log);
   }
   if(options.getTestForResidualAllelicAssoc())
     ResidualAllelicAssocScoreTest.WriteFinalTable((options.getResultsDir() + "/" + RESIDUAL_LD_TEST_FINAL).c_str(), data.getLocusLabels(), Log);

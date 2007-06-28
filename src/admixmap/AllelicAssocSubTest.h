@@ -21,14 +21,14 @@ class FileWriter;
 ///base class for tests in the AllelicAssocTest class
 class AllelicAssocSubTest{
 public:
-  AllelicAssocSubTest(unsigned d, bool master);
+  AllelicAssocSubTest(unsigned d);
   virtual ~AllelicAssocSubTest();
   virtual void Reset();
   virtual void Resize(unsigned){};
   virtual void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 			    double YMinusEY, double phi, double DInvLink) = 0;
   virtual void Accumulate() = 0;
-  virtual void Output(FileWriter& outfile, std::string label, const CompositeLocus* const Locus, 
+  virtual void Output(FileWriter& outfile, const CompositeLocus* const Locus, 
 		      bool final, unsigned numUpdates) = 0;
   static void SetNumCovars(unsigned);
 
@@ -38,7 +38,6 @@ protected:
   double* Info;
   unsigned dim;
   static unsigned NumCovars;
-  bool isMaster;
 
   AllelicAssocSubTest();
 
@@ -60,15 +59,14 @@ protected:
 ///allelic association test for SNP
 class SNPTest : public AllelicAssocSubTest{
 public:
-  SNPTest(bool master);
+  SNPTest();
   ~SNPTest();
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(FileWriter& outfile, std::string label, const CompositeLocus* const Locus, 
+  void Output(FileWriter& outfile, const CompositeLocus* const Locus, 
 	      bool final, unsigned numUpdates);
 private:
-  SNPTest();
   double SumScore;
   double SumScore2;
   double SumInfo;
@@ -78,12 +76,12 @@ private:
 ///allelic association test for multiallelic locus
 class MultiAllelicLocusTest : public AllelicAssocSubTest{
 public:
-  MultiAllelicLocusTest(unsigned d, bool master);
+  MultiAllelicLocusTest(unsigned d);
   ~MultiAllelicLocusTest();
   virtual void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 		      double YMinusEY, double phi, double DInvLink);
   virtual void Accumulate();
-  virtual void Output(FileWriter& outfile, std::string label, const CompositeLocus* const, 
+  virtual void Output(FileWriter& outfile, const CompositeLocus* const, 
 		      bool final, unsigned numUpdates);
 protected:
   double* SumScore;
@@ -97,13 +95,13 @@ private:
 ///haplotype association test
 class HaplotypeTest : public MultiAllelicLocusTest{
 public:
-  HaplotypeTest(unsigned d, bool master);
+  HaplotypeTest(unsigned d);
   ~HaplotypeTest();
   void Resize(unsigned d);
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(FileWriter& outfile, std::string label, const CompositeLocus* const, 
+  void Output(FileWriter& outfile, const CompositeLocus* const, 
 	      bool final, unsigned numUpdates);
 private:
   HaplotypeTest();
@@ -112,14 +110,14 @@ private:
 ///Test for within-haplotype association
 class WithinHaplotypeTest : public AllelicAssocSubTest{
 public:
-  WithinHaplotypeTest(unsigned d, bool master);
+  WithinHaplotypeTest(unsigned d);
   ~WithinHaplotypeTest();
   void Reset();
   void Resize(unsigned){};
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(FileWriter& outfile, std::string, const CompositeLocus* const Locus, 
+  void Output(FileWriter& outfile, const CompositeLocus* const Locus, 
 	      bool final, unsigned numUpdates);
 
 private:

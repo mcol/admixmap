@@ -16,11 +16,10 @@ AllelicAssocSubTest::AllelicAssocSubTest(){
   Score = 0;
   Info = 0;
   dim = 0;
-  isMaster = true;
 }
 
-AllelicAssocSubTest::AllelicAssocSubTest(unsigned d, bool master) :
-  dim(d), isMaster(master){
+AllelicAssocSubTest::AllelicAssocSubTest(unsigned d) :
+  dim(d){
 
   Score = new double[ dim + NumCovars ];
   Info = new double[( dim + NumCovars) * (dim + NumCovars )];
@@ -203,14 +202,10 @@ void AllelicAssocSubTest::OutputScoreTest( FileWriter& outputstream, unsigned di
            SNP Test
 *************************************/
 
-SNPTest::SNPTest(bool master) : AllelicAssocSubTest(1, master){
-
-  //  if(isMaster){
+SNPTest::SNPTest() : AllelicAssocSubTest(1){
   SumScore = 0.0;
   SumScore2 = 0.0;
   SumInfo = 0.0;
-  //  }
-
 }
 
 SNPTest::~SNPTest(){
@@ -229,34 +224,30 @@ void SNPTest::Accumulate(){
   CentreAndSum(dim, Score, Info, &SumScore, &SumScore2, &SumInfo); 
 }
 
-void SNPTest::Output(FileWriter& outfile, std::string label, const CompositeLocus* const, 
+void SNPTest::Output(FileWriter& outfile, const CompositeLocus* const Locus, 
 		     bool final,unsigned numUpdates){
-  OutputScalarScoreTest(outfile, label, SumScore, SumScore2, 
+  OutputScalarScoreTest(outfile, Locus->GetLabel(0), SumScore, SumScore2, 
 			SumInfo, final, numUpdates);
 }
 
 /*************************************
            Multiallelic locus test
 *************************************/
-MultiAllelicLocusTest::MultiAllelicLocusTest(unsigned d, bool master) : AllelicAssocSubTest(d, master){
+MultiAllelicLocusTest::MultiAllelicLocusTest(unsigned d) : AllelicAssocSubTest(d){
   //next two lines may not be necessary as these arrays are sized later
 
-  if(isMaster){
-    SumScore = new double[ dim ];
-    SumInfo = new double[dim * dim];
-    SumScore2 = new double[dim * dim];
-    fill(SumScore, SumScore+dim, 0.0);
-    fill(SumInfo, SumInfo + dim*dim, 0.0);
-    fill(SumScore2, SumScore2 + dim*dim, 0.0);
-  }
+  SumScore = new double[ dim ];
+  SumInfo = new double[dim * dim];
+  SumScore2 = new double[dim * dim];
+  fill(SumScore, SumScore+dim, 0.0);
+  fill(SumInfo, SumInfo + dim*dim, 0.0);
+  fill(SumScore2, SumScore2 + dim*dim, 0.0);
 }
 
 MultiAllelicLocusTest::~MultiAllelicLocusTest(){
-  if(isMaster){
-    delete[] SumScore;
-    delete[] SumScore2;
-    delete[] SumInfo;
-  }
+  delete[] SumScore;
+  delete[] SumScore2;
+  delete[] SumInfo;
 }
 
 void MultiAllelicLocusTest::Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
@@ -274,13 +265,13 @@ void MultiAllelicLocusTest::Accumulate(){
   CentreAndSum(dim, Score, Info, SumScore, SumScore2, SumInfo); 
 }
 
-void MultiAllelicLocusTest::Output(FileWriter& outfile, std::string label, const CompositeLocus* const, 
+void MultiAllelicLocusTest::Output(FileWriter& outfile, const CompositeLocus* const Locus, 
 				   bool final, unsigned numUpdates){
 
   vector<string> labels;
   for(unsigned i = 0; i < dim; ++i){
     stringstream ss;
-    ss << "\"" << label << "(" << i+1 << ")\"";
+    ss << "\"" << Locus->GetLabel(0) << "(" << i+1 << ")\"";
     labels.push_back(ss.str());
   }
   OutputScoreTest(outfile, dim, labels, 
@@ -290,8 +281,8 @@ void MultiAllelicLocusTest::Output(FileWriter& outfile, std::string label, const
 /*************************************
            Haplotype Test
 *************************************/
-HaplotypeTest::HaplotypeTest(unsigned d, bool master) 
-  : MultiAllelicLocusTest(d, master){
+HaplotypeTest::HaplotypeTest(unsigned d) 
+  : MultiAllelicLocusTest(d){
 }
 
 void HaplotypeTest::Resize(unsigned d){
@@ -302,17 +293,15 @@ void HaplotypeTest::Resize(unsigned d){
   Score = new double[ dim + NumCovars ];
   Info = new double[( dim + NumCovars) * (dim + NumCovars )];
 
-  if(isMaster){
-    delete[] SumScore;
-    delete[] SumScore2;
-    delete[] SumInfo;
-    SumScore = new double[ dim ];
-    SumInfo = new double[dim * dim];
-    SumScore2 = new double[dim * dim];
-    fill(SumScore, SumScore+dim, 0.0);
-    fill(SumInfo, SumInfo + dim*dim, 0.0);
-    fill(SumScore2, SumScore2 + dim*dim, 0.0);
-  }
+  delete[] SumScore;
+  delete[] SumScore2;
+  delete[] SumInfo;
+  SumScore = new double[ dim ];
+  SumInfo = new double[dim * dim];
+  SumScore2 = new double[dim * dim];
+  fill(SumScore, SumScore+dim, 0.0);
+  fill(SumInfo, SumInfo + dim*dim, 0.0);
+  fill(SumScore2, SumScore2 + dim*dim, 0.0);
 }
 
 HaplotypeTest::~HaplotypeTest(){
@@ -330,7 +319,7 @@ void HaplotypeTest::Accumulate(){
     CentreAndSum(dim, Score, Info, SumScore, SumScore2, SumInfo); 
 }
 
-void HaplotypeTest::Output(FileWriter& outfile, std::string, const CompositeLocus* const Locus, 
+void HaplotypeTest::Output(FileWriter& outfile, const CompositeLocus* const Locus, 
 			   bool final, unsigned numUpdates){
   //here, dim = NumberOfMergedHaplotypes
   //create labels as "locuslabel","haplabel"
@@ -360,9 +349,8 @@ void HaplotypeTest::Output(FileWriter& outfile, std::string, const CompositeLocu
 /*************************************
            Within-haplotype Test
 *************************************/
-WithinHaplotypeTest::WithinHaplotypeTest(unsigned d, bool master){
+WithinHaplotypeTest::WithinHaplotypeTest(unsigned d){
   dim = d;
-  isMaster = master;
 
   WithinHaplotypeScore = new double*[dim];
   WithinHaplotypeInfo = new double*[dim];
@@ -370,14 +358,13 @@ WithinHaplotypeTest::WithinHaplotypeTest(unsigned d, bool master){
     WithinHaplotypeScore[jj] = new double[1 + NumCovars];
     WithinHaplotypeInfo[jj] = new double[(1 + NumCovars)*(1 + NumCovars)];
   }
-  if(isMaster){
-    SumWithinHaplotypeScore  = new double[ dim ];
-    SumWithinHaplotypeScore2 = new double[ dim ];
-    SumWithinHaplotypeInfo   = new double[ dim ];
-    fill(SumWithinHaplotypeScore, SumWithinHaplotypeScore+dim, 0.0);
-    fill(SumWithinHaplotypeScore2, SumWithinHaplotypeScore2+dim, 0.0);
-    fill(SumWithinHaplotypeInfo, SumWithinHaplotypeInfo+dim, 0.0);
-  }
+
+  SumWithinHaplotypeScore  = new double[ dim ];
+  SumWithinHaplotypeScore2 = new double[ dim ];
+  SumWithinHaplotypeInfo   = new double[ dim ];
+  fill(SumWithinHaplotypeScore, SumWithinHaplotypeScore+dim, 0.0);
+  fill(SumWithinHaplotypeScore2, SumWithinHaplotypeScore2+dim, 0.0);
+  fill(SumWithinHaplotypeInfo, SumWithinHaplotypeInfo+dim, 0.0);
 }
 
 WithinHaplotypeTest::~WithinHaplotypeTest(){
@@ -388,11 +375,9 @@ WithinHaplotypeTest::~WithinHaplotypeTest(){
 
   delete[] WithinHaplotypeScore;
   delete[] WithinHaplotypeInfo;
-  if(isMaster){
-    delete[] SumWithinHaplotypeScore;
-    delete[] SumWithinHaplotypeScore2;
-    delete[] WithinHaplotypeInfo;
-  }
+  delete[] SumWithinHaplotypeScore;
+  delete[] SumWithinHaplotypeScore2;
+  delete[] WithinHaplotypeInfo;
 }
 
 void WithinHaplotypeTest::Reset(){
@@ -447,7 +432,7 @@ void WithinHaplotypeTest::Accumulate(){
   }
 }
 
-void WithinHaplotypeTest::Output(FileWriter& outfile, std::string, const CompositeLocus* const Locus, 
+void WithinHaplotypeTest::Output(FileWriter& outfile, const CompositeLocus* const Locus, 
 			   bool final, unsigned numUpdates){
 
   //for(int i = 0; i < (*Lociptr)(j)->GetNumberOfLoci(); ++i)labels.push_back("\""+(*Lociptr)(j)->GetLabel(i)+"\"");

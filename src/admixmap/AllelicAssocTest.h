@@ -36,8 +36,8 @@ public:
 
   void Reset();
 
-  void Output(const Vector_s& LocusLabels);
-  void WriteFinalTables(const Vector_s& LocusLabels, LogWriter& Log);
+  void Output();
+  void WriteFinalTables(LogWriter& Log);
 
   void MergeRareHaplotypes(const std::vector<double> &alpha0);
 

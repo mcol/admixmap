@@ -41,8 +41,8 @@ public:
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
 		  const Vector_s&, LogWriter &);
 
-  void Output(const Vector_s& PLabels, const Vector_s& LocusLabels);
-  void WriteFinalTables(const Vector_s& PLabels, const Vector_s& LocusLabels, LogWriter& Log);
+  void Output(const Vector_s& PLabels);
+  void WriteFinalTables(const Vector_s& PLabels, LogWriter& Log);
 
   void MergeRareHaplotypes(const std::vector<double> &alpha0);
   void Update(const vector<Regression* >& R);

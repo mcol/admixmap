@@ -158,10 +158,10 @@ void ScoreTests::Update(const vector<Regression* >& R)
 
 // ********** OUTPUT **********************************************************
 
-void ScoreTests::Output(const Vector_s& PLabels, const Vector_s& LocusLabels){
+void ScoreTests::Output(const Vector_s& PLabels){
   //Allelic association
   if( options->getTestForAllelicAssociation() )    {
-    AllelicAssociationTest.Output(LocusLabels);
+    AllelicAssociationTest.Output();
   }//end if allelic assoc test  
 
   //ancestry association
@@ -179,10 +179,10 @@ void ScoreTests::Output(const Vector_s& PLabels, const Vector_s& LocusLabels){
   }
 }
 
-void ScoreTests::WriteFinalTables(const Vector_s& PLabels, const Vector_s& LocusLabels, LogWriter& Log){
+void ScoreTests::WriteFinalTables(const Vector_s& PLabels, LogWriter& Log){
   //Allelic association
   if( options->getTestForAllelicAssociation() )    {
-    AllelicAssociationTest.WriteFinalTables(LocusLabels, Log);
+    AllelicAssociationTest.WriteFinalTables(Log);
   }//end if allelic assoc test  
 
   //ancestry association

@@ -70,11 +70,11 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
     NumLoci.push_back(NumberOfLoci);
     
     if(NumberOfLoci > 1 )//haplotype
-      SubTests.push_back(new WithinHaplotypeTest(NumberOfLoci, true));
+      SubTests.push_back(new WithinHaplotypeTest(NumberOfLoci));
     else if(NumberOfStates == 2 )//simple diallelic locus
-      SubTests.push_back(new SNPTest(true));
+      SubTests.push_back(new SNPTest());
     else//simple multiallelic locus
-      SubTests.push_back(new MultiAllelicLocusTest(NumberOfStates, true));
+      SubTests.push_back(new MultiAllelicLocusTest(NumberOfStates));
     
     
   }//end loop over loci
@@ -91,7 +91,7 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
       NumMergedHaplotypes.assign(NumCompositeLoci, 1);
       for( int j = 0; j < L; j++ ){
 	if( Lociptr->getNumberOfLoci(j) > 1 )
-	  HaplotypeAssocTests.push_back(new HaplotypeTest(1, true));
+	  HaplotypeAssocTests.push_back(new HaplotypeTest(1));
 	else
 	  HaplotypeAssocTests.push_back(0);
       }
@@ -105,30 +105,31 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
 
 void AllelicAssocTest::MergeRareHaplotypes(const std::vector<double> &alpha0){
   /*
-    Invokes merging of haplotypes in CompositeLocus and resizes arrays for allelic association test accordingly  
+    Invokes merging of haplotypes in CompositeLocus and resizes arrays for haplotype association test accordingly  
     alpha0 = alpha[0], pop admixture dirichlet params, from Latent
   */
-
-  //first scale alphas so they sum to 1
-  const unsigned K = options->getPopulations();
-  double* alphaScaled = new double[K];
-  double sum  = accumulate(alpha0.begin(), alpha0.end(), 0.0, std::plus<double>());//sum of alpha0 over pops
-  for( int k = 0; k < options->getPopulations(); k++ )
-    alphaScaled[k] = alpha0[k] / sum;
-
-  //merge rare haplotypes
-  NumMergedHaplotypes.clear();
-  NumMergedHaplotypes.assign(NumCompositeLoci, 1);
-  for(unsigned int j = 0; j < NumCompositeLoci; j++ ){
-    if( NumLoci[j] > 1 ){//skip simple loci
-      (*Lociptr)(j)->SetDefaultMergeHaplotypes( alphaScaled);
-      NumMergedHaplotypes[j] = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
-
-      HaplotypeAssocTests[j]->Resize(NumMergedHaplotypes[j]);
+  if( options->getTestForHaplotypeAssociation()){
+    //first scale alphas so they sum to 1
+    const unsigned K = options->getPopulations();
+    double* alphaScaled = new double[K];
+    double sum  = accumulate(alpha0.begin(), alpha0.end(), 0.0, std::plus<double>());//sum of alpha0 over pops
+    for( int k = 0; k < options->getPopulations(); k++ )
+      alphaScaled[k] = alpha0[k] / sum;
+    
+    //merge rare haplotypes
+    NumMergedHaplotypes.clear();
+    NumMergedHaplotypes.assign(NumCompositeLoci, 1);
+    for(unsigned int j = 0; j < NumCompositeLoci; j++ ){
+      if( NumLoci[j] > 1 ){//skip simple loci
+	(*Lociptr)(j)->SetDefaultMergeHaplotypes( alphaScaled);
+	NumMergedHaplotypes[j] = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
+	
+	HaplotypeAssocTests[j]->Resize(NumMergedHaplotypes[j]);
+      }
     }
+    
+    delete[] alphaScaled;
   }
-
-  delete[] alphaScaled;
 }
 
 void AllelicAssocTest::Reset(){
@@ -150,12 +151,7 @@ void AllelicAssocTest::Update( const Individual* const ind, double YMinusEY, dou
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
     for(unsigned int jj = 0; jj < Lociptr->GetSizeOfChromosome(j); jj++ ){
       //skip loci with missing genotypes as hap pairs have not been sampled for these
-      bool condition = true;
-      
-      if(options->getHapMixModelIndicator())condition = !missingOutcome;
-      else condition = !ind->GenotypeIsMissing(locus);
-      //in hapmixmodel, skip individuals with observed outcome
-      if(condition){
+      if(!ind->GenotypeIsMissing(locus)){
 	//retrieve sampled hap pair from Individual
 	const int* happair = ind->getSampledHapPair(locus);
 	const unsigned numLoci = Lociptr->getNumberOfLoci(locus);
@@ -195,13 +191,13 @@ void AllelicAssocTest::Accumulate(){
 }
 
 
-void AllelicAssocTest::Output(const Vector_s& LocusLabels){
+void AllelicAssocTest::Output(){
 
   ++numPrintedIterations;
 
   for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
-    if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
-      SubTests[j]->Output(AllelicAssocRObject, LocusLabels[j], Lociptr->GetLocus(j), false, numUpdates);
+    if(locusObsIndicator[j]){
+      SubTests[j]->Output(AllelicAssocRObject, Lociptr->GetLocus(j), false, numUpdates);
 
     }//end j loop over comp loci
 
@@ -209,15 +205,14 @@ void AllelicAssocTest::Output(const Vector_s& LocusLabels){
   //haplotype association
   if( options->getTestForHaplotypeAssociation() ){
 
-    const string dummystring;
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ) 
       if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-	HaplotypeAssocTests[j]->Output(HaplotypeAssocRObject, dummystring, Lociptr->GetLocus(j), false, numUpdates);
+	HaplotypeAssocTests[j]->Output(HaplotypeAssocRObject, Lociptr->GetLocus(j), false, numUpdates);
     }
   }//end if hap assoc test
 }
 
-void AllelicAssocTest::WriteFinalTables(const Vector_s& LocusLabels, LogWriter& Log){
+void AllelicAssocTest::WriteFinalTables(LogWriter& Log){
   {
   string filename = options->getResultsDir() + "/" + ALLELICASSOCTEST_FINAL;
   TableWriter finaltable(filename.c_str());
@@ -226,8 +221,8 @@ void AllelicAssocTest::WriteFinalTables(const Vector_s& LocusLabels, LogWriter& 
 	     << newline;
 
   for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
-    if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
-       SubTests[j]->Output(finaltable, LocusLabels[j], Lociptr->GetLocus(j), true, numUpdates);
+    if(locusObsIndicator[j]){
+      SubTests[j]->Output(finaltable, Lociptr->GetLocus(j), true, numUpdates);
     }//end j loop over comp loci
 
   finaltable.close();
@@ -242,10 +237,9 @@ void AllelicAssocTest::WriteFinalTables(const Vector_s& LocusLabels, LogWriter& 
     finaltable << "Locus\tHaplotype\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"
 	       << newline;
 
-    const string dummystring;
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ) 
       if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-	HaplotypeAssocTests[j]->Output(finaltable, dummystring, Lociptr->GetLocus(j), true, numUpdates);
+	HaplotypeAssocTests[j]->Output(finaltable, Lociptr->GetLocus(j), true, numUpdates);
       
     }
     finaltable.close();
