@@ -20,8 +20,6 @@ class HapMixGenotypeLoader : public GenotypeLoader{
 public:
   ///constructor
   HapMixGenotypeLoader();
-  ///read genotypesfile into a string array
-  void Read(const char* filename, LogWriter& Log);
   ///read case-control genotypesfile
   void ReadCaseControlGenotypes(const char* filename, LogWriter& Log);
 
@@ -30,13 +28,12 @@ public:
      Extracts genotypes read as strings from file, converts to 0, 1, 2(haploid) or 0, 1, 2, 3, 4 (diploid). 
      0 denotes missing and assigns to genotype vector.
      \param i individual number (count from 1)
-     \param SexColumn index of sexcolumn or 0 if there is none
      \param Loci Genome object, to count through loci
      \param genotypes pointer to vector to store genotypes
      \param Missing missing-genotype indicators to be filled
      \return true if individual is haploid, false if diploid
   */
-  bool GetHapMixGenotype(int i, int SexColumn, const Genome &Loci,
+  bool GetHapMixGenotype(int i, const Genome &Loci,
 			 std::vector<unsigned short>* genotypes, bool** Missing);
 
   ///returns number of individuals (including cases and controls)
@@ -58,7 +55,7 @@ public:
      get ADMIXMAP-style genotype (obsolete).
      \see GenotypeLoader::GetGenotype
   */
-  void GetGenotype(int i, int SexColumn, const Genome &Loci, 
+  void GetGenotype(int i, const Genome &Loci, 
 		   std::vector<genotype>* genotypes, bool **Missing)const;
 private:
   ///string matrix to store case-control genotypes for hapmixmodel
@@ -73,13 +70,12 @@ private:
      \param locus locus index
      \param cclocus case-control locus index (incremented if the locus is typed)
      \param individual individual number (count from 1)
-     \param SexColumn index of sex column or 0 if none
      \return vector of length 1(haploid) or 2(diploid) of alles
   */
   std::vector<unsigned short> GetCaseControlGenotype(unsigned locus, unsigned* cclocus, 
-						     int individual, int SexColumn)const;
+						     int individual)const;
   ///determine which loci in genotypesfile are also in case-control genotypes file
   void FindCaseControlLoci();
   /// retrieve ADMIXMAP-style case-control genotype (obsolete)
-  void GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool** Missing)const;
+  void GetCaseControlGenotype(int i, const Genome &Loci, std::vector<genotype>* genotypes, bool** Missing)const;
 };

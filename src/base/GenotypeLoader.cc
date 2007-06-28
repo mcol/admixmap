@@ -22,11 +22,13 @@
 GenotypeLoader::GenotypeLoader(){
   NumIndividuals = 0;
   numDiploid = 0;
+  SexColumn = 0;
 }
 
-void GenotypeLoader::Read(const char* filename, LogWriter& Log){
+void GenotypeLoader::Read(const char* filename, unsigned NumLociInLocusfile, LogWriter& Log){
   DataReader::ReadData(filename, geneticData_, Log);
   IsPedFile = determineIfPedFile();
+  DetermineSexColumn( NumLociInLocusfile, Log);
   NumIndividuals = geneticData_.size() - 1;
 }
 
@@ -38,6 +40,25 @@ unsigned GenotypeLoader::NumLoci()const{
   return geneticData_[0].size();
 }
 
+
+///checks number of loci in genotypes file is the same as in locusfile, 
+///and determines if there is a sex column
+void GenotypeLoader::DetermineSexColumn(unsigned NumLociInLocusfile, LogWriter& Log){
+   // Determine if "Sex" column present in genotypes file.
+  if (NumLociInLocusfile == this->NumLoci() - 1) {
+    SexColumn = 0;//no sex col
+  } else if (NumLociInLocusfile == this->NumLoci() - 2) {
+    SexColumn  = 1;//sex col
+  } else {//too many cols
+    Log << "Error: " << NumLociInLocusfile << " loci in locus file but " 
+	 <<  this->NumLoci() - 1 << " loci in genotypes file.\n";
+    exit(1);
+  }
+}
+
+int GenotypeLoader::getSexColumn()const{
+  return SexColumn;
+}
 /**
    extracts genotype for given individual at given locus
    \param locus the locus index
@@ -45,7 +66,7 @@ unsigned GenotypeLoader::NumLoci()const{
    \param SexColumn index of sex column, or 0 if none
    \return genotype as vector of unsigned short integers
 */
-vector<unsigned short> GenotypeLoader::GetGenotype(unsigned locus, int individual, int SexColumn)const{
+vector<unsigned short> GenotypeLoader::GetGenotype(unsigned locus, int individual)const{
   int col = 1 + SexColumn + locus;
   if (IsPedFile)col = 1 + SexColumn + 2*locus;
   return GetGenotype(geneticData_[individual][col]);
@@ -80,7 +101,7 @@ vector<unsigned short> GenotypeLoader::GetGenotype(const string genostring)const
 }
 
 ///gets genotypes in admixmap model (hapmix genotypes are coded differently)
-void GenotypeLoader::GetGenotype(int i, int SexColumn, const Genome &Loci,  vector<genotype>* genotypes, bool** Missing)
+void GenotypeLoader::GetGenotype(int i, const Genome &Loci,  vector<genotype>* genotypes, bool** Missing)
 const
 {
 
@@ -105,7 +126,7 @@ const
       for (int locus = 0; locus < numLoci; locus++) {
 	const int numalleles = Loci(complocus)->GetNumberOfAllelesOfLocus(locus);
 
-	vector<unsigned short> g = GetGenotype(simplelocus, i, SexColumn);
+	vector<unsigned short> g = GetGenotype(simplelocus, i);
 	if(g.size()==2)
 	  if( (g[0] > numalleles) || (g[1] > numalleles))
 	    throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
@@ -201,14 +222,16 @@ void GenotypeLoader::throwGenotypeError(int ind, int locus, std::string label, i
 }
 
 bool GenotypeLoader::isFemale(unsigned i)const{
-  //if (options->getgenotypesSexColumn() == 1) {
-  int sex = StringConvertor::toInt(geneticData_[i][1]);
-  if (sex > 2) {
-    cout << "Error: sex must be coded as 0 - missing, 1 - male or 2 - female.\n";
-    exit(0);
-  }        
-  //}
-  return (bool)(sex==2);
+  if (SexColumn == 1){
+    int sex = StringConvertor::toInt(geneticData_[i][1]);
+    if (sex > 2) {
+      cout << "Error: sex must be coded as 0 - missing, 1 - male or 2 - female.\n";
+      exit(0);
+    }        
+    
+    return (bool)(sex==2);
+  }
+  else return false;
 }
 
 /** Determine if genotype table is in pedfile format. 
@@ -239,7 +262,7 @@ void GenotypeLoader::clear(){
 
 }
 
-bool GenotypeLoader::CheckForUnobservedAlleles(const DataMatrix& LocusData, bool hasSexCol, LogWriter& Log){
+bool GenotypeLoader::CheckForUnobservedAlleles(const DataMatrix& LocusData, LogWriter& Log){
   //sanity checks
   if(!(geneticData_.size()))
     throw runtime_error("CheckForUnobservedAlleles called when genotype data are not available\n");
@@ -247,7 +270,7 @@ bool GenotypeLoader::CheckForUnobservedAlleles(const DataMatrix& LocusData, bool
     throw string("Error in CheckForUnobservedAlleles: number of loci in locusfile and genotypesfile do not match");
 
   //offset cols by 2 if sexcol, 1 (for ID) otherwise
-  const unsigned offset = hasSexCol ? 2 :1;
+  const unsigned offset = (SexColumn>0) ? 2 :1;
   vector<string> MMLoci;//vector of names of monomorphic loci
   for(unsigned locus = 0; locus < LocusData.nRows(); ++locus){
     //create vector of counts of length number of alleles

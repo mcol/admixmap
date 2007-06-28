@@ -44,9 +44,8 @@ void InputHapMixData::CheckData(HapMixOptions *options, LogWriter &Log){
   distanceUnit = DetermineUnitOfDistance();
 
   Log.setDisplayMode(Quiet);
-  DetermineSexColumn();
   if(options->CheckData())
-    if(!genotypeLoader->CheckForUnobservedAlleles(locusMatrix_, genotypesSexColumn, Log))
+    if(!genotypeLoader->CheckForUnobservedAlleles(locusMatrix_, Log))
       exit(1);
  
   bool badData = false;
@@ -99,11 +98,11 @@ bool InputHapMixData::IsCaseControl(int i)const{
 
 void InputHapMixData::GetGenotype(int i, const Genome &Loci, 
 			   std::vector<genotype>* genotypes, bool **Missing)const{
-  hGenotypeLoader->GetGenotype(i, genotypesSexColumn, Loci, genotypes, Missing);
+  hGenotypeLoader->GetGenotype(i, Loci, genotypes, Missing);
 }
 bool InputHapMixData::GetHapMixGenotype(int i, const Genome &Loci, 
 				  std::vector<unsigned short>* genotypes, bool** Missing){
-  return hGenotypeLoader->GetHapMixGenotype(i, genotypesSexColumn, Loci, genotypes, Missing);
+  return hGenotypeLoader->GetHapMixGenotype(i, Loci, genotypes, Missing);
 }
 
 void InputHapMixData::ReadBlockStateLabels(HapMixOptions *options){

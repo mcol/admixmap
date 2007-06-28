@@ -340,7 +340,7 @@ void AdmixMapModel::PrintAcceptanceRates(const Options& _options, LogWriter& Log
      for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaSamplerStepsize(k) << " ";}
      Log << "\n";
    }
-   A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates.txt").c_str());
+   A.OutputAlleleFreqSamplerAcceptanceRates(options.getResultsDir());
  }
 }
 

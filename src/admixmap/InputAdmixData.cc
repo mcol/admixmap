@@ -22,11 +22,9 @@ InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
   Log.setDisplayMode(Quiet);
   // Read all input files.
   try {
-    //read genotype data
-    genotypeLoader->Read(options->getGenotypesFilename(), Log);
-    //read base data files
+   //read base data files
     ReadData(options, Log);
-    
+
     DataReader::ReadData(options->getAlleleFreqFilename(), alleleFreqData_, Log);
     DataReader::ReadData(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, Log);            
     DataReader::ReadData(options->getEtaPriorFilename(), etaPriorData_,etaPriorMatrix_,  Log);
@@ -52,8 +50,7 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
   distanceUnit = DetermineUnitOfDistance();
 
   Log.setDisplayMode(Quiet);
-  DetermineSexColumn();
-
+ 
   bool badData = false;
   if(options->CheckData())
     badData = !checkLocusFile(Log);
@@ -93,7 +90,7 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
 
 void InputAdmixData::GetGenotype(int i, const Genome &Loci, 
 			   std::vector<genotype>* genotypes, bool **Missing)const{
-  genotypeLoader->GetGenotype(i, genotypesSexColumn, Loci, genotypes, Missing);
+  genotypeLoader->GetGenotype(i, Loci, genotypes, Missing);
 }
 
 void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){

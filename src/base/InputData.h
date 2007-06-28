@@ -104,8 +104,7 @@ protected:
       \param labels vector to fill with labels
   */
   void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
-  ///determines if there is a sex column in genotypesfile
-  void DetermineSexColumn();
+
   /**
      Checks contents of locusfile and extracts locus labels.
      If check = true, checks that loci labels in locusfile are unique and that they match the names in the genotypes file.
@@ -145,7 +144,6 @@ protected:
   DataMatrix priorAlleleFreqMatrix_;
 
   GenotypeLoader* genotypeLoader;
-  unsigned int genotypesSexColumn;
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
   GeneticDistanceUnit distanceUnit;

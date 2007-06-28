@@ -66,7 +66,7 @@ public:
 //   float getEtaRWSamplerAcceptanceRate(int k)const;
 //   float getEtaRWSamplerStepsize(int k)const; 
 
-  void OutputAlleleFreqSamplerAcceptanceRates(const char* filename);
+  void OutputAlleleFreqSamplerAcceptanceRates(const string& ResultsDir);
 
   virtual void resetStepSizeApproximator(int k);
 

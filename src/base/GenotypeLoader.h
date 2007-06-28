@@ -32,7 +32,7 @@ public:
   ///destructor
   virtual ~GenotypeLoader(){};
   ///read genotypesfile into a string array
-  virtual void Read(const char* filename, LogWriter& Log);
+  void Read(const char* filename, unsigned NumLociInLocusfile, LogWriter& Log);
   /**
      retrieve an Individual's genotype.
      reads genotypes as strings from string matrix (read from file) , converts them to vectors of unsigned short ints and allocates them to the Individual's genotype vector.
@@ -42,11 +42,11 @@ public:
      \param genotypes pointer to vector to place the genotypes
      \param Missing indicators for missing genotypes, to be set while assigning genotypes
   */
-  virtual void GetGenotype(int i, int SexColumn, const Genome &Loci, 
+  virtual void GetGenotype(int i, const Genome &Loci, 
 		   std::vector<genotype>* genotypes, bool **Missing)const;
 
   //check genotypes for unobserved alleles
-  bool CheckForUnobservedAlleles(const DataMatrix& LocusData, bool hasSexCol, LogWriter& Log);
+  bool CheckForUnobservedAlleles(const DataMatrix& LocusData, LogWriter& Log);
 
   ///returns number of individuals
   virtual unsigned getNumberOfIndividuals()const;
@@ -60,14 +60,15 @@ public:
   const std::vector<std::string>& getHeader()const;
   ///frees memory
   virtual void clear();
-
+  ///returns index of sex column or 0 if there is none
+  int getSexColumn()const;
 protected:
   Matrix_s geneticData_;
   
   bool IsPedFile;
-  int NumIndividuals, numDiploid;
+  int NumIndividuals, numDiploid, SexColumn;
 
-  std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
+  std::vector<unsigned short> GetGenotype(unsigned locus, int individual)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
 /**
    check an Individual's genotypes are valid.
@@ -84,6 +85,9 @@ protected:
 
   std::vector<unsigned short> GetGenotype(const std::string genostring)const;
   bool determineIfPedFile()const;
+  ///looks for sex column 
+  void DetermineSexColumn(unsigned NumLociInLocusfile, LogWriter& Log);
+
 
 };
 #endif

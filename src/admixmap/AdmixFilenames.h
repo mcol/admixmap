@@ -33,3 +33,4 @@
 #define FST_OUTPUT_FILE         "FST.txt"
 
 #define IND_ADMIXTURE_POSTERIOR_MEANS "IndAdmixPosteriorMeans.txt"
+

@@ -510,6 +510,7 @@ void AlleleFreqs::OpenOutputFile(const char* filename)
 {
   //open file to output freqs as R object
   allelefreqoutput.open(filename);
+  allelefreqoutput.setDecimalPrecision(6);
 }
 
 //output of freqs as R object (start and finish of file are written elsewhere)
@@ -582,17 +583,21 @@ void AlleleFreqs::OutputErgodicAvg( int , std::ofstream *)const
 
 }
 
-void AlleleFreqs::OutputAlleleFreqSamplerAcceptanceRates(const char* filename){
+#include <iomanip>
+#include "Filenames.h"
+void AlleleFreqs::OutputAlleleFreqSamplerAcceptanceRates(const string& ResultsDir){
   if(FreqSampler.size()){
-    ofstream file(filename);
+    const string filename = ResultsDir + "/" + ALLELE_FREQ_SAMPLER_ACCEPT_RATES;
+    ofstream file(filename.c_str());
+    file.setf(std::ios::fixed); 
+    file.precision(3);
+
     for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
       file << (*i)->getAcceptanceRate() << endl;
     file.close();
   }
 }
 
-#include <iomanip>
-#include "Filenames.h"
 void AlleleFreqs::WriteKLInfo(unsigned samples, ostream& os){
   if(SumKLInfo){
     os << "Locus\tKLInfo" << endl;

@@ -53,7 +53,7 @@ void InputData::ReadData(Options *options, LogWriter &Log){
       DataReader::convertMatrix(locusData_, locusMatrix_, 1, 1,2);
 
       //read genotype data
-      genotypeLoader->Read(options->getGenotypesFilename(), Log);
+      genotypeLoader->Read(options->getGenotypesFilename(), locusData_.size() - 1, Log);
       
       DataReader::ReadData(options->getCovariatesFilename(), covariatesData_, covariatesMatrix_,Log);     //covariates file
       DataReader::ReadData(options->getOutcomeVarFilename(), outcomeVarData_,outcomeVarMatrix_, Log);//outcomevar file
@@ -153,10 +153,10 @@ bool InputData::checkLocusFile(LogWriter& Log){
       }
     }
     // Compare loci names in locus file and genotypes file.
-    if (StringConvertor::dequote(locusName) != StringConvertor::dequote(GenotypesFileHeader[i + genotypesSexColumn])) {
+    if (StringConvertor::dequote(locusName) != StringConvertor::dequote(GenotypesFileHeader[i + genotypeLoader->getSexColumn()])) {
       Log << On << "Error. Locus names in locus file and genotypes file are not the same.\n"
 	  << "Locus names causing an error are: " << locusName << " and " 
-	  << GenotypesFileHeader[i + genotypesSexColumn] << "\n";
+	  << GenotypesFileHeader[i + genotypeLoader->getSexColumn()] << "\n";
       return false;
     }
     
@@ -196,24 +196,6 @@ void InputData::SetLocusLabels(){
   }
 }
 
-///checks number of loci in genotypes file is the same as in locusfile, 
-///and determines if there is a sex column
-void InputData::DetermineSexColumn(){
-  const size_t numLoci = locusData_.size() - 1; //number of loci in locus file
-  int SexCol = 0;
-  // Determine if "Sex" column present in genotypes file.
-  if (numLoci == genotypeLoader->NumLoci() - 1) {
-    SexCol = 0;//no sex col
-  } else if (numLoci == genotypeLoader->NumLoci() - 2) {
-    SexCol  = 1;//sex col
-  } else {//too many cols
-    cerr << "Error: " << numLoci << " loci in locus file but " 
-	 <<  genotypeLoader->NumLoci() - 1 << " loci in genotypes file." << endl;
-    exit(2);
-  }
-  genotypesSexColumn = SexCol;
-}
- 
 void InputData::CheckOutcomeVarFile(unsigned N, Options* const options, LogWriter& Log){
   if( outcomeVarMatrix_.nRows() - 1 !=  N){
     stringstream s;
@@ -357,10 +339,7 @@ void InputData::CheckCovariatesFile(unsigned NumIndividuals, Options* const opti
 
 ///determines if an individual is female
 bool InputData::isFemale(int i)const{
-  if (genotypesSexColumn == 1)
-    return genotypeLoader->isFemale(i);
-  else
-    return false;
+  return genotypeLoader->isFemale(i);
 }
 
 void InputData::getOutcomeTypes(DataType* T)const{
