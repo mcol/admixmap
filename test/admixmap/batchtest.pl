@@ -20,7 +20,6 @@ my $arg_hash = {
     genotypesfile              => '../dist/admixmap/tutorial/data/genotypes.txt',
     outcomevarfile             => '../dist/admixmap/tutorial/data//outcomevars.txt',
     covariatesfile             => '../dist/admixmap/tutorial/data//covariates3std.txt',
-    targetindicator            => 0, # diabetes in column 1
     displaylevel             => 2,
 
 # output files
@@ -88,7 +87,7 @@ delete $arg_hash->{allelefreqtest};
 delete $arg_hash->{allelefreqtest2};
 delete $arg_hash->{affectedsonlytest};
 $arg_hash->{dispersiontest}  = 1;
-$arg_hash->{targetindicator} = 1; # skin reflectance
+$arg_hash->{outcomevarcols} = 2; # skin reflectance
 if(doAnalysis($executable,$arg_hash)){
     &CompareThenMove("results", "results4");
 }
@@ -101,7 +100,7 @@ $arg_hash->{affectedsonlytest}       = 1;
 $arg_hash->{fstoutput} = 1;
 $arg_hash->{dispparamfile} = 'disppar.txt';
 $arg_hash->{randommatingmodel} = 0;
-$arg_hash->{targetindicator} = 0; # diabetes
+$arg_hash->{outcomevarcols} = 1; # diabetes
 if(doAnalysis($executable,$arg_hash)){
     &CompareThenMove("results", "results5");
 }
@@ -116,7 +115,7 @@ delete $arg_hash->{haplotypeassociationtest};
 delete $arg_hash->{fstoutput};
 delete $arg_hash->{dispparamfile};
 delete $arg_hash->{regparamfile};
-delete $arg_hash->{outcomes};
+delete $arg_hash->{outcomevarcols};
 delete $arg_hash->{outcomevarfile};
 delete $arg_hash->{covariatesfile};
 $arg_hash->{testoneindiv} = 1;

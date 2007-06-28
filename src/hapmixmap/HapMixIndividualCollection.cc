@@ -158,9 +158,10 @@ void HapMixIndividualCollection::OutputCGProbs(const char* filename, const Vecto
   GPO.Output(filename, MaskedLocusLabels);
 }
 
+//TODO: use posterior means of mixture props if fixedmixtureprops=0
 double HapMixIndividualCollection
 ::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-                             LogWriter &Log, const double* const MixtureProps, const vector<double>& SumLogRho, unsigned numChromosomes){
+                             LogWriter &Log, const double* const MixtureProps, const vector<double>& SumLogLambda){
 
   //TODO: broadcast SumLogRho to workers
   //TODO: set mixture props to posterior means
@@ -172,20 +173,21 @@ double HapMixIndividualCollection
   NumDiploid = getNumDiploidIndividuals();
 
   //update chromosomes using globalrho, for globalrho model
-  vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
+  vector<double> LambdaBar(Loci->GetNumberOfCompositeLoci());
 
-  for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
+  for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)
+    LambdaBar[i] = (exp(SumLogLambda[i] / (double)iterations));
+
   //set locus correlation
 
-  Loci->SetLocusCorrelation(RhoBar);
-  if(options->getHapMixModelIndicator())
-    for( unsigned int j = 0; j < numChromosomes; j++ )
-      //set global state arrival probs in hapmixmodel
-      //TODO: can skip this if xonly analysis with no females
-      //NB: assumes always diploid in hapmixmodel
-      //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-      Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options->isRandomMatingModel(),
-							(NumDiploid)>0);
+  Loci->SetLocusCorrelation(LambdaBar);
+
+  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
+    //set global state arrival probs in hapmixmodel
+    //TODO: can skip this if xonly analysis with no females
+    //NB: assumes always diploid in hapmixmodel
+    Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options->isRandomMatingModel(),
+						      (NumDiploid)>0);
   
   //set haplotype pair probs to posterior means 
   if(NumDiploid)
@@ -196,14 +198,12 @@ double HapMixIndividualCollection
   //setGenotypeProbs(Loci, A);
 
   //accumulate deviance at posterior means for each individual
-  // fix this to be test individual only if single individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates
   for(unsigned int i = 0; i < size; i++ ){
-    if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
-    else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
+    Lhat += _child[i]->getLogLikelihood(options, false, false);
   }
   
-  Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
+  Log << Quiet << "DevianceAtPosteriorMean(parameters)" << -2.0*Lhat << "\n";
   for(unsigned c = 0; c < R.size(); ++c){
     double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
     Lhat += RegressionLogL;

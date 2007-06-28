@@ -81,10 +81,6 @@ private:
   void ReadBlockStateLabels(HapMixOptions *options);
 
   /**
-     Checks contents of outcomevarfile and coxoutcomevarfile.
-  */
-  void CheckOutcomeVarFile(Options * const options, LogWriter &Log);
-  /**
      Checks contents of priorallelefreqfile
   */
   void CheckAlleleFreqs(HapMixOptions *options, LogWriter &Log);

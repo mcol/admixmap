@@ -276,8 +276,7 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
   // **** analysis type  ****
   if(CoxOutcomeVarFilename.length() ){
     Log << "Cox Regression\n";
-    if(NumberOfOutcomes>-1)++NumberOfOutcomes;
-    else NumberOfOutcomes = 1;
+    ++NumberOfOutcomes;
     if(RegType == None)RegType = Cox;
     else RegType = Multiple;
   }

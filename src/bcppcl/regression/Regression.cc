@@ -170,7 +170,7 @@ void Regression::Output(const unsigned NumberOfOutcomes, bool toScreen, bool aft
   //output to screen
   if( toScreen )
     {
-      if(NumberOfOutcomes>1)std::cout << "\nRegression " << RegNumber << "\t";
+      if(NumberOfOutcomes>1)std::cout << "\nRegression " << RegNumber +1<< "\t";
       OutputParams(&std::cout);
       std::cout << std::endl;
     }

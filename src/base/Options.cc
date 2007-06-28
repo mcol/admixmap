@@ -31,7 +31,7 @@ bool Options::ReadUserOptions(int argc, char** argv, const char* fileargIndicato
   }
   else if(argc > 1){
     //NOTE: command line args will not be supported soon
-    cout << "Warning: command-line arguments are deprecated" << endl;
+    //cout << "Warning: command-line arguments are deprecated" << endl;
    if(!ReadCommandLineArgs(argc, argv, fileargIndicator))
      return false;
   }
@@ -50,9 +50,8 @@ void Options::SetDefaultValues(){
   NumAnnealedRuns = 20; // default if option thermo not specified 
   ResultsDir = "results";
   LogFilename = "log.txt";
-  TargetIndicator = 0;
   fixedallelefreqs = false;
-  NumberOfOutcomes = -1;
+  NumberOfOutcomes = 0;
   RegType = None;
   TestForAllelicAssociation = false;
   TestForResidualAllelicAssoc = false;
@@ -72,7 +71,6 @@ void Options::SetDefaultValues(){
   useroptions["thermo"] = "0";
   useroptions["seed"] = "1";
   useroptions["checkdata"]="1";
-  useroptions["targetindicator"] = "0";
   useroptions["fixedallelefreqs"] = "0";
   useroptions["regressionpriorprecision"] = "0.25";
 }
@@ -151,11 +149,14 @@ const char *Options::getRegressionOutputFilename() const
 {
   return RegressionOutputFilename.c_str();
 }
-int Options::getTargetIndicator() const
+const vector<unsigned>& Options::getOutcomeVarColumns() const
 {
-  return TargetIndicator;
+  return OutcomeVarColumns;
 }
-
+const vector<unsigned>& Options::getCovariateColumns() const
+{
+  return CovariateColumns;
+}
 bool Options::getOutputAlleleFreq() const
 {
   return OutputAlleleFreq;
@@ -164,11 +165,15 @@ bool Options::getOutputAlleleFreq() const
 int Options::getNumberOfOutcomes() const{
   return NumberOfOutcomes;
 }
-void Options::setNumberOfOutcomes(int i){
+void Options::setNumberOfOutcomes(unsigned i){
   NumberOfOutcomes = i;
   if(i==0){
     useroptions.erase("outcomevarfile");
-    OutcomeVarFilename = "";
+    useroptions.erase("covariatesfile");
+    OutcomeVarFilename.clear();
+    CovariatesFilename.clear();
+    OutcomeVarColumns.clear();
+    CovariateColumns.clear();
   }
 }
 void Options::setRegType(RegressionType R){
@@ -241,8 +246,8 @@ void Options::DefineOptions(){
   addOption("outcomevarfile", stringOption, &OutcomeVarFilename);
   addOption("coxoutcomevarfile", stringOption, &CoxOutcomeVarFilename);
   addOption("covariatesfile", stringOption, &CovariatesFilename);
-  addOption("outcomes", intOption, &NumberOfOutcomes);
-  addOption("targetindicator", intOption, &TargetIndicator);
+  addOption("outcomevarcols", uivectorOption, &OutcomeVarColumns);
+  addOption("covariatecols", uivectorOption, &CovariateColumns);
   //output files 
   addOption("logfile", outputfileOption, &LogFilename);
   addOption("paramfile", outputfileOption, &ParameterFilename);

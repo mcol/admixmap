@@ -400,8 +400,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   // **** analysis type  ****
   if(CoxOutcomeVarFilename.length() ){
     Log << "Cox Regression\n";
-    if(NumberOfOutcomes>-1)++NumberOfOutcomes;
-    else NumberOfOutcomes = 1;
+    ++NumberOfOutcomes;
     if(RegType == None)RegType = Cox;
     else RegType = Multiple;
   }
@@ -436,19 +435,19 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     Log << "ERROR: cannot have a test individual with a regression model\n";
   }
 
-  if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
-    if(NumberOfOutcomes > 0){
-      Log.setDisplayMode(On);
-      Log << "ERROR: 'outcomes' > 0 and no outcomevarfile specified\n";
-      badOptions = true;
-    }
+  if(OutcomeVarFilename.length() == 0 && OutcomeVarColumns.size()){
+    Log << "ERROR: outcomevarcols option specified but no outcomevarfile\n";
+    useroptions.erase("outcomevarcols");
+    OutcomeVarColumns.clear();
+  }
+ if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
     if(CovariatesFilename.length()){
       Log << "ERROR: covariatesfile specified without outcomevarfile\n";
+      useroptions.erase("covariatesfile");
+      CovariatesFilename.clear();
     }
-    //should check for specified targetindicator too, simply ignoring for now
-    if(RegressionOutputFilename.length() > 0){
-      Log << "ERROR: regparamfile option is not valid without a regression model\n"
-	  << "\tThis option will be ignored\n";
+     if(RegressionOutputFilename.length() > 0){
+       Log << "ERROR: regparamfile option is not valid without a regression model\n";
       RegressionOutputFilename = "";
       useroptions.erase("regparamfile");
     }

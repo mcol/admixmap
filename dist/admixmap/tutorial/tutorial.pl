@@ -39,8 +39,7 @@ my $arg_hash = {
 # model with reference prior on allele freqs in 1 population, skin reflectance as continuous outcome var
 $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'SinglePopResults';
-$arg_hash->{outcomes}              = 1,
-$arg_hash->{targetindicator}       = 1; # skin reflectance
+$arg_hash->{outcomevarcols}       = 2; # skin reflectance
 #&doAnalysis($executable, $rscript, $arg_hash);
 
 # model with reference prior on allele freqs in 2 populations
@@ -70,7 +69,7 @@ $arg_hash->{ancestryassociationtest}  = 1;
 # model with prior allele freqs and diabetes as binary outcome var 
 delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                = 'PriorFreqResultsDiabetes';  
-$arg_hash->{targetindicator}           = 0; # diabetes as outcome
+$arg_hash->{outcomevarcols}           = 1; # diabetes as outcome
 $arg_hash->{affectedsonlytest}    = 1
 #$arg_hash->{thermo}    = 1;
 #$arg_hash->{numannealedruns}    = 100;
@@ -79,7 +78,6 @@ $arg_hash->{affectedsonlytest}    = 1
 # model with fixed allele freqs and diabetes as binary outcome var 
 delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                = 'FixedAlleleFreqResultsDiabetes';  
-$arg_hash->{targetindicator}           = 0; # diabetes as outcome
 $arg_hash->{affectedsonlytest}   = 1;
 $arg_hash->{fixedallelefreqs}    = 1;
 #$arg_hash->{numannealedruns}    = 100;
@@ -94,7 +92,7 @@ $arg_hash->{fixedallelefreqs}    = 0;
 $arg_hash->{numannealedruns}    = 0;
 $arg_hash->{resultsdir}                = 'HistoricFreqResults';  
 $arg_hash->{randommatingmodel}         = 1;
-$arg_hash->{outcomes}                  = 2; # both outcome vars - overrides targetindicator
+$arg_hash->{outcomevarcols}           = "1,2"; # both outcome vars
 $arg_hash->{historicallelefreqfile}    = "data/priorallelefreqs.txt";
 $arg_hash->{etapriorfile}              = "data/etapriors.txt";
 $arg_hash->{dispparamfile}             = "dispersionparams.txt";

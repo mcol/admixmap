@@ -55,8 +55,9 @@ public:
   const char *getGenotypesFilename() const;
   const char *getOutcomeVarFilename() const;  
   const char *getCoxOutcomeVarFilename() const;  
-  int getTargetIndicator() const;
   const char *getCovariatesFilename() const;  
+  const std::vector<unsigned>& getOutcomeVarColumns()const;
+  const std::vector<unsigned>& getCovariateColumns()const;
   const char *getPriorAlleleFreqFilename() const;
 
   double getRegressionPriorPrecision()const;
@@ -67,7 +68,7 @@ public:
   virtual bool isGlobalRho() const = 0;
   virtual bool getFixedAlleleFreqs() const;
   int getNumberOfOutcomes() const;
-  void setNumberOfOutcomes(int);
+  void setNumberOfOutcomes(unsigned);
   void setRegType(RegressionType R);
   virtual bool getTestOneIndivIndicator() const = 0;
   bool getDeleteOldResultsIndicator()const;
@@ -87,9 +88,9 @@ protected:
   long NumAnnealedRuns;
   bool checkData;
   int displayLevel;
-  int NumberOfOutcomes;
   RegressionType RegType;
-  int TargetIndicator;
+  std::vector<unsigned> OutcomeVarColumns;//columns in outcomevarfile to be used
+  std::vector<unsigned> CovariateColumns;//columns in covariatesfile to be used
   bool fixedallelefreqs;
   bool OutputAlleleFreq;
   bool TestForAllelicAssociation;
@@ -111,6 +112,7 @@ protected:
   string OutcomeVarFilename;
   string CoxOutcomeVarFilename;
   string EYFilename;
+  unsigned NumberOfOutcomes;
 
   std::vector<float> rhoSamplerParams;//parameters for sampler of population sumintensities or arrival rate
 

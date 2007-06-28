@@ -2,7 +2,7 @@ Introduction
 -----------------
 ADMIXMAP is a general-purpose program for modelling admixture using marker genotypes and trait data.  
 
-The current version is 3.6 and it is released under a GPL (GNU public licence). See the file COPYING for details.
+The current version is 3.7 and it is released under a GPL (GNU public licence). See the file COPYING for details.
 
 Installing Admixmap for Windows
 -------------------------------

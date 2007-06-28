@@ -29,9 +29,7 @@ my $arg_hash =
  ##main options
  resultsdir       => 'results',
  displaylevel     => 3, #verbose output
- targetindicator  => 0, # diabetes in column 0
  #globalrho => 0,
- #outcomes => 1,
  samples  => 25,
  burnin   => 5,
  every    => 1,

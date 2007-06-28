@@ -55,7 +55,7 @@ void InputData::ReadData(Options *options, LogWriter &Log){
       //read genotype data
       genotypeLoader->Read(options->getGenotypesFilename(), Log);
       
-      DataReader::ReadData(options->getCovariatesFilename(), inputData_, covariatesMatrix_,Log);     //covariates file
+      DataReader::ReadData(options->getCovariatesFilename(), covariatesData_, covariatesMatrix_,Log);     //covariates file
       DataReader::ReadData(options->getOutcomeVarFilename(), outcomeVarData_,outcomeVarMatrix_, Log);//outcomevar file
       DataReader::ReadData(options->getCoxOutcomeVarFilename(), coxOutcomeVarData_, Log);            //coxoutcomevar file
       DataReader::convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 1, 0,0);//drop first row in conversion
@@ -214,81 +214,78 @@ void InputData::DetermineSexColumn(){
   genotypesSexColumn = SexCol;
 }
  
-void InputData::CheckOutcomeVarFile(Options* const options, LogWriter& Log){
-  unsigned N = genotypeLoader->getNumberOfIndividuals();
-
-  if( outcomeVarMatrix_.nRows() - 1 != (N - options->getTestOneIndivIndicator()) ){
+void InputData::CheckOutcomeVarFile(unsigned N, Options* const options, LogWriter& Log){
+  if( outcomeVarMatrix_.nRows() - 1 !=  N){
     stringstream s;
     s << "ERROR: Genotypes file has " << N << " observations and Outcomevar file has "
       << outcomeVarMatrix_.nRows() - 1 << " observations.\n";
     throw(s.str());
   }
 
-  //check the number of outcomes specified is not more than the number of cols in outcomevarfile
-  int Firstcol = options->getTargetIndicator();
-  int NumOutcomes = options->getNumberOfOutcomes();
-  if(strlen(options->getCoxOutcomeVarFilename())) --NumOutcomes;
-
-  int numoutcomes = NumOutcomes;
-  if(NumOutcomes > -1){//options 'numberofregressions' used
-    if((int)outcomeVarMatrix_.nCols() - Firstcol < NumOutcomes){
-      numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;//adjusts if too large
-      Log << "ERROR: 'outcomes' is too large, setting to " << numoutcomes;
+  const vector<unsigned>& OutcomeVarCols = options->getOutcomeVarColumns();
+  vector<unsigned> ColsInUse;
+  //check all in range and unique
+  if(OutcomeVarCols.size()){
+    for(vector<unsigned>::const_iterator i = OutcomeVarCols.begin(); i != OutcomeVarCols.end(); ++i){
+      if(*i > 0 && *i <= outcomeVarData_[0].size())
+	ColsInUse.push_back(*i -1);
+      else{
+	Log << On << "Warning: there is no column " << (unsigned)*i << " in " << options->getOutcomeVarFilename() << "\n";
+      }
     }
+    // sort(ColsInUse.begin(), ColsInUse.end());
+    vector<unsigned>::iterator new_end = unique(ColsInUse.begin(), ColsInUse.end());//reorder, putting duplicates at end
+    ColsInUse.erase(new_end, ColsInUse.end());//remove duplicates
   }
-  else numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;
-  options->setNumberOfOutcomes(numoutcomes);
+  else{//use all if no outcomevarcols options specified
+    for(unsigned i = 0; i < outcomeVarData_[0].size(); ++i)
+      ColsInUse.push_back(i);
+  }
 
-  RegressionType RegType = None;  
-  if(numoutcomes >0){
-    //RegType = Both;
-    //extract portion of outcomevarfile needed
-    std::string* OutcomeVarLabels = new string[ outcomeVarMatrix_.nCols() ];
-    getLabels(outcomeVarData_[0], OutcomeVarLabels);
-    DataMatrix Temp = outcomeVarMatrix_.SubMatrix(1, N, Firstcol, Firstcol+numoutcomes-1);
-    outcomeVarMatrix_ = Temp;
-    
-    //determine type of outcome - binary/continuous
-    for( int j = 0; j < numoutcomes; j++ ){
-      OutcomeType.push_back( Binary );
-      for(unsigned i = 0; i < N; ++i)
-	if(!outcomeVarMatrix_.isMissing(i, j) && !(outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) ){
-	  OutcomeType[j] =  Continuous ;
-	  break;
-	}
+  options->setNumberOfOutcomes(ColsInUse.size());
+
+  RegressionType RegType = None;
+  DataMatrix TempOutcome(N, ColsInUse.size());  
+  unsigned col = 0;
+  for(vector<unsigned>::const_iterator ov = ColsInUse.begin(); ov != ColsInUse.end(); ++ov, ++col){
+    bool isContinuous = false;
+    for(unsigned i = 0; i < N; ++i){
+      TempOutcome.set(i, col, outcomeVarMatrix_.get( i+1, *ov ));
+      TempOutcome.isMissing(i, col, outcomeVarMatrix_.isMissing( i+1, *ov ));
       //in this way, the outcome type is set as binary only if all individuals have outcome values of 1 or 0
       //otherwise, a continuous outcome of 1.0 or 0.0 could lead to the type being wrongly set to binary.
-      
-      //need to check for allmissing
-      //     if(i == NumIndividuals){
-      //       Log << "ERROR: all outcomes missing\n";
-      //       exit(1);
-      //     }
-      
-      Log << "Regressing on ";    
-      if( OutcomeType[j] == Binary ){
-	Log << "Binary variable: ";
-	if(numoutcomes==1)RegType = Logistic;//one logistic regression
-	else {
-	  if(RegType == Logistic) RegType = Mlogistic;//more than one logistic regression
-	  else RegType = Multiple;//linear and logistic 
-	}
+      if(!outcomeVarMatrix_.isMissing(i+1, *ov) && !(outcomeVarMatrix_.get( i+1, *ov ) == 0 || outcomeVarMatrix_.get( i+1, *ov ) == 1) ){
+	isContinuous = true;
       }
-      else if(OutcomeType[j] == Continuous ){
-	Log << "Continuous variable: ";
-	if(numoutcomes==1)RegType = Linear;//one linear regression
-	else {
-	  if(RegType == Linear) RegType = Mlinear;//more than one linear regression
-	  else RegType = Multiple;//linear and logistic 
-	}
-      }
-      Log << outcomeVarData_[0][j+Firstcol];
-      Log << ".\n";
-      OutcomeLabels.push_back(StringConvertor::dequote(outcomeVarData_[0][j+Firstcol]));
     }
-    Log << "\n";
-    delete[] OutcomeVarLabels;
+    if(isContinuous)
+      OutcomeType.push_back( Continuous );
+    else
+      OutcomeType.push_back( Binary );
+    Log << "Regressing on ";    
+    if( !isContinuous ){
+      Log << "Binary variable: ";
+      if(ColsInUse.size()==1)RegType = Logistic;//one logistic regression
+      else {
+	if(RegType == Logistic) RegType = Mlogistic;//more than one logistic regression
+	else RegType = Multiple;//linear and logistic 
+      }
+    }
+    else {
+      Log << "Continuous variable: ";
+      if(ColsInUse.size()==1)RegType = Linear;//one linear regression
+      else {
+	if(RegType == Linear) RegType = Mlinear;//more than one linear regression
+	else RegType = Multiple;//linear and logistic 
+      }
+    }
+    Log << outcomeVarData_[0][*ov];
+    Log << ".\n";
+    OutcomeLabels.push_back(StringConvertor::dequote(outcomeVarData_[0][*ov]));
   }
+  outcomeVarMatrix_.clear();
+  outcomeVarMatrix_ = TempOutcome;
+   
   options->setRegType(RegType);
 }
 
@@ -315,16 +312,46 @@ void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
 
 }
 
-void InputData::CheckCovariatesFile(LogWriter &Log){
-  if( genotypeLoader->getNumberOfIndividuals() != covariatesMatrix_.nRows() - 1 ){
-    Log << "ERROR: Genotypes file has " << genotypeLoader->getNumberOfIndividuals() 
+void InputData::CheckCovariatesFile(unsigned NumIndividuals, Options* const options, LogWriter &Log){
+  if( NumIndividuals != covariatesMatrix_.nRows() - 1 ){
+    Log << "ERROR: Genotypes file has " << NumIndividuals 
 	<< " observations and Covariates file has "
 	<< covariatesMatrix_.nRows() - 1 << " observations.\n";
     exit(1);
   }
-  for (size_t i = 0; i < inputData_[0].size(); ++i) {
-    CovariateLabels.push_back(StringConvertor::dequote(inputData_[0][i]));
+
+  const vector<unsigned>& CovariateCols = options->getCovariateColumns();
+  vector<unsigned> ColsInUse;
+  //check all in range and unique
+  if(CovariateCols.size()){
+    for(vector<unsigned>::const_iterator i = CovariateCols.begin(); i != CovariateCols.end(); ++i){
+      if(*i > 0 && *i <= covariatesData_[0].size())
+	ColsInUse.push_back(*i -1);
+      else{
+	Log << On << "Warning: there is no column " << (unsigned)*i << " in " << options->getCovariatesFilename() << "\n";
+      }
+    }
+    // sort(ColsInUse.begin(), ColsInUse.end());
+    vector<unsigned>::iterator new_end = unique(ColsInUse.begin(), ColsInUse.end());//reorder, putting duplicates at end
+    ColsInUse.erase(new_end, ColsInUse.end());//remove duplicates
   }
+  else{//use all if no covariatecols options specified
+    for(unsigned i = 0; i < covariatesData_[0].size(); ++i)
+      ColsInUse.push_back(i);
+  }
+
+  DataMatrix Temp(NumIndividuals, ColsInUse.size());  
+  unsigned col = 0;
+  for(vector<unsigned>::const_iterator cv = ColsInUse.begin(); cv != ColsInUse.end(); ++cv, ++col){
+    for(unsigned i = 0; i < NumIndividuals; ++i){
+      Temp.set(i, col, covariatesMatrix_.get( i+1, *cv ));
+      Temp.isMissing(i, col, covariatesMatrix_.isMissing( i+1, *cv ));
+    }
+      //set covariate labels
+      CovariateLabels.push_back(StringConvertor::dequote(covariatesData_[0][*cv]));
+  }
+    covariatesMatrix_.clear();
+    covariatesMatrix_ = Temp;
 }
 
 
@@ -348,9 +375,9 @@ const Matrix_s& InputData::getLocusData() const
   return locusData_;
 }
 
-const Matrix_s& InputData::getInputData() const
+const Matrix_s& InputData::getCovariatesData() const
 {
-  return inputData_;
+  return covariatesData_;
 }
 
 const Matrix_s& InputData::getOutcomeVarData() const
@@ -410,9 +437,9 @@ void InputData::Delete(){
   for(unsigned i = 0; i < locusData_.size(); ++i)
     locusData_[i].clear();
   locusData_.clear();
-  for(unsigned i = 0; i < inputData_.size(); ++i)
-    inputData_[i].clear();
-  inputData_.clear();
+  for(unsigned i = 0; i < covariatesData_.size(); ++i)
+    covariatesData_[i].clear();
+  covariatesData_.clear();
   for(unsigned i = 0; i < outcomeVarData_.size(); ++i)
     outcomeVarData_[i].clear();
   outcomeVarData_.clear();

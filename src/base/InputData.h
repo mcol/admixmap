@@ -49,7 +49,7 @@ public:
   ///return contents of locusfile
   const Matrix_s& getLocusData() const;
   ///return contents of covariatesfile
-  const Matrix_s& getInputData()    const;
+  const Matrix_s& getCovariatesData()    const;
   ///return contents of outcomevarfile
   const Matrix_s& getOutcomeVarData()   const;
   ///return contents of priorallelefreqfile
@@ -122,18 +122,18 @@ protected:
   GeneticDistanceUnit DetermineUnitOfDistance();
   //virtual void CheckAlleleFreqs(Options *options, LogWriter &Log);
   ///check contents of outcomevarfile
-  virtual void CheckOutcomeVarFile(Options * const options, LogWriter &Log);
+  void CheckOutcomeVarFile(unsigned N, Options * const options, LogWriter &Log);
   ///check contsnts of coxoutcomevarfile
   void CheckCoxOutcomeVarFile(LogWriter &log)const;
   ///check contents of covariatesfile
-  void CheckCovariatesFile(LogWriter &log);
+  void CheckCovariatesFile(unsigned NumIndividuals, Options* const options, LogWriter &Log);
   /**
    *  Read input data and store in internal structures.
    */    
   void ReadData(Options *options, LogWriter &log);    
 
   Matrix_s locusData_;
-  Matrix_s inputData_;
+  Matrix_s covariatesData_;
   Matrix_s outcomeVarData_;
   Matrix_s coxOutcomeVarData_;
   Matrix_s priorAlleleFreqData_;

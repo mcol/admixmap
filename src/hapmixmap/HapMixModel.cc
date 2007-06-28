@@ -410,7 +410,7 @@ void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWri
 }
 
 double HapMixModel::getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log){
-  return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho(), Loci.GetNumberOfChromosomes());
+  return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho());
 }
 
 void HapMixModel::ReadInitialValuesFromFile(unsigned startnum, const HapMixOptions& options, LogWriter& Log){

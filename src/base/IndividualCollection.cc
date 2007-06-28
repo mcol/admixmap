@@ -81,23 +81,10 @@ void IndividualCollection::LoadData(const Options* const options, const InputDat
 }
 
 void IndividualCollection::LoadCovariates(const InputData* const data_, const Options* const options, bool admixtureAsCovariate){
-//   NumCovariates = 0;
-//   DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
-//   if(!(options->getNumberOfOutcomes()==1 && OutcomeType[0]==CoxData))
-//     ++NumCovariates;//for intercept. No intercept for Cox regression
-//   //TODO: what to do if Cox regression and another regression type
-//   if( !options->getTestForAdmixtureAssociation() && !options->getHapMixModelIndicator() ){
-//     NumCovariates += options->getPopulations()-1;//admixture term for each population, except the first
-//   }
-//   NumberOfInputCovariates = CovData.nCols();
-//   NumCovariates += NumberOfInputCovariates;//add number of covariates in file
-//   Covariates.setDimensions(size, NumCovariates);
-
-
   if ( strlen( options->getCovariatesFilename() ) > 0 ){
     DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
     NumberOfInputCovariates = CovData.nCols();
-    unsigned NumInds = CovData.nRows()-1;//should already have been checked to be the same as in outcomevarfile
+    unsigned NumInds = CovData.nRows();//should already have been checked to be the same as in outcomevarfile
 
     if( admixtureAsCovariate){
       Covariates.setDimensions(NumInds, CovData.nCols() + options->getPopulations());
@@ -108,29 +95,17 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Op
     for(unsigned i = 0; i < NumInds; ++i)for(unsigned j = 0; j < CovData.nCols(); ++j)
       {
 	Covariates.set(i,0, 1.0); //set to 1 for intercept
-	Covariates.set(i,j+1, CovData.get(i+1, j) );
-	Covariates.isMissing(i,j+1, CovData.isMissing(i+1,j));
+	Covariates.set(i,j+1, CovData.get(i, j) );
+	Covariates.isMissing(i,j+1, CovData.isMissing(i,j));
       }
     if ( Covariates.hasMissing() ) Covariates.SetMissingValuesToColumnMeans();
-    
-    //vector<double> mean(NumberOfInputCovariates);
-    
+
     //centre covariates about their means
-    // (this should already be done by user)
-    //    for( int j = 0; j < NumberOfInputCovariates; j++ ){
-    //    int count = 0;
-    //  mean[j] = 0.0;
+    // (this should already be done by user)    
+    //vector<double> mean = Covariates.columnMeans();
     //for(unsigned int i = 0; i < NumInds; i++ )
-    //if(!Covariates.IsMissingValue(i,j+1)){
-    // mean[j] += Covariates(i,j+1);
-    //++count;
-    //}
-    //mean[j] /= (double)count;
-    //}
-    
-    //for(unsigned int i = 0; i < NumInds; i++ )
-    // for( int j = 0; j < NumberOfInputCovariates; j++ )
-    //Covariates( i, j+1 ) -= mean[j];
+    // for( int j = 1; j <= NumberOfInputCovariates; j++ )
+    //Covariates( i, j ) -= mean[j];
   }
   else {//no covariatesfile
     unsigned NumInds = Outcome.nRows();
@@ -152,7 +127,6 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Op
 
 void IndividualCollection::LoadOutcomeVar(const InputData* const data_){
   Outcome = data_->getOutcomeVarMatrix();
-  //if(size != Outcome.nRows() && size!= NumInd)throw string("ERROR in outcomevarfile: wrong number of rows\n");
   NumOutcomes = Outcome.nCols();
  
 }

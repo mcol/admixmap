@@ -63,15 +63,19 @@ void InputHapMixData::CheckData(HapMixOptions *options, LogWriter &Log){
 
   //detects regression model
   if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() )){//if outcome specified
-    if ( strlen( options->getOutcomeVarFilename() ) != 0 )
-      CheckOutcomeVarFile( options, Log);
+    unsigned N =  hGenotypeLoader->getNumberOfCaseControlIndividuals();
+    if(N == 0) N = genotypeLoader->getNumberOfIndividuals();
+
+    if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
+      CheckOutcomeVarFile(N, options, Log);
+    }
     if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 ){
       OutcomeType.push_back( CoxData );
 	if(options->CheckData())
 	  CheckCoxOutcomeVarFile( Log);
     }
     if ( strlen( options->getCovariatesFilename() ) != 0 )
-      CheckCovariatesFile(Log);
+      CheckCovariatesFile(N, options, Log);
   }
 
 }
@@ -162,85 +166,3 @@ void InputHapMixData::CheckAlleleFreqs(HapMixOptions *options, LogWriter &Log){
   //  }
 }
  
-void InputHapMixData::CheckOutcomeVarFile(Options* const options, LogWriter& Log){
-  unsigned N = genotypeLoader->getNumberOfIndividuals();
-  const unsigned NumCCIndividuals = hGenotypeLoader->getNumberOfCaseControlIndividuals();
-
-  //check outcomevarfile and genotypes file have the same number of rows
-  if(NumCCIndividuals>0 )
-    N = NumCCIndividuals;
-  if( outcomeVarMatrix_.nRows() - 1 != NumCCIndividuals ){
-    stringstream s;
-    s << "ERROR: Case-Control Genotypes file has " << NumCCIndividuals << " observations and Outcomevar file has "
-      << outcomeVarMatrix_.nRows() - 1 << " observations.\n";
-    throw(s.str());
-  }
-
-  //check the number of outcomes specified is not more than the number of cols in outcomevarfile
-  int Firstcol = options->getTargetIndicator();
-  int NumOutcomes = options->getNumberOfOutcomes();
-  if(strlen(options->getCoxOutcomeVarFilename())) --NumOutcomes;
-
-  int numoutcomes = NumOutcomes;
-  if(NumOutcomes > -1){//options 'numberofregressions' used
-    if((int)outcomeVarMatrix_.nCols() - Firstcol < NumOutcomes){
-      numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;//adjusts if too large
-      Log << "ERROR: 'outcomes' is too large, setting to " << numoutcomes;
-    }
-  }
-  else numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;
-  options->setNumberOfOutcomes(numoutcomes);
-
-  RegressionType RegType = None;  
-  if(numoutcomes >0){
-    //RegType = Both;
-    //extract portion of outcomevarfile needed
-    std::string* OutcomeVarLabels = new string[ outcomeVarMatrix_.nCols() ];
-    getLabels(outcomeVarData_[0], OutcomeVarLabels);
-    DataMatrix Temp = outcomeVarMatrix_.SubMatrix(1, N, Firstcol, Firstcol+numoutcomes-1);
-    outcomeVarMatrix_ = Temp;
-    
-    //determine type of outcome - binary/continuous
-    for( int j = 0; j < numoutcomes; j++ ){
-      OutcomeType.push_back( Binary );
-      for(unsigned i = 0; i < N; ++i)
-	if(!outcomeVarMatrix_.isMissing(i, j) && !(outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) ){
-	  OutcomeType[j] =  Continuous ;
-	  break;
-	}
-      //in this way, the outcome type is set as binary only if all individuals have outcome values of 1 or 0
-      //otherwise, a continuous outcome of 1.0 or 0.0 could lead to the type being wrongly set to binary.
-      
-      //need to check for allmissing
-      //     if(i == NumIndividuals){
-      //       Log << "ERROR: all outcomes missing\n";
-      //       exit(1);
-      //     }
-      
-      Log << "Regressing on ";    
-      if( OutcomeType[j] == Binary ){
-	Log << "Binary variable: ";
-	if(numoutcomes==1)RegType = Logistic;//one logistic regression
-	else {
-	  if(RegType == Logistic) RegType = Mlogistic;//more than one logistic regression
-	  else RegType = Multiple;//linear and logistic 
-	}
-      }
-      else if(OutcomeType[j] == Continuous ){
-	Log << "Continuous variable: ";
-	if(numoutcomes==1)RegType = Linear;//one linear regression
-	else {
-	  if(RegType == Linear) RegType = Mlinear;//more than one linear regression
-	  else RegType = Multiple;//linear and logistic 
-	}
-      }
-      Log << outcomeVarData_[0][j+Firstcol];
-      Log << ".\n";
-      OutcomeLabels.push_back(StringConvertor::dequote(outcomeVarData_[0][j+Firstcol]));
-    }
-    Log << "\n";
-    delete[] OutcomeVarLabels;
-  }
-  options->setRegType(RegType);
-}
-

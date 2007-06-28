@@ -68,15 +68,16 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
 
   //detects regression model
   if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() )){//if outcome specified
+    const unsigned N = (genotypeLoader->getNumberOfIndividuals() - options->getTestOneIndivIndicator());
     if ( strlen( options->getOutcomeVarFilename() ) != 0 )
-      CheckOutcomeVarFile( options, Log);
+      CheckOutcomeVarFile( N, options, Log);
     if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 ){
       OutcomeType.push_back( CoxData );
-	if(options->CheckData())
-	  CheckCoxOutcomeVarFile( Log);
+      if(options->CheckData())
+	CheckCoxOutcomeVarFile( Log);
     }
     if ( strlen( options->getCovariatesFilename() ) != 0 )
-      CheckCovariatesFile(Log);
+      CheckCovariatesFile(N, options, Log);
     //append population labels to covariate labels
     if(!options->getTestForAdmixtureAssociation()){
       for( vector<string>::const_iterator i = HiddenStateLabels.begin()+1; i !=HiddenStateLabels.end(); ++i ){

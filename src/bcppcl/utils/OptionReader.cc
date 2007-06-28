@@ -326,28 +326,23 @@ int OptionReader::assign(OptionPair& opt, const string& value){
 bool OptionReader::SetOptions(){
   //parse user options
   bool badOptions = false;
+  vector<string> OptionsToErase;
   for(map<string, string>::iterator i = useroptions.begin(); i != useroptions.end(); ++i){
-    if(!SetOption(i))
-      badOptions = true;
-  }
-  return !badOptions;
-}
-
-bool OptionReader::SetOption(const map<string, string>::iterator i){
-  bool badOptions = false;
-  if(ProgOptions.find(i->first)!=ProgOptions.end()){//if option has been defined
-    int status = assign(ProgOptions[i->first], i->second);
-    if (status==ERASE_OPTION) useroptions.erase(i->first);
-  }
-  //    if(status == BAD_OPTION){
-  else{
-    if(Verbose){
-      cerr << "Unknown option: " << i->first
-	   << " with arg: " << i->second
-	   << endl;
+    if(ProgOptions.find(i->first)!=ProgOptions.end()){//if option has been defined
+      int status = assign(ProgOptions[i->first], i->second);
+      if (status==ERASE_OPTION) OptionsToErase.push_back(i->first);
     }
-    badOptions = true;
+    else{
+      if(Verbose){
+	cerr << "Unknown option: " << i->first
+	     << " with arg: " << i->second
+	     << endl;
+      }
+      badOptions = true;
+    }
   }
+  for(vector<string>::const_iterator e = OptionsToErase.begin(); e != OptionsToErase.end(); ++e)
+    useroptions.erase(*e);
   return !badOptions;
 }
 

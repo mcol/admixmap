@@ -126,7 +126,6 @@ protected:
   map<char, string> Short2LongMap;
   vector<string> RequiredOptions;
 
-  bool SetOption(const map<string, string>::iterator i);
 private:
   string separators;
   bool hasoptions;
