@@ -1,15 +1,25 @@
 #!/usr/bin/perl -w
 use strict;
 
-my $function_file = "./doanalysis.pl";
-
-require $function_file or die("cannot find doanalysis.pl");
+my $function_file = "doanalysis.pl";
 
 # Change this to the location of the admixmap executable
-my $executable = './admixmap';
+my $executable = 'admixmap';
 
 # Change this to the location of the R script
-my $rscript = "./AdmixmapOutput.R";
+my $rscript = "AdmixmapOutput.R";
+
+##the following lines are a botch to make the script work straight out of the repository
+if(!(-f $function_file) && (-f "../$function_file")){
+##try one level up
+  $function_file = "../$function_file";
+}
+if(!(-f $rscript) && (-f "../$rscript")){
+##try one level up
+  $rscript = "../$rscript";
+}
+
+require $function_file or die("cannot find doanalysis.pl");
 
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.

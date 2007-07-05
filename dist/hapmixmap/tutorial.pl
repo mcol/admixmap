@@ -3,14 +3,14 @@ use strict;
 use File::Path;
 use Getopt::Long;
 
-my $function_file = "./doanalysis.pl";
+my $function_file = "doanalysis.pl";
 
 my $train = '';
 my $test = '';
 my $resume = '';
 my $usage = 0;
-my $executable = "./hapmixmap";
-my $rscript = "./AdmixmapOutput.R";
+my $executable = "hapmixmap";
+my $rscript = "AdmixmapOutput.R";
 
 GetOptions("train" =>\$train,
 	   "test" => \$test,
@@ -23,6 +23,16 @@ GetOptions("train" =>\$train,
 
 if (not ($train or $test) or $usage) {
     print "Usage: $0 < --train | --test > [--resume] [--exec=...] [--rscript=...] [--function-file=...]\n";
+}
+
+##the following lines are a botch to make the script work straight out of the repository
+if(!(-f $function_file) && (-f "../$function_file")){
+##try one level up
+  $function_file = "../$function_file";
+}
+if(!(-f $rscript) && (-f "../$rscript")){
+##try one level up
+  $rscript = "../$rscript";
 }
 
 require $function_file or die("cannot find doanalysis.pl");

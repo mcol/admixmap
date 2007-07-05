@@ -2,6 +2,8 @@
 use strict; 
 use File::Path;
 use File::Copy;
+use File::Spec;
+use File::Find;
 
 sub getArguments {
     my $hash = $_[0];
@@ -14,26 +16,64 @@ sub getArguments {
     return " ".$filename;
 }
 
+sub findFile{
+  ##append .exe extension in Windows
+  my $filename = $_[0];
+  if($^O eq "MSWin32") {
+    if( !($_[0] =~ m/\.exe/) ) {
+      $filename = "$_[0].exe";
+    }
+  }
+
+  ##first check if file exists and is a file (not a directory)
+  if( (-e $filename) && (-f $filename) ){
+    return("./$filename");
+  }else{
+    ##skip if filename is a path (contains '/')
+    if(! ($filename =~ m(/)m)){
+
+      ##search PATH variable
+      my $slash = '/';
+      #  if($^O eq "MSWin32") {
+      #    $slash = '\\';
+      #  }
+      my @PATH = File::Spec->path();
+      foreach(@PATH){
+	my $path = "$_$slash$filename";
+	if( (-e $path) && (-f $path)){
+	  ##print "found $path\n";
+	  return($path);
+	}
+      }
+    }
+  }
+  return ('');
+}
+
 sub doAnalysis {
     my ($prog, $rscript, $args) = @_;
-    print "\nResults will be written to subdirectory $args->{resultsdir}\n";
 
-#    if($^O eq "MSWin32") {
-#	$prog =~ s/\//\\/g;
-#	if( !($prog =~ m/\.exe/) ) {
-#	    $prog = "$prog.exe";##check: should run ok without .exe extension
-#	}
- #   }
-#    if( !(-e $prog) ) {die "$prog not found\n"}; 
+    my $path = findFile($prog);
+    if( !$path ) {
+      die "$prog not found\n"
+    }
 
-    runProgram($prog, $args);
-    runRScript($rscript, $args);
+    my $resultsdir = $args->{resultsdir};
+    if(!$resultsdir){
+      $resultsdir = 'results';
+    }
+    print "\nResults will be written to subdirectory $resultsdir\n";
+    if(runProgram($path, $args) == 0){
+      runRScript($rscript, $args);
+    }else{
+      die("$prog failed to complete");
+    }
 }
 
 sub doParallelAnalysis {
     my ($prog, $rscript, $args) = @_;
     if( !(-e $prog) ) {die "$prog not found\n"}; 
-    $ENV{'RESULTSDIR'} = $args->{resultsdir};
+
     runProgram("mpiexec $prog", $args);
     runRScript($rscript, $args);
 }
@@ -54,8 +94,12 @@ sub runRScript {
     if( !(-e $rscript) ) {die "$rscript not found\n"}; 
     my $rcmdArgs = "BATCH --quiet --no-save --no-restore";  
 
+    my $resultsdir = $args->{resultsdir};
+    if($resultsdir == ''){
+      $resultsdir = 'results';
+    }
     print "Starting R script to process output\n";
-    $ENV{'RESULTSDIR'} = $args->{resultsdir};
+    $ENV{'RESULTSDIR'} = $resultsdir;
     system("$rcmd $rcmdArgs $rscript $args->{resultsdir}/Rlog.txt\n");
     print "R script completed\n\n";
 }
