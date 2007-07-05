@@ -278,10 +278,16 @@ bool GenotypeLoader::CheckForUnobservedAlleles(const DataMatrix& LocusData, LogW
 
     //loop over individuals, counting alleles
     for(unsigned i = 1; i < geneticData_.size(); ++i){
+      const string g = StringConvertor::dequote(geneticData_[i][locus+offset]);
       //find separator in diploid genotypes
-      string::size_type sep = geneticData_[i][locus+offset].find_first_of(GENOTYPE_DELIMS);
-      const unsigned allele1 = atoi(geneticData_[i][locus+offset].substr(0, sep).c_str());
-      const unsigned allele2 = atoi(geneticData_[i][locus+offset].substr(sep+1).c_str());
+      string::size_type sep = g.find_first_of(GENOTYPE_DELIMS);
+      const unsigned allele1 = atoi(g.substr(0, sep).c_str());
+      const unsigned allele2 = atoi(g.substr(sep+1).c_str());
+      //check allele codes do not exceed number of alleles of this locus
+      if(allele1 > AlleleCounts.size() 
+          || (sep != string::npos && allele2 > AlleleCounts.size()))
+          throwGenotypeError(i, locus+1, geneticData_[0][locus+1], 
+                             allele1, allele2, AlleleCounts.size());
       //increment count of first allele
       if(allele1)++AlleleCounts[allele1-1];
       //increment count of second allele
