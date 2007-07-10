@@ -35,7 +35,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  Log
   A.Initialise(&options, &data, &Loci, Log); 
   pA = &A;//set pointer to AlleleFreqs object
 
-  L = new PopHapMix(&options, &Loci);
+  L = new PopHapMix(options, Loci);
   L->Initialise(data.getUnitOfDistanceAsString(), Log);
 
   //create HapMixIndividualCollection object
@@ -115,13 +115,13 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
       }
       
       //Sample Parameters
-      UpdateParameters(iteration, &options, Log, data.GetHiddenStateLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
+      UpdateParameters(iteration, options, Log, data.GetHiddenStateLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
       
       //Output Parameters
       if(!AnnealedRun){    
 	// output parameters every 'getSampleEvery()' iterations
 	if(!(iteration % options.getSampleEvery()) )
-	  OutputParameters(iteration, &options, Log);
+	  OutputParameters(iteration, options, Log);
 	
 	if( iteration > burnin &&
 	    // output every 'getSampleEvery() * 10' iterations after burnin
@@ -141,14 +141,14 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
   }
 
 }
-void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogWriter&, 
+void HapMixModel::UpdateParameters(int iteration, const Options& _options, LogWriter&, 
                                    const Vector_s&, const double* Coolnesses, unsigned coolness_index, bool anneal, 
 				   double & SumEnergy, double & SumEnergySq, double& AISz){
   const double coolness = Coolnesses[coolness_index];
   //cast Options pointer to HapMixOptions for access to HAPMIXMAP options
-  const HapMixOptions* options = (const HapMixOptions*) _options;
+  const HapMixOptions& options = (const HapMixOptions&) _options;
   
-  A.ResetAlleleCounts(options->getPopulations());
+  A.ResetAlleleCounts(options.getPopulations());
   
   ///////////////////////////////////////////////////////////////
   // Update individual-level parameters, sampling hidden states
@@ -156,42 +156,42 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
     
   HMIC->SampleHiddenStates(options, iteration);
   //accumulate energy
-  if( iteration > options->getBurnIn()) 
-    GetEnergy(Coolnesses, coolness_index, *_options, SumEnergy, SumEnergySq, AISz, anneal, iteration );
+  if( iteration > options.getBurnIn()) 
+    AccumulateEnergy(Coolnesses, coolness_index, _options, SumEnergy, SumEnergySq, AISz, anneal, iteration );
   
   IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
     
-  if( options->getHWTestIndicator() || options->getMHTest() || options->getTestForResidualAllelicAssoc() ) {
+  if( options.getHWTestIndicator() || options.getMHTest() || options.getTestForResidualAllelicAssoc() ) {
     // loops over individuals to sample hap pairs, not skipping missing genotypes. 
     // Does not update counts since done already
     IC->SampleHapPairs(options, &A, &Loci, false, anneal, false); 
   }
 
     //accumulate conditional genotype probs for masked individuals at masked loci
-  if(options->OutputCGProbs() && iteration > options->getBurnIn())
+  if(options.OutputCGProbs() && iteration > options.getBurnIn())
     HMIC->AccumulateConditionalGenotypeProbs(options, Loci);
  
   ////////////////////////////////////////////////////////////////
   //score tests
   ///////////////////////////////////////////////////////////////
-  if(  !anneal && iteration > options->getBurnIn() ){
+  if(  !anneal && iteration > options.getBurnIn() ){
     //update score tests every SCORETEST_UPDATE_EVERY iterations after burn-in
-    if( options->getTestForAllelicAssociation()&& !(iteration%SCORETEST_UPDATE_EVERY) ){
+    if( options.getTestForAllelicAssociation()&& !(iteration%SCORETEST_UPDATE_EVERY) ){
       AllelicAssocTest.Update(HMIC, R[0], Loci);
     }
-    if(options->getTestForResidualAllelicAssoc()/*&& !(iteration%SCORETEST_UPDATE_EVERY)*/){
+    if(options.getTestForResidualAllelicAssoc()/*&& !(iteration%SCORETEST_UPDATE_EVERY)*/){
       ResidualAllelicAssocScoreTest.Reset();
       ResidualAllelicAssocScoreTest.Update(A.GetAlleleFreqs(), true);
     }
   }
-  if(options->getMHTest() && !anneal && (iteration > options->getBurnIn()))
+  if(options.getMHTest() && !anneal && (iteration > options.getBurnIn()))
     MHTest.Update(IC, Loci);//update Mantel-Haenszel test
 
   //////////////////////////////////////////////////////////////////
   // update allele frequencies conditional on locus ancestry states
   ///////////////////////////////////////////////////////////////////
-  if( !options->getFixedAlleleFreqs()){
-    A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, (numdiploidIndivs==0));
+  if( !options.getFixedAlleleFreqs()){
+    A.Update(IC, (iteration > options.getBurnIn() && !anneal), coolness, (numdiploidIndivs==0));
 
     A.SetDiploidGenotypeProbs();
   }//end if random allele freqs
@@ -209,11 +209,11 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   //////////////////////////////////////////////////////////////////////////////
   
 
-  L->SampleArrivalRate(HMIC->getConcordanceCounts(), (!anneal && iteration > options->getBurnIn() 
-						      && options->getPopulations() > 1) );
+  L->SampleArrivalRate(HMIC->getConcordanceCounts(), (!anneal && iteration > options.getBurnIn() 
+						      && options.getPopulations() > 1) );
   
   //sample mixture proportions with conjugate update
-  if(!options->getFixedMixtureProps())
+  if(!options.getFixedMixtureProps())
     L->SampleMixtureProportions(HMIC->getSumArrivalCounts());
   
   //Set global StateArrivalProbs in HMM objects. Do not force setting of mixture props (if fixed)
@@ -223,11 +223,11 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   // update regression parameters (if regression model)
   //////////////////////////////////////////////////////////////////////////
 
-  bool condition = (!anneal && iteration > options->getBurnIn());
+  bool condition = (!anneal && iteration > options.getBurnIn());
   for(unsigned r = 0; r < R.size(); ++r){
     R[r]->Update(condition, IC->getOutcome(r), coolness );
     //output expected values of outcome variables to file every 'every' iterations after burnin
-    if(condition && !(iteration % options->getSampleEvery()) ) {
+    if(condition && !(iteration % options.getSampleEvery()) ) {
       R[r]->OutputExpectedY();
     }
   }
@@ -261,22 +261,22 @@ void HapMixModel::OutputTests(HapMixOptions& options, InputData & data, LogWrite
   }
 }
 
-void HapMixModel::OutputParameters(int iteration, const Options *options, LogWriter& Log){
+void HapMixModel::OutputParameters(int iteration, const Options& options, LogWriter& Log){
 
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
 
   //output sample mean and variance of arrival rates and the prior parameters
-  if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
+  if(options.getPopulations() > 1) L->OutputParams(iteration, Log);
 
-  if( !options->getFixedAlleleFreqs() )
+  if( !options.getFixedAlleleFreqs() )
     //output Allele freq prior params to file if after burnin and to screen if displaylevel >2
-    A.OutputPriorParams((iteration > options->getBurnIn()), (bool)(options->getDisplayLevel()>2));
+    A.OutputPriorParams((iteration > options.getBurnIn()), (bool)(options.getDisplayLevel()>2));
 
   // ** regression parameters
   for(unsigned r = 0; r < R.size(); ++r)
     //output regression parameters to file if after burnin and to screen if displaylevel >2
-    R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
+    R[r]->Output(options.getNumberOfOutcomes(), (bool)(options.getDisplayLevel()>2), (bool)(iteration > options.getBurnIn()) );
   
   //if( options->getDisplayLevel()>2 ) cout << endl;
   // ** new line in log file but not on screen 
@@ -409,7 +409,7 @@ void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWri
   }
 }
 
-double HapMixModel::getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log){
+double HapMixModel::getDevianceAtPosteriorMean(const Options& options, LogWriter& Log){
   return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho());
 }
 

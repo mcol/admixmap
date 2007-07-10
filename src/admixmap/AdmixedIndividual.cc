@@ -28,17 +28,17 @@ double* AdmixedIndividual::ThetaThetaInv = 0;
 //TODO: delete these arrays at program exit
 
 //******** Constructors **********
-AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
-  Theta = 0;
-  ThetaProposal = 0;
-  dirparams = 0;
-  SumSoftmaxTheta = 0;
-  SumLocusAncestry = 0; 
-  SumLocusAncestry_X = 0;
-}
+// AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
+//   Theta = 0;
+//   ThetaProposal = 0;
+//   dirparams = 0;
+//   SumSoftmaxTheta = 0;
+//   SumLocusAncestry = 0; 
+//   SumLocusAncestry_X = 0;
+// }
 
 AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const options, const InputAdmixData* const Data,  
-				     bool undertest=false){
+				     bool undertest=false):Individual(number),IAmUnderTest(undertest){
   GenotypesMissing = new bool*[numChromosomes];
 
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -49,8 +49,7 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   Data->GetGenotype(number, *Loci, &genotypes, GenotypesMissing);
   isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
 
-  Individual::Initialise(number, options, Data); 
-  IAmUnderTest = undertest;
+  Individual::Initialise(options, Data); 
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
 
   Theta = new double[ NumHiddenStates * NumGametes ];
@@ -323,7 +322,7 @@ void AdmixedIndividual::getSumNumArrivals(std::vector<unsigned> *sum)const{
 // public function: 
 // calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
 // store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
-double AdmixedIndividual::getLogLikelihood( const Options* const options, const bool forceUpdate, const bool store) {
+double AdmixedIndividual::getLogLikelihood( const Options& options, const bool forceUpdate, const bool store) {
 
   if (!logLikelihood.ready || forceUpdate) {
     logLikelihood.tempvalue = getLogLikelihood(options, Theta, _rho, true);
@@ -336,7 +335,7 @@ double AdmixedIndividual::getLogLikelihood( const Options* const options, const 
   } else return logLikelihood.value; // nothing was changed
 }
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
-double AdmixedIndividual::getLogLikelihood(const Options* const options, const double* const theta, 
+double AdmixedIndividual::getLogLikelihood(const Options& options, const double* const theta, 
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
   if(NumHiddenStates == 1) LogLikelihood = getLogLikelihoodOnePop();
@@ -346,24 +345,47 @@ double AdmixedIndividual::getLogLikelihood(const Options* const options, const d
   return LogLikelihood; // if HMM update not required, can just use stored log-likelihood  
 }
 
-double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options* const options) {
+double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options& options) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
-  double* ThetaBar = new double[NumGametes*NumHiddenStates];
-  vector<double> rhobar;
-
-  getPosteriorMeans(ThetaBar, rhobar, options->getTotalSamples() - options->getBurnIn());
 
   double LogLikelihood = 0.0;
-  if(NumHiddenStates == 1) LogLikelihood = getLogLikelihoodOnePop();
+  if(NumHiddenStates == 1) 
+    LogLikelihood = getLogLikelihoodOnePop();
   else {
+    double* ThetaBar = new double[NumGametes*NumHiddenStates];
+    vector<double> rhobar;
+    
+    //getPosteriorMeans(ThetaBar, rhobar, options->getTotalSamples() - options->getBurnIn());
+  unsigned size = NumHiddenStates * NumGametes;
+  for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (double) (options.getTotalSamples() - options.getBurnIn());
+
+  for(unsigned i = 0; i < sumlogrho.size(); ++i)
+    rhobar.push_back( exp(sumlogrho[i]/(double)(options.getTotalSamples() - options.getBurnIn())) );
+  
+  //apply softmax transformation to obtain thetabar
+  bool* b = new bool[NumHiddenStates];
+  for( unsigned int g = 0; g < NumGametes; g++ ){
+    for(int k = 0; k < NumHiddenStates; ++k)
+      if(Theta[g*NumHiddenStates + k] > 0.0){
+      b[k] = true; //to skip elements set to zero
+    } else b[k] = false;
+    softmax(NumHiddenStates, ThetaBar+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
+    //rescale sumsoftmaxtheta back 
+    for(int k = 0; k < NumHiddenStates; ++k)
+      SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) (options.getTotalSamples() - options.getBurnIn());
+  }
+  delete[] b;
+
     for( unsigned int j = 0; j < numChromosomes; j++ ) {
       UpdateHMMInputs(j, options, ThetaBar, rhobar); 
       LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
     }
+    delete[] ThetaBar;
   }
-  delete[] ThetaBar;
+
   return LogLikelihood;
 }
+
 double AdmixedIndividual::getLogLikelihoodOnePop(){ //convenient for a single population as no arguments required
   double LogLikelihood = 0.0;
   double *Prob;
@@ -382,7 +404,7 @@ void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, vector<double>& rho
   unsigned size = NumHiddenStates * NumGametes;
   for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (double) samples;
   rhoMean.clear();
-  for(unsigned i = 0; i < _rho.size(); ++i)
+  for(unsigned i = 0; i < sumlogrho.size(); ++i)
     rhoMean.push_back( exp(sumlogrho[i]/(double)samples) );
   
   //apply softmax transformation to obtain thetabar
@@ -392,10 +414,14 @@ void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, vector<double>& rho
   }
   bool* b = new bool[NumHiddenStates];
   for( unsigned int g = 0; g < NumGametes; g++ ){
-    for(int k = 0; k < NumHiddenStates; ++k)if(Theta[g*NumHiddenStates + k] > 0.0){
+    for(int k = 0; k < NumHiddenStates; ++k)
+      if(Theta[g*NumHiddenStates + k] > 0.0){
       b[k] = true; //to skip elements set to zero
     } else b[k] = false;
     softmax(NumHiddenStates, ThetaMean+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
+    //rescale sumsoftmaxtheta back 
+    for(int k = 0; k < NumHiddenStates; ++k)
+      SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) samples;
   }
   delete[] b;
 }
@@ -444,7 +470,7 @@ void AdmixedIndividual::SampleJumpIndicators(bool sampleArrivals){
 
 ///uses an EM algorithm to search for posterior modes of individual parameters theta and rho
 // uses current values of allele freqs 
-void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
+void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options, const vector<vector<double> > &alpha,  
 				    double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile) {
   if( A->IsRandom() ) {  
     // set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
@@ -467,11 +493,11 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
     //     } 
   }   
   
-  unsigned numEMiters = 10;
+  const unsigned numEMiters = 10;
   unsigned NumEstepiters = 10; 
   double LogUnnormalizedPosterior = - numeric_limits<double>::max( );
-  bool isadmixed = options->isAdmixed(0);
-  if(NumGametes ==2) isadmixed = isadmixed | options->isAdmixed(1);//indicates if either gamete is admixed
+  bool isadmixed = options.isAdmixed(0);
+  if(NumGametes ==2) isadmixed = isadmixed | options.isAdmixed(1);//indicates if either gamete is admixed
   //use current parameter values as initial values
 
   if(isadmixed) {
@@ -486,7 +512,7 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
 	if(NumHiddenStates >1){
 	  ResetSufficientStats();
 	  SampleHiddenStates(options);
-	  SampleJumpIndicators((!options->isGlobalRho()));
+	  SampleJumpIndicators((!options.isGlobalRho()));
 	}
 	vector<unsigned> SumN = getSumNumArrivals();
 	vector<unsigned> SumN_X = getSumNumArrivals_X(); // element 0 should be zero in a male
@@ -501,7 +527,7 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
       for(int i = 0; i < 2*NumHiddenStates; ++i) {
 	SumLocusAncestryHat[i] /= (double)NumEstepiters; 
       }
-      if(options->getDisplayLevel() >2)
+      if(options.getDisplayLevel() >2)
 	cout << "E step\t";
       //     for(unsigned int g = 0; g < NumGametes; ++g) {
       //       for(int k = 0; k < NumHiddenStates; ++k) {
@@ -516,11 +542,11 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
       // use vector rhohat and array ThetaProposal to store updates before accept/reject 
       unsigned gg = 0; // indexes which admixture prior (alpha) to use: use alpha[1] if second gamete and no indadmixhiermodel
       for(unsigned g = 0; g < NumGametes; ++g) {
-	if( options->isAdmixed(g) ) {
-	  if(!options->isGlobalRho()) {
+	if( options.isAdmixed(g) ) {
+	  if(!options.isGlobalRho()) {
 	    rhohat[g] = ( rhoalpha + SumNumArrivalsHat[g] ) / ( rhobeta + EffectiveL[g] );
 	  }
-	  if(g==1 && !options->getIndAdmixHierIndicator()) {
+	  if(g==1 && !options.getIndAdmixHierIndicator()) {
 	    gg = 1;
 	  }
 	  double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
@@ -547,7 +573,7 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
       }
       LogUnnormalizedPosterior = LogUnnormalizedPosteriorHat;
     } 
-    if(options->getDisplayLevel() >2)
+    if(options.getDisplayLevel() >2)
       cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior "
 	   << LogUnnormalizedPosterior << endl << flush;
     } //end EM outer loop
@@ -557,7 +583,7 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
   //print values to file
   modefile<<setiosflags(ios::fixed)<<setprecision(3);
   modefile << myNumber << "\t";
-  if(!options->isGlobalRho()) {
+  if(!options.isGlobalRho()) {
      for(unsigned i = 0; i < NumGametes; ++i) {
       modefile<<_rho[i]<<"\t ";
      }
@@ -566,14 +592,14 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
     for(int k = 0; k < NumHiddenStates; ++k) modefile<<Theta[i*NumHiddenStates +k]<<"\t ";
   }
   
-  if(myNumber==1 && options->getChibIndicator()){ // copy modes into hat arrays to use in Chib algorithm
+  if(myNumber==1 && options.getChibIndicator()){ // copy modes into hat arrays to use in Chib algorithm
     for(unsigned k = 0; k < NumHiddenStates*NumGametes; ++k){
       thetahat[k] = Theta[k];
     }
     //check for zeros where not specified by prior
     for(unsigned i = 0; i < NumGametes; ++i) {
       unsigned gg = i; // index of alpha to use: for second gamete and no indadmixhiermodel use 1
-      if(options->getIndAdmixHierIndicator()) gg = 0;
+      if(options.getIndAdmixHierIndicator()) gg = 0;
       double sum = 0.0;
       for(int k = 0; k < NumHiddenStates; ++k) { // if prior not zero, and mode < 0.001, use 0.001
 	if(alpha[gg][k]>0.0 && thetahat[i*NumHiddenStates+k]<0.001) {
@@ -598,10 +624,11 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions* const options, co
 
 
 void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, const DataMatrix* const Outcome, 
-			      const DataType* const OutcomeType, const vector<double> lambda, const int NumCovariates,
-			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
-			      const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-				     double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest, const bool RW, const bool anneal=false)
+				     const DataType* const OutcomeType, const vector<double> lambda, const int NumCovariates,
+				     DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
+				     const AdmixOptions& options, const vector<vector<double> > &alpha, 
+				     double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest, 
+				     const bool RW, const bool anneal=false)
 // samples individual admixture proportions
 // called with RW true for a random-walk proposal, false for a conjugate proposal
 {
@@ -619,25 +646,25 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
   int K = NumHiddenStates;
 
   //calculate Metropolis acceptance probability ratio for proposal theta    
-  if(!options->getTestForAdmixtureAssociation() && myNumber < Outcome->nCols()){
+  if(!options.getTestForAdmixtureAssociation() && myNumber < Outcome->nCols()){
     RegressionType RegType;
     int NumOutcomes = Outcome->nCols();
     for( int k = 0; k < NumOutcomes; k++ ){
       if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
-      logpratio += LogAcceptanceRatioForRegressionModel( RegType, options->isRandomMatingModel(), K, NumCovariates, 
+      logpratio += LogAcceptanceRatioForRegressionModel( RegType, options.isRandomMatingModel(), K, NumCovariates, 
 							 Covariates, beta[k], Outcome->get( myNumber-1, k ), 
 							 poptheta, lambda[k]);
     }
   }
   
   //Accept or reject proposed value - if conjugate update and no regression model, proposal will be accepted because logpratio = 0
-  Accept_Reject_Theta(logpratio, K, options->isRandomMatingModel(), RW );
+  Accept_Reject_Theta(logpratio, K, options.isRandomMatingModel(), RW );
   
   // update the value of admixture proportions used in the regression model  
-  if( options->getNumberOfOutcomes() > 0 )
-    UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options->isRandomMatingModel(), Covariates);
+  if( options.getNumberOfOutcomes() > 0 )
+    UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options.isRandomMatingModel(), Covariates);
   
-  if(!anneal && iteration > options->getBurnIn()){ // accumulate sums in softmax basis for calculation of posterior means 
+  if(!anneal && iteration > options.getBurnIn()){ // accumulate sums in softmax basis for calculation of posterior means 
     for( unsigned int g = 0; g < NumGametes; g++ ){
       bool* b = new bool[NumHiddenStates];
       double* a = new double[NumHiddenStates];
@@ -661,7 +688,7 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
     
     //increment B using new Admixture Props
     //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
-    if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
+    if(iteration >= options.getBurnIn() && options.getTestForLinkageWithAncestry()){
       double* admixtureCovars = new double[NumHiddenStates-1];
       for(int t = 0; t < NumHiddenStates-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-NumHiddenStates+1+t);
        ancestryAssocTest.UpdateB(DInvLink, dispersion, admixtureCovars);
@@ -672,13 +699,13 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
 
 // ****** End Public Interface *******
 
-double AdmixedIndividual::ProposeThetaWithRandomWalk(const AdmixOptions* const options, const vector<vector<double> > &alpha) {
+double AdmixedIndividual::ProposeThetaWithRandomWalk(const AdmixOptions& options, const vector<vector<double> > &alpha) {
   double LogLikelihoodRatio = 0.0;
   double LogPriorRatio = 0.0;
   
   //generate proposals
   for( unsigned int g = 0; g < NumGametes; g++ ){
-    if(options->isAdmixed(g)){
+    if(options.isAdmixed(g)){
       // inverse softmax transformation from proportions to numbers on real line that sum to 0
       bool* b = new bool[NumHiddenStates];
       double* a = new double[NumHiddenStates]; // should be at class scope
@@ -728,14 +755,14 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk(const AdmixOptions* const o
 // as conjugate Dirichlet posterior conditional on prior parameter vector alpha and 
 // multinomial likelihood given by sampled values of ancestry at loci where jump indicator xi is 1 (SumLocusAncestry)
 // proposes new values for both gametes if random mating model 
-void AdmixedIndividual::ProposeTheta(const AdmixOptions* const options, const vector<vector<double> > &alpha,
+void AdmixedIndividual::ProposeTheta(const AdmixOptions& options, const vector<vector<double> > &alpha,
 			      int* sumLocusAncestry, int* sumLocusAncestry_X){
   size_t K = NumHiddenStates;
-  if( isHaploid || options->isRandomMatingModel() ){ //random mating model
+  if( isHaploid || options.isRandomMatingModel() ){ //random mating model
     for( unsigned int g = 0; g < NumGametes; g++ ) {
-      if(options->isAdmixed(g)) {
+      if(options.isAdmixed(g)) {
 	unsigned gg = g; // index of which prior (alpha) to use - use alpha[1] if second gamete and no indadmixhiermodel
-	if(options->getIndAdmixHierIndicator()) gg = 0;
+	if(options.getIndAdmixHierIndicator()) gg = 0;
 	for(size_t k = 0; k < K; ++k) { // parameters of conjugate Dirichlet update
 	  dirparams[k] = alpha[gg][k] + (double)(sumLocusAncestry[k + K*g] + sumLocusAncestry_X[g*K + k]);
 	  // if male, paternal elements (0 to K-1) of sumLocusAncestry_X will be zero
@@ -858,17 +885,17 @@ void AdmixedIndividual::resetStepSizeApproximator(int k) {
   ThetaTuner.resetStepSizeApproximator(k);
 }
 
-void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const options, 
+void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options& options, 
 				 const double* const theta, const vector<double> rho) {
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
   const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
-  const bool isRandomMating = options->isRandomMatingModel();
+  const bool isRandomMating = options.isRandomMatingModel();
   Chromosome* C = Loci->getChromosome(j);
 
   C->HMM->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
-  if(!options->isGlobalRho()){
+  if(!options.isGlobalRho()){
     //set locus correlation, f, if individual- or gamete-specific rho
     C->SetLocusCorrelation(rho, isRandomMating);
   }
@@ -884,15 +911,15 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const opt
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
 
-void AdmixedIndividual::SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta, 
+void AdmixedIndividual::SampleRho(const AdmixOptions& options, double rhoalpha, double rhobeta, 
 			   bool updateSumLogRho) {
   vector<unsigned> sumNumArrivals = getSumNumArrivals();
   vector<unsigned> sumNumArrivals_X = getSumNumArrivals_X();
   // rho_X is set to 0.5*rho - equivalent to setting effective length of X chromosome as half length in Morgans
   // conjugate gamma update for rho includes arrivals on X chromosome, and 0.5 * length of X chromosome
-  if(isHaploid || options->isRandomMatingModel() ) {
+  if(isHaploid || options.isRandomMatingModel() ) {
     // SumNumArrivals_X has length 2, and SumNumArrivals_X[0] remains fixed at 0 if male 
-    for( unsigned int g = 0; g < NumGametes; g++ )if(options->isAdmixed(g)) {
+    for( unsigned int g = 0; g < NumGametes; g++ )if(options.isAdmixed(g)) {
       //do {
       _rho[g] = Rand::gengam( rhoalpha + (double)(sumNumArrivals[g] + sumNumArrivals_X[g]), rhobeta + EffectiveL[g] );
       //} while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
@@ -912,7 +939,7 @@ void AdmixedIndividual::SampleRho(const AdmixOptions* const options, double rhoa
 }
 
 //********************** Score Tests ***************************
-void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
+void AdmixedIndividual::UpdateScores(const AdmixOptions& options, DataMatrix *Outcome, DataMatrix *Covariates, 
 				     const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest){
 //merge with updatescoretests
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -924,27 +951,27 @@ void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatr
       }
       //update of score tests for linkage with ancestry requires update of backward probs
       double* admixtureCovars = 0;
-      if(options->getTestForLinkageWithAncestry()) {
+      if(options.getTestForLinkageWithAncestry()) {
 	admixtureCovars = new double[NumHiddenStates-1];
 	for(int t = 0; t < NumHiddenStates-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-NumHiddenStates+1+t);
       }
       UpdateScoreTests(options, admixtureCovars, Outcome, C, R, affectedsOnlyTest, ancestryAssocTest);
-      if(options->getTestForLinkageWithAncestry()) {
+      if(options.getTestForLinkageWithAncestry()) {
 	delete[] admixtureCovars;
       }
   } //end chromosome loop
 }
 
-void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
+void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const double* admixtureCovars, DataMatrix *Outcome, 
 					 Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest){
   bool IamAffected = false;
   try {
-    if( options->getTestForAffectedsOnly()){
+    if( options.getTestForAffectedsOnly()){
       //determine which regression is logistic, in case of 2 outcomes
       unsigned col = 0;
-      if(options->getNumberOfOutcomes() >1 && R[0]->getRegressionType()!=Logistic )col = 1;
+      if(options.getNumberOfOutcomes() >1 && R[0]->getRegressionType()!=Logistic )col = 1;
       //check if this individual is affected
-      if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
+      if(options.getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
     }
     
     //we don't bother computing scores for the first population when there are two
@@ -960,13 +987,13 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, cons
       
       //Update affecteds only scores      
       if(IamAffected){
-	affectedsOnlyTest.Update(locus, k0, Theta, options->isRandomMatingModel(), 
+	affectedsOnlyTest.Update(locus, k0, Theta, options.isRandomMatingModel(), 
 				 !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
 
       }
       
       //update ancestry score tests
-      if( options->getTestForLinkageWithAncestry() ){
+      if( options.getTestForLinkageWithAncestry() ){
 	ancestryAssocTest.Update(locus, admixtureCovars, R[0]->getDispersion(), 
 				 Outcome->get(myNumber-1, 0) - R[0]->getExpectedOutcome(myNumber-1), 
 				 R[0]->DerivativeInverseLinkFunction(myNumber-1), AProbs);
@@ -981,7 +1008,7 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, cons
 // this function does two things:
 // 1. calculates log-likelihood at thetahat, rhohat, allelefreqsMAP
 // 2. calculates log prior at same values
-void AdmixedIndividual::setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
+void AdmixedIndividual::setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha, 
 				  double rhoalpha, double rhobeta, chib *MargLikelihood, AlleleFreqs* A) {
   
   // 1. pass value of log-likelihood at MAP parameter values, calculated after finding posterior modes, to chib
@@ -1002,10 +1029,10 @@ void AdmixedIndividual::setChibNumerator(const AdmixOptions* const options, cons
   MargLikelihood->setLogPrior(LogPrior);
 } 
 
-void AdmixedIndividual::updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-			    double rhoalpha, double rhobeta, 
-			    // double *thetahat, vector<double> &rhohat, 
-			    chib *MargLikelihood, AlleleFreqs* A){
+void AdmixedIndividual::updateChib(const AdmixOptions& options, const vector<vector<double> > &alpha, 
+				   double rhoalpha, double rhobeta, 
+				   // double *thetahat, vector<double> &rhohat, 
+				   chib *MargLikelihood, AlleleFreqs* A){
   // *** After BurnIn *** - accumulate samples of posterior ordinates for theta, rho, allelefreqs separately
   double LogPosterior = 0.0;
   double LP = 0.0;
@@ -1036,24 +1063,24 @@ void AdmixedIndividual::updateChib(const AdmixOptions* const options, const vect
 }
 
 // TODO: fix these two functions to work with assortative mating
-double AdmixedIndividual::LogPriorTheta_Softmax(const double* const theta, const AdmixOptions* const options, 
+double AdmixedIndividual::LogPriorTheta_Softmax(const double* const theta, const AdmixOptions& options, 
 					 const vector<vector<double> > &alpha) const {
   double LogPrior=0.0;
   for(unsigned g = 0; g < NumGametes; ++g) { //loop over gametes
-    if( options->isAdmixed(g) ){
+    if( options.isAdmixed(g) ){
       LogPrior += getDirichletLogDensity_Softmax( alpha[g], theta + g*NumHiddenStates);
     }
   }
   return LogPrior;
 }
 
-double AdmixedIndividual::LogPosteriorTheta_Softmax(const AdmixOptions* const options, const double* const theta, 
+double AdmixedIndividual::LogPosteriorTheta_Softmax(const AdmixOptions& options, const double* const theta, 
 					     const vector<vector<double> > &alpha) const{
   // calculates log full conditional at theta, conditional on realized locus ancestry states and jump indicators
   double LogPosterior = 0.0;
   vector<double> alphaparams(NumHiddenStates); // , alphaparams1(NumHiddenStates);  // to be set to alpha + SumLocusAncestry
   for(unsigned g = 0; g < NumGametes; ++g) { //loop over gametes
-    if( options->isAdmixed(g) ) {
+    if( options.isAdmixed(g) ) {
       transform(alpha[g].begin(), alpha[g].end(), SumLocusAncestry + g*NumHiddenStates, 
 		alphaparams.begin(), std::plus<double>());
       LogPosterior += getDirichletLogDensity_Softmax(alphaparams, theta + g*NumHiddenStates);
@@ -1066,13 +1093,13 @@ double AdmixedIndividual::LogPosteriorTheta_Softmax(const AdmixOptions* const op
   return LogPosterior;
 }
 
-double AdmixedIndividual::LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions* const options, double rhoalpha, 
-					double rhobeta) const {
+double AdmixedIndividual::LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions& options, double rhoalpha, 
+					       double rhobeta) const {
   // computes log prior density in log rho basis at supplied parameter values
   double LogPrior=0.0;
-  if( options->isRandomMatingModel() ) {
+  if( options.isRandomMatingModel() ) {
     for(unsigned g = 0; g < NumGametes; ++g) { //loop over gametes
-      if( options->isAdmixed(g) ){
+      if( options.isAdmixed(g) ){
 	LogPrior += getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rho[g] );
       }
     }
@@ -1082,20 +1109,20 @@ double AdmixedIndividual::LogPriorRho_LogBasis(const vector<double> rho, const A
   return LogPrior;
 }
 
-double AdmixedIndividual::LogPosteriorRho_LogBasis(const AdmixOptions* const options, const vector<double> rho, 
+double AdmixedIndividual::LogPosteriorRho_LogBasis(const AdmixOptions& options, const vector<double> rho, 
 					    double rhoalpha, double rhobeta)const{
   // calculates log full conditional density at sum-intensities rho, conditional on realized number of arrivals
   double LogPosterior = 0.0;
   vector<unsigned> SumN = getSumNumArrivals();
   vector<unsigned> SumN_X = getSumNumArrivals_X();
-  if(options->isRandomMatingModel() ) { // SumNumArrivals_X has length 2, and SumNumArrivals_X[0] remains fixed at 0 if male 
+  if(options.isRandomMatingModel() ) { // SumNumArrivals_X has length 2, and SumNumArrivals_X[0] remains fixed at 0 if male 
     for( unsigned int g = 0; g < NumGametes; g++ ) {
-      if(options->isAdmixed(g)) {
+      if(options.isAdmixed(g)) {
 	LogPosterior += getGammaLogDensity_LogBasis( rhoalpha + (double)(SumN[g] + SumN_X[g]), rhobeta + EffectiveL[g], rho[g] );
       } 
     }
   } else {//assortative mating, rho assumed same on both gametes
-    if(options->isAdmixed(0)) {
+    if(options.isAdmixed(0)) {
       LogPosterior+= getGammaLogDensity_LogBasis( rhoalpha + (double)(SumN[0] + SumN[1] + SumN_X[0] + SumN_X[1]), 
 					 rhobeta + EffectiveL[0] + EffectiveL[1], rho[0] );
     }

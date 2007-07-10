@@ -20,18 +20,21 @@
 
 HapMixIndividualCollection
 ::HapMixIndividualCollection(const HapMixOptions* const options, 
-			     InputHapMixData* const Data, Genome* Loci, const double* theta){
+			     InputHapMixData* const Data, Genome* Loci, const double* theta):
+  IndividualCollection(Data->getNumberOfIndividuals(), options->getPopulations(), Loci->GetNumberOfCompositeLoci()),
+  NumCaseControls(Data->getNumberOfCaseControlIndividuals()){
+
   SetNullValues();
-  NumCompLoci = Loci->GetNumberOfCompositeLoci();
+  //NumCompLoci = Loci->GetNumberOfCompositeLoci();
   GlobalConcordanceCounts = 0;
   GlobalSumArrivalCounts = 0;
   ConcordanceCounts = new int[NumCompLoci*2*(options->getNumberOfBlockStates())];
   SumArrivalCounts = new int[NumCompLoci*options->getNumberOfBlockStates()];
 
-  Populations = options->getPopulations();
-  NumInd = Data->getNumberOfIndividuals();//number of individuals, including case-controls
+  //Populations = options->getPopulations();
+  //NumInd = Data->getNumberOfIndividuals();//number of individuals, including case-controls
   size = NumInd;
-  NumCaseControls = Data->getNumberOfCaseControlIndividuals();
+  //  NumCaseControls = Data->getNumberOfCaseControlIndividuals();
   
   //  Individual::SetStaticMembers(Loci, options);
   Individual::SetStaticMembers(Loci, options);
@@ -67,12 +70,12 @@ bool HapMixIndividualCollection::isMaskedIndividual(unsigned i, const vector<uns
   return (find(maskedIndividuals.begin(), mi_end, i+1) != mi_end);
 
 }
-void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const options, unsigned iteration){
+void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions& options, unsigned iteration){
 
-  fill(ConcordanceCounts, ConcordanceCounts + NumCompLoci*(options->getPopulations()+1), 0);
-  fill(SumArrivalCounts, SumArrivalCounts + NumCompLoci*options->getPopulations(), 0);
+  fill(ConcordanceCounts, ConcordanceCounts + NumCompLoci*(options.getPopulations()+1), 0);
+  fill(SumArrivalCounts, SumArrivalCounts + NumCompLoci*options.getPopulations(), 0);
 
-  const vector<unsigned>& maskedIndividuals = options->getMaskedIndividuals();
+  const vector<unsigned>& maskedIndividuals = options.getMaskedIndividuals();
   const vector<unsigned>::const_iterator mi_begin = maskedIndividuals.begin();
   const vector<unsigned>::const_iterator mi_end = maskedIndividuals.end();
 
@@ -82,11 +85,11 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
       and these can be done in parallel on a dual-core processor */
     if (
 	(//If it's after the burnin 
-	 (int)iteration > options->getBurnIn()
+	 (int)iteration > options.getBurnIn()
 	 // and it's a case or control individual
 	 && isCaseControl(i)
 	 // and if the score tests are switched on
-	 && options->getTestForAllelicAssociation()
+	 && options.getTestForAllelicAssociation()
 	 // and the individual is diploid
 	 && (! _child[i]->isHaploidIndividual())
 	 )
@@ -135,10 +138,10 @@ bool HapMixIndividualCollection::isCaseControl(unsigned i)const{
   return ( i > (size - NumCaseControls) );
 }
 
-void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci){
+void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions& options, const Genome& Loci){
   
-  const std::vector<unsigned>& MaskedLoci = options->getMaskedLoci();
-  const std::vector<unsigned>& MaskedIndividuals = options->getMaskedIndividuals();
+  const std::vector<unsigned>& MaskedLoci = options.getMaskedLoci();
+  const std::vector<unsigned>& MaskedIndividuals = options.getMaskedIndividuals();
   // vu_ci stands for vector<unsigned>::const_iterator
   typedef std::vector<unsigned>::const_iterator vu_ci;
   unsigned j = 0;
@@ -160,14 +163,14 @@ void HapMixIndividualCollection::OutputCGProbs(const char* filename, const Vecto
 
 //TODO: use posterior means of mixture props if fixedmixtureprops=0
 double HapMixIndividualCollection
-::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
+::getDevianceAtPosteriorMean(const Options& options, vector<Regression *> &R, Genome* Loci,
                              LogWriter &Log, const double* const MixtureProps, const vector<double>& SumLogLambda){
 
   //TODO: broadcast SumLogRho to workers
   //TODO: set mixture props to posterior means
 
   //SumRho = ergodic sum of global sumintensities
-  const int iterations = options->getTotalSamples()-options->getBurnIn();
+  const int iterations = options.getTotalSamples()-options.getBurnIn();
   int NumDiploid = 0;
   
   NumDiploid = getNumDiploidIndividuals();
@@ -186,7 +189,7 @@ double HapMixIndividualCollection
     //set global state arrival probs in hapmixmodel
     //TODO: can skip this if xonly analysis with no females
     //NB: assumes always diploid in hapmixmodel
-    Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options->isRandomMatingModel(),
+    Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options.isRandomMatingModel(),
 						      (NumDiploid)>0);
   
   //set haplotype pair probs to posterior means 

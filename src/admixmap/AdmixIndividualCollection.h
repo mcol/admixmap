@@ -25,18 +25,17 @@ class IndAdmixOutputter;
 class AdmixIndividualCollection : public IndividualCollection
 {
 public:
-  AdmixIndividualCollection();
   ~AdmixIndividualCollection();
   AdmixIndividualCollection(const AdmixOptions* const options, const InputAdmixData* const Data, Genome* Loci);
 
   //void DeleteGenotypes(bool);
-  void Initialise(const AdmixOptions* const options, const Genome* const Loci,
+  void Initialise(const AdmixOptions& options, const Genome& Loci,
 		  const Vector_s& PopulationLabels, LogWriter &Log);
   void DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha);
   void LoadData(const AdmixOptions* const options, const InputAdmixData* const);
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels);
 
-  void HMMUpdates(int iteration, const AdmixOptions* const options,
+  void HMMUpdates(int iteration, const AdmixOptions& options,
                   const vector<Regression*> &R, const double* const poptheta,
                   const vector<vector<double> > &alpha, 
                   AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
@@ -44,23 +43,23 @@ public:
 				     const vector<Regression*> &R, const double* const poptheta,
 				     const vector<vector<double> > &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
 
-  void SampleParameters(int iteration, const AdmixOptions* const options,
+  void SampleParameters(int iteration, const AdmixOptions& options,
 			const vector<Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 			CopyNumberAssocTest& ancestryAssocTest, bool anneal);
-  void setChibNumerator(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
+  void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha, 
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
-  void updateChib(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
+  void updateChib(const AdmixOptions& options,const vector<vector<double> > &alpha, 
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
 
-  void FindPosteriorModes(const AdmixOptions* const options, 
+  void FindPosteriorModes(const AdmixOptions& options, 
 			  const vector<Regression*> &R, 
 			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, AlleleFreqs* A, 
 			  const Vector_s& PopulationLabels);
 
   void OutputIndAdmixture();
-  double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
+  double getDevianceAtPosteriorMean(const Options& options, vector<Regression *> &R, Genome* Loci,
+				    LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
 
   void WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels)const;
   void OutputChibResults(LogWriter&)const;
@@ -80,7 +79,7 @@ public:
 
   void HMMIsBad(bool b);
   void resetStepSizeApproximators(int k);
-  void accumulateEnergyArrays(const Options* const options);
+  void accumulateEnergyArrays(const Options& options);
   double* getSumEnergy()const;
   double* getSumEnergySq()const;
   void ResetChib();
@@ -104,6 +103,7 @@ private:
 
   chib MargLikelihood;
 
+  AdmixIndividualCollection();
   void SetNullValues();
   void LoadRepAncestry(const InputAdmixData* const);
 };

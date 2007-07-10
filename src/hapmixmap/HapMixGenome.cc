@@ -31,8 +31,9 @@ HapMixChromosome* HapMixGenome::getHapMixChromosome(unsigned j){
 }
 
 ///constructor for HapMixChromosome. The same as base class but creates HapMixHMM object
-HapMixChromosome::HapMixChromosome(int n, int size, int start, int inNumHiddenStates, bool isx){
-  Initialise(n, size, start, inNumHiddenStates, isx);
+HapMixChromosome::HapMixChromosome(int n, int size, int start, int inNumHiddenStates, bool isx):
+  Chromosome(n, size, start, inNumHiddenStates, isx){
+
   HMM = new HapMixHMM( size, inNumHiddenStates, f);
 }
 

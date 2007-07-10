@@ -27,7 +27,7 @@ class AdmixedIndividual;
 class IndAdmixOutputter 
 {
 public:
-  IndAdmixOutputter(const AdmixOptions* const, const Genome* const, const Vector_s& PopLabels);
+  IndAdmixOutputter(const AdmixOptions& , const Genome&, const Vector_s& PopLabels);
   virtual ~IndAdmixOutputter();
   void visitIndividual(const AdmixedIndividual&, const std::vector<int>);
   void visitIndividualCollection(const AdmixIndividualCollection&);
@@ -36,15 +36,14 @@ public:
 private: 
   RObjectWriter _out;
 
-  const AdmixOptions* _options;
-  const Genome* _Loci;
-  const Vector_s*  _PopulationLabels;
+  const AdmixOptions&  _options;
+  const Genome& _Loci;
+  const Vector_s&  _PopulationLabels;
+  const bool _RandomMatingModelIndicator;
 
   int _iterations;
   int _totalIndividuals;
   int _currentIndividual;
-
-  bool _RandomMatingModelIndicator;
 
   // UNIMPLEMENTED
   // to avoid use

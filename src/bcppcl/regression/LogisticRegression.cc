@@ -5,19 +5,21 @@
 #include <numeric>//for accumulate
 
 using namespace::std;
-LogisticRegression::LogisticRegression(){
+LogisticRegression::LogisticRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+				       LogWriter &Log): Regression(Number, Logistic){
   BetaSampler = 0;
   acceptbeta = 0;
-  RegType = Logistic;
+  //RegType = Logistic;
+  Initialise(priorPrecision, Covars, Outcome, Log);
 }
 ///deallocates arrays specific to this class
 LogisticRegression::~LogisticRegression(){
   delete BetaSampler;
 }
 
-void LogisticRegression::Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+void LogisticRegression::Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
 				    LogWriter &Log){
-  Regression::Initialise(Number, Covars.nCols(), Covars.nRows(), Covars.getData());
+  Regression::Initialise(Covars.nCols(), Covars.nRows(), Covars.getData());
   Log.setDisplayMode(Quiet);
   std::vector<double> v = Outcome.getCol(RegNumber);
   double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();

@@ -18,7 +18,8 @@
 //   SetNullValues();
 // }
 
-HapMixHMM::HapMixHMM( int inTransitions, int NumHiddenStates, const double* const f){
+HapMixHMM::HapMixHMM( int inTransitions, int NumHiddenStates, const double* const f):
+  HiddenMarkovModel(inTransitions, NumHiddenStates, f){
   SetNullValues();
   StateArrivalProbs[0] = 0;
   StateArrivalProbs[1] = 0;
@@ -29,9 +30,6 @@ HapMixHMM::HapMixHMM( int inTransitions, int NumHiddenStates, const double* cons
 //that is, if the allelic assoc score test is on or the PPGenotypes Probs are being written
 void HapMixHMM::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin, bool diploid){
   //inTransitions = #transitions +1 = #Loci 
-  K = NumHiddenStates;
-  DStates = K*K;
-  Transitions = inTransitions;
   p = new double[Transitions];
   f = fin;
   StateArrivalProbs[0] = new double[Transitions * K ];

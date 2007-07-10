@@ -28,9 +28,9 @@ class Regression;
 ///Class to represent an individual and update individual-level parameters
 class Individual{
 public:
-  Individual();
-  Individual(int number, const Options* const options, const InputData* const Data);
-  void Initialise(int number, const Options* const options, const InputData* const Data);
+  Individual(unsigned number);
+  //Individual(const Options* const options, const InputData* const Data);
+  void Initialise(const Options* const options, const InputData* const Data);
   virtual ~Individual();
 
   void DeleteGenotypes();
@@ -50,15 +50,15 @@ public:
   bool isHaploidatLocus(unsigned j)const;
   bool isHaploidIndividual()const;
 
-  virtual double getLogLikelihood(const Options* const , const bool forceUpdate, const bool store);
+  virtual double getLogLikelihood(const Options& , const bool forceUpdate, const bool store);
   void storeLogLikelihood(const bool setHMMAsOK); //< to call if a Metropolis proposal is accepted
-  virtual double getLogLikelihoodAtPosteriorMeans(const Options* const options);
+  virtual double getLogLikelihoodAtPosteriorMeans(const Options& options);
 
   void GetLocusAncestry(int locus, int Ancestry[2])const;
   void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
   int GetLocusAncestry(int, int, int)const;
    
-  void SampleHiddenStates(const Options* const options);
+  void SampleHiddenStates(const Options& options);
 
   void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts);
 
@@ -67,7 +67,7 @@ public:
   void SampleMissingOutcomes(DataMatrix *Outcome, const std::vector<Regression*>& R);
   
 protected:
-  unsigned myNumber;//< number of this individual, counting from 1
+  const unsigned myNumber;//< number of this individual, counting from 1
   bool SexIsFemale;
   bool isHaploid;//< indicates if individual is haploid at all loci or only at X loci
   static unsigned int numChromosomes;
@@ -98,11 +98,12 @@ protected:
     bool HMMisOK;//< true iff values in HMM objects correspond to current parameter values for this individual
   } logLikelihood;
   
+  Individual();
   void SetUniformAdmixtureProps();
 
-  virtual void UpdateHMMInputs(unsigned int j, const Options* const options, 
+  virtual void UpdateHMMInputs(unsigned int j, const Options& options, 
                                const double* const theta, const std::vector<double> rho) = 0;
-  virtual double getLogLikelihood(const Options* const options, 
+  virtual double getLogLikelihood(const Options& options, 
                                   const double* const theta, const std::vector<double > rho, bool updateHMM);
 };
 

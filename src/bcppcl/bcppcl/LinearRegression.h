@@ -8,10 +8,9 @@
 ///Class to sample the parameters of a linear regression
 class LinearRegression : public Regression{
 public:
-  LinearRegression();
+  LinearRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+		   LogWriter &Log);
   ~LinearRegression();
-  void Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
-		  LogWriter &Log);
   void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
 
   double getDispersion()const;
@@ -22,7 +21,7 @@ public:
   double getLogLikelihood(const std::vector<double>& Outcome)const;
   double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome);
 private:
-    // ** Linear Regression Objects
+  // ** Linear Regression Objects
   double lambda0; //parameters of
   double lambda1; //Gamma prior for lambda
   double *R, *QY, *QX, *V, *betahat;
@@ -34,6 +33,10 @@ private:
   void SampleLinearRegressionParams(double* beta, const double* Y, const double* X, int NumIndivs, int NumCovars);
   void SampleLinearRegressionParametersWithAnnealing(const double* Y, const double* X, double* beta, double *lambda, 
 							       double coolness);
+
+  LinearRegression();
+  void Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+		  LogWriter &Log);
 
 };
 #endif

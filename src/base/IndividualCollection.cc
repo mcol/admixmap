@@ -15,9 +15,9 @@
 using namespace std;
 
 // **** CONSTRUCTORS  ****
-IndividualCollection::IndividualCollection() {
-  SetNullValues();
-}
+// IndividualCollection::IndividualCollection() {
+//   SetNullValues();
+// }
 void IndividualCollection::SetNullValues(){
   OutcomeType = 0;
   NumOutcomes = 0;
@@ -29,17 +29,17 @@ void IndividualCollection::SetNullValues(){
   _child = 0;
   SumLogLikelihood = 0.0;
   ReportedAncestry = 0;
-  NumInd = 0;
   size = 0;
   NumDiploidIndividuals = 0;
 }
 
-IndividualCollection::IndividualCollection(const Options* const options, const InputData* const Data, Genome* Loci) {
+IndividualCollection::IndividualCollection(unsigned numIndividuals, unsigned numPopulations, unsigned numCompositeLoci) :
+  NumInd(numIndividuals), Populations(numPopulations), NumCompLoci(numCompositeLoci){
   SetNullValues();
-  Populations = options->getPopulations();
-  NumInd = Data->getNumberOfIndividuals();
+  //Populations = options->getPopulations();
+  //NumInd = Data->getNumberOfIndividuals();
   size = NumInd;
-  NumCompLoci = Loci->GetNumberOfCompositeLoci();
+  //NumCompLoci = Loci->GetNumberOfCompositeLoci();
 }
 
 int IndividualCollection::getNumDiploidIndividuals()const{
@@ -139,12 +139,12 @@ void IndividualCollection::HMMIsBad(bool b){
 /**
    Samples Haplotype pairs and upates allele/haplotype counts if requested
 */
-void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
+void IndividualCollection::SampleHapPairs(const Options& options, AlleleFreqs *A, const Genome* const Loci,
 					  bool skipMissingGenotypes, bool anneal, bool UpdateAlleleCounts){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
-  bool annealthermo = anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator();
+  bool annealthermo = anneal && options.getThermoIndicator() && !options.getTestOneIndivIndicator();
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
       
@@ -158,12 +158,12 @@ void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFr
   }
 }
 
-void IndividualCollection::AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
+void IndividualCollection::AccumulateAlleleCounts(const Options& options, AlleleFreqs *A, const Genome* const Loci,
                                                   bool anneal){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
-  bool annealthermo = anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator();
+  bool annealthermo = anneal && options.getThermoIndicator() && !options.getTestOneIndivIndicator();
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 
@@ -274,7 +274,7 @@ int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
 
 
 
-double IndividualCollection::getLogLikelihood(const Options* const options, bool forceupdate){
+double IndividualCollection::getLogLikelihood(const Options& options, bool forceupdate){
   double LogLikelihood = 0.0;
   for(unsigned i = 0; i < size; i++) {
     LogLikelihood += _child[i]->getLogLikelihood(options, forceupdate, true); // store result if updated
@@ -283,7 +283,7 @@ double IndividualCollection::getLogLikelihood(const Options* const options, bool
   return LogLikelihood;
 }
 
-double IndividualCollection::getEnergy(const Options* const options, const vector<Regression*> &R, 
+double IndividualCollection::getEnergy(const Options& options, const vector<Regression*> &R, 
 				       const bool & annealed) {
   // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
   // called every iteration after burnin, after update of genotype probs and before annealing

@@ -26,7 +26,7 @@ class AdmixIndividualCollection;
 class PopAdmix
 {
 public:
-  PopAdmix(AdmixOptions* op, Genome* loci);
+  PopAdmix(const AdmixOptions& op, Genome& loci);
   
   ~PopAdmix();
   
@@ -63,11 +63,11 @@ public:
 //     void OutputLambda(const char*) const{return;};
 
 private:
-  int K;///< number of subpopulations / block states
   std::ofstream outputstream;//output to paramfile
 
-  AdmixOptions *options;
-  Genome* Loci; 
+  const AdmixOptions& options;
+  Genome& Loci; 
+  const int K;///< number of subpopulations / block states
 
   std::vector<double> rho;
   std::vector<double> rhoproposal;

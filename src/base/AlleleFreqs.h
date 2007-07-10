@@ -85,7 +85,6 @@ protected:
   int FREQSAMPLER;// 1 = conjugate sampler, 2 = Hamiltonian sampler
   std::vector<AlleleFreqSampler*> FreqSampler;
   bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
-  bool hapmixmodel;
 
   Genome *Loci;//pointer to Loci object
   RObjectWriter allelefreqoutput;// object to output allele frequencies

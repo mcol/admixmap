@@ -15,45 +15,39 @@
 
 using namespace std;
 
-IndAdmixOutputter::IndAdmixOutputter(const AdmixOptions* const options, const Genome* const Loci, const Vector_s& PopulationLabels)
+IndAdmixOutputter::IndAdmixOutputter(const AdmixOptions& options, const Genome& Loci, const Vector_s& PopulationLabels):
+  _options(options), _Loci(Loci), _PopulationLabels(PopulationLabels),  _RandomMatingModelIndicator(options.isRandomMatingModel())
 {
-  _options           = options;
-  _Loci              = Loci;
-  _PopulationLabels  = &PopulationLabels;
-
   _iterations        = 0;
   _totalIndividuals  = 0;
   _currentIndividual = 0;
 
-
-  _RandomMatingModelIndicator = options->isRandomMatingModel();
-
-  if (_options->getLocusForTest() >= (int)_Loci->GetNumberOfCompositeLoci()){
+  if (_options.getLocusForTest() >= (int)_Loci.GetNumberOfCompositeLoci()){
     cerr << "locusfortest is greater than number of loci" << endl;
     exit(0);
   }
   
-  _out.open(options->getIndAdmixtureFilename());
+  _out.open(options.getIndAdmixtureFilename());
 }
 
 IndAdmixOutputter::~IndAdmixOutputter(){
   //finish writing R object
   vector<vector<string> > dimnames(1);
 
-  for( int i = 0; i < _options->getPopulations(); i++ ) {
-    dimnames[0].push_back((*_PopulationLabels)[i]);
+  for( int i = 0; i < _options.getPopulations(); i++ ) {
+    dimnames[0].push_back(_PopulationLabels[i]);
 
-    if(_options->isRandomMatingModel() )
+    if(_RandomMatingModelIndicator )
       dimnames[0][i].append( "1" );
   }
 
-  if(_options->isRandomMatingModel() )
-    for( int i = 0; i < _options->getPopulations(); i++ )
-      dimnames[0].push_back( (*_PopulationLabels)[i] + "2");
+  if(_RandomMatingModelIndicator )
+    for( int i = 0; i < _options.getPopulations(); i++ )
+      dimnames[0].push_back( _PopulationLabels[i] + "2");
   
 
-  if( !_options->isGlobalRho() ){
-    if(_options->isRandomMatingModel()){
+  if( !_options.isGlobalRho() ){
+    if(_options.isRandomMatingModel()){
       dimnames[0].push_back("rho1");
       dimnames[0].push_back("rho2");
     }
@@ -61,8 +55,8 @@ IndAdmixOutputter::~IndAdmixOutputter(){
       dimnames[0].push_back("rho");
   }
   
-  if (_options->getLocusForTestIndicator()){
-    if( _options->getPopulations() > 1 ){
+  if (_options.getLocusForTestIndicator()){
+    if( _options.getPopulations() > 1 ){
       dimnames[0].push_back("LocusAncestry1");
       dimnames[0].push_back("LocusAncestry2");
     }
@@ -81,37 +75,37 @@ void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vect
 {
 
   //output individual admixture proportions
-  for( int k = 0; k < _options->getPopulations(); k++ ){
+  for( int k = 0; k < _options.getPopulations(); k++ ){
     _out << ind.getAdmixtureProps()[k] ;
   }
 
   //if random mating, output admixture proportions for second gamete
-  if(_options->isRandomMatingModel())
-    for( int k = 0; k < _options->getPopulations(); k++ )
-      _out << ind.getAdmixtureProps()[ k + _options->getPopulations()] ;
+  if(_options.isRandomMatingModel())
+    for( int k = 0; k < _options.getPopulations(); k++ )
+      _out << ind.getAdmixtureProps()[ k + _options.getPopulations()] ;
   
   //output individual sumintensities
-  if( !_options->isGlobalRho() ){
+  if( !_options.isGlobalRho() ){
      vector<double> rho = ind.getRho();
      //first gamete
      _out << rho[0]; 
      //second gamete if there is one
-     if(_options->isRandomMatingModel())
+     if(_options.isRandomMatingModel())
        _out << rho[1] ;
   }
   
-  if (_options->getLocusForTestIndicator()){
+  if (_options.getLocusForTestIndicator()){
     int ancestry[2];
     ind.GetLocusAncestry( _locusfortest[0], _locusfortest[1], ancestry );
-    //vector<vector<unsigned short> > genotype_ = ind.getGenotype(_options->getLocusForTest());
-     if(_options->getPopulations() > 1 ){
+    //vector<vector<unsigned short> > genotype_ = ind.getGenotype(_options.getLocusForTest());
+     if(_options.getPopulations() > 1 ){
         _out << ancestry[0] << ancestry[1];
      }
-     //if((*_Loci)(_options->getLocusForTest() )->GetNumberOfLoci() > 1 ){
-       const int* happair = ind.getSampledHapPair(_options->getLocusForTest());
+     //if(_Loci(_options.getLocusForTest() )->GetNumberOfLoci() > 1 ){
+       const int* happair = ind.getSampledHapPair(_options.getLocusForTest());
 
-       //if(_options->getPopulations() > 1 ){
-       //  genotype_ = ind.getGenotype(_options->getLocusForTest() );
+       //if(_options.getPopulations() > 1 ){
+       //  genotype_ = ind.getGenotype(_options.getLocusForTest() );
        //}
         _out << happair[0] << happair[1];
 	//} else {

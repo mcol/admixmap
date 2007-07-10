@@ -26,10 +26,10 @@ typedef struct{
 ///class to sample the parameters of a Cox regression
 class CoxRegression : public Regression{
 public:
-  CoxRegression();
+  CoxRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+		LogWriter &Log);
   ~CoxRegression();
-  void Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
-		  LogWriter &Log);
+ 
   void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
   //void Initialise(unsigned Number, const IndividualCollection* const individuals);
   void ReadData(const DataMatrix& CoxData);
@@ -61,5 +61,9 @@ private:
   static double ddlr( const double beta, const void* const vargs );
 
   void plotloglikelihood(int j, const double* Covariates);
+
+  CoxRegression();
+  void Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+		  LogWriter &Log);
 };
 #endif

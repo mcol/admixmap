@@ -42,14 +42,12 @@ void Model::InitialiseRegressionObjects(Options& options, InputData& data,  LogW
 
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
     //determine regression type and allocate regression objects
-    if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
-    else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
-    else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression());
-    
-    if(R[r]->getRegressionType()==Cox)
-      R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log);
-    else
-      R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
+    if( data.getOutcomeType(r)== Binary ) 
+      R.push_back( new LogisticRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log) );
+    else if( data.getOutcomeType(r)== Continuous ) 
+      R.push_back( new LinearRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log));
+    else if( data.getOutcomeType(r)== CoxData ) 
+      R.push_back(new CoxRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log));
     
     R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
   }
@@ -69,11 +67,11 @@ void Model::Start(Options& options, InputData& data, LogWriter& Log){
   // ******************* Set annealing schedule ************************************************
   
   s = options.getResultsDir()+"/annealmon.txt";
-  A.Initialise(options.getThermoIndicator(), options.getNumAnnealedRuns(), options.getTotalSamples(), options.getBurnIn(), s.c_str());
+  _Annealer.Initialise(options.getThermoIndicator(), options.getNumAnnealedRuns(), options.getTotalSamples(), options.getBurnIn(), s.c_str());
   AISsumlogz = 0.0; //for computing marginal likelihood by Annealed Importance Sampling
   
-  A.PrintRunLengths(Log, options.getTestOneIndivIndicator());
-  A.SetAnnealingSchedule();
+  _Annealer.PrintRunLengths(Log, options.getTestOneIndivIndicator());
+  _Annealer.SetAnnealingSchedule();
   
   //Write initial values
   //     if(options.getIndAdmixHierIndicator()  ){
@@ -98,7 +96,7 @@ void Model::Run(Options& options, InputData& data, LogWriter& Log){
     //resets for start of each run
     double SumEnergy = 0.0;//cumulative sum of modified loglikelihood
     double SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
-    bool AnnealedRun = A.SetRunLengths(run, &samples, &burnin, &coolness);
+    bool AnnealedRun = _Annealer.SetRunLengths(run, &samples, &burnin, &coolness);
     
     if(NumAnnealedRuns > 0) {
       cout <<"\rSampling at coolness of " << coolness << "       "<< flush;
@@ -111,41 +109,22 @@ void Model::Run(Options& options, InputData& data, LogWriter& Log){
       
     }
     // accumulate scalars SumEnergy and SumEnergySq at this coolness
-    // array Coolnesses is not used unless TestOneIndivIndicator is true
-    Iterate(samples, burnin, A.GetCoolnesses(), run, options, data, Log, SumEnergy, SumEnergySq,
+    Iterate(samples, burnin, _Annealer.GetCoolnesses(), run, options, data, Log, SumEnergy, SumEnergySq,
 	    AnnealedRun);
     
     //calculate mean and variance of energy at this coolness
-    A.CalculateLogEvidence(run, coolness, SumEnergy, SumEnergySq, samples - burnin);
+    _Annealer.CalculateLogEvidence(run, coolness, SumEnergy, SumEnergySq, samples - burnin);
     
   } // end loop over coolnesses
 
   Finish(options, data, Log);    
 }
 
-void Model::TestIndivRun(Options& options, InputData& data, LogWriter& Log){
-  double SumEnergy = 0.0;//cumulative sum of modified loglikelihood
-  double SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
-  int samples = options.getTotalSamples();
-  int burnin = options.getBurnIn();
-
-  Start(options, data, Log);
-
-  // call with argument AnnealedRun false - copies of test individual will be annealed anyway  
-  Iterate(samples, burnin, A.GetCoolnesses(), 0, options, data, Log, 
-	  SumEnergy, SumEnergySq, false);
-  
-  // arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls
-  A.CalculateLogEvidence(getSumEnergy(), getSumEnergySq(), options.getNumAnnealedRuns());
-
-  Finish(options, data, Log);    
-}
-
-void Model::GetEnergy(const double* Coolnesses, unsigned coolness, const Options & options, double & SumEnergy, double & SumEnergySq, 
+void Model::AccumulateEnergy(const double* Coolnesses, unsigned coolness, const Options & options, double & SumEnergy, double & SumEnergySq, 
 		      double& AISz, bool AnnealedRun, int iteration){
   //accumulate energy as minus loglikelihood, calculated using unannealed genotype probs
 
-  double Energy = IC->getEnergy(&options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
+  double Energy = IC->getEnergy(options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
   
   SumEnergy += Energy;
   SumEnergySq += Energy*Energy;
@@ -161,11 +140,6 @@ void Model::ResetStepSizeApproximators(int resetk){
   IC->resetStepSizeApproximators(resetk); 
   pA->resetStepSizeApproximator(resetk);
 }
-
-// double Model::getDevianceAtPosteriorMean(const Options* const options, Genome* Loci, LogWriter& Log){
-//   return IC->getDevianceAtPosteriorMean(options, R, Loci, Log, L->getSumLogRho(), Loci->GetNumberOfChromosomes(), &A);
-// }
-
 
 void Model::OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq) {
   double EAvDeviance, EVarDeviance;
@@ -183,7 +157,7 @@ void Model::Finish(Options& options, InputData& data, LogWriter& Log){
   
   Finalize(options, Log, data);
   
-  A.PrintResults(Log, getDevianceAtPosteriorMean(&options, Log));
+  _Annealer.PrintResults(Log, getDevianceAtPosteriorMean(options, Log));
   
   if(options.getThermoIndicator()){
     Log << "\nAnnealed Importance Sampling estimates log marginal likelihood as " << AISsumlogz << "\n";

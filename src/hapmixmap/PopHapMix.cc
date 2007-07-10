@@ -29,9 +29,9 @@ using namespace std;
 #define SQ( x ) x*x
 #define REC(x) 1.0 / x
 
-PopHapMix::PopHapMix( HapMixOptions* op, HapMixGenome* loci){
-  options = op;
-  Loci = loci;
+PopHapMix::PopHapMix( const HapMixOptions& op, HapMixGenome& loci):
+  K(op.getNumberOfBlockStates()), options(op), Loci(loci){
+
   MixtureProps = 0;
   ArrivalRateSampler = 0;
   MixturePropsPrior = 0;
@@ -43,23 +43,21 @@ PopHapMix::PopHapMix( HapMixOptions* op, HapMixGenome* loci){
 }
 
 void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
-  K = options->getNumberOfBlockStates();
-
   InitialiseMixtureProportions(Log);
   
   InitialiseArrivalRates(Log);
   
   // ** Open paramfile **
   Log.setDisplayMode(Quiet);
-  if( strlen( options->getParameterFilename() ) ){
-    outputstream.open( options->getParameterFilename(), ios::out );
+  if( strlen( options.getParameterFilename() ) ){
+    outputstream.open( options.getParameterFilename(), ios::out );
     if( !outputstream )
       {
 	Log << On << "ERROR: Couldn't open paramfile\n";
 	exit( 1 );
       }
     else{
-      Log << Quiet << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
+      Log << Quiet << "Writing population-level parameters to " << options.getParameterFilename() << "\n";
       InitializeOutputFile(distanceUnit);
     }
   }
@@ -71,12 +69,12 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
 
 ///initialise global admixture proportions
 void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
-  const unsigned L = Loci->GetNumberOfCompositeLoci();
+  const unsigned L = Loci.GetNumberOfCompositeLoci();
   const unsigned KL = K*L;
   MixtureProps = new double[KL];
 
   //set initial values
-  const string initfilename = options->getInitialMixturePropsFilename();
+  const string initfilename = options.getInitialMixturePropsFilename();
   //get initial values from file
   if(initfilename.size()){
     ReadInitialMixturePropsFromFile(initfilename.c_str(), Log);
@@ -87,7 +85,7 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
     fill(MixtureProps, MixtureProps + K*L, 1.0/(double)K);
   }
 
-  if(!options->getFixedMixtureProps()){//we are sampling mixture props
+  if(!options.getFixedMixtureProps()){//we are sampling mixture props
     /*
     Mixture proportions have a Dirichlet prior with parameters MixturePropsPrecision / K 
     ( so that the proportions are equal).
@@ -100,19 +98,19 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
     SumThetaSq = new double[K];
 
     //set initial value of precision
-    double InitialPrecision = options->getMixturePropsPrecision(); //user-specified
+    double InitialPrecision = options.getMixturePropsPrecision(); //user-specified
     if(InitialPrecision <= 0.0)InitialPrecision = (double)K;// default
 
     double MPDShape = (double)K;// precision prior shape
     double MPDRate = 1.0;//precision prior rate
-    if(!options->getFixedMixturePropsPrecision()){//we are sampling precision
+    if(!options.getFixedMixturePropsPrecision()){//we are sampling precision
       /*
 	The prior precision (MixturePropsPriorPrecision) has a 
 	Gamma prior, which defaults to Gamma(1,1).
       */
 
       //check for user-specified prior
-      const vector<double>& userprior = options->getMixturePropsPrecisionPrior();
+      const vector<double>& userprior = options.getMixturePropsPrecisionPrior();
       if(userprior.size()){//user has specified a prior
 	MPDShape = userprior[0];
 	MPDRate = userprior[1];
@@ -130,7 +128,7 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
 
     //write prior parameters to screen and log
     Log << Quiet << "Dirichlet prior on mixture proportions" ;
-    if(!options->getFixedMixturePropsPrecision()){
+    if(!options.getFixedMixturePropsPrecision()){
       Log << "\nGamma(" << MPDShape << ", " << MPDRate << ") prior on mixture proportion prior precision\n" ;
     }
     else
@@ -148,7 +146,7 @@ void PopHapMix::ReadInitialMixturePropsFromFile(const char* initfilename, LogWri
   
   if(initfile.is_open()){
     Log << Quiet << "Reading initial values of mixture proportions from " << initfilename << "\n";
-    const unsigned KL = K*Loci->GetNumberOfCompositeLoci();
+    const unsigned KL = K*Loci.GetNumberOfCompositeLoci();
    //read until vector is filled or end-of-file
     for(unsigned index = 0; index < KL; ++index){
       if(!(initfile >>MixtureProps[index])){
@@ -179,10 +177,10 @@ void PopHapMix::ReadInitialMixturePropsFromFile(const char* initfilename, LogWri
 }
 
 void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
- const unsigned L = Loci->GetNumberOfCompositeLoci();
+ const unsigned L = Loci.GetNumberOfCompositeLoci();
 
   //set priors
-  const vector<double>& priorparams = options->getLambdaPrior();
+  const vector<double>& priorparams = options.getLambdaPrior();
   if(priorparams.size()==3){
     fixRateParameter = true;
     LambdaArgs.beta = priorparams[2];
@@ -193,7 +191,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
     LambdaArgs.beta_rate = priorparams[3];
     LambdaArgs.beta = priorparams[2]/priorparams[3];//initialise beta at prior mean
   }
-  unsigned numIntervals = L-Loci->GetNumberOfChromosomes(); 
+  unsigned numIntervals = L-Loci.GetNumberOfChromosomes(); 
   lambda.assign(numIntervals, 0);
   //TODO: if distance is too large, leave lambda at zero and do not sample (as if a new chromosome)
    
@@ -202,7 +200,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   
   //set up Hamiltonian sampler for lambda
   ArrivalRateSampler = new HamiltonianMonteCarlo[numIntervals];
-  const vector<float>& lambdasamplerparams = options->getLambdaSamplerParams();
+  const vector<float>& lambdasamplerparams = options.getLambdaSamplerParams();
   size_t size = lambdasamplerparams.size();
   float initial_stepsize = size? lambdasamplerparams[0] : 0.06;
   float min_stepsize = size? lambdasamplerparams[1] : 0.0001;
@@ -213,7 +211,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   //set constant args for sampler for h
   hargs.shape = priorparams[0];
   hargs.rate = priorparams[1];
-  hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
+  hargs.Dlogbeta = Loci.GetLengthOfGenome()*log(LambdaArgs.beta);
   hargs.sum_lngamma_hd = 0.0;
   hargs.NumIntervals = numIntervals;
   hargs.distances = new double[numIntervals];
@@ -245,20 +243,20 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   //initialise lambda vector
   int locus = 0;//indexes loci
   int d = 0; //indexes intervals
-  const string initfilename = options->getInitialArrivalRateFilename();
+  const string initfilename = options.getInitialArrivalRateFilename();
   const bool useinitfile = (initfilename.size() > 0);
 
   if(useinitfile){
     ReadInitialArrivalRatesFromFile(initfilename.c_str(), Log);
   }
   
-  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+  for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
     ++locus;//skip first locus on each chromosome
-    for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
-      hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci->GetDistance(locus));
-      hargs.distances[d] = Loci->GetDistance(locus);
+    for(unsigned i = 1; i < Loci.GetSizeOfChromosome(c); ++i){
+      hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci.GetDistance(locus));
+      hargs.distances[d] = Loci.GetDistance(locus);
       if(!useinitfile)//initialise at prior mean
-        lambda[d]= Rand::gengam(LambdaArgs.h*Loci->GetDistance(locus), LambdaArgs.beta);
+        lambda[d]= Rand::gengam(LambdaArgs.h*Loci.GetDistance(locus), LambdaArgs.beta);
 
       SumLogLambda.push_back(0.0);
 
@@ -336,9 +334,9 @@ void PopHapMix::SampleArrivalRate(const int* ConcordanceCounts, bool accumulateL
     vector<double>::iterator lambda_iter = lambda.begin();
     vector<double>::iterator sumloglambda_iter = SumLogLambda.begin();
     
-    for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+    for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
       ++locus;//skip first locus on each chromosome
-      for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+      for(unsigned i = 1; i < Loci.GetSizeOfChromosome(c); ++i){
 	double loglambda = log(*lambda_iter);//sampler is on log scale
 	LambdaArgs.theta = MixtureProps + locus*K;
 	LambdaArgs.Distance = hargs.distances[interval];//distance between this locus and last
@@ -388,10 +386,10 @@ void PopHapMix::Sampleh_RandomWalk(){
      double logLikelihoodRatio = (proposal - h)*(hargs.Dlogbeta + hargs.sum_dloglambda) + hargs.sum_lngamma_hd;
      double sum = 0.0;
      int locus = 0;
-     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+     for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
        ++locus;//skip first locus on each chromosome
-       for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
-	       sum += lngamma(proposal*Loci->GetDistance(locus));
+       for(unsigned i = 1; i < Loci.GetSizeOfChromosome(c); ++i){
+	       sum += lngamma(proposal*Loci.GetDistance(locus));
        }
        ++locus;
      }
@@ -432,10 +430,10 @@ void PopHapMix::Sampleh_ARS(){
 void PopHapMix::SampleRateParameter(){
   try{
     //sample rate parameter with conjugate update
-    const double pshape = LambdaArgs.beta_shape + LambdaArgs.h*Loci->GetLengthOfGenome();
+    const double pshape = LambdaArgs.beta_shape + LambdaArgs.h*Loci.GetLengthOfGenome();
     const double prate = LambdaArgs.beta_rate + LambdaPriorArgs.sumlambda;
     LambdaArgs.beta = Rand::gengam(pshape, prate);
-    hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
+    hargs.Dlogbeta = Loci.GetLengthOfGenome()*log(LambdaArgs.beta);
   }
   catch(string s){
     string err = "Error encountered while sampling lambda rate parameter:\n" + s;
@@ -559,10 +557,10 @@ double PopHapMix::hd2logf(double h, const void* const vargs){
 
 void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
   // Header line of paramfile
-  if(!options->getFixedMixturePropsPrecision())
+  if(!options.getFixedMixturePropsPrecision())
     outputstream << "MixtureProps.Precision\t";
 
-  if(!options->getFixedMixtureProps())
+  if(!options.getFixedMixtureProps())
     outputstream << "MixtureProps.Sample.Precision\t";
 
   outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t";
@@ -591,14 +589,14 @@ void PopHapMix::OutputParams(ostream& out){
   out << setiosflags(ios::fixed) << setprecision(6);
 
   //mixture props precision
-  if(!options->getFixedMixturePropsPrecision()){
+  if(!options.getFixedMixturePropsPrecision()){
     double sum = 0.0;
     for(unsigned k = 0; k < K; ++k)
       sum += MixturePropsPrior[k];
     out << sum << "\t";
   }
   
-  if(!options->getFixedMixtureProps())
+  if(!options.getFixedMixtureProps())
     //observed precision
     out << eta  << "\t";
  
@@ -614,7 +612,7 @@ void PopHapMix::OutputParams(ostream& out){
 //output mixture proportions averaged over loci
 void PopHapMix::OutputAverageMixtureProps(ostream& out)const{
   vector<double> sum(K, 0.0);
-  const unsigned L = Loci->GetNumberOfCompositeLoci();
+  const unsigned L = Loci.GetNumberOfCompositeLoci();
   for(unsigned locus = 0; locus < L; ++locus){
     for(unsigned k = 0; k < K; ++k)
       sum[k] += MixtureProps[locus*K +k];
@@ -625,12 +623,12 @@ void PopHapMix::OutputAverageMixtureProps(ostream& out)const{
 
 void PopHapMix::OutputParams(int iteration, LogWriter &){
   //output to screen
-  if( options->getDisplayLevel() > 2 )
+  if( options.getDisplayLevel() > 2 )
     {
       OutputParams(cout);
     }
   //Output to paramfile after BurnIn
-  if( iteration > options->getBurnIn() ){
+  if( iteration > options.getBurnIn() ){
     // OutputAverageMixtureProps(outputstream);
     OutputParams(outputstream);
     //write Haplotype block length to file
@@ -662,7 +660,7 @@ void PopHapMix::printAcceptanceRates(LogWriter &Log) {
 //   Log << "Expected acceptance rate in h sampler: " << hTuner.getExpectedAcceptanceRate()
 //       << "\nwith final step size of " << hTuner.getStepSize() << "\n";
 
-  if(!options->getFixedMixturePropsPrecision()){
+  if(!options.getFixedMixturePropsPrecision()){
     Log << "Acceptance rate in sampler for mixture proportion precision: "
 	<< MixturePropsPrecisionSampler.getExpectedAcceptanceRate()
 	<< "\nwith final step size of " << MixturePropsPrecisionSampler.getStepSize() << "\n";
@@ -692,7 +690,7 @@ void PopHapMix::OutputMixtureProps(const char* filename)const{
     ofstream outfile(filename);
     if(outfile.is_open()){
       //copy to output stream , space-separated
-      copy(MixtureProps, MixtureProps + K*Loci->GetNumberOfCompositeLoci(), ostream_iterator<double>(outfile, " "));
+      copy(MixtureProps, MixtureProps + K*Loci.GetNumberOfCompositeLoci(), ostream_iterator<double>(outfile, " "));
       outfile.close();
     }
     else
@@ -708,10 +706,10 @@ void PopHapMix::OutputArrivalRatePosteriorMeans(const char* filename, int sample
 
   unsigned d = 0;//to index distances
   vector<double>::const_iterator i = SumLogLambda.begin();
-  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+  for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
     //write NA for first position
     outfile << "NA";
-    for(unsigned j  = 1; j < Loci->GetSizeOfChromosome(c); ++j){//step through rest of loci on chromosome
+    for(unsigned j  = 1; j < Loci.GetSizeOfChromosome(c); ++j){//step through rest of loci on chromosome
       //distances are stored in hargs
       outfile << exp(*i / samples) /hargs.distances[d];
       ++i;
@@ -722,7 +720,7 @@ void PopHapMix::OutputArrivalRatePosteriorMeans(const char* filename, int sample
   dimnames[1].push_back("ArrivalRatePer" + distanceUnit);
   
   vector<int> dims(2);
-  dims[0] = Loci->GetNumberOfCompositeLoci();
+  dims[0] = Loci.GetNumberOfCompositeLoci();
   dims[1] = 1;
   
   outfile.close(dims, dimnames);
@@ -731,8 +729,8 @@ void PopHapMix::OutputArrivalRatePosteriorMeans(const char* filename, int sample
 
 ///sample mixture proportions with conjugate update
 void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
-  if(!options->getFixedMixtureProps()){
-    const unsigned L = Loci->GetNumberOfCompositeLoci();
+  if(!options.getFixedMixtureProps()){
+    const unsigned L = Loci.GetNumberOfCompositeLoci();
     //TODO: ?? make SumLogTheta a class variable
     double SumLogTheta[K];
 
@@ -758,7 +756,7 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
       }
     }
 
-    if(!options->getFixedMixturePropsPrecision()){
+    if(!options.getFixedMixturePropsPrecision()){
       //sample prior precision
       MixturePropsPrecisionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
     }
@@ -781,9 +779,9 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
 //TODO: can skip this if xonly analysis with no females
 void PopHapMix::SetHMMStateArrivalProbs(bool diploid){
   //set locus correlation (workers only)
-  Loci->SetLocusCorrelation(lambda);
-  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ){
-    Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, 0, diploid);
+  Loci.SetLocusCorrelation(lambda);
+  for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
+    Loci.getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, 0, diploid);
   }
 }
 

@@ -19,39 +19,21 @@
 
 using namespace std;
 
-Chromosome::Chromosome(){
-  Distances = 0;
-  NumberOfCompositeLoci = 0;
-  NumHiddenStates = 0;
-  isX = false;
-  //Diploid = true;
-  f = 0;
-  CodedStates = 0;
-  HMM = 0;
-}
-
-Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool isx = false) {
-		      //size = number of comp loci on chromosome
-  Initialise(n, size, start, inNumHiddenStates, isx);
-  HMM = new HiddenMarkovModel( size, NumHiddenStates, f);
-}
-
-void Chromosome::Initialise(int n, int size, int start, int inNumHiddenStates, bool isx){
-  Number = n;
-  _startLocus = start;
-  NumHiddenStates = inNumHiddenStates;
-  isX = isx;
-  if ( size < 1 ){
-    size = 1;
-  }
-  NumberOfCompositeLoci = size;
-  Distances = new double[ NumberOfCompositeLoci ];
-
-  CodedStates = new int[size];
-  f = new double[2*size];
-  f[0] = f[1] = 0.0;
-
-}
+Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool isx = false):
+  NumberOfCompositeLoci(size), isX(isx), Number(n), _startLocus(start), NumHiddenStates(inNumHiddenStates)
+ {
+   
+   if ( size < 1 ){
+     size = 1;
+   }
+   Distances = new double[ NumberOfCompositeLoci ];
+   
+   CodedStates = new int[size];
+   f = new double[2*size];
+   f[0] = f[1] = 0.0;
+   
+   HMM = new HiddenMarkovModel( size, NumHiddenStates, f);
+ }
 
 Chromosome::~Chromosome()
 {

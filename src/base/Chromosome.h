@@ -21,7 +21,6 @@
 class Chromosome
 {
 public:
-  Chromosome();
   Chromosome(int, int size,int start, int, bool isx);
    ~Chromosome();
 // ******** Chromosome information **********************************
@@ -52,22 +51,21 @@ public:
   HiddenMarkovModel* HMM;
 
 protected:
-  void Initialise(int n, int size, int start, int inNumHiddenStates, bool isx);
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
   // With a global rho model, this array is same for all individuals and calculated only once.
   // required to calculate transition matrices 
   double *f; 
-  unsigned int NumberOfCompositeLoci;
-  bool isX;
+  const unsigned int NumberOfCompositeLoci;
+  const bool isX;
 
   double LocusCorrelation(unsigned locus, double drho);
 
 private:
   double *Distances;
  
-  int Number;//number of chromosome
-  int _startLocus;
-  int NumHiddenStates;
+  const int Number;//number of chromosome
+  const int _startLocus;
+  const int NumHiddenStates;
   std::string _Label;
   
   int *CodedStates;//used to sample hidden states from HMM
@@ -75,6 +73,7 @@ private:
   // UNIMPLEMENTED
   // to avoid use
  // Private default constructor
+  Chromosome();
   Chromosome(const Chromosome&);
   Chromosome& operator=(const Chromosome&);
 };

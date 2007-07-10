@@ -93,7 +93,6 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
   Populations = options->getPopulations();
   NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
   //set model indicators
-  hapmixmodel = options->getHapMixModelIndicator();
   RandomAlleleFreqs = !options->getFixedAlleleFreqs();
   CorrelatedAlleleFreqs = options->getCorrelatedAlleleFreqs();
 
@@ -312,26 +311,14 @@ void DispersionFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputAdmixDat
     }
   }
 
-  bool useinitfile = false;
   if(RandomAlleleFreqs){
-
-    if(hapmixmodel){
- 
-      file = false;
-      if(strlen( options->getAlleleFreqFilename() )){
-	  useinitfile=true;
-	  LoadInitialAlleleFreqs(options->getAlleleFreqFilename(), Log);
-      }
-    }
-    else
-      PriorParams = new double*[NumberOfCompositeLoci];//2D array    "      "     otherwise
+    PriorParams = new double*[NumberOfCompositeLoci];//2D array    "      "     otherwise
   }
 
   //set static members of CompositeLocus
   CompositeLocus::SetRandomAlleleFreqs(RandomAlleleFreqs);
   CompositeLocus::SetNumberOfPopulations(Populations);
 
-if(!useinitfile)
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 
     Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
@@ -343,7 +330,7 @@ if(!useinitfile)
     }
     else {  //set default Allele Freqs
       SetDefaultAlleleFreqs(i);
-      if(!hapmixmodel && RandomAlleleFreqs){
+      if(RandomAlleleFreqs){
 //prior for hapmix model is set later in Initialise
 	// reference prior on allele freqs: all elements of parameter vector set to 0.5
 	// this is unrealistic for large haplotypes - should set all elements to sum to 1

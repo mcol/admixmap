@@ -32,9 +32,8 @@ class AlleleFreqSampler;
 class IndividualCollection
 {
 public:
-  IndividualCollection();
   virtual ~IndividualCollection();
-  IndividualCollection(const Options* const options, const InputData* const Data, Genome* Loci);
+  IndividualCollection(unsigned numIndividuals, unsigned numPopulations, unsigned numCompositeLoci);
 
   void DeleteGenotypes(bool);
   //virtual void Initialise(const AdmixOptions* const options, const Genome* const Loci,
@@ -42,10 +41,10 @@ public:
   virtual void LoadData(const Options* const options, const InputData* const, bool admixtureAsCovariate);
   virtual void getOnePopOneIndLogLikelihood(LogWriter &, const Vector_s& ){};
 
-  void SampleHapPairs(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
+  void SampleHapPairs(const Options& options, AlleleFreqs *A, const Genome* const Loci,
 		      bool skipMissingGenotypes, bool anneal, bool UpdateCounts);
 
-  void AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
+  void AccumulateAlleleCounts(const Options& options, AlleleFreqs *A, const Genome* const Loci,
                               bool anneal);
 
   int getSize()const;
@@ -71,17 +70,18 @@ public:
   const DataMatrix& getCovariatesMatrix()const;
   const DataMatrix& getOutcomeMatrix()const;
 
-  double getLogLikelihood(const Options* const options, bool forceupdate);
-  double getEnergy(const Options* const options, const vector<Regression*> &R, 
+  double getLogLikelihood(const Options& options, bool forceupdate);
+  double getEnergy(const Options& options, const vector<Regression*> &R, 
 			  const bool & annealed);
 
   virtual void HMMIsBad(bool b);
   virtual void resetStepSizeApproximators(int ){};
 
 protected:
-  unsigned int NumInd, size;
+  const unsigned int NumInd;
+  unsigned int size;
   unsigned NumDiploidIndividuals;
-  int Populations, NumCompLoci;
+  const int Populations, NumCompLoci;
   virtual void SetNullValues();
   Individual** _child;//pointer to _child array
 
@@ -100,6 +100,7 @@ protected:
   //std::vector< int > _locusfortest;
 
 private:
+  IndividualCollection();
   //double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
   void getLabels(const Vector_s& data, Vector_s& labels);
   

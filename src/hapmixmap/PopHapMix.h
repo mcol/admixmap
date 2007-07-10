@@ -63,7 +63,7 @@ typedef struct{
 class PopHapMix
 {
 public:
-  PopHapMix(HapMixOptions* op, HapMixGenome* loci);
+  PopHapMix(const HapMixOptions& op, HapMixGenome& loci);
   
   ~PopHapMix();
   
@@ -96,11 +96,11 @@ public:
   void OutputArrivalRatePosteriorMeans(const char* filename, int samples, const string& distanceUnit)const;
   
 private:
-  unsigned K;///< number of subpopulations / block states
+  const unsigned K;///< number of subpopulations / block states
   std::ofstream outputstream;//output to paramfile
 
-  HapMixOptions *options;
-  HapMixGenome* Loci; 
+  const HapMixOptions& options;
+  HapMixGenome& Loci; 
 
   std::vector<double> lambda;///< arrival rates
   std::vector<double> SumLogLambda; //ergodic sum of log(rho)

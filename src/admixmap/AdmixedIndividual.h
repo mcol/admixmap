@@ -27,7 +27,6 @@ class InputAdmixData;
 class AdmixedIndividual : public Individual 
 {
 public:
-  AdmixedIndividual();
   AdmixedIndividual(int number, const AdmixOptions* const options, const InputAdmixData* const Data, bool undertest);
   ~AdmixedIndividual();
 
@@ -38,28 +37,28 @@ public:
 
   double getSumrho()const;
   const std::vector<double> getRho()const;
-  double getLogLikelihood(const Options* const , const bool forceUpdate, const bool store);
-  double getLogLikelihoodAtPosteriorMeans(const Options* const options);
+  double getLogLikelihood(const Options&, const bool forceUpdate, const bool store);
+  double getLogLikelihoodAtPosteriorMeans(const Options& options);
   double getLogLikelihoodOnePop();
 
   void ResetSufficientStats();
-  void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
+  void UpdateScores(const AdmixOptions& options, DataMatrix *Outcome, DataMatrix *Covariates, 
 		    const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
   void SampleJumpIndicators(bool sampleArrivals);
-  void SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta,  
+  void SampleRho(const AdmixOptions& options, double rhoalpha, double rhobeta,  
 		 bool updateSumLogRho);
   void SampleTheta( const int iteration, double *SumLogTheta, const DataMatrix* const Outcome, 
 		    const DataType* const OutcomeType, const std::vector<double> lambda, const int NumCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
-		    const AdmixOptions* const options, const vector<vector<double> > &alpha, 
+		    const AdmixOptions& options, const vector<vector<double> > &alpha, 
 		    double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest,const bool RW, const bool anneal);
 
-  void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
+  void FindPosteriorModes(const AdmixOptions& options, const vector<vector<double> > &alpha,  
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);  
   void resetStepSizeApproximator(int k);
-  void setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
+  void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha, double rhoalpha, 
 	    double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
-  void updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
+  void updateChib(const AdmixOptions& options, const vector<vector<double> > &alpha, double rhoalpha, 
 	    double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
 
   double getLogPosteriorTheta()const;
@@ -72,7 +71,7 @@ public:
   
   void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
 private:
-  bool IAmUnderTest;//true if not in Individual array
+  const bool IAmUnderTest;//true if not in Individual array
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
   double *thetahat;
   double loglikhat;///< loglikelihood at posterior mode
@@ -93,6 +92,7 @@ private:
   int w, NumberOfUpdates;
   double step, step0;
   
+  AdmixedIndividual();
   void InitialiseSumIntensities(const AdmixOptions* const options); 
   void setAdmixtureProps(const double* const, size_t);
   ///set possible happairs, SNPs only. 
@@ -110,23 +110,23 @@ private:
 					       int Populations, int NumCovariates, 
 					       const DataMatrix* const Covariates, const double* beta, 
 					       const double Outcome, const double* const poptheta, const double lambda);
-  void UpdateHMMInputs(unsigned int j, const Options* const options, 
+  void UpdateHMMInputs(unsigned int j, const Options& options, 
 			     const double* const theta, const vector<double> rho);
-  void ProposeTheta(const AdmixOptions* const options, const vector<vector<double> > &alpha,
+  void ProposeTheta(const AdmixOptions& options, const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
-  double ProposeThetaWithRandomWalk(const AdmixOptions* const options, const vector<vector<double> > &alpha);
+  double ProposeThetaWithRandomWalk(const AdmixOptions& options, const vector<vector<double> > &alpha);
   double LogPriorTheta_Softmax(const double* const theta, 
-			       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
-  double LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions* const options, 
+			       const AdmixOptions& options, const vector<vector<double> > &alpha) const ;
+  double LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions& options, 
 			      double rhoalpha, double rhobeta) const;
-  double LogPosteriorTheta_Softmax(const AdmixOptions* const options, const double* const theta, 
+  double LogPosteriorTheta_Softmax(const AdmixOptions& options, const double* const theta, 
 				    const vector<vector<double> > &alpha)const;
-  double LogPosteriorRho_LogBasis(const AdmixOptions* const options, const vector<double> rho, 
+  double LogPosteriorRho_LogBasis(const AdmixOptions& options, const vector<double> rho, 
 				  double rhoalpha, double rhobeta)const;
   
-  void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
+  void UpdateScoreTests(const AdmixOptions& options, const double* admixtureCovars, DataMatrix *Outcome, 
 			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
-  double getLogLikelihood(const Options* const options, 
+  double getLogLikelihood(const Options& options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
   void getPosteriorMeans(double* ThetaMean, vector<double>& rhoMean, unsigned samples)const;
 

@@ -8,14 +8,16 @@
 #include <iomanip>
 
 using namespace::std;
-LinearRegression::LinearRegression(){
+LinearRegression::LinearRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+				   LogWriter &Log): Regression(Number, Linear){
   lambda0 = 0.0;
   lambda1 = 0.0;
   R = 0;
   QY = 0;
   QX = 0;
   V = 0;
-  RegType = Linear;
+  //RegType = Linear;
+  Initialise(priorPrecision, Covars, Outcome, Log);
 }
 
 LinearRegression::~LinearRegression(){
@@ -26,9 +28,9 @@ LinearRegression::~LinearRegression(){
   delete[] betahat;
 }
 
-void LinearRegression::Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+void LinearRegression::Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
 				  LogWriter &Log){
-  Regression::Initialise(Number, Covars.nCols(), Covars.nRows(), Covars.getData());
+  Regression::Initialise(Covars.nCols(), Covars.nRows(), Covars.getData());
   Log.setDisplayMode(Quiet);
   //set prior precision
   double outcomeSampleVariance = Outcome.getSampleVariance(RegNumber);

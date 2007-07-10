@@ -23,8 +23,6 @@ class GenotypeProbIterator;
 */
 class HiddenMarkovModel{
 public:
-  ///default constructor
-  HiddenMarkovModel();
   /**
      initialising constructor.
      \param inTransitions number of transitions (loci on chromosome)
@@ -84,10 +82,9 @@ public:
   virtual void SampleJumpIndicators(const int* const , unsigned int, int *)const{};
 
 protected:
-  int K;
-  int DStates; //number of diploid states  = K*K
-  
-  int Transitions; //length of chain
+  const int K;
+  const int DStates; //number of diploid states  = K*K
+  const int Transitions; //length of chain
   // = # composite Loci, (=L in Chromosome)
 
   double sumfactor;///< for accumulating log-likelihood
@@ -133,10 +130,12 @@ private:
   double *Expectation1;
   double *cov;
 
-  virtual void SetDimensions( int inTransitions, int pops, const double* const fin, bool diploid);
+  virtual void SetDimensions( const double* const fin, bool diploid);
 
   // UNIMPLEMENTED
   // to avoid use
+  ///default constructor
+  HiddenMarkovModel();
   HiddenMarkovModel(const HiddenMarkovModel&);
   HiddenMarkovModel& operator=(const HiddenMarkovModel&);
 

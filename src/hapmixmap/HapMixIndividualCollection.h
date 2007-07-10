@@ -29,7 +29,7 @@ public:
   //destructor
   ~HapMixIndividualCollection();
   ///samples hidden states for each individual and calculates sufficient statistics for population-level parameters
-  void SampleHiddenStates(const HapMixOptions* const options, unsigned iteration);
+  void SampleHiddenStates(const HapMixOptions& options, unsigned iteration);
   ///returns sufficient statistics for update of arrival rates
   const int* getConcordanceCounts()const;
   ///returns sufficient statistics for update of mixture proportions
@@ -39,12 +39,12 @@ public:
   bool isCaseControl(unsigned i)const;
   int getNumberOfIndividualsForScoreTests()const;
   unsigned int getFirstScoreTestIndividualNumber()const;
-  void AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci);
+  void AccumulateConditionalGenotypeProbs(const HapMixOptions& options, const Genome& Loci);
   void OutputCGProbs(const char* filename, const Vector_s& LocusLabels);
-  double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
+  double getDevianceAtPosteriorMean(const Options& options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
 				    const double* const MixtureProps, const vector<double>& SumRho);
 private:
-  unsigned NumCaseControls;
+  const unsigned NumCaseControls;
   int* ConcordanceCounts;//for update of locus-specific sumintensities
   int* GlobalConcordanceCounts;//ConcordanceCounts summed over processes, kept on master processes
   int* SumArrivalCounts;

@@ -24,16 +24,15 @@ Genome *Individual::Loci;
 int Individual::NumHiddenStates;
 
 //******** Constructors **********
-Individual::Individual() {//should initialise pointers here
+Individual::Individual(unsigned number) : myNumber(number){
   missingGenotypes = 0;//allocated later, if needed
 }
-Individual::Individual(int number, const Options* const options, const InputData* const Data) {
-  missingGenotypes = 0;//allocated later, if needed
-  Initialise(number, options, Data);
-}
+// Individual::Individual(int number, const Options* const options, const InputData* const Data) {
+//   missingGenotypes = 0;//allocated later, if needed
+//   Initialise(number, options, Data);
+// }
 
-void Individual::Initialise(int number, const Options* const options, const InputData* const Data){
-  myNumber = number;
+void Individual::Initialise(const Options* const options, const InputData* const Data){
   if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
   else NumGametes = 1;
   
@@ -223,7 +222,7 @@ bool Individual::isHaploidIndividual()const{
 // public function: 
 // calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
 // store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
-double Individual::getLogLikelihood( const Options* const options, const bool forceUpdate, const bool store) {
+double Individual::getLogLikelihood( const Options& options, const bool forceUpdate, const bool store) {
 
   if(!forceUpdate && logLikelihood.ready)
     return logLikelihood.value;
@@ -239,7 +238,7 @@ double Individual::getLogLikelihood( const Options* const options, const bool fo
 }
 
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
-double Individual::getLogLikelihood(const Options* const options, const double* const theta, 
+double Individual::getLogLikelihood(const Options& options, const double* const theta, 
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
@@ -257,7 +256,7 @@ void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Met
     if(setHMMAsOK) logLikelihood.HMMisOK = true; 
 }                               
 
-double Individual::getLogLikelihoodAtPosteriorMeans(const Options* const options) {
+double Individual::getLogLikelihoodAtPosteriorMeans(const Options& options) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
@@ -268,7 +267,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const Options* const options
 }
 
 //************** Updating (Public) **********************************************************
-void Individual::SampleHiddenStates(const Options* const options){
+void Individual::SampleHiddenStates(const Options& options){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome *C = Loci->getChromosome(j);
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  

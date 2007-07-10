@@ -29,10 +29,9 @@ typedef struct{
 ///class to sample the parameters of a logistic regression
 class LogisticRegression : public Regression{
 public:
-  LogisticRegression();
+  LogisticRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+		     LogWriter &Log);
   ~LogisticRegression();
-  void Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
-		  LogWriter &Log);
 
   double getDispersion()const;
   double DerivativeInverseLinkFunction(unsigned i)const;
@@ -52,6 +51,10 @@ private:
   static double dlr( const double beta, const void* const vargs );
   
   static double ddlr( const double beta, const void* const vargs );
+
+  LogisticRegression();
+  void Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+		  LogWriter &Log);
 
 };
 #endif

@@ -37,7 +37,7 @@ public:
 
   void PrintAcceptanceRates(const Options& options,LogWriter& Log);
   void Finalize(const Options& options, LogWriter& Log, const InputData& data) ;
-  double getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log);
+  double getDevianceAtPosteriorMean(const Options& options, LogWriter& Log);
   unsigned getNumIndividuals()const{return IC->getSize();}; 
   double* getSumEnergy()const{return 0;};
   double* getSumEnergySq()const{return 0;};
@@ -51,10 +51,10 @@ private:
   HapMixIndividualCollection* HMIC;
 
   void ReadInitialValuesFromFile(unsigned startnum, const HapMixOptions& options, LogWriter& Log);
-  void UpdateParameters(int iteration, const Options * _options, LogWriter&, 
+  void UpdateParameters(int iteration, const Options& _options, LogWriter&, 
 			const Vector_s&, const double* Coolnesses, unsigned coolness_index, bool anneal, 
 			double & SumEnergy, double & SumEnergySq, double& AISz);
-  void OutputParameters(int iteration, const Options *options, LogWriter& Log);
+  void OutputParameters(int iteration, const Options& options, LogWriter& Log);
   void OutputErgodicAverages(int samples, double & SumEnergy, double & SumEnergySq);
   void OutputTests(HapMixOptions& options, InputData & data, LogWriter& Log  );
   void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);

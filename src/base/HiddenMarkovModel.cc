@@ -38,15 +38,16 @@ void HiddenMarkovModel::SetNullValues(){
 }
 
 ///no-argument constructor
-HiddenMarkovModel::HiddenMarkovModel()
-{
-  SetNullValues();
-}
+// HiddenMarkovModel::HiddenMarkovModel()
+// {
+//   SetNullValues();
+// }
 
 ///constructor with arguments
-HiddenMarkovModel::HiddenMarkovModel( int inTransitions, int pops, const double* const fin) {
+HiddenMarkovModel::HiddenMarkovModel( int inTransitions, int NumHiddenStates, const double* const fin):
+  K(NumHiddenStates), DStates(NumHiddenStates*NumHiddenStates), Transitions(inTransitions){
   SetNullValues();
-  SetDimensions(inTransitions, pops, fin, true);
+  SetDimensions(fin, true);
 }
 
 HiddenMarkovModel::~HiddenMarkovModel()
@@ -67,13 +68,8 @@ HiddenMarkovModel::~HiddenMarkovModel()
 }
 
 ///allocate arrays and set f pointer
-void HiddenMarkovModel::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin, bool)
+void HiddenMarkovModel::SetDimensions( const double* const fin, bool)
 {
-  //inTransitions = #transitions +1 = #Loci 
-  //pops = #populations
-  K = NumHiddenStates;
-  DStates = K*K;
-  Transitions = inTransitions;
   alpha = new double[Transitions*K*K];
   p = new double[Transitions];
   f = fin;

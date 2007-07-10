@@ -52,18 +52,15 @@ public:
   virtual ~Model();
 
   void Run(Options& options, InputData& data, LogWriter& Log);
-  void TestIndivRun(Options& options, InputData& data, LogWriter& Log);
 
   virtual void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
 		       Options & options, InputData & data, LogWriter& Log, 
 		       double & SumEnergy, double & SumEnergySq, 
 		       bool AnnealedRun) = 0;
   
-  //virtual void Initialise(Options & options, InputData& data,  LogWriter& Log) = 0;
   void InitialiseRegressionObjects(Options & options, InputData& data,  LogWriter& Log) ;
   virtual void InitialiseTests(Options& options, const InputData& data, LogWriter& Log) = 0;
-  //virtual void InitializeErgodicAvgFile(const Options* const options, LogWriter &Log,  
-  //				const Vector_s& PopLabels, const Vector_s& CovariateLabels) = 0;
+
   virtual void ResetStepSizeApproximators(int resetk);
   virtual void PrintAcceptanceRates(const Options& options, LogWriter& Log) = 0;
   
@@ -71,7 +68,7 @@ public:
   virtual unsigned getNumIndividuals()const = 0; 
   virtual double* getSumEnergy()const = 0;
   virtual double* getSumEnergySq()const = 0; 
-  virtual double getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log) = 0;
+  virtual double getDevianceAtPosteriorMean(const Options& options, LogWriter& Log) = 0;
   virtual void Finalize(const Options& options, LogWriter& Log, const InputData& data)=0 ;
   
   //this function is used only in admixmap model
@@ -83,8 +80,8 @@ protected:
 
   void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq);
 
-  void GetEnergy(const double* Coolnesses, unsigned coolness, const Options & options, double & SumEnergy, double & SumEnergySq, 
-		 double& AISz, bool AnnealedRun, int iteration);
+  void AccumulateEnergy(const double* Coolnesses, unsigned coolness, const Options & options, double & SumEnergy, double & SumEnergySq, 
+			double& AISz, bool AnnealedRun, int iteration);
   AlleleFreqs* pA;
   IndividualCollection *IC;
   vector<Regression*> R;//vector of regression pointers
@@ -94,9 +91,8 @@ protected:
   HWTest HWtest;
   ResidualLDTest ResidualAllelicAssocScoreTest;
   double AISsumlogz; //for computing marginal likelihood by Annealed Importance Sampling
-private:
   std::ofstream loglikelihoodfile;
-  Annealer A;
+  Annealer _Annealer;
 
   void Start(Options& options, InputData& data, LogWriter& Log);
   void Finish(Options& options, InputData& data, LogWriter& Log);

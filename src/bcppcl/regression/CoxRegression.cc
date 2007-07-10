@@ -7,20 +7,22 @@
 using namespace::std;
 const double* CoxRegression::EY;
 
-CoxRegression::CoxRegression(){
+CoxRegression::CoxRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+			     LogWriter &Log): Regression(Number, Cox){
   BetaSampler = 0;
   acceptbeta = 0;
-  RegType = Cox;
+  //RegType = Cox;
+  Initialise(priorPrecision, Covars, Outcome, Log);
 }
 
 CoxRegression::~CoxRegression(){
   delete BetaSampler;
 }
 
-void CoxRegression::Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+void CoxRegression::Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
 			       LogWriter &Log){
   ReadData(Outcome);
-  Regression::Initialise(Number, Covars.nCols()-1, Covars.nRows(), Covars.getData());
+  Regression::Initialise(Covars.nCols()-1, Covars.nRows(), Covars.getData());
 
   //passing numcovariates-1 to exclude intercept
   // NumCovariates in this class is now one less

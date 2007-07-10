@@ -25,11 +25,11 @@
 ///Abstract Base Class for a generic Bayesian Regression
 class Regression{
 public:
-  Regression();
+  Regression(unsigned Number, RegressionType RT);
   virtual ~Regression();
-  virtual void Initialise(unsigned RegNumber, double priorPrecision, 
+  virtual void Initialise(double priorPrecision, 
 			  const DataMatrix& Covars, const DataMatrix& Outcome, LogWriter &) = 0;
-  void Initialise(unsigned RegNumber, unsigned numCovariates);
+  //void Initialise(unsigned numCovariates);
   virtual void Update(bool sumbeta, const std::vector<double>& Outcome, double coolness) = 0;
   virtual double getLogLikelihood(const std::vector<double>& Outcome)const = 0;
   virtual double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome) = 0;
@@ -53,8 +53,8 @@ protected:
   int NumCovariates;
   static int NumOutcomeVars;
   static int NumIndividuals;
-  RegressionType RegType;
-  unsigned RegNumber;
+  const RegressionType RegType;
+  const unsigned RegNumber;
 
   double *beta;//regression parameters
   double *betamean; //beta prior mean
@@ -70,10 +70,13 @@ protected:
   static std::ofstream outputstream;///< stream for regression parameters
   static RObjectWriter EYStream;///< stream for expected outcomes
 
-  void Initialise(unsigned Number, unsigned nCovariates, unsigned nIndivs, const double* const Covars);
+  void Initialise(unsigned nCovariates, unsigned nIndivs, const double* const Covars);
   void SumParameters();
   static void getExpectedOutcome(const double* const beta, const double* const X, double* EY, int n, int d);
   static void getExpectedOutcome(const double* const beta, const double* const X, double* Y, int n, int dim, int index, double betaj);
+
+private:
+  Regression();
 };
 
 

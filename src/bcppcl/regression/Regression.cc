@@ -24,7 +24,7 @@ RObjectWriter Regression::EYStream;
 int Regression::NumIndividuals;
 int Regression::NumOutcomeVars;
 
-Regression::Regression(){
+Regression::Regression(unsigned Number, RegressionType RT): RegType(RT), RegNumber(Number){
   lambda = 0; 
   SumLambda = 0;
   beta = 0;
@@ -95,19 +95,15 @@ void Regression::OpenExpectedYFile(const char* Filename, LogWriter & Log){
   Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
 }
 
-void Regression::Initialise(unsigned Number, const unsigned numCovariates){
-  //set regression number for this object
-  RegNumber = Number;
-  
-  // ** Objects common to all regression types
-  NumCovariates = numCovariates;
-  beta = new double[ NumCovariates ];
-  lambda = 1.0; 
-}
+// void Regression::Initialise(const unsigned numCovariates){
+ 
+//   // ** Objects common to all regression types
+//   NumCovariates = numCovariates;
+//   beta = new double[ NumCovariates ];
+//   lambda = 1.0; 
+// }
 
-void Regression::Initialise(unsigned Number, unsigned nCovariates, unsigned nIndivs, const double* const Covars){
-  //set regression number for this object
-  RegNumber = Number;
+void Regression::Initialise(unsigned nCovariates, unsigned nIndivs, const double* const Covars){
   
   // ** Objects common to all regression types
   NumCovariates = nCovariates;

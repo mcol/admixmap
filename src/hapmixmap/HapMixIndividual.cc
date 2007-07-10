@@ -53,7 +53,8 @@ map<int, int> HapMixIndividual::ord2unord;
 
 //Note: assuming SetStaticMembers is called first
 HapMixIndividual::HapMixIndividual(int number, const Options* const options, 
-				   InputHapMixData* const Data, const double* GlobalTheta, bool isMasked){
+				   InputHapMixData* const Data, const double* GlobalTheta, bool isMasked)
+  :Individual(number){
 
   GenotypesMissing = new bool*[numChromosomes];
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -66,7 +67,7 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options,
 
   //isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
   isHaploid = Data->GetHapMixGenotype( number, *Loci, &hgenotypes, GenotypesMissing);
-  Individual::Initialise(number, options, Data);
+  Individual::Initialise(options, Data);
 
   Theta = const_cast<double*>(GlobalTheta);
 
@@ -246,7 +247,7 @@ bool HapMixIndividual::simpleGenotypeIsMissing(unsigned locus)const{
 /***
     Updates inputs to HMM for chromosome j
 */
-void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const , 
+void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options& , 
 				       const double* const , const vector<double> ) {
 
   HapMixChromosome* C = pG->getHapMixChromosome(j);
@@ -271,7 +272,7 @@ void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const ,
 }
 
 /// calculate genotype probs as an average over conditional probs of hidden states.
-void HapMixIndividual::calculateUnorderedGenotypeProbs(const Options* const options){
+void HapMixIndividual::calculateUnorderedGenotypeProbs(const Options& options){
   unsigned locus = 0; 
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     //update HMM if required

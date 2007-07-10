@@ -36,7 +36,7 @@ public:
   void SampleJumpIndicators(int* SumArrivalCounts);
 
   void AccumulateConcordanceCounts(int* ConcordanceCounts)const;
-  void calculateUnorderedGenotypeProbs(const Options* const options);
+  void calculateUnorderedGenotypeProbs(const Options& options);
   const bcppcl::pvector<double>& getStateProbs(const bool, int, int) const;
   void calculateUnorderedGenotypeProbs(unsigned);
   const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) const;
@@ -57,7 +57,7 @@ private:
   std::vector<std::vector<std::vector<double> > > UnorderedProbs;
   static map<int, int> ord2unord; //< Map ordered to unordered probabilities
 
-  void UpdateHMMInputs(unsigned int j, const Options* const options, 
+  void UpdateHMMInputs(unsigned int j, const Options& options, 
                      const double* const , const vector<double> );
 
   //  void SetPossibleHaplotypePairs(unsigned locus, vector<unsigned short>::const_iterator g, vector<hapPair> &PossibleHapPairs );

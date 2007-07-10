@@ -34,6 +34,7 @@ public:
     ~AdmixMapModel();
   void Initialise(AdmixOptions & options, InputAdmixData& data,  LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
+  void TestIndivRun(Options& options, InputData& data, LogWriter& Log);
   void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
 	       Options & options, InputData & data, LogWriter& Log, 
 	       double & SumEnergy, double & SumEnergySq, 
@@ -46,7 +47,7 @@ public:
   void PrintAcceptanceRates(const Options& options,LogWriter& Log);
   void Finalize(const Options& options, LogWriter& Log, const InputData& data) ;
   void ResetStepSizeApproximators(int resetk);
-  double getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log);
+  double getDevianceAtPosteriorMean(const Options& options, LogWriter& Log);
   void getOnePopOneIndLogLikelihood(LogWriter& Log, const std::vector<std::string>& PopLabels){IC->getOnePopOneIndLogLikelihood(Log, PopLabels);};
   unsigned getNumIndividuals()const{return IC->getSize();}; 
   double* getSumEnergy()const;
@@ -61,7 +62,7 @@ private:
   MisSpecAlleleFreqTest AlleleFreqTest;
   ScoreTests Scoretests;
 
-  void UpdateParameters(int iteration, const Options *options, 
+  void UpdateParameters(int iteration, const Options& options, 
 			LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal);
   void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
   void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  

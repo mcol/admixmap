@@ -44,7 +44,6 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
   Populations = options->getPopulations();
   NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
   //set model indicators
-  hapmixmodel = options->getHapMixModelIndicator();
   RandomAlleleFreqs = !options->getFixedAlleleFreqs();
   
   LoadAlleleFreqs(options, data, Log);
@@ -116,7 +115,7 @@ if(DiploidGenotypeProbs.array)
 void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const  options, LogWriter& Log ){
   NumberOfCompositeLoci = L;
   //allocate prior arrays
-  DirichletParams = new double[NumberOfCompositeLoci];//1D array of prior params for hapmixmodel
+  DirichletParams = new double[NumberOfCompositeLoci];//1D array of prior params
   Eta = new double[NumberOfCompositeLoci];
   if(options->OutputAlleleFreqPrior()){
     accumulateEta = true;
