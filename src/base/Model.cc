@@ -157,12 +157,6 @@ void Model::Finish(Options& options, InputData& data, LogWriter& Log){
   
   Finalize(options, Log, data);
   
-  _Annealer.PrintResults(Log, getDevianceAtPosteriorMean(options, Log));
-  
-  if(options.getThermoIndicator()){
-    Log << "\nAnnealed Importance Sampling estimates log marginal likelihood as " << AISsumlogz << "\n";
-  }
-  
   //Expected Outcome
   if(options.getNumberOfOutcomes() > 0){
     Regression::FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), 
