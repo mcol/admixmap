@@ -32,6 +32,7 @@ AlleleFreqs::AlleleFreqs(){
   AlleleFreqsMAP.array = 0;
   PriorParams = 0;
   SumKLInfo = 0;
+  SumLocusInfo = 0;
 }
 
 AlleleFreqs::~AlleleFreqs(){

@@ -95,7 +95,7 @@ sub runRScript {
     my $rcmdArgs = "BATCH --quiet --no-save --no-restore";  
 
     my $resultsdir = $args->{resultsdir};
-    if($resultsdir == ''){
+    if($resultsdir eq ''){
       $resultsdir = 'results';
     }
     print "Starting R script to process output\n";
