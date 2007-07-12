@@ -48,7 +48,8 @@ public:
    * It's a shortcut to speed it up in a special case when a genotype
    * is missing. 
    */
-  void getFirstAndLastConditionalHapPairProbs(bcppcl::pvector<double>& Probs, const int ancestry[2]) const;
+  double getFirstConditionalHapPairProbs(const int ancestry[2]) const;
+  double getLastConditionalHapPairProbs(const int ancestry[2]) const;
   void SampleHapPair(hapPair*, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
 
 

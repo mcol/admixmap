@@ -309,20 +309,18 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 //  }
   int anc[2];
   
-  bcppcl::pvector<double> orderedStateProbs = getStateProbs( !isHaploid && (j!=X_posn || SexIsFemale),
-							     Loci->GetChrNumOfLocus(j),
+  bcppcl::pvector<double> orderedStateProbs = getStateProbs( Loci->GetChrNumOfLocus(j),
 							     Loci->getRelativeLocusNumber(j));
-
+  
   // set UnorderedProbs[j][*][0] to 0;
   for (vector<vector<double> >::iterator gi = UnorderedProbs[j].begin();
-      gi != UnorderedProbs[j].end();
-      ++gi)
-  {
-    (*gi)[0] = 0;
-  }
-
+       gi != UnorderedProbs[j].end();
+       ++gi)
+    {
+      (*gi)[0] = 0;
+    }
+  
   int ospIdx;
-  orderedGenotypeProbs.assign(4, 0);
   
   /* Possible optimization: if the probability of the state
    * (orderedStateProbs[ospIdx]) is close to zero, it might have
@@ -330,18 +328,18 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
    * be skipped. A threshold of 1e-7 is too high.
    */
   
-//  orderedStateProbs.snapToZero();
-
+  //  orderedStateProbs.snapToZero();
+  
   for (anc[0] = 0; anc[0] < NumHiddenStates; ++anc[0]) {
-  	/*
-  	 * Calculating first index of ordered state probabilities.
-  	 * It will be incremented in the inner loop after each iteration.
-  	 */
-  	ospIdx = anc[0] * NumHiddenStates;
+    /*
+     * Calculating first index of ordered state probabilities.
+     * It will be incremented in the inner loop after each iteration.
+     */
+    ospIdx = anc[0] * NumHiddenStates;
     for (anc[1] = 0; anc[1] < NumHiddenStates; ++anc[1], ++ospIdx) {
       
       if (orderedStateProbs[ospIdx] == 0) continue;
-
+      
       /*
        * Calling a simplified version of getConditionalHapPairProbs
        * which sets only 0th and 3rd element of orderedGenotypeProbs
@@ -350,16 +348,14 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
        * PossibleHapPairs[j] are 
        * assumed to be all four: 0,0; 1,0; 0,1; 1,1.
        */
-      (*Loci)(j)->getFirstAndLastConditionalHapPairProbs(
-          orderedGenotypeProbs, anc);
       /*
        * multiply result by conditional probs of anc and accumulate
        * result in array genotype probs (size 3 x number of loci)
-        */
+       */
       UnorderedProbs[j][0][0] +=
-      			orderedGenotypeProbs[0] * orderedStateProbs[ospIdx];
+	(*Loci)(j)->getFirstConditionalHapPairProbs(anc) * orderedStateProbs[ospIdx];
       UnorderedProbs[j][2][0] +=
-      			orderedGenotypeProbs[3] * orderedStateProbs[ospIdx];
+	(*Loci)(j)->getLastConditionalHapPairProbs(anc) * orderedStateProbs[ospIdx];
     }
   }
   /*
@@ -373,15 +369,15 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 
 /** Get probabilities of hidden states from HMM */
 
-const bcppcl::pvector<double>& HapMixIndividual::getStateProbs(const bool isDiploid, const int chromosome,const int locus)const{
-  return pG->getHapMixChromosome(chromosome)->HMM->GetHiddenStateProbs(isDiploid, locus);
+const bcppcl::pvector<double>& HapMixIndividual::getStateProbs(int chromosome, int locus)const{
+  return pG->getHapMixChromosome(chromosome)->HMM->GetHiddenStateProbs(!isHaploid && (chromosome!=(int)X_posn || SexIsFemale), locus);
 }
 
 /**
  * Return unordered probs as a vector of vectors of doubles.
  * 
  */
-const vector<vector<double> >& HapMixIndividual::getUnorderedProbs(const unsigned int j)const{
+const vector<vector<double> >& HapMixIndividual::getUnorderedProbs(unsigned int j)const{
   return UnorderedProbs[j];
 }
 
