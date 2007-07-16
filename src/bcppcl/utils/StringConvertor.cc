@@ -6,11 +6,12 @@ using namespace std;
 /// removes quotes from strings. 
 string StringConvertor::dequote(const string& str)
 {
-  if (str.size() >= 2 && (str[0] == '"' || str[0]== '\'') && (str[str.size() - 1] == '"' || (str[str.size() - 1] == '\''))) {
-        return str.substr(1, str.size() - 2);
-      }
-
-    return str;
+  const string::size_type first = str.find_first_not_of("\"\'", 0);
+  if(first != string::npos) {
+    const string::size_type last = str.find_last_not_of("\"\'")+1;
+    return str.substr(first, last-first);
+  }
+  else return str;
 }
 
 /// converts a string to int
