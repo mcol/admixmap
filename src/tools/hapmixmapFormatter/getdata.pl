@@ -3,7 +3,6 @@
 #  getdata.pl
 #  Perl script to download data files from HapMap.
 #  and run them through the FPHD formatter to prepare for use with HAPMIXMAP.
-#  Supports all FPHD options, including formatting of case-control genotypes files.
 #
 #   This program is free software distributed WITHOUT ANY WARRANTY.
 #   You can redistribute it and/or modify it under the terms of the GNU General Public License,
@@ -23,26 +22,21 @@ use Getopt::Long;
 my $slash = "/";
 if($^O eq "MSWin32"){ $slash = "\\";}
 
-my $Verbose = 0;
-my $Quiet = 0; # Not the oppposite of Verbose (yet)!
+my $beQuiet = 0;
 my $CHR = 0;
-my $POP = "CEU";
+my $Panel = "";
 my $Download = 0;
 my $Unzip = 0;
 my $Format = 0;
-my $genotypesfile = '';
-my $locusfile = '';
-my $ccgenotypefile = '';
-my $output_ccgfile='';
-my $flank = 0;
-my $limitloci = 0;
-my $missing_string = 'N';
 my $gzip_path = "/usr/bin";
-#my $gzip_path = "c:\\msys\\bin\\";#for Windows users who have msys
-my $HapMapPrefix = '';
+if($^O eq "MSWin32"){
+  $gzip_path = "c:\\msys\\bin\\";#for Windows users who have MSys
+}
+my $HapMapURL = "http://www.hapmap.org/downloads/phasing/2006-07_phaseII/phased";
 ## where to put downloaded files
 my $dataprefix = '';
 my $formatter_exec = "FPHD";
+my $formatter_args='';
 my $HelpNeeded = 0;
 
 if(length(@ARGV) == 0){
@@ -50,24 +44,18 @@ if(length(@ARGV) == 0){
 }
 GetOptions(
 "h"               => \$HelpNeeded,
-"v"               => \$Verbose,
-"q"               => \$Quiet,
+"q"               => \$beQuiet,
 "d!"              => \$Download,
 "u!"              => \$Unzip,
 "f!"              => \$Format,
 "c=i"             => \$CHR,
-"p=s"             => \$POP,
-"g=s"             => \$ccgenotypefile,
+"p=s"             => \$Panel,
 "gzip-path=s"     => \$gzip_path,
-"hapmap-prefix=s" => \$HapMapPrefix,
+"hapmap-url=s"    => \$HapMapURL,
 "formatter=s"     => \$formatter_exec,
 "prefix=s"        => \$dataprefix,
-"ccgfile=s"       => \$output_ccgfile,
-"genotypesfile=s" => \$genotypesfile,
-"locusfile=s"     => \$locusfile,
-"flank=f"         => \$flank,
-"loci=i"          => \$limitloci,
-"missing=s"       => \$missing_string
+"args=s"          => \$formatter_args
+
 );
 
 print "Unprocessed by Getopt::Long\n" if $ARGV[0];
@@ -75,65 +63,61 @@ foreach (@ARGV) {
   print "$_\n";
 }
 
-if($HelpNeeded){
+if($HelpNeeded || !$CHR || !$Panel){
 print "\nUsage: getdata.pl <args> [options]\n\n";
+print "Use this script to download data files from HapMap, decompress them\n"; 
+print " and run them through the FPHD formatter to prepare for use with HAPMIXMAP.\n\n";
 print "Required arguments:\n";
-print "-c=<1...22>             set chromosome number\n";
-print "-p=<CEU|YRI|JPT+CHB|AS> set population. CEU = European; YRI = African;\n";
-print "                                        AS = JPT+CHB = Asian\n";
+print "-c=<1...22>             chromosome number\n";
+print "-p=<CEU|YRI|JPT+CHB|AS> panel code. (AS = JPT+CHB)\n";
 print "\nOptions:\n";
 print "-h                      print this help message and exit\n";
-print "-v                      be verbose\n";
 print "-q                      suppress output\n";
 print "-d                      download files from HapMap\n";
 print "-u                      unzip downloaded files (with gzip)\n";
 print "-f                      format files\n";
-print "-hapmix-prefix=<>       set HapMap prefix\n";
-print "-gzip-path=<>           set path to gzip\n";
-print "-formatter=<>           set path to formatting program\n";
-print "-genotypesfile=<>       name of formatted HapMap genotypes file to write\n";
-print "-locusfile=<>           name of HAPMIXMAP locusfile to write\n";
-print "-g=<>                   name of case-control genotypes file to format\n";
-print "-ccgfile=<>             name of formatted case-control genotypes file to write\n";
-print "-flank=F                size of flanking region in Kb\n";
-print "-loci=n                 maximum number of loci per chromosome \n";
-print "                        (valid only if no case-control file specified)\n";
-print "-missing                character denoting a missing genotype\n";
+print "-hapmap-url=<>          HapMap url \n";
+print "-gzip-path=<>           path to gzip\n";
+print "-formatter=<>           path to formatting program\n";
+print "-args=\"\"                arguments to formatting program\n";
 exit;
 }
+my $dataprefix_arg = $dataprefix;
 if(!$dataprefix){
-  $dataprefix = "HapMapData$slash$POP";
+  $dataprefix = "HapMapData$slash$Panel";
+  ##prefix arg to formatter - always forward slash
+  $dataprefix_arg = "HapMapData/$Panel";
 }
 ##check arguments
 if($CHR < 1 || $CHR > 22){
   die "Invalid chromosome number: $CHR \n";
 }
-if(!($POP eq "CEU" || $POP eq "YRI" || $POP eq "JPY+CHB" || $POP eq "AS")){
-  die "Invalid population code: $POP \n";
+if(!($Panel eq "CEU" || $Panel eq "YRI" || $Panel eq "JPT+CHB" || $Panel eq "AS")){
+  die "Invalid population code: $Panel \n";
 }
 #substitute AS (Asian)
-if($POP eq "AS"){$POP = "JPT+CHB";}
+if($Panel eq "AS"){$Panel = "JPT+CHB";}
 
-if(!$Quiet){
+if(!$beQuiet){
 ##write info
   print "Using Settings:\n";
   print "------------------------------------\n";
   print "Chromosome = $CHR\n";
-  print "Population = $POP\n";
+  print "Panel      = $Panel\n";
+  print "Data directory = $dataprefix\n";
   if($Download){
-    print "Downloading files to $dataprefix\n";
+    print "Downloading from $HapMapURL\n";
+    if($Unzip){
+      print "Decompressing with ${gzip_path}${slash}gzip\n";
+    }else{
+      print "Not decompressing\n";
+      $Format = 0;
+    }
   }
   else {print "Not downloading\n";}
   if($Format){
     print "Formatting with $formatter_exec\n";
-    if($genotypesfile){print "writing genotypesfile: $genotypesfile\n";}
-    if($locusfile){print "writing locusfile: $locusfile\n";}
-    if($ccgenotypefile){
-      write "also formatting user genotypes file: $ccgenotypefile\n";
-      if($output_ccgfile){print "writing ccgenotypesfile: $output_ccgfile\n";}
-      if($flank){print "flanking region: ${flank}Kb\n";}
-    }
-  }
+  }else {print "Not formatting\n"}
   print "------------------------------------\n\n";
 }
 
@@ -143,17 +127,16 @@ if(!$Quiet){
 
 ## 1: download files from HapMap and decompress
 if ($Download){
-  if(!$HapMapPrefix){
-    $HapMapPrefix = "http://www.hapmap.org/downloads/phasing/2006-07_phaseII/phased/genotypes_chr${CHR}_${POP}_r21_nr_fwd";
-  }
+  my $HapMapPrefix = "$HapMapURL/genotypes_chr${CHR}_${Panel}_r21_nr_fwd";
+
   my $LegendFile = "${HapMapPrefix}_legend.txt.gz";
   my $PhasedFile = "${HapMapPrefix}_phased.gz";
   my $SampleFile = "${HapMapPrefix}_sample.txt.gz";
-
   my @HapMapFiles = ($LegendFile, $PhasedFile, $SampleFile);
 
+  ##create data dir if it doesn't exist
   if(!(-e $dataprefix)){
-    if(!$Quiet){print "making $dataprefix\n";}
+    if(!$beQuiet){print "making $dataprefix\n";}
     mkpath($dataprefix);
   }
   my $outLegendFile = "$dataprefix${slash}chr${CHR}_legend.txt";
@@ -161,45 +144,35 @@ if ($Download){
   my $outSampleFile = "$dataprefix${slash}chr${CHR}_sample.txt";
   my @outFiles = ($outLegendFile, $outPhasedFile, $outSampleFile);
 
-  if(!$Quiet){print "Downloading files from HapMap\n";}
+  if(!$beQuiet){print "Downloading files from HapMap\n";}
   for( my $i = 0; $i < 3; ++$i){
     my $zipfile = "@outFiles[$i].gz";
-    my $content = getstore( @HapMapFiles[$i], $zipfile)
-      or die "Couldn't get @HapMapFiles[$i]";
+    my $content = getstore( @HapMapFiles[$i], $zipfile);
+      ##getstore returns the HTTP response code
+      ## 200 = success
+      ## 4xx, 5xx, 6xx = error
+    if($content != 200){
+      die("Unable to retrieve data from HapMap website")
+    }
+
     if ($Unzip){
       #decompress using gzip (if available)
       system("${gzip_path}${slash}gzip -d $zipfile");
     }
   }
 
-  if(!$Quiet){print "Download complete\n";}
+  if(!$beQuiet){print "Download complete\n";}
 }
 ## 2: Format files
 if( $Format){
-#  if(!$Quiet){print "Formatting data\n";}
+#  if(!$beQuiet){print "Formatting data\n";}
 
-  my $cmd = "$formatter_exec -c$CHR -p$dataprefix";
-  if($genotypesfile){$cmd = $cmd . " -g$genotypesfile";}
-  if($locusfile){$cmd  = $cmd . " -l$locusfile";}
-  if($ccgenotypefile){
-    $cmd = $cmd . " -i$ccgenotypefile";
-    if($output_ccgfile){$cmd = $cmd . " -o$output_ccgfile";}
-    if($flank){$cmd = $cmd . " -f$flank";}
-  }else{
-    if($limitloci){$cmd = $cmd . " -n$limitloci";}
-  }
-  if($Verbose){$cmd = $cmd . " -v";}
-  $cmd = $cmd . " -m$missing_string";
+  my $cmd = "$formatter_exec -c=$CHR -p=$dataprefix_arg $formatter_args";
 
-  #print "$cmd";
   my $status = system($cmd);
-  if($status == 0){
- #  if(!$Quiet){print "Formatting complete\n"; }
-  }  else{
-   print "Formatter exited with status $status\n";
-  }
+  print "\nFormatter exited with status $status\n";
 }
 
-#if(!$Quiet){
+#if(!$beQuiet){
   print "\nscript complete\n\n"
 #}
