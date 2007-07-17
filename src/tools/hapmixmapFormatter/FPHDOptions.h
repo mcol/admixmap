@@ -14,7 +14,7 @@
 
 #include <fstream>
 #include <string>
-#include "bcppcl/OptionReader.h"
+#include "bclib/OptionReader.h"
 
 class FPHDOptions {
 public:
@@ -62,7 +62,7 @@ private:
   std::string InitialFreqPriorFilename;
 
   FPHDOptions();
-  void DefineOptions(bcppcl::OptionReader& opt);
+  void DefineOptions(bclib::OptionReader& opt);
   void ParseOptions(int argc, char** argv);
   void StripSuffix(std::string& filename);
 };

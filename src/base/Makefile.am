@@ -1,5 +1,5 @@
-AM_CPPFLAGS = -I$(srcdir)/../bcppcl
-AM_LDFLAGS= -L$(srcdir)/../bcppcl
+AM_CPPFLAGS = -I$(srcdir)/../bclib
+AM_LDFLAGS= -L$(srcdir)/../bclib
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS)
 

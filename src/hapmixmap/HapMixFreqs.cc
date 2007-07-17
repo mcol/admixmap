@@ -13,8 +13,8 @@
 #include "HapMixFreqs.h"
 #include "Genome.h"
 #include "HapMixOptions.h"
-#include "bcppcl/misc.h"
-#include "bcppcl/Exceptions.h"
+#include "bclib/misc.h"
+#include "bclib/Exceptions.h"
 #include <iomanip>
 
 HapMixFreqs::HapMixFreqs(){

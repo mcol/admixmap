@@ -16,9 +16,10 @@
 
 #include "DispersionTest.h"
 #include <numeric>
-#include "bcppcl/linalg.h"
-#include "bcppcl/dist.h"
+#include "bclib/linalg.h"
+#include "bclib/dist.h"
 #include "AdmixFilenames.h"
+#include "bclib/LogWriter.h"
 
 using namespace ::std;
 

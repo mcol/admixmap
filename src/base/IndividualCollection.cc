@@ -10,7 +10,7 @@
  * 
  */
 #include "IndividualCollection.h"
-#include "bcppcl/Regression.h"
+#include "bclib/Regression.h"
 
 using namespace std;
 

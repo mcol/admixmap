@@ -15,7 +15,7 @@
 #define HAPMIXFREQS_H 1
 
 #include "AlleleFreqs.h"
-#include "bcppcl/AdaptiveRejection.h"
+#include "bclib/AdaptiveRejection.h"
 #include <vector>
 #include <fstream>
 class Genome;

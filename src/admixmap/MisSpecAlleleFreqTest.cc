@@ -19,12 +19,12 @@
 
 #include "MisSpecAlleleFreqTest.h"
 #include "AdmixFilenames.h"
-#include "bcppcl/LogWriter.h"
-#include "bcppcl/TableWriter.h"
+#include "bclib/LogWriter.h"
+#include "bclib/TableWriter.h"
 #include "AlleleFreqs.h"
 #include "Genome.h"
 #include "gsl/gsl_cdf.h"//for pvalues
-#include "bcppcl/linalg.h"
+#include "bclib/linalg.h"
 
 MisSpecAlleleFreqTest::MisSpecAlleleFreqTest(){
   doTest1 = false;

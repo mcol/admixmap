@@ -11,11 +11,11 @@
  */
 
 #include "CompositeLocus.h"
-#include "bcppcl/rand.h"
+#include "bclib/rand.h"
 #include <cmath>
 #include <cstdlib>
 #include <numeric>
-#include "bcppcl/misc.h"
+#include "bclib/misc.h"
 
 using namespace std;
 
@@ -271,7 +271,7 @@ void CompositeLocus::AccumulateAlleleProbs(){
 /**
  * Returns probabilities of ordered hap pairs conditional on hidden states
  */
-void CompositeLocus::getConditionalHapPairProbs(bcppcl::pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
+void CompositeLocus::getConditionalHapPairProbs(bclib::pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
   //Note: probs should have length equal to the total number of possible diploid states ie  NumberOfStates^2 .
   // (in haploid case, we get the probs directly from alleleprobs/allelefreqs
   

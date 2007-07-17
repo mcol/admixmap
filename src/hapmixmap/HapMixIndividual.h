@@ -58,7 +58,7 @@ private:
   //  void SetPossibleHaplotypePairs(unsigned locus, vector<unsigned short>::const_iterator g, vector<hapPair> &PossibleHapPairs );
   void SetPossibleHaplotypePairs(const vector<unsigned short>::const_iterator GI, vector<hapPair> &PossibleHapPairs, ploidy p);
 
-  const bcppcl::pvector<double>& getStateProbs(int, int) const;
+  const bclib::pvector<double>& getStateProbs(int, int) const;
 };
 
 #endif /* HAMPIXINDIVIDUAL_H */

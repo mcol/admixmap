@@ -18,7 +18,7 @@
 #include <numeric> // for checkInitAlpha
 
 using namespace std;
-using namespace bcppcl;
+using namespace bclib;
 
 AdmixOptions::AdmixOptions(int argc,  char** argv){
   SetDefaultValues();

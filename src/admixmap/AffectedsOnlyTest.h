@@ -15,7 +15,7 @@
 #define AFFECTEDSONLYTEST_H 1
 
 #include "ScoreTestBase.h"
-#include "bcppcl/RObjectWriter.h"
+#include "bclib/RObjectWriter.h"
 
 class Genome;
 class LogWriter;

@@ -3,7 +3,7 @@ compile it. See the INSTALL file for instructions.
 
 Dependencies:
 
- * GNU GSL, http://www.gnu.org/software/gsl/
+ * GSL, http://www.gnu.org/software/gsl/
 
 For more information, please visit this address:
 http://www.ucd.ie/genepi/software.html

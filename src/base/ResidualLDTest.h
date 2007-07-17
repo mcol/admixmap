@@ -16,7 +16,7 @@
 #include <sstream>
 #include "ScoreTestBase.h"
 #include "Options.h"
-#include "bcppcl/RObjectWriter.h"
+#include "bclib/RObjectWriter.h"
 
 class Chromosome;
 class Genome;

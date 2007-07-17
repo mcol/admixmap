@@ -15,8 +15,8 @@
 #include <numeric>
 #include "gsl/gsl_cdf.h"
 #include <math.h>
-#include "bcppcl/linalg.h"
-#include "bcppcl/FileWriter.h"
+#include "bclib/linalg.h"
+#include "bclib/FileWriter.h"
 
 using namespace std;
 

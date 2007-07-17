@@ -11,10 +11,10 @@
  * 
  */
 #include "HapMixGenotypeLoader.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/LogWriter.h"
 #include "Genome.h"
-#include "bcppcl/DataReader.h"
-#include "bcppcl/StringConvertor.h"
+#include "bclib/DataReader.h"
+#include "bclib/StringConvertor.h"
 
 HapMixGenotypeLoader::HapMixGenotypeLoader(){
   NumCCIndividuals = 0;

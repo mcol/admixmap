@@ -11,7 +11,7 @@
  */
 
 #include "GPI.h"
-#include "bcppcl/ColumnIter.h"
+#include "bclib/ColumnIter.h"
 
 ///default c'tor ,initialises to null values
 GenotypeProbIterator::GenotypeProbIterator(){

@@ -10,11 +10,11 @@
  * 
  */
 #include "GenotypeLoader.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/LogWriter.h"
 #include "Genome.h"
-#include "bcppcl/DataReader.h"
-#include "bcppcl/StringConvertor.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/DataReader.h"
+#include "bclib/StringConvertor.h"
+#include "bclib/LogWriter.h"
 
 //delimiters for diploid genotypes
 #define GENOTYPE_DELIMS ",/:"

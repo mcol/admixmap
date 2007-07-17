@@ -17,7 +17,7 @@
 #include <sstream>
 
 using namespace std;
-using namespace bcppcl;
+using namespace bclib;
 
 HapMixOptions::HapMixOptions(int argc,  char** argv){
   SetDefaultValues();

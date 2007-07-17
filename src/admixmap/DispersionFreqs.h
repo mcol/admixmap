@@ -17,10 +17,10 @@
                      //2 = HAMILTONIAN
 
 #include "AlleleFreqs.h"
-#include "bcppcl/MuSampler.h"
-#include "bcppcl/DispersionSampler.h"
-#include "bcppcl/StepSizeTuner.h"
-#include "bcppcl/AdaptiveRejection.h"
+#include "bclib/MuSampler.h"
+#include "bclib/DispersionSampler.h"
+#include "bclib/StepSizeTuner.h"
+#include "bclib/AdaptiveRejection.h"
 class AdmixOptions;
 class InputAdmixData;
 

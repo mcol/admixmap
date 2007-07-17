@@ -11,7 +11,7 @@
  */
 #include "HiddenMarkovModel.h"
 #include <cmath>
-#include "bcppcl/rand.h"
+#include "bclib/rand.h"
 
 using namespace std;
 
@@ -237,7 +237,7 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
     If diploid, the vector is really a matrix of probabilities of pairs
     of states.
  */
-const bcppcl::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDiploid, int t){
+const bclib::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDiploid, int t){
   UpdateForwardProbs(isDiploid);
   UpdateBackwardProbs(isDiploid);
   unsigned States = K;

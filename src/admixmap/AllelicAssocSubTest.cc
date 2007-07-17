@@ -1,8 +1,8 @@
 #include "AllelicAssocSubTest.h"
 #include "CompositeLocus.h"
 #include "ScoreTestBase.h"
-#include "bcppcl/linalg.h"
-#include "bcppcl/FileWriter.h"
+#include "bclib/linalg.h"
+#include "bclib/FileWriter.h"
 #include <gsl/gsl_cdf.h>
 #include <cmath>
 #include <string>

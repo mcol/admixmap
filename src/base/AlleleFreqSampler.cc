@@ -11,8 +11,8 @@
  */
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
-#include "bcppcl/dist.h"//for Dirichlet log density
-#include "bcppcl/misc.h"
+#include "bclib/dist.h"//for Dirichlet log density
+#include "bclib/misc.h"
 
 //#define DEBUG 1
 

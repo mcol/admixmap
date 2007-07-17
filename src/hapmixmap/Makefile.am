@@ -1,14 +1,14 @@
-BAYESLIB_PATH=$(srcdir)/../bcppcl
+BCLIB_PATH=$(srcdir)/../bclib
 BASELIB_PATH=$(srcdir)/../base
-AM_CPPFLAGS=-I$(BAYESLIB_PATH)  -I$(BASELIB_PATH)
+AM_CPPFLAGS=-I$(BCLIB_PATH)  -I$(BASELIB_PATH)
 
-AM_LDFLAGS= -L$(top_builddir)/src/bcppcl
+AM_LDFLAGS= -L$(top_builddir)/src/bclib
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS) -fexceptions
 
 bin_PROGRAMS = hapmixmap
 hapmixmap_LDFLAGS = -all-static $(AM_LDFLAGS)
-hapmixmap_LDADD = $(top_builddir)/$(subdir)/../base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
+hapmixmap_LDADD = $(top_builddir)/$(subdir)/../base/libbase.a -lbcl -lgsl -lgslcblas -lm
 hapmixmap_DEPENDENCIES=$(top_builddir)/$(subdir)/../base/libbase.a 
 
 hapmixmap_SOURCES = hapmixmap.cc \

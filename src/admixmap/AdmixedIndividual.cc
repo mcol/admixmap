@@ -13,10 +13,10 @@
 #include "AdmixedIndividual.h"
 #include "AdmixOptions.h"
 #include "InputAdmixData.h"
-#include "bcppcl/Regression.h"
-#include "bcppcl/misc.h"
-#include "bcppcl/dist.h"
-//#include "bcppcl/linalg.h"
+#include "bclib/Regression.h"
+#include "bclib/misc.h"
+#include "bclib/dist.h"
+//#include "bclib/linalg.h"
 #include <algorithm>
 #include <limits>
 #include <sstream>

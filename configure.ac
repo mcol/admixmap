@@ -73,13 +73,13 @@ AC_CONFIG_FILES([Makefile
 	   src/admixmap/Makefile
 	   src/hapmixmap/Makefile
 	   src/base/Makefile
-	   src/bcppcl/Makefile
-           src/bcppcl/bcppcl/Makefile
-	   src/bcppcl/regression/Makefile
-	   src/bcppcl/samplers/Makefile
-	   src/bcppcl/utils/Makefile
-           src/bcppcl/examples/Makefile
-           src/bcppcl/doxygen/Makefile
+	   src/bclib/Makefile
+           src/bclib/bclib/Makefile
+	   src/bclib/regression/Makefile
+	   src/bclib/samplers/Makefile
+	   src/bclib/utils/Makefile
+           src/bclib/examples/Makefile
+           src/bclib/doxygen/Makefile
 	   src/scripts/Makefile
            src/scripts/genepi-config
 	   src/tools/Makefile

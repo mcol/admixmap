@@ -16,9 +16,9 @@
 #include "Genome.h"
 #include "Chromosome.h"
 #include "AlleleFreqs.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/LogWriter.h"
 #include "GenotypeProbOutputter.h"
-#include "bcppcl/Regression.h"
+#include "bclib/Regression.h"
 
 using namespace std;
 

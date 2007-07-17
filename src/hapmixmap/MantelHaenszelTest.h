@@ -1,6 +1,6 @@
 // *-*-C++-*-*
 #include "ScoreTestBase.h"
-#include "bcppcl/RObjectWriter.h"
+#include "bclib/RObjectWriter.h"
 #include <vector>
 #include <fstream>
 class IndividualCollection;

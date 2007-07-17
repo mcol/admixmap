@@ -15,10 +15,10 @@
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"
 #include "InputAdmixData.h"
-#include "bcppcl/AdaptiveRejection.h"
-#include "bcppcl/misc.h"
-#include "bcppcl/linalg.h"
-#include "bcppcl/MuSampler.h"
+#include "bclib/AdaptiveRejection.h"
+#include "bclib/misc.h"
+#include "bclib/linalg.h"
+#include "bclib/MuSampler.h"
 #include <iomanip>
 #include <math.h>
 #include <numeric>

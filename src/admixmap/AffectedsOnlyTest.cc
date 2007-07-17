@@ -13,8 +13,8 @@
 
 #include "AffectedsOnlyTest.h"
 #include "Genome.h"
-#include "bcppcl/TableWriter.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/TableWriter.h"
+#include "bclib/LogWriter.h"
 #include <gsl/gsl_cdf.h>
 #include <math.h>
 

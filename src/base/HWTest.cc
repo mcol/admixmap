@@ -16,8 +16,8 @@
 #include "HWTest.h"
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
-#include "bcppcl/linalg.h"
-#include "bcppcl/TableWriter.h"
+#include "bclib/linalg.h"
+#include "bclib/TableWriter.h"
 
 HWTest::HWTest(){
   score = 0;

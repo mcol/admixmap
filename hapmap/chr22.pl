@@ -274,6 +274,7 @@ sub getArguments
     my $hash = $_[0];
     my $filename = "args$POP$STATES.txt";
     open(OPTIONFILE, ">$filename") or die ("Could not open args file");
+    flock OPTIONFILE, 2;
     foreach my $key (sort keys %{$hash}){
       print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
@@ -294,6 +295,7 @@ sub getArguments
         }
         close(EXTERNAL_ARGS);
     }
+    flock OPTIONFILE, 8;
     close OPTIONFILE;
     return $filename;
 }

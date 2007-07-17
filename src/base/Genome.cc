@@ -12,9 +12,9 @@
 #include <stdlib.h>
 #include <sstream>
 #include "Genome.h"
-#include "bcppcl/DataMatrix.h"
-#include "bcppcl/StringConvertor.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/DataMatrix.h"
+#include "bclib/StringConvertor.h"
+#include "bclib/LogWriter.h"
 using namespace std;
 
 Genome::Genome()

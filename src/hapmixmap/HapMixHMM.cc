@@ -11,7 +11,7 @@
  * 
  */
 #include "HapMixHMM.hh"
-#include "bcppcl/rand.h"
+#include "bclib/rand.h"
 #include <cmath> //for log
 
 // HapMixHMM::HapMixHMM(){

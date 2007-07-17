@@ -1,5 +1,5 @@
-AM_CPPFLAGS=-I$(top_srcdir)/src/bcppcl
-AM_LDFLAGS = -all-static -L$(top_builddir)/src/bcppcl
+AM_CPPFLAGS=-I$(top_srcdir)/src/bclib
+AM_LDFLAGS = -all-static -L$(top_builddir)/src/bclib
 noinst_PROGRAMS = FPHD FUD
 FPHD_SOURCES = \
   FormatPhasedData.cpp \
@@ -17,7 +17,7 @@ FPHD_SOURCES = \
   InitialValues.cpp
 
 #TODO: only requires gsl_permutation.la sublibrary of gsl so wasteful to link against entire gsl
-FPHD_LDADD= -lbcppcl -lgsl
+FPHD_LDADD= -lbcl -lgsl
 
 FUD_SOURCES = FormatUnphasedData.cpp
 

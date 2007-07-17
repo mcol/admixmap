@@ -16,10 +16,10 @@
 
 #include "HapMixOptions.h"
 #include "HapMixGenome.hh"
-#include "bcppcl/HamiltonianMonteCarlo.h"
-//#include "bcppcl/StepSizeTuner.h"//for sampling globalrho and globaltheta
-#include "bcppcl/AdaptiveRejection.h"
-#include "bcppcl/DirichletParamSampler.h"
+#include "bclib/HamiltonianMonteCarlo.h"
+//#include "bclib/StepSizeTuner.h"//for sampling globalrho and globaltheta
+#include "bclib/AdaptiveRejection.h"
+#include "bclib/DirichletParamSampler.h"
 
 class InputData;
 class IndividualCollection;

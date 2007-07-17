@@ -11,8 +11,8 @@
  */
 #include "AncestryAssocTest.h"
 #include "Genome.h"
-#include "bcppcl/LogWriter.h"
-#include "bcppcl/TableWriter.h"
+#include "bclib/LogWriter.h"
+#include "bclib/TableWriter.h"
 #include <vector>
 #include <string>
 

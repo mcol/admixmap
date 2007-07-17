@@ -17,7 +17,7 @@
 #include "common.h"
 #include "HapPair.h"
 #include "Haplotype.h"
-#include "bcppcl/pvector.h"
+#include "bclib/pvector.h"
 
 ///   Class to represent a composite locus
 class CompositeLocus
@@ -41,7 +41,7 @@ public:
   void setAlleleProbsMAP(const double* const Freqs);
   void AccumulateAlleleProbs();
 
-  void getConditionalHapPairProbs(bcppcl::pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
+  void getConditionalHapPairProbs(bclib::pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
   /** Similar to getConditionalHapPairProbs, but only the first and last
    * elements of Probs are being set.
    * 

@@ -128,11 +128,11 @@ hapmixmap-srcdist: dist
 	@echo hapmixmap source package is ready for distribution
 	@echo ==================================================
 
-#make bcppcl (only) source distribution
-bcppcl-srcdist:
-	@(cd $(top_srcdir)/src/bcppcl && autoreconf -fi)
-	@($(top_srcdir)/src/bcppcl/configure && \
+#make bclib (only) source distribution
+bclib-srcdist:
+	@(cd $(top_srcdir)/src/bclib && autoreconf -fi)
+	@($(top_srcdir)/src/bclib/configure && \
 make dist) || exit 1;
 	@echo ===============================================
-	@echo bcppcl source package is ready for distribution
+	@echo bclib source package is ready for distribution
 	@echo ===============================================

@@ -19,7 +19,7 @@
 
 #include <numeric>
 #include "ScoreTests.h"
-#include "bcppcl/Regression.h"
+#include "bclib/Regression.h"
 #include "AdmixFilenames.h"
 
 using namespace std;

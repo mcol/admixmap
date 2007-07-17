@@ -11,10 +11,10 @@
  */
 #include "CopyNumberAssocTest.h"
 #include "Genome.h"
-#include "bcppcl/linalg.h"
-#include "bcppcl/dist.h"
-#include "bcppcl/misc.h"
-#include "bcppcl/TableWriter.h"
+#include "bclib/linalg.h"
+#include "bclib/dist.h"
+#include "bclib/misc.h"
+#include "bclib/TableWriter.h"
 
 using namespace::std;
 CopyNumberAssocTest::CopyNumberAssocTest(){

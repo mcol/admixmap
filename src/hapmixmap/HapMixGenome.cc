@@ -1,6 +1,6 @@
 #include "HapMixGenome.hh"
 #include "HapMixHMM.hh"
-#include "bcppcl/misc.h"//for myexp
+#include "bclib/misc.h"//for myexp
 
 ///allocate a HapMixChromosome. overrides base class function which allocates a (base) Chromosome
 void HapMixGenome::CreateChromosome(unsigned i, unsigned size, bool isX, unsigned cstart, int NumHiddenStates ){

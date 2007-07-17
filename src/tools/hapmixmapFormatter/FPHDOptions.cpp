@@ -46,7 +46,7 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
 }
 
 void FPHDOptions::ParseOptions(int argc, char** argv){
-  bcppcl::OptionReader opt;
+  bclib::OptionReader opt;
   opt.setVerbose(true); /* print warnings about unknown options */
 
   opt.setUserOption("genotypesfile", "genotypes.txt");
@@ -96,25 +96,25 @@ void FPHDOptions::StripSuffix(std::string& filename){
   filename.erase(filename.find_first_of("."));
 }
 
-void FPHDOptions::DefineOptions(bcppcl::OptionReader& opt){
+void FPHDOptions::DefineOptions(bclib::OptionReader& opt){
   opt.addFlag('h', "help");
   opt.addFlag('v', "verbose");
-  opt.addOption('c', "chromosome", bcppcl::intOption, &Chr, true);
-  opt.addOption('p', "prefix", bcppcl::stringOption, &prefix);
-  opt.addOption('g', "genotypesfile", bcppcl::stringOption, &genotypesfilename);
-  opt.addOption('l', "locusfile", bcppcl::stringOption, &locusfilename);
+  opt.addOption('c', "chromosome", bclib::intOption, &Chr, true);
+  opt.addOption('p', "prefix", bclib::stringOption, &prefix);
+  opt.addOption('g', "genotypesfile", bclib::stringOption, &genotypesfilename);
+  opt.addOption('l', "locusfile", bclib::stringOption, &locusfilename);
   opt.addFlag('b', "backup");
-  //  opt.addOption('n', "numloci", bcppcl::longOption, &locuslimit);
-  opt.addOption('M', "maxloci", bcppcl::intOption, &MaxLoci);
-  opt.addOption("minoverlap", bcppcl::floatOption, &MinOverlap_kb);
-  opt.addOption('i', "inputfile", bcppcl::stringOption, &incasecontrolfilename);
-  opt.addOption('o', "outputfile", bcppcl::stringOption, &outcasecontrolfilename);
-  opt.addOption('f', "flank", bcppcl::floatOption, &flankLength);
-  opt.addOption('m', "missing", bcppcl::charOption, &MissingChar);
-  opt.addOption("initialmixturepropsfile", bcppcl::stringOption, &InitialMixturePropsFilename);
-  opt.addOption("initialarrivalratefile", bcppcl::stringOption, &InitialArrivalRateFilename);
-  opt.addOption("initialallelefreqfile", bcppcl::stringOption, &InitialAlleleFreqFilename);
-  opt.addOption("initialfreqpriorfile", bcppcl::stringOption, &InitialFreqPriorFilename);
+  //  opt.addOption('n', "numloci", bclib::longOption, &locuslimit);
+  opt.addOption('M', "maxloci", bclib::intOption, &MaxLoci);
+  opt.addOption("minoverlap", bclib::floatOption, &MinOverlap_kb);
+  opt.addOption('i', "inputfile", bclib::stringOption, &incasecontrolfilename);
+  opt.addOption('o', "outputfile", bclib::stringOption, &outcasecontrolfilename);
+  opt.addOption('f', "flank", bclib::floatOption, &flankLength);
+  opt.addOption('m', "missing", bclib::charOption, &MissingChar);
+  opt.addOption("initialmixturepropsfile", bclib::stringOption, &InitialMixturePropsFilename);
+  opt.addOption("initialarrivalratefile", bclib::stringOption, &InitialArrivalRateFilename);
+  opt.addOption("initialallelefreqfile", bclib::stringOption, &InitialAlleleFreqFilename);
+  opt.addOption("initialfreqpriorfile", bclib::stringOption, &InitialFreqPriorFilename);
 }
 
 

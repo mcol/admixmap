@@ -14,7 +14,7 @@
 #define HIDDENMARKOVMODEL_H 1
 
 #include <vector>
-#include "bcppcl/pvector.h"
+#include "bclib/pvector.h"
 
 class GenotypeProbIterator;
 
@@ -61,7 +61,7 @@ public:
   void SampleHiddenStates(int *SStates, bool isdiploid);
 
   ///returns conditional probs of hidden states
-  const bcppcl::pvector<double>& GetHiddenStateProbs( const bool isDiploid, int t );
+  const bclib::pvector<double>& GetHiddenStateProbs( const bool isDiploid, int t );
 
   ///returns loglikelihood
   double getLogLikelihood(bool isDiploid);
@@ -105,7 +105,7 @@ protected:
 
   // Storing results so vectors are not being created every time
   // the GetHiddenStateProbs() function is called
-  bcppcl::pvector<double> hiddenStateProbs;
+  bclib::pvector<double> hiddenStateProbs;
 
   void UpdateForwardProbs(bool);
   void UpdateBackwardProbs(bool);

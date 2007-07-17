@@ -5,8 +5,8 @@
 #include <fstream>
 #include <iomanip>
 #include "CompositeLocus.h"
-#include "bcppcl/pvector.h"
-#include "bcppcl/RObjectWriter.h"
+#include "bclib/pvector.h"
+#include "bclib/RObjectWriter.h"
 
 class GenotypeProbOutputter{
 public:
@@ -19,7 +19,7 @@ private:
   unsigned NumMaskedIndivs;
   unsigned NumMaskedLoci;
   unsigned NumIterations;
-  bcppcl::pvector<double> Probs;
+  bclib::pvector<double> Probs;
   //std::ofstream outfile;
   RObjectWriter outfile;
 

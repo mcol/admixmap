@@ -12,9 +12,9 @@
 #include "ResidualLDTest.h"
 #include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
-#include "bcppcl/linalg.h"//for HH_solve to compute chi-sq
+#include "bclib/linalg.h"//for HH_solve to compute chi-sq
 #include "FreqArrays.h"
-#include "bcppcl/TableWriter.h"
+#include "bclib/TableWriter.h"
 
 ResidualLDTest::ResidualLDTest(){
   individuals = 0;

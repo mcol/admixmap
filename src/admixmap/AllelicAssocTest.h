@@ -18,7 +18,7 @@
 #include "IndividualCollection.h"
 #include "Genome.h"
 #include "AllelicAssocSubTest.h"
-#include "bcppcl/RObjectWriter.h"
+#include "bclib/RObjectWriter.h"
 
 /**
  *  Class to implement 

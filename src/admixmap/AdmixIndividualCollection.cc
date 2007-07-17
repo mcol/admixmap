@@ -12,7 +12,7 @@
  */
 #include "AdmixIndividualCollection.h"
 #include "InputAdmixData.h"
-#include "bcppcl/Regression.h"
+#include "bclib/Regression.h"
 
 using namespace std;
 

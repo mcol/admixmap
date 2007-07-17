@@ -1,7 +1,7 @@
 if PARALLEL
-SUBDIRS = bcppcl base hapmixmap scripts doxygen
+SUBDIRS = bclib base hapmixmap scripts doxygen
 else
-SUBDIRS = bcppcl base admixmap hapmixmap tools scripts doxygen
+SUBDIRS = bclib base admixmap hapmixmap tools scripts doxygen
 endif
 
 ACLOCAL_AMFLAGS = 

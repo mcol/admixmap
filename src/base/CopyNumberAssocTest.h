@@ -14,7 +14,7 @@
 #define COPYNUMBERASSOCTEST_H 1
 
 #include "ScoreTestBase.h"
-#include "bcppcl/RObjectWriter.h"
+#include "bclib/RObjectWriter.h"
 
 /**
    Class originally designed to implement score test for linkage with locus ancestry

@@ -16,7 +16,7 @@
 #include "Genome.h"
 //#include "Chromosome.h"
 //#include "AlleleFreqs.h"
-#include "bcppcl/DataMatrix.h"
+#include "bclib/DataMatrix.h"
 #include "Individual.h"
 #include <vector>
 #include <string.h>

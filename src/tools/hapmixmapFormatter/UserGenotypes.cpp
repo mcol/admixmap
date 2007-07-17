@@ -14,9 +14,9 @@
 #include "UserGenotypes.h"
 #include "GenotypeEncoding.h"
 #include "HapMapLegend.h"
-#include "bcppcl/ranker.h"
+#include "bclib/ranker.h"
 #include "gsl/gsl_permutation.h"
-#include "bcppcl/StringSplitter.h"
+#include "bclib/StringSplitter.h"
 #include <iostream>
 #include <vector>
 #include <sstream>

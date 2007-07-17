@@ -13,7 +13,7 @@
 #ifndef INPUT_DATA_H
 #define INPUT_DATA_H 1
 #include "common.h"
-#include "bcppcl/DataMatrix.h"
+#include "bclib/DataMatrix.h"
 #include "GeneticDistanceUnit.h"
 #include "GenotypeLoader.h"
 #include <vector>

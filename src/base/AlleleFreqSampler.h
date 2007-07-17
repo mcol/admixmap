@@ -16,7 +16,7 @@
 #include "common.h"
 #include <math.h>
 #include <stdlib.h>
-#include "bcppcl/HamiltonianMonteCarlo.h"
+#include "bclib/HamiltonianMonteCarlo.h"
 #include "CompositeLocus.h"
 #include <algorithm>
 #include <gsl/gsl_linalg.h>

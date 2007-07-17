@@ -1,7 +1,7 @@
 #include "GenotypeProbOutputter.h"
 #include <string>
 #include <cmath>
-#include "bcppcl/Exceptions.h"
+#include "bclib/Exceptions.h"
 
 //define to turn on checking for nans
 //#define GPO_DEBUG

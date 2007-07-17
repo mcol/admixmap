@@ -10,7 +10,7 @@
  * 
  */
 #include "Individual.h"
-#include "bcppcl/Regression.h" 
+#include "bclib/Regression.h" 
 #include <sstream>
 #include <exception>
 

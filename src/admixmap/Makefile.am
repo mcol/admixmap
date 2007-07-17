@@ -1,8 +1,8 @@
-BAYESLIB_PATH=$(srcdir)/../bcppcl
+BCLIB_PATH=$(srcdir)/../bclib
 BASELIB_PATH=$(srcdir)/../base
-AM_CPPFLAGS=-I$(BAYESLIB_PATH)  -I$(BASELIB_PATH)
+AM_CPPFLAGS=-I$(BCLIB_PATH)  -I$(BASELIB_PATH)
 
-AM_LDFLAGS=-all-static -L$(top_builddir)/src/bcppcl
+AM_LDFLAGS=-all-static -L$(top_builddir)/src/bclib
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS)
 
@@ -28,7 +28,7 @@ AllelicAssocTest.cc AllelicAssocTest.h \
 AllelicAssocSubTest.cc AllelicAssocSubTest.h \
 ScoreTests.cc ScoreTests.h 
 
-admixmap_LDADD=$(top_builddir)/$(subdir)/../base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
+admixmap_LDADD=$(top_builddir)/$(subdir)/../base/libbase.a -lbcl -lgsl -lgslcblas -lm
 
 admixmap_DEPENDENCIES = $(top_builddir)/$(subdir)/../base/libbase.a
 

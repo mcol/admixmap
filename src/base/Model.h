@@ -18,9 +18,9 @@
 #include <cstring>    /* for strcmp, strcpy */
 #include <string>
 #include "common.h"
-#include "bcppcl/LinearRegression.h"
-#include "bcppcl/LogisticRegression.h"
-#include "bcppcl/CoxRegression.h"
+#include "bclib/LinearRegression.h"
+#include "bclib/LogisticRegression.h"
+#include "bclib/CoxRegression.h"
 #include "AlleleFreqs.h"
 #include "Options.h"
 #include "InputData.h"

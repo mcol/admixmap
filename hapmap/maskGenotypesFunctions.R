@@ -213,24 +213,24 @@ matrix.debug <- function(m, msg = "Matrix debug") {
 # http://en.wikipedia.org/wiki/Mutual_information#Relation_to_other_quantities
 mutual.information <- function(joint.pd) {
 	# marginal distributions
-	if (!is.matrix(joint.pd)) {
-		stop("Argument should be a matrix.")
-	}
+  if (!is.matrix(joint.pd)) {
+    stop("Argument should be a matrix.")
+  }
 	# TODO: Check if the matrix is square
-	if (dim(joint.pd)[1] != dim(joint.pd)[2]) {
-		stop("Matrix should be square.")
-	}
-	x.entropy = entropy(rowSums(joint.pd))
-	y.entropy = entropy(colSums(joint.pd))
-	joint.pd.entropy = entropy(joint.pd)
-	mi = x.entropy + y.entropy - joint.pd.entropy
+  if (dim(joint.pd)[1] != dim(joint.pd)[2]) {
+    stop("Matrix should be square.")
+  }
+  x.entropy = entropy(rowSums(joint.pd))
+  y.entropy = entropy(colSums(joint.pd))
+  joint.pd.entropy = entropy(joint.pd)
+  mi = x.entropy + y.entropy - joint.pd.entropy
 	# Probably because of http://actin.ucd.ie/trac/genepi/ticket/2
 	# If the result is very close to zero, round it to zero.
-	if (abs(mi) < 1e-7) {
-		return(0)
-	} else {
-		return(mi)
-	}
+  if (abs(mi) < 1e-7) {
+    return(0)
+  } else {
+    return(mi)
+  }
 }
 
 # After Wikipedia:
@@ -248,4 +248,83 @@ coefficient.of.constraint <- function(joint.pd) {
 	} else {
 		return(mi / Hy)
 	}
+}
+
+##source: Dawy et al ()
+##a classification measure
+DCL <- function(joint.pd){
+## marginal distributions
+  if (!is.matrix(joint.pd)) {
+    stop("Argument should be a matrix.")
+  }
+## TODO: Check if the matrix is square
+  if (dim(joint.pd)[1] != dim(joint.pd)[2]) {
+    stop("Matrix should be square.")
+  }
+  x.entropy = entropy(rowSums(joint.pd))
+  y.entropy = entropy(colSums(joint.pd))
+  joint.pd.entropy = entropy(joint.pd)
+  mi = x.entropy + y.entropy - joint.pd.entropy
+  
+  dcl <- 1 - mi / max(x.entropy, y.entropy)
+  return(dcl)  
+}
+entropy<-function(x){
+  return(-sum(x[x>0]*log(x[x>0])))
+}
+
+##calculates the average information score according to
+##Kononenko & Bratko, Machine Learning 6, 67-80 (1991)
+InfoScore <- function(prior, posterior, observed){
+  ##prior = vector of K probabilities
+  ##posterior = NxK matrix of posterior predictive probabilities
+  ##observed = vector of N observed values
+  N <- nrow(posterior)
+  K <- ncol(posterior)
+
+  if(length(prior)!=K || length(observed)!=N){
+    stop("mismatched dimensions")
+  }
+  sum.info.score <- 0
+  for( i in 1:N){
+    if(posterior[i, observed[i]] >= prior[observed[i]]){
+      sum.info.score <- sum.info.score + log2(posterior[i, observed[i]]) - log2(prior[observed[i]])
+    }else{
+      sum.info.score <- sum.info.score + log2(1 - prior[observed[i]]) - log2(1 - posterior[i, observed[i]])
+    }
+  }
+  return(sum.info.score / K)
+  
+}
+
+info.score.denom <- function(prior, posterior, observed){
+  N <- nrow(posterior)
+  K <- ncol(posterior)
+
+  if(length(prior)!=K || length(observed)!=N){
+    stop("mismatched dimensions")
+  }
+  sum <- 0
+  for( i in 1:N){
+    ##if(posterior[i, observed[i]] >= prior[observed[i]]){
+      sum <- sum - log2(prior[observed[i]])
+    ##}
+  }
+  return(sum)
+}
+
+Relative.Info.Score <- function(prior, posterior, observed){
+  ##joint.entropy <- sum(apply(posterior, 1, entropy))
+ denom <- info.score.denom(prior, posterior, observed)
+  return (100*InfoScore(prior, posterior, observed) / denom)
+}
+
+RIS.locus <- function(locus, prior, posterior, observed){
+  RIS.average <- Relative.Info.Score(prior, t(posterior[5,,locus,]), observed[,locus])
+  RIS.seeds <- c(Relative.Info.Score(prior, t(posterior[1,,locus,]), observed[,locus]),
+                 Relative.Info.Score(prior, t(posterior[2,,locus,]), observed[,locus]),
+                 Relative.Info.Score(prior, t(posterior[3,,locus,]), observed[,locus]),
+                 Relative.Info.Score(prior, t(posterior[4,,locus,]), observed[,locus])
+                 )
+  return(list(RIS.average, mean(RIS.seeds)))
 }

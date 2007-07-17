@@ -14,7 +14,7 @@
 #ifndef THERMO_H
 #define THERMO_H 1
 
-#include "bcppcl/LogWriter.h"
+#include "bclib/LogWriter.h"
 class Annealer{
 
 public:

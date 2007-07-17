@@ -11,13 +11,13 @@
  */
 
 #include "Options.h"
-#include "bcppcl/StringConvertor.h"
-#include "bcppcl/StringSplitter.h"
+#include "bclib/StringConvertor.h"
+#include "bclib/StringSplitter.h"
 #include <string>
 #include <sstream>
 
 using namespace std;
-using namespace bcppcl;
+using namespace bclib;
 
 Options::Options(){
   SetDefaultValues();

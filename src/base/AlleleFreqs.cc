@@ -11,12 +11,12 @@
  * 
  */
 #include "AlleleFreqs.h"
-//#include "bcppcl/AdaptiveRejection.h"
-//#include "bcppcl/misc.h"
+//#include "bclib/AdaptiveRejection.h"
+//#include "bclib/misc.h"
 //#include <math.h>
 #include <numeric>
-#include "bcppcl/LogWriter.h"
-#include "bcppcl/Exceptions.h"
+#include "bclib/LogWriter.h"
+#include "bclib/Exceptions.h"
 
 static double convertValueFromFile(const string s){
   double d = atof(s.c_str());

@@ -13,7 +13,7 @@
 
 #include "InputAdmixData.h"
 #include "AdmixOptions.h"
-#include "bcppcl/DataReader.h"
+#include "bclib/DataReader.h"
 #include <sstream>
 
 InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){

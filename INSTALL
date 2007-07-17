@@ -1,4 +1,4 @@
-** Instructions for building admixmap and hapmixmap from source**
+** Instructions for building bclib, admixmap and hapmixmap from source**
 
 If installing from Subversion repository, complete all steps. 
 If installing from tarfile (genepi-src.tar.gz), skip step 1.
@@ -33,5 +33,5 @@ By default, no extra flags are passed to the compiler. Use 'export EXTRAFLAGS=..
 3. To compile and install:
 -----------------------------
 make, make install
-bcppcl header files will be placed in $PREFIX/bcppcl and the library in $PREFIX/lib
+bclib header files will be placed in $PREFIX/bclib and the library in $PREFIX/lib
 binaries will be placed in $PREFIX/bin

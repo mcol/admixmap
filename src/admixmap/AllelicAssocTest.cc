@@ -15,7 +15,7 @@
  */
 
 #include "AllelicAssocTest.h"
-#include "bcppcl/TableWriter.h"
+#include "bclib/TableWriter.h"
 #include "AdmixFilenames.h"
 
 AllelicAssocTest::AllelicAssocTest(){

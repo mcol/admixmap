@@ -15,11 +15,11 @@
 #define OPTIONS_H 1
 
 #include "common.h"
-#include "bcppcl/LogWriter.h"
-#include "bcppcl/OptionReader.h"
+#include "bclib/LogWriter.h"
+#include "bclib/OptionReader.h"
 
 /// Class to hold program options
-class Options: public bcppcl::OptionReader
+class Options: public bclib::OptionReader
 {
 public:
   virtual ~Options();

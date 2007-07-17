@@ -16,7 +16,7 @@
 #include "InputHapMixData.h"
 //#include "HapMixIndividual.h"
 #include "HapMixFreqs.h"
-#include "bcppcl/Regression.h"
+#include "bclib/Regression.h"
 
 HapMixIndividualCollection
 ::HapMixIndividualCollection(const HapMixOptions* const options, 

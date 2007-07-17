@@ -11,8 +11,8 @@
  */
 #include "InputData.h"
 #include "Options.h"
-#include "bcppcl/StringConvertor.h"
-#include "bcppcl/DataReader.h"
+#include "bclib/StringConvertor.h"
+#include "bclib/DataReader.h"
 #include "Genome.h"
 #include <string>
 #include <sstream>

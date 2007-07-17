@@ -16,7 +16,7 @@
 
 #include <sstream>
 #include "IndividualCollection.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/LogWriter.h"
 #include "common.h"
 #include "AdmixtureAssocTest.h"
 #include "AllelicAssocTest.h"

@@ -4,8 +4,8 @@
 #include "HapMixFilenames.h"
 #include "gsl/gsl_cdf.h"
 #include "gsl/gsl_math.h"//for gsl_finite
-#include "bcppcl/TableWriter.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/TableWriter.h"
+#include "bclib/LogWriter.h"
 
 MantelHaenszelTest::MantelHaenszelTest(){
   numUpdates = 0;

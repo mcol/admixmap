@@ -11,7 +11,7 @@
  */
 #include "Chromosome.h"
 #include <iostream>
-#include "bcppcl/misc.h"
+#include "bclib/misc.h"
 //#include <string>    //for throwing exceptions in f
 //#include <exception> // for catching exceptions in f
 
@@ -145,7 +145,7 @@ void Chromosome::SetGlobalLocusCorrelation(double drho){
 	where p's are probs in StateProbs from HMM
 */
 std::vector<std::vector<double> > Chromosome::getHiddenStateCopyNumberProbs(const bool isDiploid, int j){
-  const bcppcl::pvector<double>& probs = HMM->GetHiddenStateProbs(isDiploid, j);
+  const bclib::pvector<double>& probs = HMM->GetHiddenStateProbs(isDiploid, j);
   std::vector<std::vector<double> >CopyNumberProbs(3);
 
   if(isDiploid){

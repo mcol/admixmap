@@ -22,7 +22,7 @@
 #include "AlleleFreqSampler.h"
 #include "common.h"
 #include "FreqArrays.h"
-#include "bcppcl/RObjectWriter.h"
+#include "bclib/RObjectWriter.h"
 
 class LogWriter;
 

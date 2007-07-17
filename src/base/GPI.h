@@ -15,7 +15,7 @@
 #define GPI_H
 
 #include "FreqArrays.h"
-#include "bcppcl/ColumnIter.h"
+#include "bclib/ColumnIter.h"
 #include <vector>
 
 /**

@@ -16,9 +16,9 @@
 #include "HapMixIndividualCollection.h"
 #include "InputHapMixData.h"
 #include "HapMixFilenames.h"
-#include "bcppcl/Regression.h"
-#include "bcppcl/TableWriter.h"
-#include "bcppcl/LogWriter.h"
+#include "bclib/Regression.h"
+#include "bclib/TableWriter.h"
+#include "bclib/LogWriter.h"
 
 HapMixAllelicAssocTest::HapMixAllelicAssocTest(){
   useprevb = false;

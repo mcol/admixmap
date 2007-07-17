@@ -309,7 +309,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 //  }
   int anc[2];
   
-  bcppcl::pvector<double> orderedStateProbs = getStateProbs( Loci->GetChrNumOfLocus(j),
+  bclib::pvector<double> orderedStateProbs = getStateProbs( Loci->GetChrNumOfLocus(j),
 							     Loci->getRelativeLocusNumber(j));
   
   // set UnorderedProbs[j][*][0] to 0;
@@ -369,7 +369,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 
 /** Get probabilities of hidden states from HMM */
 
-const bcppcl::pvector<double>& HapMixIndividual::getStateProbs(int chromosome, int locus)const{
+const bclib::pvector<double>& HapMixIndividual::getStateProbs(int chromosome, int locus)const{
   return pG->getHapMixChromosome(chromosome)->HMM->GetHiddenStateProbs(!isHaploid && (chromosome!=(int)X_posn || SexIsFemale), locus);
 }
 
