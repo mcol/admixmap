@@ -45,8 +45,8 @@ Genome::~Genome()
 }
 
 ///gets contents of locusfile and creates CompositeLocus array and Chromosome array
-void Genome::Initialise(const InputData* const data_, int populations, LogWriter &Log){
-  const DataMatrix& locifileData =  data_->getLocusMatrix();//locus file converted to doubles
+void Genome::Initialise(const InputData* const data_, int populations, bclib::LogWriter &Log){
+  const bclib::DataMatrix& locifileData =  data_->getLocusMatrix();//locus file converted to doubles
   const Vector_s& locusLabels = data_->getLocusLabels();
   
   //determine number of composite loci
@@ -76,7 +76,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     //retrieve first row of this comp locus from locusfile
     const Vector_s& m = data_->getLocusData()[row+1];//+1 because LocusData has a header, LocusMatrix doesn't
     //get chromosome labels from col 4 of locusfile, if there is one   
-    if (m.size() == 4) ChrmLabels.push_back(StringConvertor::dequote(m[3]));
+    if (m.size() == 4) ChrmLabels.push_back(bclib::StringConvertor::dequote(m[3]));
 
     Distances[ i ] = locifileData.get( row, 1 );
     if(unit == centimorgans)Distances[i] /= 100.0;//convert to Morgans
@@ -211,9 +211,9 @@ const CompositeLocus* Genome::GetLocus(int ElementNumber)const{
 
 /// Writes numbers of loci and chromosomes and length of genome to Log and screen.
 /// unit is the unit of measurement of the distances in the locusfile (Morgans/centiMorgans) 
-void Genome::PrintSizes(LogWriter &Log, const string& distanceUnit)const{
+void Genome::PrintSizes(bclib::LogWriter &Log, const string& distanceUnit)const{
   
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   Log << "\n" << (int)TotalLoci << " simple loci\n"
       << (int)NumberOfCompositeLoci << " compound loci; "
       << (int)NumberOfChromosomes << " chromosome"; if(NumberOfChromosomes > 1) Log << "s";

@@ -25,6 +25,8 @@ extern "C" {
 
 using namespace std;
 
+BEGIN_BCLIB_NAMESPACE
+
 #ifdef PARALLEL
  // allocate a sprng generator
 const gsl_rng_type *gsl_rng_sprng20 = &sprng_type;
@@ -196,4 +198,4 @@ void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] ) {
   
 }
 
-
+END_BCLIB_NAMESPACE

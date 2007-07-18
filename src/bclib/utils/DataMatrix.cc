@@ -16,6 +16,8 @@
 #include <numeric>
 #include <sstream>
 
+BEGIN_BCLIB_NAMESPACE
+
 DataMatrix::DataMatrix(){
   nrows = 0;
   ncols = 0;
@@ -154,3 +156,4 @@ void DataMatrix::throwBoundsViolation(unsigned row, unsigned col)const{
   ss << "Bounds Violation in DataMatrix: requested element (" << row+1 << ", " << col+1 << ") in a matrix with " << nrows << " rows and " << ncols << " cols"; 
   throw ss.str();
 }
+END_BCLIB_NAMESPACE

@@ -22,9 +22,13 @@
  *  Forward declarations.
  */    
 class Options;
-class LogWriter;
 class Genome;
 class Chromosome;
+
+
+namespace bclib{
+  class LogWriter;
+}
 
 ///Class to read and check all input data files
 class InputData{
@@ -58,10 +62,10 @@ public:
   /*
    *  Getters to retrieve data (converted to DataMatrix).
    */    
-  const DataMatrix& getLocusMatrix() const;
-  const DataMatrix& getOutcomeVarMatrix() const;
-  const DataMatrix& getCoxOutcomeVarMatrix() const;
-  const DataMatrix& getCovariatesMatrix() const;
+  const bclib::DataMatrix& getLocusMatrix() const;
+  const bclib::DataMatrix& getOutcomeVarMatrix() const;
+  const bclib::DataMatrix& getCoxOutcomeVarMatrix() const;
+  const bclib::DataMatrix& getCovariatesMatrix() const;
 
   ///
   void getOutcomeTypes(DataType*)const;
@@ -112,24 +116,24 @@ protected:
      \param threshold maximum allowable distance between loci on a chromosome. If a distance exceeds this, the chromosome is broken up and a warning is printed.
      \param check determines whether to check locus labels
   */
-  bool checkLocusFile(LogWriter& Log);
+  bool checkLocusFile(bclib::LogWriter& Log);
   void SetLocusLabels();
 
   ///determine number of composite loci from locusfile
   unsigned determineNumberOfCompositeLoci()const;
   ///determine unit of distance in locusfile
   GeneticDistanceUnit DetermineUnitOfDistance();
-  //virtual void CheckAlleleFreqs(Options *options, LogWriter &Log);
+  //virtual void CheckAlleleFreqs(Options *options, bclib::LogWriter &Log);
   ///check contents of outcomevarfile
-  void CheckOutcomeVarFile(unsigned N, Options * const options, LogWriter &Log);
+  void CheckOutcomeVarFile(unsigned N, Options * const options, bclib::LogWriter &Log);
   ///check contsnts of coxoutcomevarfile
-  void CheckCoxOutcomeVarFile(LogWriter &log)const;
+  void CheckCoxOutcomeVarFile(bclib::LogWriter &log)const;
   ///check contents of covariatesfile
-  void CheckCovariatesFile(unsigned NumIndividuals, Options* const options, LogWriter &Log);
+  void CheckCovariatesFile(unsigned NumIndividuals, Options* const options, bclib::LogWriter &Log);
   /**
    *  Read input data and store in internal structures.
    */    
-  void ReadData(Options *options, LogWriter &log);    
+  void ReadData(Options *options, bclib::LogWriter &log);    
 
   Matrix_s locusData_;
   Matrix_s covariatesData_;
@@ -137,11 +141,11 @@ protected:
   Matrix_s coxOutcomeVarData_;
   Matrix_s priorAlleleFreqData_;
 
-  DataMatrix locusMatrix_;
-  DataMatrix covariatesMatrix_;
-  DataMatrix outcomeVarMatrix_;
-  DataMatrix coxOutcomeVarMatrix_;
-  DataMatrix priorAlleleFreqMatrix_;
+  bclib::DataMatrix locusMatrix_;
+  bclib::DataMatrix covariatesMatrix_;
+  bclib::DataMatrix outcomeVarMatrix_;
+  bclib::DataMatrix coxOutcomeVarMatrix_;
+  bclib::DataMatrix priorAlleleFreqMatrix_;
 
   GenotypeLoader* genotypeLoader;
   int NumSimpleLoci;
@@ -156,7 +160,7 @@ private:
 
   Vector_s LocusLabels;
 
-  //void CheckData(Options *options, LogWriter &Log);
+  //void CheckData(Options *options, bclib::LogWriter &Log);
 
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.

@@ -13,7 +13,10 @@
  */
 #ifndef DISPERSIONSAMPLER_H
 #define DISPERSIONSAMPLER_H 1
+#include "bclib/bclib.h"
 #include "bclib/HamiltonianMonteCarlo.h"
+
+BEGIN_BCLIB_NAMESPACE
 
 ///struct to hold the arguments for sampler for dispersion parameters
 typedef struct{
@@ -55,4 +58,6 @@ private:
   static double etaEnergyFunction(const double * const logitmu, const void* const args);
   static void etaGradient(const double * const logitmu, const void* const args, double *g);
 };
+
+END_BCLIB_NAMESPACE
 #endif

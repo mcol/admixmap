@@ -15,6 +15,8 @@
 #include "bclib/misc.h"
 using namespace::std;
 
+BEGIN_BCLIB_NAMESPACE
+
 unsigned DispersionSampler::K;
 unsigned DispersionSampler::L;
 unsigned *DispersionSampler::NumStates;
@@ -83,6 +85,8 @@ float DispersionSampler::getStepsize()const{
   return Sampler.getStepsize();
 }
 double DispersionSampler::etaEnergyFunction(const double* const logeta, const void* const vargs) {
+  using bclib::lngamma;
+
   const EtaSamplerArgs* args = (const EtaSamplerArgs*)vargs;
 
   double E = 0.0;
@@ -115,6 +119,7 @@ double DispersionSampler::etaEnergyFunction(const double* const logeta, const vo
 }
 
 void DispersionSampler::etaGradient(const double* const logeta, const void* const vargs, double* g) {
+  using bclib::digamma;
   const EtaSamplerArgs* args = (const EtaSamplerArgs*)vargs;
   // alpha[h] = mu[h] * eta
   // d_alpha[h]/d_eta = mu[h] = alpha[h] / eta,  d_eta / d_logeta = eta
@@ -156,3 +161,5 @@ double DispersionSampler::getGradient(double x){
   etaGradient(logeta, &Args, g);
   return g[0];
 }
+
+END_BCLIB_NAMESPACE

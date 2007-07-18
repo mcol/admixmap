@@ -42,11 +42,11 @@ void AncestryAssocTest::Output(const Vector_s& PopLabels, const Genome& Loci){
 }
 
 void AncestryAssocTest::WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
-					const Genome& Loci, LogWriter& Log){
-  TableWriter finaltable(filename);
-  Log << Quiet << "Tests for locus linkage written to " << filename << "\n";
+					const Genome& Loci, bclib::LogWriter& Log){
+  bclib::TableWriter finaltable(filename);
+  Log << bclib::Quiet << "Tests for locus linkage written to " << filename << "\n";
   finaltable <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
-      << newline;
+	     << bclib::newline;
 
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = Loci(j)->GetLabel(0);

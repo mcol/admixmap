@@ -71,7 +71,7 @@ void GenotypeProbOutputter::Output(const char* filename, const vector<string>& L
 #ifdef GPO_LABELS
     stringstream label;
     label << "Individual " << icounter1;
-    outfile << Rcomment(ss.str().c_str()) << newline;
+    outfile << Rcomment(ss.str().c_str()) << bclib::newline;
 #endif
     lcounter1 = 1;
     for (locus_i = indiv_i->begin(); locus_i != indiv_i->end(); ++locus_i) {
@@ -108,7 +108,7 @@ void GenotypeProbOutputter::Output(const char* filename, const vector<string>& L
 #endif
       ++lcounter1;
       // Keep one line per genotype triplet
-      outfile << newline;
+      outfile << bclib::newline;
     }//end loop over individuals
     ++icounter1;
   }//end loop over loci

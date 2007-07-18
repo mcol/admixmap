@@ -17,6 +17,7 @@
 #include "bclib/TableWriter.h"
 
 using namespace::std;
+
 CopyNumberAssocTest::CopyNumberAssocTest(){
   SumScore = 0;
   SumInfo = 0;
@@ -49,10 +50,10 @@ CopyNumberAssocTest::~CopyNumberAssocTest(){
     delete[] B;
     if(useprevb)delete[] PrevB;
     delete[] Xcov;
-    free_matrix(Score, L);
-    free_matrix(Info, L);  
-    free_matrix(VarScore, L);
-    free_matrix(InfoCorrection, L);
+    bclib::free_matrix(Score, L);
+    bclib::free_matrix(Info, L);  
+    bclib::free_matrix(VarScore, L);
+    bclib::free_matrix(InfoCorrection, L);
   }
 }
 void CopyNumberAssocTest::Initialise(const char* filename, const int numStrata, const int NumLoci){
@@ -75,6 +76,7 @@ void CopyNumberAssocTest::Initialise(const char* filename, const int numStrata, 
   fill(SumInfo, SumInfo + L*NumOutputStrata, 0.0);
   fill(SumVarScore, SumVarScore + L*NumOutputStrata, 0.0);
 
+  using bclib::alloc2D_d;
   Score = alloc2D_d(L, 2*NumStrata);
   Info = alloc2D_d(L, 4*NumStrata*NumStrata);
   VarScore = alloc2D_d(L, NumStrata);
@@ -112,7 +114,7 @@ void CopyNumberAssocTest::Reset(){
   }
 }
 void CopyNumberAssocTest::OutputCopyNumberAssocTest(unsigned j, unsigned k,  
-						    FileWriter& outfile, string label, bool final){
+						    bclib::FileWriter& outfile, string label, bool final){
   OutputRaoBlackwellizedScoreTest(outfile, label, SumScore[ j*NumOutputStrata + k], SumScore2[ j*NumOutputStrata + k], 
 				  SumVarScore[ j*NumOutputStrata + k ],SumInfo[ j*NumOutputStrata + k ], final); 
 }
@@ -154,6 +156,7 @@ void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi
   for( unsigned k = 0; k < NumStrata-1; k++ )Xcopy[k + NumStrata] = Covariates[k];
 
   try{
+    using namespace bclib;
     // ** compute expectation of score **
     scale_matrix(Xcopy, YMinusEY*phi, 2*NumStrata, 1);      //Xcopy *= YMinusEY *phi
     add_matrix(Score[locus], Xcopy, 2*NumStrata, 1);//Score[locus] += Xcopy
@@ -198,7 +201,7 @@ void CopyNumberAssocTest::Accumulate(unsigned j){
 
   //centre score and info by conditioning on covariates
   try{
-    CentredGaussianConditional(NumStrata, Score[j], Info[j], CentredScore, CentredInfo, 2*NumStrata );
+    bclib::CentredGaussianConditional(NumStrata, Score[j], Info[j], CentredScore, CentredInfo, 2*NumStrata );
   }
   catch(string s){
     string error = "Error centring ancestry association scores:\n";
@@ -235,9 +238,9 @@ void CopyNumberAssocTest::UpdateB(double DInvLink, double dispersion, const doub
 	Xcov[k] = Covariates[k]; //centred covariates
       }
       double *temp = new double[NumStrata*NumStrata];
-      matrix_product(Xcov, Xcov, temp, NumStrata, 1, NumStrata);
-      scale_matrix(temp, DInvLink*dispersion, NumStrata, NumStrata);
-      add_matrix(B, temp, NumStrata, NumStrata);
+      bclib::matrix_product(Xcov, Xcov, temp, NumStrata, 1, NumStrata);
+      bclib::scale_matrix(temp, DInvLink*dispersion, NumStrata, NumStrata);
+      bclib::add_matrix(B, temp, NumStrata, NumStrata);
     delete[] temp;
     }
 }

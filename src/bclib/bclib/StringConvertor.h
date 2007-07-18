@@ -1,12 +1,12 @@
 // *-*-C++-*-*
 #ifndef STRING_CONVERTOR_H
 #define STRING_CONVERTOR_H 1
-
+#include "bclib/bclib.h"
 #include <string>
 #include <vector>
 
+BEGIN_BCLIB_NAMESPACE
 ///  Utility class used to convert string to other types.
- 
 class StringConvertor
 {
 public:
@@ -41,5 +41,5 @@ public:
   /// a dummy function
   static bool dummy();
 };
-
+END_BCLIB_NAMESPACE
 #endif /* !STRING_CONVERTOR_H */

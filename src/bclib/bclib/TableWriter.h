@@ -16,6 +16,8 @@
 
 #include "FileWriter.h"
 
+BEGIN_BCLIB_NAMESPACE
+
 ///class to write tables to file
 class TableWriter : public FileWriter{
 public:
@@ -50,4 +52,5 @@ void newline(TableWriter& TW);
 //stream insertion for newline
 TableWriter&  operator<<(TableWriter& TW, void (*man)(TableWriter&));
 
+END_BCLIB_NAMESPACE
 #endif

@@ -13,6 +13,9 @@
 
 #include "AdmixMapModel.h"
 #include "AdmixFilenames.h"
+#include "bclib/LogWriter.h"
+
+using namespace::bclib;
 
 // AdmixMapModel::AdmixMapModel(){
 
@@ -448,12 +451,12 @@ void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, Lo
 //this function is here because three different objects have to write to avgstream
 void AdmixMapModel::InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
 				     const Vector_s& PopulationLabels, const Vector_s& CovariateLabels){
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   //Open ErgodicAverageFile  
   if( strlen( options->getErgodicAverageFilename() ) ) {
     avgstream.open( options->getErgodicAverageFilename(), ios::out );
     if( ! avgstream ){
-      Log.setDisplayMode(On);
+      Log.setDisplayMode(bclib::On);
       Log << "ERROR: Couldn't open Ergodic Average file\n";
       //exit( 1 );
     } else {

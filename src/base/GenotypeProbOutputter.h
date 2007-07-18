@@ -21,7 +21,7 @@ private:
   unsigned NumIterations;
   bclib::pvector<double> Probs;
   //std::ofstream outfile;
-  RObjectWriter outfile;
+  bclib::RObjectWriter outfile;
 
   /** Three-dimensional vector for probabilities.
    * Dimensions are:

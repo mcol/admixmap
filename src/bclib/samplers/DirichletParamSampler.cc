@@ -16,8 +16,11 @@
 #include <gsl/gsl_math.h>
 
 using namespace std;
+using namespace bclib;
 
 #define PR(x) cerr << #x << " = " << x << endl;
+
+BEGIN_BCLIB_NAMESPACE
 
 DirichletParamSampler::DirichletParamSampler() {
   Initialise();
@@ -370,3 +373,4 @@ double DirichletParamSampler::getExpectedAcceptanceRate()const {
 #endif
 }
 
+END_BCLIB_NAMESPACE

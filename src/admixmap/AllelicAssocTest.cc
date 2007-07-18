@@ -36,14 +36,14 @@ AllelicAssocTest::~AllelicAssocTest(){
 }
 
 void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci,
-				  LogWriter& Log){
+				  bclib::LogWriter& Log){
   test = true;
   options = op;
   individuals = indiv;
   Lociptr = Loci;
   chrm = Loci->getChromosomes();
   NumCompositeLoci = Loci->GetNumberOfCompositeLoci();
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
 
   const int L = Lociptr->GetNumberOfCompositeLoci();
 
@@ -212,13 +212,13 @@ void AllelicAssocTest::Output(){
   }//end if hap assoc test
 }
 
-void AllelicAssocTest::WriteFinalTables(LogWriter& Log){
+void AllelicAssocTest::WriteFinalTables(bclib::LogWriter& Log){
   {
   string filename = options->getResultsDir() + "/" + ALLELICASSOCTEST_FINAL;
-  TableWriter finaltable(filename.c_str());
-  Log << Quiet << "Tests for allelic association written to " << filename << "\n";
+  bclib::TableWriter finaltable(filename.c_str());
+  Log << bclib::Quiet << "Tests for allelic association written to " << filename << "\n";
   finaltable << "Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"
-	     << newline;
+	     << bclib::newline;
 
   for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
     if(locusObsIndicator[j]){
@@ -232,10 +232,10 @@ void AllelicAssocTest::WriteFinalTables(LogWriter& Log){
   if( options->getTestForHaplotypeAssociation() ){
     
     string filename = options->getResultsDir() + "/" + HAPLOTYPEASSOCTEST_FINAL;
-    TableWriter finaltable(filename.c_str());
-    Log << Quiet << "Tests for haplotype association written to " << filename << "\n";
+    bclib::TableWriter finaltable(filename.c_str());
+    Log << bclib::Quiet << "Tests for haplotype association written to " << filename << "\n";
     finaltable << "Locus\tHaplotype\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"
-	       << newline;
+	       << bclib::newline;
 
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ) 
       if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){

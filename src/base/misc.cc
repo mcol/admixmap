@@ -89,8 +89,8 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
   }
 }
 
-void ThrowException(const string& msg, LogWriter & Log){
-  Log << On << "\n" << msg << "\n Exiting...\n";
+void ThrowException(const string& msg, bclib::LogWriter & Log){
+  Log << bclib::On << "\n" << msg << "\n Exiting...\n";
   Log.ProcessingTime();
   exit(1);
 }
@@ -112,8 +112,8 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
 
 
 ///print build info (compiler, flags, host type etc) to Log & screen
-void PrintBuildInfo(LogWriter& Log){
-    Log << On
+void PrintBuildInfo(bclib::LogWriter& Log){
+  Log << bclib::On
 #ifdef HAVE_CONFIG_H 
         << "Build Info\n"
 #ifdef _compiler_name
@@ -133,7 +133,7 @@ void PrintBuildInfo(LogWriter& Log){
 #endif
         << "-------------------------------------------------------\n"
 #endif
-        << Quiet;
+      << bclib::Quiet;
 }
 
 

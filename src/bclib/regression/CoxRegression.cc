@@ -1,3 +1,14 @@
+/** 
+ *   CoxRegression.cc 
+ *   Class to represent and update parameters of a Cox regression model
+ *   Copyright (c) 2006-2007 David O'Donnell and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "bclib/CoxRegression.h"
 #include <algorithm>
 #include "bclib/misc.h"
@@ -5,9 +16,11 @@
 #include <math.h>
 
 using namespace::std;
+BEGIN_BCLIB_NAMESPACE
+
 const double* CoxRegression::EY;
 
-CoxRegression::CoxRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+CoxRegression::CoxRegression(unsigned Number, double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 			     LogWriter &Log): Regression(Number, Cox){
   BetaSampler = 0;
   acceptbeta = 0;
@@ -19,7 +32,7 @@ CoxRegression::~CoxRegression(){
   delete BetaSampler;
 }
 
-void CoxRegression::Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+void CoxRegression::Initialise(double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 			       LogWriter &Log){
   ReadData(Outcome);
   Regression::Initialise(Covars.nCols()-1, Covars.nRows(), Covars.getData());
@@ -42,7 +55,7 @@ void CoxRegression::Initialise(double priorPrecision, const DataMatrix& Covars, 
     ExpectedY[i] = 0.0;
     for(int j = 0; j < NumCovariates; ++j)
       ExpectedY[i] += Covariates[i*(NumCovariates+1)+j+1]*beta[j]; 
-    ExpectedY[i] = myexp(ExpectedY[i]);
+    ExpectedY[i] = bclib::eh_exp(ExpectedY[i]);
   }
   EY = ExpectedY;
 
@@ -76,7 +89,7 @@ void CoxRegression::InitializeOutputFile(const std::vector<std::string>& Covaria
 
 ///reads start times, end times and event counts from file.
 ///Call this function before initialise.
-void CoxRegression::ReadData(const DataMatrix& CoxData){
+void CoxRegression::ReadData(const bclib::DataMatrix& CoxData){
   //data should contain three columns: startTime, endTime and event(s)
    std::vector<double> endpoints;
 
@@ -119,7 +132,7 @@ void CoxRegression::Update(bool sumbeta, const std::vector<double>& , double coo
       acceptbeta = BetaSampler->Sample( beta + j, &BetaParameters );
       if(acceptbeta){
 	for(int i = 0; i < NumIndividuals; ++i){
-	  ExpectedY[i] *= myexp(Covariates[i*(NumCovariates+1)+j+1] * (beta[j] - oldbeta)) ;  
+	  ExpectedY[i] *= bclib::eh_exp(Covariates[i*(NumCovariates+1)+j+1] * (beta[j] - oldbeta)) ;  
 	}
       }
     }
@@ -153,7 +166,7 @@ void CoxRegression::Update(bool sumbeta, const std::vector<double>& , double coo
 //     ExpectedY[i] = 0.0;
 //     for(unsigned j = 0; j < NumCovariates; ++j)
 //       ExpectedY[i] += Covariates[i*(NumCovariates+1)+j+1]*beta[j]; 
-//     ExpectedY[i] = myexp(ExpectedY[i]);
+//     ExpectedY[i] = bclib::eh_exp(ExpectedY[i]);
 //   }
 //}
 
@@ -205,7 +218,7 @@ double CoxRegression::lr(const double beta, const void* const vargs){
       for(int i = 0; i < n; ++i){
 	double x = args->Covariates[i*(args->d+1) +index+1];
 	double xbetai =  x * beta;
-	double exp_xbetai = myexp(x*(beta - args->beta[index]) ) ;  
+	double exp_xbetai = bclib::eh_exp(x*(beta - args->beta[index]) ) ;  
 	int sum_nr = 0;
 	double sum_nalpha = 0.0;
 
@@ -247,7 +260,7 @@ double CoxRegression::dlr(const double beta, const void* const vargs){
       for(int i = 0; i < n; ++i){
 	int sum_nr = 0;
 	double sum_nalpha = 0.0;
-	double exp_Xbetai = EY[i] * myexp(args->Covariates[i*(args->d+1)+index+1] * (beta - args->beta[index])) ;  
+	double exp_Xbetai = EY[i] * bclib::eh_exp(args->Covariates[i*(args->d+1)+index+1] * (beta - args->beta[index])) ;  
 	//std::vector<double>::const_iterator alpha = args->HazardRates.begin();
 	for(int t = 0; t < T; ++t){
 	  if( args->atRisk[i*T +t] ){//individual i was at risk during this interval
@@ -280,7 +293,7 @@ double CoxRegression::ddlr(const double beta, const void* const vargs){
     try{
       for(int i = 0; i < n; ++i){
 	double sum = 0.0;
-	double exp_Xbetai = EY[i] * myexp(args->Covariates[i*(args->d+1)+index+1] * (beta - args->beta[index])) ;  
+	double exp_Xbetai = EY[i] * bclib::eh_exp(args->Covariates[i*(args->d+1)+index+1] * (beta - args->beta[index])) ;  
 	//std::vector<double>::const_iterator alpha = args->HazardRates.begin();
 	for(int t = 0; t < T; ++t){
 	  if( args->atRisk[i*T +t] ){
@@ -329,7 +342,7 @@ double CoxRegression::getLogLikelihood(const double* const _beta, const std::vec
   
   for(int i = 0; i < NumIndividuals; ++i){
     double xbetai =  Xbeta[i];
-    double exp_xbetai = myexp(xbetai ) ;  
+    double exp_xbetai = bclib::eh_exp(xbetai ) ;  
     int sum_nr = 0;
     double sum_nalpha = 0.0;
     
@@ -366,3 +379,4 @@ double CoxRegression::getLogLikelihoodAtPosteriorMeans(int iterations, const std
   return logL;
 }
 
+END_BCLIB_NAMESPACE

@@ -42,14 +42,14 @@ public:
   double getLogLikelihoodOnePop();
 
   void ResetSufficientStats();
-  void UpdateScores(const AdmixOptions& options, DataMatrix *Outcome, DataMatrix *Covariates, 
-		    const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
+  void UpdateScores(const AdmixOptions& options, bclib::DataMatrix *Outcome, bclib::DataMatrix *Covariates, 
+		    const vector<bclib::Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
   void SampleJumpIndicators(bool sampleArrivals);
   void SampleRho(const AdmixOptions& options, double rhoalpha, double rhobeta,  
 		 bool updateSumLogRho);
-  void SampleTheta( const int iteration, double *SumLogTheta, const DataMatrix* const Outcome, 
+  void SampleTheta( const int iteration, double *SumLogTheta, const bclib::DataMatrix* const Outcome, 
 		    const DataType* const OutcomeType, const std::vector<double> lambda, const int NumCovariates,
-		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
+		    bclib::DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
 		    const AdmixOptions& options, const vector<vector<double> > &alpha, 
 		    double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest,const bool RW, const bool anneal);
 
@@ -88,7 +88,7 @@ private:
   std::vector<double> logPosterior[3]; // elements 0, 1, 2 are for theta, rho, freqs
   
   //RWM sampler for individual admixture
-  StepSizeTuner ThetaTuner;
+  bclib::StepSizeTuner ThetaTuner;
   int w, NumberOfUpdates;
   double step, step0;
   
@@ -104,11 +104,11 @@ private:
   const std::vector<unsigned> getSumNumArrivals_X()const;
   void getSumNumArrivals(std::vector<unsigned> *sum)const;
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
-				     bool ModelIndicator, DataMatrix *Covariates);
+				     bool ModelIndicator, bclib::DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, int Populations, bool ModelIndicator, bool RW );
   double LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel, 
 					       int Populations, int NumCovariates, 
-					       const DataMatrix* const Covariates, const double* beta, 
+					       const bclib::DataMatrix* const Covariates, const double* beta, 
 					       const double Outcome, const double* const poptheta, const double lambda);
   void UpdateHMMInputs(unsigned int j, const Options& options, 
 			     const double* const theta, const vector<double> rho);
@@ -124,8 +124,8 @@ private:
   double LogPosteriorRho_LogBasis(const AdmixOptions& options, const vector<double> rho, 
 				  double rhoalpha, double rhobeta)const;
   
-  void UpdateScoreTests(const AdmixOptions& options, const double* admixtureCovars, DataMatrix *Outcome, 
-			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
+  void UpdateScoreTests(const AdmixOptions& options, const double* admixtureCovars, bclib::DataMatrix *Outcome, 
+			Chromosome* chrm, const vector<bclib::Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options& options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
   void getPosteriorMeans(double* ThetaMean, vector<double>& rhoMean, unsigned samples)const;

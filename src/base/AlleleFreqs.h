@@ -24,7 +24,9 @@
 #include "FreqArrays.h"
 #include "bclib/RObjectWriter.h"
 
-class LogWriter;
+namespace bclib{
+  class LogWriter;
+}
 
 /// Class to hold allele/haplotype frequencies and their priors.
 class AlleleFreqs{
@@ -32,17 +34,17 @@ class AlleleFreqs{
 public:
   AlleleFreqs();
   virtual ~AlleleFreqs();
-  //virtual void Initialise(Options* const options, InputData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
-  void LoadInitialAlleleFreqs(const char* filename, LogWriter &Log);
+  //virtual void Initialise(Options* const options, InputData* const Data, Genome *pLoci, bclib::LogWriter &Log, bool MAP=false);
+  void LoadInitialAlleleFreqs(const char* filename, bclib::LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
-  virtual void PrintPrior(const Vector_s&, LogWriter& Log)const;
+  virtual void PrintPrior(const Vector_s&, bclib::LogWriter& Log)const;
   virtual void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
 
   ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   virtual void OutputErgodicAvg( int iteration, std::ofstream *avgstream)const;
 
   void OutputAlleleFreqs();
-  void OutputAlleleFreqs(const char* filename, LogWriter& Log);
+  void OutputAlleleFreqs(const char* filename, bclib::LogWriter& Log);
   void CloseOutputFile(int iterations, const Vector_s& PopulationLabels);
 
   ///resets Allelecounts to zero at start of iteration
@@ -87,7 +89,7 @@ protected:
   bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
 
   Genome *Loci;//pointer to Loci object
-  RObjectWriter allelefreqoutput;// object to output allele frequencies
+  bclib::RObjectWriter allelefreqoutput;// object to output allele frequencies
   float* SumKLInfo;// to accumulate Kullback-Liebler info
   float** SumLocusInfo;//to accumulate locus information content (f)
 
@@ -101,7 +103,7 @@ protected:
   void AccumulateKLInfo();
   void AccumulateLocusInfo();
 private:
-  //void LoadAlleleFreqs(Options* const options, InputData* const data, LogWriter &Log);
+  //void LoadAlleleFreqs(Options* const options, InputData* const data, bclib::LogWriter &Log);
 
   static double muEnergyFunction(unsigned K, const double * const alpha, const double* const *args);
   static void muGradient(unsigned K, const double * const alpha, const double* const *args, double *g);

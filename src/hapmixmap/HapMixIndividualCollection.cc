@@ -162,56 +162,56 @@ void HapMixIndividualCollection::OutputCGProbs(const char* filename, const Vecto
 }
 
 //TODO: use posterior means of mixture props if fixedmixtureprops=0
-double HapMixIndividualCollection
-::getDevianceAtPosteriorMean(const Options& options, vector<Regression *> &R, Genome* Loci,
-                             LogWriter &Log, const double* const MixtureProps, const vector<double>& SumLogLambda){
+// double HapMixIndividualCollection
+// ::getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *> &R, Genome* Loci,
+//                              LogWriter &Log, const double* const MixtureProps, const vector<double>& SumLogLambda){
 
-  //TODO: broadcast SumLogRho to workers
-  //TODO: set mixture props to posterior means
+//   //TODO: broadcast SumLogRho to workers
+//   //TODO: set mixture props to posterior means
 
-  //SumRho = ergodic sum of global sumintensities
-  const int iterations = options.getTotalSamples()-options.getBurnIn();
-  int NumDiploid = 0;
+//   //SumRho = ergodic sum of global sumintensities
+//   const int iterations = options.getTotalSamples()-options.getBurnIn();
+//   int NumDiploid = 0;
   
-  NumDiploid = getNumDiploidIndividuals();
+//   NumDiploid = getNumDiploidIndividuals();
 
-  //update chromosomes using globalrho, for globalrho model
-  vector<double> LambdaBar(Loci->GetNumberOfCompositeLoci());
+//   //update chromosomes using globalrho, for globalrho model
+//   vector<double> LambdaBar(Loci->GetNumberOfCompositeLoci());
 
-  for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)
-    LambdaBar[i] = (exp(SumLogLambda[i] / (double)iterations));
+//   for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)
+//     LambdaBar[i] = (exp(SumLogLambda[i] / (double)iterations));
 
-  //set locus correlation
+//   //set locus correlation
 
-  Loci->SetLocusCorrelation(LambdaBar);
+//   Loci->SetLocusCorrelation(LambdaBar);
 
-  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-    //set global state arrival probs in hapmixmodel
-    //TODO: can skip this if xonly analysis with no females
-    //NB: assumes always diploid in hapmixmodel
-    Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options.isRandomMatingModel(),
-						      (NumDiploid)>0);
+//   for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
+//     //set global state arrival probs in hapmixmodel
+//     //TODO: can skip this if xonly analysis with no females
+//     //NB: assumes always diploid in hapmixmodel
+//     Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options.isRandomMatingModel(),
+// 						      (NumDiploid)>0);
   
-  //set haplotype pair probs to posterior means 
-  if(NumDiploid)
-    for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
-      (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
+//   //set haplotype pair probs to posterior means 
+//   if(NumDiploid)
+//     for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
+//       (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
   
-  //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  //setGenotypeProbs(Loci, A);
+//   //set genotype probs using happair probs calculated at posterior means of allele freqs 
+//   //setGenotypeProbs(Loci, A);
 
-  //accumulate deviance at posterior means for each individual
-  double Lhat = 0.0; // Lhat = loglikelihood at estimates
-  for(unsigned int i = 0; i < size; i++ ){
-    Lhat += _child[i]->getLogLikelihood(options, false, false);
-  }
+//   //accumulate deviance at posterior means for each individual
+//   double Lhat = 0.0; // Lhat = loglikelihood at estimates
+//   for(unsigned int i = 0; i < size; i++ ){
+//     Lhat += _child[i]->getLogLikelihood(options, false, false);
+//   }
   
-  Log << Quiet << "DevianceAtPosteriorMean(parameters)" << -2.0*Lhat << "\n";
-  for(unsigned c = 0; c < R.size(); ++c){
-    double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
-    Lhat += RegressionLogL;
-    Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
-	<< -2.0*RegressionLogL << "\n";
-  }
-  return(-2.0*Lhat);
-}
+//   Log << Quiet << "DevianceAtPosteriorMean(parameters)" << -2.0*Lhat << "\n";
+//   for(unsigned c = 0; c < R.size(); ++c){
+//     double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
+//     Lhat += RegressionLogL;
+//     Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
+// 	<< -2.0*RegressionLogL << "\n";
+//   }
+//   return(-2.0*Lhat);
+// }

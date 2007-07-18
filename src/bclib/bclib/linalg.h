@@ -13,6 +13,10 @@
 #ifndef LINALG_H
 #define LINALG_H 1
 
+#include "bclib/bclib.h"
+
+BEGIN_BCLIB_NAMESPACE
+
 ///wrapper for gsl_HH_solve
 int HH_solve (size_t n, double *A, double *b, double *x);
 ///wrapper for gsl_HH_svx
@@ -52,4 +56,6 @@ double **alloc2D_d(int m, int n);
 int **alloc2D_i(int m, int n);
 void free_matrix(double **, int);
 void free_matrix(int **, int);
+
+END_BCLIB_NAMESPACE
 #endif /* !LINALG_H */

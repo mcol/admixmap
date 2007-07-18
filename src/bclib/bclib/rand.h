@@ -13,11 +13,14 @@
 
 #ifndef RAND_H
 #define RAND_H 
+#include "bclib/bclib.h"
 #include <iostream>
 #include <vector>
 extern "C" {
 #include <gsl/gsl_rng.h>
 }
+
+BEGIN_BCLIB_NAMESPACE
 
 /// Random number generators
 class Rand{
@@ -57,4 +60,5 @@ private:
   Rand& operator=(const Rand);
 };
 
+END_BCLIB_NAMESPACE
 #endif

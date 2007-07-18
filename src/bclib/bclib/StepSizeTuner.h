@@ -12,8 +12,11 @@
 #ifndef STEPSIZETUNER_H
 #define STEPSIZETUNER_H 1
 
+#include "bclib/bclib.h"
 #include "bclib/rand.h"
 #include <math.h>
+
+BEGIN_BCLIB_NAMESPACE
 
 /**
  *   This class is used to tune the step size in a Metropolis update, eg proposal sd in a Random Walk , 
@@ -55,4 +58,5 @@ private:
   int NumberAccepted; // Number of accepted proposals in since last update
 };
 
+END_BCLIB_NAMESPACE
 #endif /* ! StepSizeTuner_H */

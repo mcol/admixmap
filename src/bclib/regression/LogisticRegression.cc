@@ -1,3 +1,14 @@
+/** 
+ *   LogisticRegression.cc 
+ *   Class to represent and update parameters of a logistic regression model
+ *   Copyright (c) 2006-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "bclib/LogisticRegression.h"
 #include "bclib/linalg.h"
 #include "bclib/misc.h" //for myexp
@@ -5,7 +16,9 @@
 #include <numeric>//for accumulate
 
 using namespace::std;
-LogisticRegression::LogisticRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+BEGIN_BCLIB_NAMESPACE
+
+LogisticRegression::LogisticRegression(unsigned Number, double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 				       LogWriter &Log): Regression(Number, Logistic){
   BetaSampler = 0;
   acceptbeta = 0;
@@ -17,7 +30,7 @@ LogisticRegression::~LogisticRegression(){
   delete BetaSampler;
 }
 
-void LogisticRegression::Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+void LogisticRegression::Initialise(double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 				    LogWriter &Log){
   Regression::Initialise(Covars.nCols(), Covars.nRows(), Covars.getData());
   Log.setDisplayMode(Quiet);
@@ -180,7 +193,7 @@ double LogisticRegression::dlr( const double beta, const void* const vargs )
     Regression::getExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
     for( int i = 0; i < n; i++ )
       {
-	f -= args->Covariates[ i*d + index ] / ( 1.0 + myexp( -Xbeta[ i ] ) );
+	f -= args->Covariates[ i*d + index ] / ( 1.0 + eh_exp( -Xbeta[ i ] ) );
       }
     delete[] Xbeta;
     f *= args->coolness;
@@ -216,3 +229,4 @@ double LogisticRegression::ddlr( const double beta, const void* const vargs )
   f -= args->priorprecision;//log prior contribution
   return( f );
 }
+END_BCLIB_NAMESPACE

@@ -24,10 +24,12 @@
 
 class Regression;
 class Individual;
-class LogWriter;
 class AlleleFreqs;
 class AlleleFreqSampler;
 
+namespace bclib{
+  class LogWriter;
+}
 ///Class to hold an array of Individuals
 class IndividualCollection
 {
@@ -37,9 +39,9 @@ public:
 
   void DeleteGenotypes(bool);
   //virtual void Initialise(const AdmixOptions* const options, const Genome* const Loci,
-		  //const Vector_s& PopulationLabels, LogWriter &Log) = 0;
+		  //const Vector_s& PopulationLabels, bclib::LogWriter &Log) = 0;
   virtual void LoadData(const Options* const options, const InputData* const, bool admixtureAsCovariate);
-  virtual void getOnePopOneIndLogLikelihood(LogWriter &, const Vector_s& ){};
+  virtual void getOnePopOneIndLogLikelihood(bclib::LogWriter &, const Vector_s& ){};
 
   void SampleHapPairs(const Options& options, AlleleFreqs *A, const Genome* const Loci,
 		      bool skipMissingGenotypes, bool anneal, bool UpdateCounts);
@@ -67,11 +69,11 @@ public:
   int GetNumCovariates() const;
   int GetNumberOfInputCovariates()const;
   DataType getOutcomeType(int)const;
-  const DataMatrix& getCovariatesMatrix()const;
-  const DataMatrix& getOutcomeMatrix()const;
+  const bclib::DataMatrix& getCovariatesMatrix()const;
+  const bclib::DataMatrix& getOutcomeMatrix()const;
 
   double getLogLikelihood(const Options& options, bool forceupdate);
-  double getEnergy(const Options& options, const vector<Regression*> &R, 
+  double getEnergy(const Options& options, const vector<bclib::Regression*> &R, 
 			  const bool & annealed);
 
   virtual void HMMIsBad(bool b);
@@ -86,14 +88,14 @@ protected:
   Individual** _child;//pointer to _child array
 
   //Regression Objects
-  DataMatrix Outcome;
+  bclib::DataMatrix Outcome;
   int NumOutcomes;
   int NumCovariates;//covariates including admixture
   int NumberOfInputCovariates;//covariates in file
-  DataMatrix Covariates;//all covariates, including admixture props
+  bclib::DataMatrix Covariates;//all covariates, including admixture props
   DataType *OutcomeType;
 
-  DataMatrix *ReportedAncestry;
+  bclib::DataMatrix *ReportedAncestry;
   
   double SumLogLikelihood;
   double SumDeviance, SumDevianceSq;

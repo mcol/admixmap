@@ -13,8 +13,11 @@
  */
 #ifndef MUSAMPLER_H
 #define MUSAMPLER_H 1
-#include "bcppcl/HamiltonianMonteCarlo.h"
-#include "bcppcl/StepSizeTuner.h"
+#include "bclib/bclib.h"
+#include "bclib/HamiltonianMonteCarlo.h"
+#include "bclib/StepSizeTuner.h"
+
+BEGIN_BCLIB_NAMESPACE
 
 typedef struct{
   const int *counts;
@@ -55,4 +58,6 @@ private:
   static double logJacobian(const double* a, const double z, unsigned H);
   static double DlogJacobian(const double* const a, const double z, unsigned H, unsigned h, double delta);
 };
+
+END_BCLIB_NAMESPACE
 #endif

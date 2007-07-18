@@ -14,6 +14,7 @@
 #include "bclib/rand.h"
 
 using namespace std;
+using bclib::Rand;
 
 ///set pointers to null etc
 void HiddenMarkovModel::SetNullValues(){

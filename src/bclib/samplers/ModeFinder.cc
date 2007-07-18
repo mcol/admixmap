@@ -2,6 +2,8 @@
 #include <math.h>
 #include <iostream>
 
+BEGIN_BCLIB_NAMESPACE
+
 double ModeFinder::FindModeByNewtonRaphson(double init, double* ddf, const void* const args, 
 					   double (*function)(double, const void* const), 
 					   double (*dfunction)(double, const void* const),
@@ -150,3 +152,5 @@ double ModeFinder::UnboundedModeSearch(const void* const args, double (*gradient
   }
   return mode;
 }
+
+END_BCLIB_NAMESPACE

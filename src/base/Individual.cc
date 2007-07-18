@@ -10,7 +10,7 @@
  * 
  */
 #include "Individual.h"
-#include "bclib/Regression.h" 
+//#include "bclib/Regression.h" 
 #include <sstream>
 #include <exception>
 
@@ -304,15 +304,15 @@ void Individual::UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, All
   }
 }
 
-void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regression*>& R){
+void Individual::SampleMissingOutcomes(bclib::DataMatrix *Outcome, const vector<bclib::Regression*>& R){
   int NumOutcomes = Outcome->nCols();
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
     if( Outcome->isMissing( myNumber-1, k ) ){
       if( R[k]->getRegressionType() == Linear)
-	Outcome->set( myNumber-1, k, Rand::gennor( R[k]->getExpectedOutcome(myNumber-1), 1 / sqrt( R[k]->getlambda() ) ));
+	Outcome->set( myNumber-1, k, bclib::Rand::gennor( R[k]->getExpectedOutcome(myNumber-1), 1 / sqrt( R[k]->getlambda() ) ));
       else{
-	if( Rand::myrand() * R[k]->getExpectedOutcome(myNumber-1) < 1 )
+	if( bclib::Rand::myrand() * R[k]->getExpectedOutcome(myNumber-1) < 1 )
 	  Outcome->set( myNumber-1, k, 1);
 	else
 	  Outcome->set( myNumber-1, k, 0);

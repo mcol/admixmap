@@ -12,6 +12,8 @@
  */
 #include "bclib/TableWriter.h"
 
+BEGIN_BCLIB_NAMESPACE
+
 //manipulators
 void newline(TableWriter& TW){
   TW.needNewLine = true;
@@ -95,4 +97,4 @@ TableWriter& TableWriter::operator<<(const std::string t){
   return write(t);
 }
 
-
+END_BCLIB_NAMESPACE

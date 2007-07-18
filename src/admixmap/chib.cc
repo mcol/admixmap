@@ -59,16 +59,16 @@ double chib::getLogPrior()const{
 
 double chib::getLogPosterior()const
 {
-  return AverageOfLogs( VecLogPosterior, MaxLogPosterior );
+  return bclib::AverageOfLogs( VecLogPosterior, MaxLogPosterior );
 }
 
 double chib::getLogMarginalLikelihood()const{
-  double LogPosterior = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
+  double LogPosterior = bclib::AverageOfLogs( VecLogPosterior, MaxLogPosterior );
   return LogLikelihood + LogPrior - LogPosterior;
 }
 
-void chib::outputResults(LogWriter & Log)const {
-  Log.setDisplayMode(On);
+void chib::outputResults(bclib::LogWriter & Log)const {
+  Log.setDisplayMode(bclib::On);
   Log << "\nCalculation of Chib algorithm at fixed parameter values"
       << "\nDeviance\t" << -2.0*getLogLikelihood()
       << "\nLogLikelihood\t" << getLogLikelihood()

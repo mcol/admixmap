@@ -29,9 +29,9 @@ StratificationTest::StratificationTest()
    T = 0;
 }
 void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci,  
-				     const IndividualCollection* const IC, LogWriter &Log )
+				     const IndividualCollection* const IC, bclib::LogWriter &Log )
 {
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   if(options->getStratificationTest() ){
 
     //float DistanceFromLast = 0;
@@ -86,13 +86,13 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
     }
     
     if( NumberOfTestLoci < 2 ){
-      Log.setDisplayMode(On);
+      Log.setDisplayMode(bclib::On);
       Log << "\nToo few unlinked loci to run stratification test\n";
       options->setStratificationTest(false);
       if(outputstream.is_open())outputstream.close();
     }
     else{
-      Log.setDisplayMode(Off);
+      Log.setDisplayMode(bclib::Off);
       Log << NumberOfTestLoci << " loci used in stratification test.\n";
       for(int i = 0; i < NumberOfTestLoci; i++){
 	Log << Loci(TestLoci[i])->GetLabel(0) << "\n";
@@ -212,11 +212,11 @@ vector<double> StratificationTest::GenerateExpectedGenotype( const Individual* c
 vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAdmixture( const vector<double> ProbAllele1 )
 {
   vector<unsigned short> repgenotype(2,0);
-  if( ProbAllele1[0] > Rand::myrand() )
+  if( ProbAllele1[0] > bclib::Rand::myrand() )
     repgenotype[0] = 1;
   else
     repgenotype[0] = 2;
-  if( ProbAllele1[1] > Rand::myrand() )
+  if( ProbAllele1[1] > bclib::Rand::myrand() )
     repgenotype[1] = 1;
   else
     repgenotype[1] = 2;
@@ -226,11 +226,11 @@ vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAdmixture( co
 vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAncestry( const double* const freqs, const int ancestry[2] )
 {
   vector<unsigned short> repgenotype(2,0);
-  if( freqs[ ancestry[0]*2 ] > Rand::myrand() )
+  if( freqs[ ancestry[0]*2 ] > bclib::Rand::myrand() )
      repgenotype[0] = 1;
   else
     repgenotype[0] = 2;
-  if( freqs[ ancestry[1]*2 ] > Rand::myrand() )
+  if( freqs[ ancestry[1]*2 ] > bclib::Rand::myrand() )
     repgenotype[1] = 1;
   else
     repgenotype[1] = 2;
@@ -242,7 +242,7 @@ vector<unsigned short> StratificationTest::SampleHeterozygotePhase( const double
   vector<unsigned short> genotype(2, 0);
   double q1 = freqs[ Ancestry[0]*2 ] * ( 1 - freqs[ Ancestry[1]*2 ] );
   double q2 = freqs[ Ancestry[1]*2 ] * ( 1 - freqs[ Ancestry[0]*2 ] );
-  if( Rand::myrand() > q1 / ( q1 + q2 ) ){
+  if( bclib::Rand::myrand() > q1 / ( q1 + q2 ) ){
     genotype[0] = 2;
     genotype[1] = 1;
   }
@@ -253,8 +253,8 @@ vector<unsigned short> StratificationTest::SampleHeterozygotePhase( const double
   return genotype;
 }
 
-void StratificationTest::OpenOutputFile( const std::string& ResultsDir, LogWriter &Log){
-  Log.setDisplayMode(Quiet);
+void StratificationTest::OpenOutputFile( const std::string& ResultsDir, bclib::LogWriter &Log){
+  Log.setDisplayMode(bclib::Quiet);
   std::string filename = ResultsDir + "/" + STRAT_TEST_FILE;
   outputstream.open(filename.c_str(), ios::out );
   if( !outputstream.is_open() ){
@@ -264,7 +264,7 @@ void StratificationTest::OpenOutputFile( const std::string& ResultsDir, LogWrite
       << filename << "\n";
 }
 
-void StratificationTest::Output(LogWriter &Log){
-  Log.setDisplayMode(Quiet);
+void StratificationTest::Output(bclib::LogWriter &Log){
+  Log.setDisplayMode(bclib::Quiet);
   Log << "\nStratification test: posterior predictive check probability " << (float)T/count << "\n\n";
 }

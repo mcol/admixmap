@@ -32,12 +32,12 @@ public:
   ~AllelicAssocTest();
 
   void Initialise( AdmixOptions* , const IndividualCollection* const, const Genome* const ,
-		  LogWriter &);
+		  bclib::LogWriter &);
 
   void Reset();
 
   void Output();
-  void WriteFinalTables(LogWriter& Log);
+  void WriteFinalTables(bclib::LogWriter& Log);
 
   void MergeRareHaplotypes(const std::vector<double> &alpha0);
 
@@ -53,8 +53,8 @@ private:
 
   int *locusObsIndicator;
 
-  RObjectWriter AllelicAssocRObject;
-  RObjectWriter HaplotypeAssocRObject;
+  bclib::RObjectWriter AllelicAssocRObject;
+  bclib::RObjectWriter HaplotypeAssocRObject;
   //outputfile = allelicAssocStream
   //std::ofstream allelicAssocScoreStream;
 

@@ -96,9 +96,9 @@ unsigned int Chromosome::GetNumberOfCompositeLoci()const
 double Chromosome::LocusCorrelation(unsigned locus, double drho){
   //  try{
     if(isX)//sumintensities on Xchrm is set to half autosomal value
-      return myexp(-GetDistance( locus ) * drho*0.5);
+      return bclib::eh_exp(-GetDistance( locus ) * drho*0.5);
     else
-      return myexp(-GetDistance( locus ) * drho);
+      return bclib::eh_exp(-GetDistance( locus ) * drho);
 //  }
 //   catch(std::exception e){
 //     std::string err = "Error encountered while setting locus f in Chromosome: ";

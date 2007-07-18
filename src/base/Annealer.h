@@ -22,12 +22,12 @@ public:
   void Initialise(bool thermo, unsigned numAnnealedRuns, unsigned samples, unsigned burnin, const char* filename);
   ~Annealer();
 
-  void PrintRunLengths(LogWriter& Log, bool testoneindiv);
+  void PrintRunLengths(bclib::LogWriter& Log, bool testoneindiv);
   void SetAnnealingSchedule();
   bool SetRunLengths(int run, unsigned* samples, unsigned* burnin, double* coolness);
   void CalculateLogEvidence(int run, double coolness, double SumEnergy, double SumEnergySq, unsigned samples);
   void CalculateLogEvidence(double *SumEnergy, double*SumEnergySq, unsigned size);
-  void PrintResults(LogWriter& Log, double D_hat);
+  void PrintResults(bclib::LogWriter& Log, double D_hat);
   const double* GetCoolnesses()const;
 private:
   bool Thermo;

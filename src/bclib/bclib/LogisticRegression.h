@@ -1,9 +1,22 @@
 // *-*-C++-*-*
+/** 
+ *   LogisticRegression.h
+ *   Class to represent and update parameters of a logistic regression model
+ *   Copyright (c) 2006-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #ifndef LOGISTICREGRESSION_H
 #define LOGISTICREGRESSION_H 1
 
 #include "bclib/Regression.h"
 #include "bclib/GaussianProposalMH.h"
+
+BEGIN_BCLIB_NAMESPACE
 
 ///Struct to hold arguments for sampling logistic regression parameters
 typedef struct{
@@ -27,9 +40,9 @@ typedef struct{
 }BetaArgs;
 
 ///class to sample the parameters of a logistic regression
-class LogisticRegression : public Regression{
+class LogisticRegression : public bclib::Regression{
 public:
-  LogisticRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+  LogisticRegression(unsigned Number, double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 		     LogWriter &Log);
   ~LogisticRegression();
 
@@ -53,8 +66,9 @@ private:
   static double ddlr( const double beta, const void* const vargs );
 
   LogisticRegression();
-  void Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+  void Initialise(double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 		  LogWriter &Log);
 
 };
+END_BCLIB_NAMESPACE
 #endif

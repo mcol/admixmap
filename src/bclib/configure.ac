@@ -1,6 +1,6 @@
 AC_PREREQ(2.59)
 
-AC_INIT([bcppcl],[1.1])
+AC_INIT([bcppcl],[1.2])
 
 #put auxiliary files here
 AC_CONFIG_AUX_DIR(config)
@@ -69,7 +69,7 @@ AC_CONFIG_FILES([Makefile
 	utils/Makefile 
 	samplers/Makefile 
 	regression/Makefile
-        bcppcl/Makefile
+        bclib/Makefile
         examples/Makefile
 	doxygen/Makefile
 	doxygen/Doxyfile

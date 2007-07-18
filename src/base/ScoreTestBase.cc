@@ -27,7 +27,7 @@ ScoreTestBase::~ScoreTestBase(){
 }
 
 ///generic scalar score test
-void ScoreTestBase::OutputScalarScoreTest( int iterations, FileWriter& outputstream, string label,
+void ScoreTestBase::OutputScalarScoreTest( int iterations, bclib::FileWriter& outputstream, string label,
 					const double score, const double scoresq, const double info, bool final)
 {
   const double Score = score / ( double )iterations;
@@ -70,10 +70,10 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, FileWriter& outputstr
     //NA for (log)p-value
     outputstream << "NA" ;
   }
-  outputstream << newline;
+  outputstream << bclib::newline;
 }
 
-void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  FileWriter& outputstream, string label,
+void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  bclib::FileWriter& outputstream, string label,
 						     const double score, const double scoresq, const double varscore, 
 						     const double info, bool final )
 {
@@ -134,11 +134,11 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  FileWriter& outputstream, 
       outputstream << "NA" << "NA" << "NA" << "NA" ;
     outputstream << "NA" ; 
   }
-  outputstream << newline;
+  outputstream << bclib::newline;
 }
 
 ///generic vector score test
-void ScoreTestBase::OutputScoreTest( int iterations,  FileWriter& outputstream, unsigned dim, vector<string> labels,
+void ScoreTestBase::OutputScoreTest( int iterations,  bclib::FileWriter& outputstream, unsigned dim, vector<string> labels,
 				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
 {
   //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element.
@@ -148,11 +148,11 @@ void ScoreTestBase::OutputScoreTest( int iterations,  FileWriter& outputstream, 
 
   ScoreVector = new double[dim];
   copy(score, score+dim, ScoreVector);
-  scale_matrix(ScoreVector, 1.0/( iterations), dim, 1);
+  bclib::scale_matrix(ScoreVector, 1.0/( iterations), dim, 1);
   
   CompleteInfo = new double[dim*dim];
   copy(info, info + dim*dim, CompleteInfo);
-  scale_matrix(CompleteInfo, 1.0/( iterations), dim, dim);
+  bclib::scale_matrix(CompleteInfo, 1.0/( iterations), dim, dim);
   
   ObservedInfo = new double[dim*dim];
   for(unsigned d1 = 0; d1 < dim; ++d1)for(unsigned d2 = 0; d2 < dim; ++d2)
@@ -176,17 +176,17 @@ void ScoreTestBase::OutputScoreTest( int iterations,  FileWriter& outputstream, 
     if(final){
       outputstream << double2R(pvalue) ;
       if( k != dim - 1 ){
-	outputstream  << "NA" << newline;
+	outputstream  << "NA" << bclib::newline;
       }
      }
-    else outputstream << double2R(-log10(pvalue)) << newline;
+    else outputstream << double2R(-log10(pvalue)) << bclib::newline;
     // if not last allele at locus, output unquoted "NA" in chi-square column
   }//end loop over alleles
   if(final){
     double chisq=0.0;
     try{
-      if(dim2==dim) chisq = GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
-      else chisq = GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
+      if(dim2==dim) chisq = bclib::GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
+      else chisq = bclib::GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
       if(chisq < 0.0)
 	outputstream << "NA";
       else outputstream << double2R(chisq);
@@ -194,7 +194,7 @@ void ScoreTestBase::OutputScoreTest( int iterations,  FileWriter& outputstream, 
     catch(...){//in case ObservedInfo is rank deficient
       outputstream  << "NA";
     }
-    outputstream << newline;
+    outputstream << bclib::newline;
   }
   //TODO:?? output p-value for chisq
 	

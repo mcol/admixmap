@@ -20,6 +20,8 @@
 
 using namespace std;
 
+BEGIN_BCLIB_NAMESPACE
+
 #define EPS  0.00000001            /* critical relative x-value difference */
 
 AdaptiveRejection::AdaptiveRejection(){
@@ -289,7 +291,7 @@ void AdaptiveRejection::InitialisePoints(double x[3], const void* const args){
   
 void AdaptiveRejection::SamplePoint(const void* const args){
   //sample from standard uniform
-  double u = Rand::myrand();
+  double u = bclib::Rand::myrand();
 
   //compute areas under tangents and hence interval probabilities
   //possibly wasteful to redo all each time
@@ -372,7 +374,7 @@ void AdaptiveRejection::SamplePoint(const void* const args){
 }
 
 bool AdaptiveRejection::TestNewPoint(){
-  double w = Rand::myrand();
+  double w = bclib::Rand::myrand();
   bool accept = false;
   //squeeze test
   if (w <= exp(NewPoint.lower - NewPoint.upper) ) {accept = true;
@@ -583,3 +585,5 @@ void AdaptiveRejection::SetInitialPoints(double mode, double x[3], const void* c
       //x[2] = UpperBound;
       x[2] = mode + 0.5*(UpperBound-mode);
 }
+
+END_BCLIB_NAMESPACE

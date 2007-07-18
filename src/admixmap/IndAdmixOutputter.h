@@ -34,7 +34,7 @@ public:
 
 
 private: 
-  RObjectWriter _out;
+  bclib::RObjectWriter _out;
 
   const AdmixOptions&  _options;
   const Genome& _Loci;

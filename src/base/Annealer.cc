@@ -54,14 +54,14 @@ Annealer::~Annealer(){
   delete[] Coolnesses;
 }
 
-void Annealer::PrintRunLengths(LogWriter& Log, bool testoneindiv){
+void Annealer::PrintRunLengths(bclib::LogWriter& Log, bool testoneindiv){
   int annealedrunlength = _samples;
   if(!Thermo && NumAnnealedRuns > 0) annealedrunlength = 1;
   int finalrunlength = _samples;
   if(Thermo)finalrunlength = _samples*2;//last run is twice as long with thermo option
 
   if(!testoneindiv && NumAnnealedRuns > 0) {
-    Log << On << NumAnnealedRuns << " annealing runs of " << annealedrunlength 
+    Log << bclib::On << NumAnnealedRuns << " annealing runs of " << annealedrunlength 
 	<< " iteration(s) followed by final run of "; 
   }
   Log << finalrunlength << " iterations at ";
@@ -159,16 +159,16 @@ void Annealer::CalculateLogEvidence(double *SumEnergy, double*SumEnergySq, unsig
   delete[] VarEner;
 }
 
-void Annealer::PrintResults(LogWriter& Log, double D_hat){
+void Annealer::PrintResults(bclib::LogWriter& Log, double D_hat){
   double Information = -LogEvidence - MeanEnergy;
   double MeanDeviance = 2.0 * MeanEnergy; 
   double VarDeviance = 4.0 * VarEnergy;
-  Log << Quiet << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
+  Log << bclib::Quiet << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
       << "VarDeviance(V)\t" << VarDeviance << "\n"
       << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
   double pD = MeanDeviance - D_hat;
   double DIC = MeanDeviance + pD;
-  Log << Quiet << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
+  Log << bclib::Quiet << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
       << "EffectiveNumParameters(pD)\t" << pD << "\n"
       << "DevianceInformationCriterion\t" << DIC << "\n\n";
 

@@ -24,14 +24,14 @@ int main( int argc , char** argv ){
 
   //print version number and copyright info, if requested, and exit
   if(options.getFlag("version")){
-    LogWriter LW;
+    bclib::LogWriter LW;
     PrintCopyrightNotice(LW);
     exit(1);
   }
 
   //if no options specified or help requested, print help message and list of options, then exit
   if(!options.hasOptions() || options.getFlag("help")){
-    LogWriter LW;
+    bclib::LogWriter LW;
     //PrintCopyrightNotice(LW);
     PrintUsage("hapmixmap");
     options.PrintAllOptions(cout);
@@ -45,13 +45,13 @@ int main( int argc , char** argv ){
   CreateDirectory(options.getResultsDir().c_str(), options.getDeleteOldResultsIndicator());
 
   //open logfile, start timer and print start message
-  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
-  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+  bclib::LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
+  if(options.getDisplayLevel()==0)Log.setDisplayMode(bclib::Off);
 
   //if(options.getDisplayLevel()>0 )
   PrintCopyrightNotice(Log);
   if(options.getFlag("checkmode"))
-    Log << On << "  *** Check Mode Active *** \n"
+    Log << bclib::On << "  *** Check Mode Active *** \n"
 	<< "-------------------------------------------------------\n";
   else{
     if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
@@ -59,7 +59,7 @@ int main( int argc , char** argv ){
   }
 
   try{  
-    Rand RNG;//allocate random number generator
+    bclib::Rand RNG;//allocate random number generator
     RNG.setSeed( options.getSeed() );  // set random number seed
   
     //read data files and check (except allelefreq files)
@@ -68,7 +68,7 @@ int main( int argc , char** argv ){
 
      //check user options
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
-      Log << On << "\nProgram aborted due to bad options. See logfile for details\n";
+      Log << bclib::On << "\nProgram aborted due to bad options. See logfile for details\n";
       exit(1);
     }
   
@@ -77,7 +77,7 @@ int main( int argc , char** argv ){
 
     //end of program, in checkmode
     if(options.getFlag("checkmode")){
-      Log << On << "-------------------------------------------------------\n"
+      Log << bclib::On << "-------------------------------------------------------\n"
 	  <<  "  *** Everything looks good ***\n\n  *** Check Mode Complete ***\n" 
 	  << "-------------------------------------------------------\n";
       exit(0);
@@ -113,7 +113,7 @@ int main( int argc , char** argv ){
   }
 
   //print run times to screen and log
-  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+  if(options.getDisplayLevel()==0)Log.setDisplayMode(bclib::Off);
   else  Log << "\n";
   Log.ProcessingTime();
     
@@ -124,13 +124,13 @@ int main( int argc , char** argv ){
   return 0;
 } //end of main
 
-void PrintCopyrightNotice(LogWriter& Log){
-  Log.setDisplayMode(On);
+void PrintCopyrightNotice(bclib::LogWriter& Log){
+  Log.setDisplayMode(bclib::On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
       << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION << "." << SUBVERSION << ") **\n"
       << "-------------------------------------------------------\n";
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   cout << "Copyright(c) 2006, 2007 " << endl
        << "David O'Donnell and Paul McKeigue" << endl
        << "-------------------------------------------------------"<< endl

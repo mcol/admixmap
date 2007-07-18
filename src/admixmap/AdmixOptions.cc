@@ -385,7 +385,7 @@ bool AdmixOptions::SetOptions(){
   return true;
 }
 
-int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
+int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
   //check base options
   Options::checkOptions(Log, 1);
 
@@ -659,7 +659,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 }
 
 //Note: requires Populations option to have already been set
-void AdmixOptions::setInitAlpha(LogWriter &Log){
+void AdmixOptions::setInitAlpha(bclib::LogWriter &Log){
   _admixed.resize(2,(bool)(Populations>1));
   _symmetric = true;
   vector<double> alphatemp(Populations);

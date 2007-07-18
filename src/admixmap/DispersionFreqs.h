@@ -30,16 +30,16 @@ class DispersionFreqs : public AlleleFreqs{
 public:
   DispersionFreqs();
   ~DispersionFreqs();
-  void Initialise(AdmixOptions* const options, InputAdmixData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
+  void Initialise(AdmixOptions* const options, InputAdmixData* const Data, Genome *pLoci, bclib::LogWriter &Log, bool MAP=false);
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
-  void PrintPrior(const Vector_s&, LogWriter& Log)const;
+  void PrintPrior(const Vector_s&, bclib::LogWriter& Log)const;
   ///initialize output file for samples of dispersion parameters
-  void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, LogWriter &Log);
+  void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, bclib::LogWriter &Log);
 
   ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   virtual void OutputErgodicAvg( int iteration, std::ofstream *avgstream)const;
   ///output samples of dispersion parameters (eta) to dispparamfile
-  void OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log);
+  void OutputEta(int iteration, const AdmixOptions *options, bclib::LogWriter &Log);
 
   void OutputFST();
 
@@ -58,9 +58,9 @@ private:
   double *SumEta;
   double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
   double psi0;
-  MuSampler *muSampler;
+  bclib::MuSampler *muSampler;
   //new sampler for eta
-  DispersionSampler *EtaSampler;
+  bclib::DispersionSampler *EtaSampler;
  
   double **HistoricAlleleFreqs;
   double **HistoricAlleleCounts;
@@ -69,27 +69,23 @@ private:
   double** SumFst;
 
   ///adaptive RW sampler for eta
-  StepSizeTuner *TuneEtaSampler;
+  bclib::StepSizeTuner *TuneEtaSampler;
   int NumberOfEtaUpdates;
   int *NumberAccepted; 
   double *etastep;
   double etastep0;
   int w;//The eta sampler is tuned every w updates.
 
-  //sampler for univariate mu (beta proportion parameters)
-  //    DARS SampleMu;
-  // DARS SampleMu is now initialized each time the allele freqs at a locus in a population are sampled
-
   // sampler for Dirichlet proportion parameters 
-  std::vector<StepSizeTuner> *MuProposal;
+  std::vector<bclib::StepSizeTuner> *MuProposal;
   
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
-  void OpenFSTFile(const std::string& ResultsDir, LogWriter &Log); 
+  void OpenFSTFile(const std::string& ResultsDir, bclib::LogWriter &Log); 
 
   void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
-  void LoadAlleleFreqs(AdmixOptions* const options, InputAdmixData* const data, LogWriter &Log);
+  void LoadAlleleFreqs(AdmixOptions* const options, InputAdmixData* const data, bclib::LogWriter &Log);
   void SetDefaultPriorParams(int i, double defaultpriorparams);
   void SampleAlleleFreqs(int, const double coolness);
   void SampleDirichletParams1D( int );

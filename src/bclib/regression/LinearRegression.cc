@@ -1,3 +1,14 @@
+/** 
+ *   LinearRegression.cc 
+ *   Class to represent and update parameters of a logistic regression model
+ *   Copyright (c) 2006-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "bclib/LinearRegression.h"
 #include <numeric>
 #include <gsl/gsl_linalg.h>
@@ -8,7 +19,9 @@
 #include <iomanip>
 
 using namespace::std;
-LinearRegression::LinearRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+BEGIN_BCLIB_NAMESPACE
+
+LinearRegression::LinearRegression(unsigned Number, double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 				   LogWriter &Log): Regression(Number, Linear){
   lambda0 = 0.0;
   lambda1 = 0.0;
@@ -28,7 +41,7 @@ LinearRegression::~LinearRegression(){
   delete[] betahat;
 }
 
-void LinearRegression::Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+void LinearRegression::Initialise(double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 				  LogWriter &Log){
   Regression::Initialise(Covars.nCols(), Covars.nRows(), Covars.getData());
   Log.setDisplayMode(Quiet);
@@ -306,3 +319,4 @@ double LinearRegression::getLogLikelihoodAtPosteriorMeans(int iterations, const 
 
   return logL;
 }
+END_BCLIB_NAMESPACE

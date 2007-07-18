@@ -13,20 +13,22 @@
 #ifndef DirichletParamSampler_H
 #define DirichletParamSampler_H 1
 
+#include <gsl/gsl_sf_gamma.h>
+#include "bclib/rand.h"
+//#include "StepSizeTuner.h"
+#include "bclib/HamiltonianMonteCarlo.h"
+
 #define DIRICHLETPARAM_ARS_SAMPLER 1
 #define DIRICHLETPARAM_HAMILTONIAN_SAMPLER 2
 #define DIRICHLETPARAM_SAMPLERTYPE 1 // 1 = adaptive rejection sampler on pairwise elements of proportion vector mu
                       //     Hamiltonian on dispersion parameter 
                       // 2 = Hamiltonian on parameter vector alpha
 
-#include <gsl/gsl_sf_gamma.h>
-#include "bclib/rand.h"
-//#include "StepSizeTuner.h"
-#include "bclib/HamiltonianMonteCarlo.h"
-
 #if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
 #include "bclib/AdaptiveRejection.h"
 #endif
+
+BEGIN_BCLIB_NAMESPACE
 
 /// struct to hold arguments for sampler for Dirichlet parameters
 typedef struct{
@@ -115,5 +117,6 @@ private:
   void Initialise();
 };
 
+END_BCLIB_NAMESPACE
 #endif 
 /* ! DirichletParamSampler_H */

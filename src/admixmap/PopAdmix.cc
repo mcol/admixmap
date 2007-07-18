@@ -29,8 +29,8 @@ PopAdmix::PopAdmix( const AdmixOptions& op, Genome& loci)
   rho.push_back(0.0);
 }
 
-void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, LogWriter &Log){
-  Log.setDisplayMode(On);
+void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, bclib::LogWriter &Log){
+  Log.setDisplayMode(bclib::On);
   //ergodic average of population admixture, which is used to centre 
   // the values of individual admixture in the regression model  
   poptheta = new double[ K ];
@@ -92,12 +92,12 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
 
     // ** Open paramfile **
     if ( options.getIndAdmixHierIndicator()){
-      Log.setDisplayMode(Quiet);
+      Log.setDisplayMode(bclib::Quiet);
       if( strlen( options.getParameterFilename() ) ){
 	outputstream.open( options.getParameterFilename(), ios::out );
 	if( !outputstream )
 	  {
-	    Log.setDisplayMode(On);
+	    Log.setDisplayMode(bclib::On);
 	    Log << "ERROR: Couldn't open paramfile\n";
 	    exit( 1 );
 	  }
@@ -128,7 +128,7 @@ PopAdmix::~PopAdmix()
  of components, we have one Dirichlet parameter vector for each component, 
  updated only from those individuals who belong to the component
 */
-void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const individuals, LogWriter &Log)
+void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const individuals, bclib::LogWriter &Log)
  {
    if( options.getPopulations() > 1 && individuals->getSize() > 1 &&
        options.getIndAdmixHierIndicator() ){
@@ -156,7 +156,7 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
    
    if( iteration == options.getBurnIn() && options.getPopulations() > 1) {
      if(options.getNumberOfOutcomes() > 0){
-       Log << Off << "Individual admixture centred in regression model around: ";
+       Log << bclib::Off << "Individual admixture centred in regression model around: ";
        for(int i = 0; i < options.getPopulations(); ++i)Log << poptheta[i] << "\t";
        Log << "\n";
      }
@@ -174,6 +174,7 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
 
 ///updates global sumintensities in a globalrho model, using random-walk Metropolis-Hastings
 void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const IC, bool sumlogrho) {
+  using bclib::Rand;
   if( options.isGlobalRho() ) {
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
@@ -296,11 +297,11 @@ void PopAdmix::OutputParams(ostream* out){
     (*out) << setprecision(6) << rhoalpha / rhobeta  << "\t";
 }
 
-void PopAdmix::OutputParams(int iteration, LogWriter &Log){
+void PopAdmix::OutputParams(int iteration, bclib::LogWriter &Log){
   //output initial values to logfile
   if( iteration == -1 )
     {
-      Log.setDisplayMode(Off);
+      Log.setDisplayMode(bclib::Off);
       Log.setPrecision(6);
       for( int j = 0; j < options.getPopulations(); j++ ){
 	//Log->width(9);
@@ -350,7 +351,7 @@ const double *PopAdmix::getpoptheta()const{
   return poptheta;
 }
 
-void PopAdmix::printAcceptanceRates(LogWriter &Log) {
+void PopAdmix::printAcceptanceRates(bclib::LogWriter &Log) {
 //     Log << "Expected acceptance rate in global admixture sampler: "
 // 	<< ThetaTuner.getExpectedAcceptanceRate()
 // 	<< "\nwith final step size of "

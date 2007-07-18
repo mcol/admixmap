@@ -25,14 +25,16 @@
 #include "IndividualCollection.h"
 #include "Genome.h"
 #include "AlleleFreqs.h"
-class LogWriter;
+namespace bclib{
+  class LogWriter;
+}
 
 ///Class to implement test for dispersion of allele frequencies between unadmixed populations sampled and the corresponding ancestry-specific allele frequencies in the admixed population under study
 class DispersionTest{
 public:
   DispersionTest();
   ~DispersionTest();
-  void Initialise(const std::string& resultsDir, LogWriter &Log, int NumLoci, int NumPopulations);
+  void Initialise(const std::string& resultsDir, bclib::LogWriter &Log, int NumLoci, int NumPopulations);
   void Output(int, const Genome &, const Vector_s& PopLabels);
   void TestForDivergentAlleleFrequencies(const AlleleFreqs* const, const IndividualCollection* const IC);
   

@@ -14,9 +14,12 @@
 #ifndef ADAPTIVEREJECTION_H
 #define ADAPTIVEREJECTION_H 1
 
+#include "bclib/bclib.h"
 #include <vector>
 #include <math.h>
 #include <stdlib.h>
+
+BEGIN_BCLIB_NAMESPACE
 
 /**
    object to hold the various attributes of a point used in ARS.
@@ -109,6 +112,7 @@ private:
 
 };
 
+END_BCLIB_NAMESPACE
 #endif
 
 

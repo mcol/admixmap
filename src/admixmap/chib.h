@@ -17,7 +17,9 @@
 
 #include <vector>
 
-class LogWriter;
+namespace bclib{
+  class LogWriter;
+}
 
 class chib
 {
@@ -32,7 +34,7 @@ public:
   double getLogLikelihood()const;
   double getLogPosterior()const;
   double getLogMarginalLikelihood()const;
-  void outputResults(LogWriter &Log) const;
+  void outputResults(bclib::LogWriter &Log) const;
 
 //   double getLogLikelihood()const{
 //     return LogLikelihood;

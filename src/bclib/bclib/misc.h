@@ -13,8 +13,11 @@
 #ifndef MISCFUNCTIONS_H
 #define MISCFUNCTIONS_H 1
 
+#include "bclib/bclib.h"
 #include <vector>
 #include <string>
+
+BEGIN_BCLIB_NAMESPACE
 
 // transformations
 double AverageOfLogs(const std::vector<double>& vec, double max);
@@ -35,9 +38,9 @@ void print_vector(std::vector<std::string> a);
 double xlog(double x);
 double xexp(double x);
 ///log function with error handling
-double mylog(double x);
+double eh_log(double x);
 ///exp function with error handling
-double myexp(double x);
+double eh_exp(double x);
 ///lngamma function with error handling
 double lngamma(double x);
 ///digamma function with error handling
@@ -45,4 +48,5 @@ double digamma(double x);
 ///trigamma function with error handling
 double trigamma(double x);
 
+END_BCLIB_NAMESPACE
 #endif /* !MISCFUNCTIONS_H */

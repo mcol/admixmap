@@ -35,18 +35,18 @@ class HapMixFreqs : public AlleleFreqs{
 public:
   HapMixFreqs();
   ~HapMixFreqs();
-  void Initialise(HapMixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
-  void ReadInitialPriorParamsFromFile(const char* filename, LogWriter& Log);
+  void Initialise(HapMixOptions* const options, InputData* const Data, Genome *pLoci, bclib::LogWriter &Log);
+  void ReadInitialPriorParamsFromFile(const char* filename, bclib::LogWriter& Log);
   void setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*/);
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool AllHaploid);
-  void PrintPrior(LogWriter& Log)const;
+  void PrintPrior(bclib::LogWriter& Log)const;
   void SamplePriorPrecision(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2);
   void SamplePriorProportions(unsigned locus, double sumlogfreqs1, double sumlogfreqs2);
   void OutputErgodicAvg( int samples, std::ofstream *avgstream)const;
   //void OutputPriorParams();
   void OutputPriorParams(bool tofile, bool toscreen);
-  void OutputPosteriorMeans(const char* filename, LogWriter& Log)const;
-  void OutputFinalValues(const char* filename, LogWriter& Log)const;
+  void OutputPosteriorMeans(const char* filename, bclib::LogWriter& Log)const;
+  void OutputFinalValues(const char* filename, bclib::LogWriter& Log)const;
   //double getHapMixPriorRate()const{return HapMixPriorRate;};
   double getParams(unsigned locus)const;
   float getAcceptanceRate()const;
@@ -81,8 +81,8 @@ private:
   double* SumEta;//cumulative sum of eta
   double SumLambda;// cumulative sum of EtaRate
 
-  StepSizeTuner* EtaSampler;
-  AdaptiveRejection MuSampler;
+  bclib::StepSizeTuner* EtaSampler;
+  bclib::AdaptiveRejection MuSampler;
   hapmixmuargs HapMixMuArgs;
 
   //TODO: this should be static. No problem in practice as we only have one object of this class
@@ -90,8 +90,8 @@ private:
 
   std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior precision
 
-  void LoadAlleleFreqs(HapMixOptions* const options, InputData* const data_, LogWriter &Log);
-  void InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const options, LogWriter& Log);
+  void LoadAlleleFreqs(HapMixOptions* const options, InputData* const data_, bclib::LogWriter &Log);
+  void InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const options, bclib::LogWriter& Log);
   void OpenOutputFile(const char* filename);
   void SampleAlleleFreqs(int, const double coolness);
   void SampleEtaRate(bool afterburnin, double sum);

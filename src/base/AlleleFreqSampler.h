@@ -50,7 +50,7 @@ public:
   double getAcceptanceRate()const;
 
 private:
-  HamiltonianMonteCarlo Sampler;
+  bclib::HamiltonianMonteCarlo Sampler;
   AlleleFreqArgs Args;
   double* params;
   static bool ishapmixmodel;

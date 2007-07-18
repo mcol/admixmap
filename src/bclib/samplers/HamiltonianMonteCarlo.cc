@@ -16,6 +16,8 @@
 
 using namespace::std;
 
+BEGIN_BCLIB_NAMESPACE
+
 HamiltonianMonteCarlo::HamiltonianMonteCarlo(){
   dim = 1;
   epsilon = 0.0;
@@ -97,7 +99,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
     for(unsigned i = 0; i < dim; ++i)error_string << x[i] <<" ";
   }
   try{
-    for(unsigned i = 0; i < dim; ++i)p[i] = Rand::gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
+    for(unsigned i = 0; i < dim; ++i)p[i] = bclib::Rand::gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
     for(unsigned i = 0; i < dim; ++i)sumpsq += p[i]*p[i];
     H = 0.5 * sumpsq + E ; // evaluate H(x,p)
     for(unsigned i = 0; i < dim; ++i) {//reset xnew and gnew
@@ -151,7 +153,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
 
     throw(error_string.str());
   }
-  catch(InfiniteGradient ){//just reject now and return
+  catch(bclib::InfiniteGradient ){//just reject now and return
     //epsilon = Tuner.UpdateStepSize(0.0);
     //TOFIX: adjusting stepsize here can make the sampler go crazy
     //so just try again next time
@@ -166,7 +168,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
       if ( dH < 0.0 ) {accept = true ;AccProb = 1.0;}
       else {
 	AccProb = exp(-dH);
-	if ( Rand::myrand() < exp(-dH) ) accept = true;
+	if ( bclib::Rand::myrand() < exp(-dH) ) accept = true;
 	else accept = false ;
       }
       
@@ -199,3 +201,4 @@ void HamiltonianMonteCarlo::resetStepSizeApproximator(int k) {
   Tuner.resetStepSizeApproximator(k);
 }
 
+END_BCLIB_NAMESPACE

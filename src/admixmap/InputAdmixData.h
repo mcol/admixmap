@@ -26,7 +26,7 @@ public:
   \param options pointer to AdmixOptions, to access filenames
   \param Log LogWriter, for writing messages
   */
-  InputAdmixData(AdmixOptions *options, LogWriter &Log);
+  InputAdmixData(AdmixOptions *options, bclib::LogWriter &Log);
 
   ///Destructor
   ~InputAdmixData(){};
@@ -47,11 +47,11 @@ public:
   /*
    *  Getters to retrieve data (converted to DataMatrix).
    */    
-  //const DataMatrix& getAlleleFreqMatrix() const;
-  //const DataMatrix& getHistoricalAlleleFreqMatrix() const;
-  //const DataMatrix& getPriorAlleleFreqMatrix() const;
-  const DataMatrix& getEtaPriorMatrix() const;
-  const DataMatrix& getReportedAncestryMatrix() const;
+  //const bclib::DataMatrix& getAlleleFreqMatrix() const;
+  //const bclib::DataMatrix& getHistoricalAlleleFreqMatrix() const;
+  //const bclib::DataMatrix& getPriorAlleleFreqMatrix() const;
+  const bclib::DataMatrix& getEtaPriorMatrix() const;
+  const bclib::DataMatrix& getReportedAncestryMatrix() const;
 
   /** 
       Retrives an Individual's genotypes.
@@ -71,17 +71,17 @@ private:
   Matrix_s etaPriorData_;
   Matrix_s reportedAncestryData_;
 
-  DataMatrix alleleFreqMatrix_;
-  DataMatrix historicalAlleleFreqMatrix_;
-  DataMatrix etaPriorMatrix_;
-  DataMatrix reportedAncestryMatrix_;
+  bclib::DataMatrix alleleFreqMatrix_;
+  bclib::DataMatrix historicalAlleleFreqMatrix_;
+  bclib::DataMatrix etaPriorMatrix_;
+  bclib::DataMatrix reportedAncestryMatrix_;
 
   /**
      Check data after it has been read in.
      \param options pointer to options
      \param Log LogWriter, for messages
   */
-  void CheckData(AdmixOptions *options, LogWriter &Log);
+  void CheckData(AdmixOptions *options, bclib::LogWriter &Log);
 
   /**
      Reads population labels.
@@ -96,7 +96,7 @@ private:
      \param options pointer to options object
      \param Log LogWriter, for error messages
   */
-  void CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log);
+  void CheckAlleleFreqs(AdmixOptions *options, bclib::LogWriter &Log);
   /**
      Check contents of reportedancestryfile.
      Checks number of rows is the same as in genotypesfile and number of
@@ -104,7 +104,7 @@ private:
      \param populations number of populations in model
      \param Log LogWriter, for error messages
   */
-  void CheckRepAncestryFile(int populations, LogWriter &Log)const;
+  void CheckRepAncestryFile(int populations, bclib::LogWriter &Log)const;
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.
    */

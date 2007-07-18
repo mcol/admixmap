@@ -88,8 +88,8 @@ AdmixIndividualCollection::~AdmixIndividualCollection() {
 // ************** INITIALISATION AND LOADING OF DATA **************
 
 void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Genome& Loci,
-				      const Vector_s& PopulationLabels, LogWriter &Log){
-  Log.setDisplayMode(Quiet);
+				      const Vector_s& PopulationLabels, bclib::LogWriter &Log){
+  Log.setDisplayMode(bclib::Quiet);
   //Open indadmixture file  
   if ( strlen( options.getIndAdmixtureFilename() ) ){
     Log << "Writing individual-level parameters to " << options.getIndAdmixtureFilename() <<"\n";
@@ -135,8 +135,8 @@ void AdmixIndividualCollection::LoadData(const AdmixOptions* const options, cons
 }
 
 void AdmixIndividualCollection::LoadRepAncestry(const InputAdmixData* const data_){
-  ReportedAncestry = new DataMatrix[NumInd];
-  DataMatrix& temporary = (DataMatrix&)data_->getReportedAncestryMatrix();
+  ReportedAncestry = new bclib::DataMatrix[NumInd];
+  bclib::DataMatrix& temporary = (bclib::DataMatrix&)data_->getReportedAncestryMatrix();
   for( unsigned i = 0; i < temporary.nRows() / 2; i++ )
     ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.nCols() - 1 );
  
@@ -183,7 +183,7 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
    calling annealGenotypeProbs 
 */
 // void AdmixIndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
-// 							 const vector<Regression*> &R, const double* const poptheta,
+// 							 const vector<bclib::Regression*> &R, const double* const poptheta,
 // 							 const vector<vector<double> > &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
 //   vector<double> lambda;
 //   vector<const double*> beta;
@@ -217,7 +217,7 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 // }
 
 void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions& options,
-                                                    const vector<Regression*> &R, const double* const poptheta,
+					   const vector<bclib::Regression*> &R, const double* const poptheta,
                                                     const vector<vector<double> > &alpha, 
                                                     AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
   vector<double> lambda;
@@ -281,7 +281,7 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions& op
 
 ///samples individual-level sumintensities and admixture
 void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptions& options,
-					    const vector<Regression*> &R, const double* const poptheta,
+						 const vector<bclib::Regression*> &R, const double* const poptheta,
 					    const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 					    CopyNumberAssocTest& ancestryAssocTest, bool anneal=false){
   //sufficient statistics have been stored in Individuals
@@ -360,7 +360,7 @@ void AdmixIndividualCollection::updateChib(const AdmixOptions& options,const vec
 }
 
 void AdmixIndividualCollection::FindPosteriorModes(const AdmixOptions& options,
-					      const vector<Regression*> &R, 
+						   const vector<bclib::Regression*> &R, 
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 					      AlleleFreqs* A, 
 					      const Vector_s& PopulationLabels){
@@ -438,7 +438,7 @@ void AdmixIndividualCollection::OutputIndAdmixture()
   }
 }
 
-void AdmixIndividualCollection::OutputChibResults(LogWriter& Log) const {
+void AdmixIndividualCollection::OutputChibResults(bclib::LogWriter& Log) const {
   MargLikelihood.outputResults(Log);
 //   Log.setDisplayMode(On);
 //   Log << "\nCalculation of Chib algorithm using posterior mode of admixture and sum-intensities, prior mean of allele freqs"
@@ -450,8 +450,8 @@ void AdmixIndividualCollection::OutputChibResults(LogWriter& Log) const {
 //       << "\n";
 } 
 
-void AdmixIndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels) {
-  Log.setDisplayMode(On);
+void AdmixIndividualCollection::getOnePopOneIndLogLikelihood(bclib::LogWriter &Log, const Vector_s& PopulationLabels) {
+  Log.setDisplayMode(bclib::On);
   Log << "Log-likelihood for unadmixed "  << PopulationLabels[0] << ": "
       <<  AdmixedChild[0]->getLogLikelihoodOnePop() << "\n";
 }
@@ -491,8 +491,8 @@ double* AdmixIndividualCollection::getSumEnergy()const{
 double* AdmixIndividualCollection::getSumEnergySq()const{
     return SumEnergySq;
 }
-double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options& options, vector<Regression *> &R, Genome* Loci,
-							     LogWriter &Log, const vector<double>& SumLogRho, unsigned,  AlleleFreqs* A){
+double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *> &R, Genome* Loci,
+							     bclib::LogWriter &Log, const vector<double>& SumLogRho, unsigned,  AlleleFreqs* A){
   //SumRho = ergodic sum of global sumintensities
   int iterations = options.getTotalSamples()-options.getBurnIn();
   
@@ -518,7 +518,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options& opti
     Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
 
-  Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
+  Log << bclib::Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
   for(unsigned c = 0; c < R.size(); ++c){
     double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
     Lhat += RegressionLogL;

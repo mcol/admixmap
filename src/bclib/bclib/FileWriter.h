@@ -14,8 +14,11 @@
 #ifndef FILEWRITER_H
 #define FILEWRITER_H
 
+#include "bclib/bclib.h"
 #include <fstream>
 #include <string>
+
+BEGIN_BCLIB_NAMESPACE
 
 ///wrapper class for std::ofstream
 class FileWriter{
@@ -57,4 +60,5 @@ void newline(FileWriter& FW);
 //stream insertion for newline
 FileWriter&  operator<<(FileWriter& FW, void (*man)(FileWriter&));
 
+END_BCLIB_NAMESPACE
 #endif

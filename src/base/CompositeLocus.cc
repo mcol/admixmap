@@ -238,7 +238,7 @@ void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
 
     for(int k = 0; k < Populations; ++k){
       for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k*NumberOfStates +h] /= (double)iterations;
-      softmax(NumberOfStates, mu+k*NumberOfStates, SumAlleleProbs+k*NumberOfStates);
+      bclib::softmax(NumberOfStates, mu+k*NumberOfStates, SumAlleleProbs+k*NumberOfStates);
 
       //if(RandomAlleleFreqs)for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k*NumberOfStates+h] *= (double)iterations;
     }
@@ -254,7 +254,7 @@ void CompositeLocus::AccumulateAlleleProbs(){
     bool* b = new bool[NumberOfStates];
     for(int s = 0; s < NumberOfStates; ++s)b[s] = (bool)(AlleleProbs[k*NumberOfStates+s]>0.0);
     try{
-      inv_softmax(NumberOfStates, AlleleProbs+k*NumberOfStates, temp, b);
+      bclib::inv_softmax(NumberOfStates, AlleleProbs+k*NumberOfStates, temp, b);
     }
     catch(string str){
       string err = "Error accumulating alleleprobs: ";
@@ -351,7 +351,7 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Po
 			     ancestry[0] * Populations  + ancestry[1]];
   }
   //no need to renormalize for SampleFromDiscrete
-  int h = Rand::SampleFromDiscrete(Probs, PossibleHapPairs.size());
+  int h = bclib::Rand::SampleFromDiscrete(Probs, PossibleHapPairs.size());
   delete[] Probs;
 
   hap->haps[0] = PossibleHapPairs[h].haps[0];

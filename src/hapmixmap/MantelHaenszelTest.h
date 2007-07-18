@@ -5,7 +5,9 @@
 #include <fstream>
 class IndividualCollection;
 class Genome;
-class LogWriter;
+namespace bclib{
+  class LogWriter;
+}
 
 class MantelHaenszelTest : public ScoreTestBase{
 public:
@@ -17,7 +19,7 @@ public:
   void Update(const IndividualCollection* , const Genome&);
   void Output(const std::vector<std::string>& LocusLabels);
   void WriteFinalTable(const std::string& ResultsDir, 
-		       const std::vector<std::string>& LocusLabels, LogWriter& Log);
+		       const std::vector<std::string>& LocusLabels, bclib::LogWriter& Log);
 
 private:
   unsigned K, Ksq;//number of states (populations or block states)
@@ -27,6 +29,6 @@ private:
   std::vector<double> ScoreSq;
   std::vector<double> Info;
 
-  RObjectWriter R;
-  void OutputTest( FileWriter& outfile, const std::vector<std::string>& LocusLabels, bool final);
+  bclib::RObjectWriter R;
+  void OutputTest( bclib::FileWriter& outfile, const std::vector<std::string>& LocusLabels, bool final);
 };

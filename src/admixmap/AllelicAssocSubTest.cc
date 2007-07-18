@@ -75,7 +75,7 @@ void AllelicAssocSubTest::CentreAndSum(unsigned dim, double *score, double* info
   double *cscore = new double[dim];//centred score
   double *cinfo = new double[dim*dim];//centred info
 
-  CentredGaussianConditional( dim, score, info, cscore, cinfo, NumCovars+dim );
+  bclib::CentredGaussianConditional( dim, score, info, cscore, cinfo, NumCovars+dim );
   for(unsigned d = 0; d < dim; ++d){
     *(sumscore + d) += cscore[d];
     for(unsigned dd = 0; dd < dim; ++dd){
@@ -93,7 +93,7 @@ void AllelicAssocSubTest::CentreAndSum(unsigned dim, double *score, double* info
 
 // generic scalar score test
 //TODO: move output of NA in chisq column outside as it is only required if along with vector tests
-void AllelicAssocSubTest::OutputScalarScoreTest(FileWriter& outputstream, string label, 
+void AllelicAssocSubTest::OutputScalarScoreTest(bclib::FileWriter& outputstream, string label, 
 						const double score, const double scoresq, 
 						const double info, bool final, unsigned numUpdates)
 {
@@ -127,11 +127,11 @@ void AllelicAssocSubTest::OutputScalarScoreTest(FileWriter& outputstream, string
     outputstream << "NA" ;
   }
   if(final)outputstream << "NA";//NA in chisquare column in final table 
-  outputstream << newline;
+  outputstream << bclib::newline;
 }
 
 //generic vector score test
-void AllelicAssocSubTest::OutputScoreTest( FileWriter& outputstream, unsigned dim, vector<string> labels,
+void AllelicAssocSubTest::OutputScoreTest( bclib::FileWriter& outputstream, unsigned dim, vector<string> labels,
 					   const double* score, const double* scoresq, const double* info, 
 					   bool final, unsigned dim2, unsigned numUpdates)
 {
@@ -142,11 +142,11 @@ void AllelicAssocSubTest::OutputScoreTest( FileWriter& outputstream, unsigned di
 
   ScoreVector = new double[dim];
   copy(score, score+dim, ScoreVector);
-  scale_matrix(ScoreVector, 1.0/( numUpdates), dim, 1);
+  bclib::scale_matrix(ScoreVector, 1.0/( numUpdates), dim, 1);
   
   CompleteInfo = new double[dim*dim];
   copy(info, info + dim*dim, CompleteInfo);
-  scale_matrix(CompleteInfo, 1.0/(double) numUpdates, dim, dim);
+  bclib::scale_matrix(CompleteInfo, 1.0/(double) numUpdates, dim, dim);
   
   ObservedInfo = new double[dim*dim];
   for(unsigned d1 = 0; d1 < dim; ++d1)for(unsigned d2 = 0; d2 < dim; ++d2)
@@ -171,17 +171,17 @@ void AllelicAssocSubTest::OutputScoreTest( FileWriter& outputstream, unsigned di
     if(final){
       outputstream << ScoreTestBase::double2R(pvalue);
       if( k != dim - 1 ){
-	outputstream  << "NA" << newline;
+	outputstream  << "NA" << bclib::newline;
       }
     }
-    else outputstream << ScoreTestBase::double2R(-log10(pvalue)) << newline;
+    else outputstream << ScoreTestBase::double2R(-log10(pvalue)) << bclib::newline;
     // if not last allele at locus, output unquoted "NA" in chi-square column
   }//end loop over alleles
   if(final){
     double chisq=0.0;
     try{
-      if(dim2==dim) chisq = GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
-      else chisq = GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
+      if(dim2==dim) chisq = bclib:: GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
+      else chisq = bclib::GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
       if(chisq < 0.0)
 	outputstream << "NA" ;
       else outputstream << ScoreTestBase::double2R(chisq) ;
@@ -189,7 +189,7 @@ void AllelicAssocSubTest::OutputScoreTest( FileWriter& outputstream, unsigned di
     catch(...){//in case ObservedInfo is rank deficient
       outputstream  << "NA";
     }
-    outputstream << newline;
+    outputstream << bclib::newline;
   }
   //TODO:?? output p-value for chisq
 	
@@ -224,7 +224,7 @@ void SNPTest::Accumulate(){
   CentreAndSum(dim, Score, Info, &SumScore, &SumScore2, &SumInfo); 
 }
 
-void SNPTest::Output(FileWriter& outfile, const CompositeLocus* const Locus, 
+void SNPTest::Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
 		     bool final,unsigned numUpdates){
   OutputScalarScoreTest(outfile, Locus->GetLabel(0), SumScore, SumScore2, 
 			SumInfo, final, numUpdates);
@@ -265,7 +265,7 @@ void MultiAllelicLocusTest::Accumulate(){
   CentreAndSum(dim, Score, Info, SumScore, SumScore2, SumInfo); 
 }
 
-void MultiAllelicLocusTest::Output(FileWriter& outfile, const CompositeLocus* const Locus, 
+void MultiAllelicLocusTest::Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
 				   bool final, unsigned numUpdates){
 
   vector<string> labels;
@@ -319,7 +319,7 @@ void HaplotypeTest::Accumulate(){
     CentreAndSum(dim, Score, Info, SumScore, SumScore2, SumInfo); 
 }
 
-void HaplotypeTest::Output(FileWriter& outfile, const CompositeLocus* const Locus, 
+void HaplotypeTest::Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
 			   bool final, unsigned numUpdates){
   //here, dim = NumberOfMergedHaplotypes
   //create labels as "locuslabel","haplabel"
@@ -432,7 +432,7 @@ void WithinHaplotypeTest::Accumulate(){
   }
 }
 
-void WithinHaplotypeTest::Output(FileWriter& outfile, const CompositeLocus* const Locus, 
+void WithinHaplotypeTest::Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
 			   bool final, unsigned numUpdates){
 
   //for(int i = 0; i < (*Lociptr)(j)->GetNumberOfLoci(); ++i)labels.push_back("\""+(*Lociptr)(j)->GetLabel(i)+"\"");

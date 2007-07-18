@@ -25,7 +25,7 @@ public:
   virtual ~Options();
   virtual bool SetOptions();
   bool ReadUserOptions(const char* fileargIndicator = 0);
-  virtual int checkOptions(LogWriter &Log, int NumberOfIndividuals);
+  virtual int checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals);
   ///print user options to file
   virtual void PrintUserOptions(const char* filename);
 

@@ -1,12 +1,14 @@
 // *-*-C++-*-*
 #ifndef STRING_SPLITTER_H
 #define STRING_SPLITTER_H 1
-
+#include "bclib/bclib.h"
 #include <vector>
 #include <string>
 
 typedef std::vector<std::string> Vector_s; //std vector of strings 
 typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors
+
+BEGIN_BCLIB_NAMESPACE
 
 /**
  *  @class StringSplitter.
@@ -61,5 +63,5 @@ private:
     StringSplitter(const StringSplitter&);
     void operator=(const StringSplitter&);
 };
-
+END_BCLIB_NAMESPACE
 #endif /* STRING_SPLITTER_H */

@@ -2,6 +2,10 @@
 #ifndef __GSLERRORHANDLER_H__
 #define __GSLERRORHANDLER_H__
 
+#include "bclib/bclib.h"
+
+BEGIN_BCLIB_NAMESPACE
+
 //Throw exceptions instead of using GSL error handler function which
 //prefers to call abort().
 
@@ -14,4 +18,5 @@
 void GSLErrorHandler(const char * reason, const char * file, 
 			  int line, int gsl_errno); 
 
+END_BCLIB_NAMESPACE
 #endif //__GSLERRORHANDLER_H__

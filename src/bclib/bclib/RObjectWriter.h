@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 
+BEGIN_BCLIB_NAMESPACE
+
 ///struct used to write a comment in an R object
 struct Rcomment{
   Rcomment(const char* c): str(c){};
@@ -85,4 +87,5 @@ RObjectWriter&  operator<<(RObjectWriter& R, void (*man)(RObjectWriter&));
 //stream insertion for comments
 RObjectWriter&  operator<<(RObjectWriter& R, const Rcomment&);
 
+END_BCLIB_NAMESPACE
 #endif

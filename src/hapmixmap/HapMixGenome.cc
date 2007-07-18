@@ -42,7 +42,7 @@ void HapMixChromosome::SetLocusCorrelation(const std::vector<double>::const_iter
   for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
     double lambda = *(lambda_iter + j -1);
     if(isX)lambda *= 0.5;
-    f[2*j] = f[2*j + 1] = myexp( - lambda );
+    f[2*j] = f[2*j + 1] = bclib::eh_exp( - lambda );
   }
 
 }

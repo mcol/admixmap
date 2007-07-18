@@ -1,14 +1,27 @@
 // *-*-C++-*-*
+/** 
+ *   LinearRegression.h 
+ *   Class to represent and update parameters of a logistic regression model
+ *   Copyright (c) 2006-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #ifndef LINEARREGRESSION_H
 #define LINEARREGRESSION_H 1
 
 #include "bclib/Regression.h"
 #include "bclib/Gaussian.h"
 
+BEGIN_BCLIB_NAMESPACE
+
 ///Class to sample the parameters of a linear regression
-class LinearRegression : public Regression{
+class LinearRegression : public bclib::Regression{
 public:
-  LinearRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+  LinearRegression(unsigned Number, double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 		   LogWriter &Log);
   ~LinearRegression();
   void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
@@ -21,7 +34,6 @@ public:
   double getLogLikelihood(const std::vector<double>& Outcome)const;
   double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome);
 private:
-  // ** Linear Regression Objects
   double lambda0; //parameters of
   double lambda1; //Gamma prior for lambda
   double *R, *QY, *QX, *V, *betahat;
@@ -35,8 +47,10 @@ private:
 							       double coolness);
 
   LinearRegression();
-  void Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+  void Initialise(double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 		  LogWriter &Log);
 
 };
+END_BCLIB_NAMESPACE
+
 #endif

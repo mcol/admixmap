@@ -34,7 +34,7 @@ public:
   void Initialise(const char* filename , const IndividualCollection* const, const Genome* const);
 
   void Output(const std::vector<std::string>& LocusLabels);
-  void WriteFinalTable(const char* filename, const std::vector<std::string>& LocusLabels, LogWriter& Log);
+  void WriteFinalTable(const char* filename, const std::vector<std::string>& LocusLabels, bclib::LogWriter& Log);
 
   void Update(double);
   void Update(const FreqArray& Allelefreqs, bool ishapmixmodel);
@@ -43,7 +43,7 @@ public:
   ~ResidualLDTest();
 
 private:
-  RObjectWriter R;
+  bclib::RObjectWriter R;
   std::vector<std::vector<std::vector<double> > > Score;
   std::vector<std::vector<std::vector<double> > > Info;
   std::vector<std::vector<std::vector<double> > > SumScore;
@@ -57,7 +57,7 @@ private:
   unsigned NumIntervals;
   
   //OUTPUT
-  void OutputTestsForResidualAllelicAssociation(FileWriter& outputstream, bool final, 
+  void OutputTestsForResidualAllelicAssociation(bclib::FileWriter& outputstream, bool final, 
 						const std::vector<std::string>& LocusLabels);
   
   void UpdateScoresForResidualAllelicAssociation(int c, int locus, const double* const AlleleFreqsA, const double* const AlleleFreqsB);

@@ -13,6 +13,7 @@
 #ifndef REGRESSIONBASE_H
 #define REGRESSIONBASE_H 1
 
+#include "bclib/bclib.h"
 #include "bclib/common.h"
 #include <vector>
 #include <string>
@@ -22,13 +23,15 @@
 #include "bclib/DataMatrix.h"
 #include "bclib/RObjectWriter.h"
 
+BEGIN_BCLIB_NAMESPACE
+
 ///Abstract Base Class for a generic Bayesian Regression
 class Regression{
 public:
   Regression(unsigned Number, RegressionType RT);
   virtual ~Regression();
   virtual void Initialise(double priorPrecision, 
-			  const DataMatrix& Covars, const DataMatrix& Outcome, LogWriter &) = 0;
+			  const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, LogWriter &) = 0;
   //void Initialise(unsigned numCovariates);
   virtual void Update(bool sumbeta, const std::vector<double>& Outcome, double coolness) = 0;
   virtual double getLogLikelihood(const std::vector<double>& Outcome)const = 0;
@@ -79,5 +82,5 @@ private:
   Regression();
 };
 
-
+END_BCLIB_NAMESPACE
 #endif

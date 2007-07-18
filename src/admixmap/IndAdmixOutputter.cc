@@ -112,7 +112,7 @@ void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vect
         //_out << genotype_[0][0] << genotype_[0][1];
 	//}
   }
-  _out << newline;
+  _out << bclib::newline;
   _currentIndividual++;
 }
 

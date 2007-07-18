@@ -26,6 +26,8 @@
 
 //#define DEBUGETA 1
 
+using bclib::Rand;
+
 static double convertValueFromFile(const string s){
   double d = atof(s.c_str());
   if(d < 0.000001) d = 0.000001;//values must be strictly positive
@@ -87,7 +89,7 @@ if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs ) {
 
 // ************** Initialisation and loading of data  *******************
 void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* const data, 
-				 Genome *pLoci, LogWriter &Log, bool MAP){
+				 Genome *pLoci, bclib::LogWriter &Log, bool MAP){
   //initialise Freqs, PriorAlleleFreqs, HistoricAlleleFreqs etc
   Loci = pLoci;
   Populations = options->getPopulations();
@@ -99,7 +101,7 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
   AlleleFreqs::Initialise(options->getOutputAlleleFreq());  
 
   LoadAlleleFreqs(options, data, Log);
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(bclib::On);
   //open allelefreqoutputfile
   if(IsRandom() ){
     const char* s = options->getAlleleFreqOutputFilename();
@@ -162,7 +164,7 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
       //specified by user in file
       Log << "Loading gamma prior parameters for allele frequency dispersion from "
 	  << options->getEtaPriorFilename() << ".\n";
-      const DataMatrix& etaprior = data->getEtaPriorMatrix();
+      const bclib::DataMatrix& etaprior = data->getEtaPriorMatrix();
       
       for( unsigned k = 0; k < dim; k++ ){
 	psi[k] = etaprior.get( k, 0 );
@@ -181,25 +183,25 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
     
     if(IsHistoricAlleleFreq) {
       // ** settings for sampling of proportion vector mu of prior on allele freqs
-      muSampler = new MuSampler[dim*NumberOfCompositeLoci]; // 
+      muSampler = new bclib::MuSampler[dim*NumberOfCompositeLoci]; // 
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
 	for(int k = 0; k < Populations; ++k)
 	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.000001, 10.0, 0.9);
     } else {//correlated allele freq model
-      muSampler = new MuSampler[NumberOfCompositeLoci];
+      muSampler = new bclib::MuSampler[NumberOfCompositeLoci];
       
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
 	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.00001, 10.0, 0.9);
       
       if(ETASAMPLER==2) {
-	EtaSampler = new DispersionSampler[dim];
+	EtaSampler = new bclib::DispersionSampler[dim];
 	
 	int* NumStates;
 	NumStates = new int[NumberOfCompositeLoci];
 	for(int i = 0; i < NumberOfCompositeLoci; ++i) {
 	  NumStates[i] = Loci->GetNumberOfStates(i);
 	}
-	DispersionSampler::setDimensions(NumberOfCompositeLoci, Populations, NumStates);
+	bclib::DispersionSampler::setDimensions(NumberOfCompositeLoci, Populations, NumStates);
 	delete[] NumStates;
 	
 	EtaSampler[0].Initialise( 0.05, 0.01, 1000.0, 0.9);
@@ -225,7 +227,7 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
       etastep = new double[ dim ];
       for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
       NumberOfEtaUpdates = 0;
-      TuneEtaSampler = new StepSizeTuner[ dim ];
+      TuneEtaSampler = new bclib::StepSizeTuner[ dim ];
       for( unsigned k = 0; k < dim; k++ )
 	TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
     }
@@ -250,7 +252,7 @@ void DispersionFreqs::Initialise(AdmixOptions* const options, InputAdmixData* co
 
 }
 
-void DispersionFreqs::PrintPrior(const Vector_s& PopLabels, LogWriter& Log)const{
+void DispersionFreqs::PrintPrior(const Vector_s& PopLabels, bclib::LogWriter& Log)const{
   if(IsHistoricAlleleFreq){//historic allele freq (dispersion) model
     Log << "Gamma prior on dispersion parameters with means and variances:\n";
     for( int k = 0; k < Populations; k++ ){
@@ -265,7 +267,7 @@ void DispersionFreqs::PrintPrior(const Vector_s& PopLabels, LogWriter& Log)const
   }
 }
 
-void DispersionFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputAdmixData* const data_, LogWriter &Log)
+void DispersionFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputAdmixData* const data_, bclib::LogWriter &Log)
 {
   int newrow;
   int row = 0;
@@ -297,10 +299,10 @@ void DispersionFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputAdmixDat
       HistoricAlleleCounts = new double*[NumberOfCompositeLoci];
       if( options->getOutputFST() ){
 	calculateFST = true;
-	Fst = alloc2D_d(NumberOfCompositeLoci, Populations);
-	SumFst = alloc2D_d(NumberOfCompositeLoci, Populations);
+	Fst = bclib::alloc2D_d(NumberOfCompositeLoci, Populations);
+	SumFst = bclib::alloc2D_d(NumberOfCompositeLoci, Populations);
       }
-      MuProposal = new std::vector<StepSizeTuner>[NumberOfCompositeLoci];
+      MuProposal = new std::vector<bclib::StepSizeTuner>[NumberOfCompositeLoci];
       temporary = &(data_->getHistoricalAlleleFreqData());
       IsHistoricAlleleFreq = true;
       
@@ -659,7 +661,7 @@ void DispersionFreqs::SampleDirichletParams1D( int locus)
   //Note: here NumberOfStates == 2  
 {
   double lefttruncation = 0.1;//should be smaller
-  MuSamplerArgs MuParameters;
+  bclib::MuSamplerArgs MuParameters;
   int* counts0 = new int[2 * Populations];
   double* counts1 = new double[2 * Populations];
 
@@ -670,7 +672,7 @@ void DispersionFreqs::SampleDirichletParams1D( int locus)
       counts1[i+ j*2] = HistoricAlleleCounts[locus][i*Populations +j];
     }
 
-  AdaptiveRejection SampleMu;
+  bclib::AdaptiveRejection SampleMu;
   SampleMu.Initialise(true, true, 1.0, lefttruncation, fMu, dfMu );
 
   for( int j = 0; j < Populations; j++ ){
@@ -795,7 +797,7 @@ void DispersionFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta) {
   // proposal ratio (log-normal) cancels with prior.
   if(LogPostRatio > 0.0)LogPostRatio = 0.0;
   AccProb = 0.0; 
-  if(mineta < etanew )AccProb = xexp(LogPostRatio);
+  if(mineta < etanew )AccProb = bclib::xexp(LogPostRatio);
   
 #ifdef DEBUGETA
   cout<< "eta["<<k<<"] = "<< eta[k]<<" eta* = "<<etanew<< " stepsize = "<<etastep[k]<<endl;
@@ -818,9 +820,9 @@ void DispersionFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta) {
 }
 
 // ******************** Output **************************
-void DispersionFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, LogWriter &Log)
+void DispersionFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, bclib::LogWriter &Log)
 {
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(bclib::On);
   outputstream.open( options->getEtaOutputFilename(), ios::out );
   if( !outputstream )
     {
@@ -856,12 +858,12 @@ void DispersionFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)co
   }
 }
 
-void DispersionFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log){
+void DispersionFreqs::OutputEta(int iteration, const AdmixOptions *options, bclib::LogWriter &Log){
   if( IsHistoricAlleleFreq ){
     //output to logfile
     if( iteration == -1 )
       {
-	Log.setDisplayMode(Off);
+	Log.setDisplayMode(bclib::Off);
 	Log.setPrecision(6);
 	for( int j = 0; j < Populations; j++ ){
 	  //Log.width(9);
@@ -891,7 +893,7 @@ void DispersionFreqs::OutputEta(int iteration, const AdmixOptions *options, LogW
     //output to logfile
     if( iteration == -1 )
       {
-	Log.setDisplayMode(Off);
+	Log.setDisplayMode(bclib::Off);
 	Log.setPrecision(6);
 	Log.width(9);
 	Log << eta[0];
@@ -910,8 +912,8 @@ void DispersionFreqs::OutputEta(int iteration, const AdmixOptions *options, LogW
 }
 
 // *** FST functions ****************************
-void DispersionFreqs::OpenFSTFile(const string& ResultsDir, LogWriter &Log){
-  Log.setDisplayMode(On);
+void DispersionFreqs::OpenFSTFile(const string& ResultsDir, bclib::LogWriter &Log){
+  Log.setDisplayMode(bclib::On);
   const string FSTfilename = ResultsDir + "/" + FST_OUTPUT_FILE;
   Log << "Writing ergodic averages of FSTs to: " << FSTfilename << "\n";
   fstoutputstream.open( FSTfilename.c_str(), ios::out );
@@ -970,9 +972,9 @@ void DispersionFreqs::OutputFST(){
 
 // ********** log density and derivatives for Adaptive Rejection sampling of PriorParams  ***********
 
-double fMu( double alpha, const void* const args )
-{
-  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+double fMu( double alpha, const void* const args ){
+  using bclib::lngamma;
+  const bclib::MuSamplerArgs* parameters = (const bclib::MuSamplerArgs*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
   const int *counts0 = parameters->counts;
@@ -993,9 +995,9 @@ double fMu( double alpha, const void* const args )
   return f;
 }
 
-double dfMu( double alpha, const void* const args )
-{
-  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+double dfMu( double alpha, const void* const args ){
+  using bclib::digamma;
+  const bclib::MuSamplerArgs* parameters = (const bclib::MuSamplerArgs*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
   const int *counts0 = parameters->counts;
@@ -1031,8 +1033,9 @@ double dfMu( double alpha, const void* const args )
 }
 
 double ddfMu( double alpha, const void* const args ) {
+  using bclib::trigamma;
   // 
-  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+  const bclib::MuSamplerArgs* parameters = (const bclib::MuSamplerArgs*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
   const int *counts0 = parameters->counts;

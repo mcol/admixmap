@@ -15,7 +15,9 @@
 
 #include "CopyNumberAssocTest.h"
 class Genome;
-class LogWriter;
+namespace bclib{
+  class LogWriter;
+}
 
 class AncestryAssocTest : public CopyNumberAssocTest{
 
@@ -25,7 +27,7 @@ public:
   void Initialise(const char* filename, const int NumPopulations, const int NumLoci);
   void Output(const Vector_s& PopLabels, const Genome& Loci);
   void WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
-		       const Genome& Loci, LogWriter& Log);
+		       const Genome& Loci, bclib::LogWriter& Log);
 private:
   unsigned firstpoplabel;
 

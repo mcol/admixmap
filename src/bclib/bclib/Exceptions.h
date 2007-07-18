@@ -1,9 +1,12 @@
 // *-*-C++-*-*
 #ifndef BCLIB_EXCEPTIONS_H
 #define BCLIB_EXCEPTIONS_H
+#include "bclib/bclib.h"
 #include <exception>
 #include <string>
 #include <sstream>
+
+BEGIN_BCLIB_NAMESPACE
 
 class InfiniteGradient : public std::exception{
 public:
@@ -61,4 +64,5 @@ private:
 
   DataOutOfRangeException();
 };
+END_BCLIB_NAMESPACE
 #endif

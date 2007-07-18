@@ -11,6 +11,7 @@
  */
 #ifndef HMC_H
 #define HMC_H 1
+#include "bclib/bclib.h"
 #include <fstream>
 #include <iostream>
 #include <stdlib.h>
@@ -23,6 +24,7 @@ extern "C" {
 #include <gsl/gsl_sf_gamma.h>
 }
 
+BEGIN_BCLIB_NAMESPACE
 /**
  *   Class to implement a Hamiltonian (or hybrid )Monte Carlo sampler.
  *   See Information Theory, Inference, and Learning Algorithms by David Mackay (1993), Neal (1993).
@@ -55,7 +57,7 @@ private:
   double* xnew, *g, *gnew, *p;
   long overall_accept_count;
   long totalsamples;//  "        "      "     "   "    "  in total
-  StepSizeTuner Tuner;
+  bclib::StepSizeTuner Tuner;
 
   bool monitor;
   std::ofstream outfile;
@@ -64,5 +66,5 @@ private:
 
 };
 
-
+END_BCLIB_NAMESPACE
 #endif /* !defined HMC_H */

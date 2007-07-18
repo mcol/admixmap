@@ -29,15 +29,15 @@ class HapMixModel : public Model{
 public:
   HapMixModel();
   ~HapMixModel();
-  void Initialise(HapMixOptions & options, InputHapMixData& data,  LogWriter& Log);
+  void Initialise(HapMixOptions & options, InputHapMixData& data,  bclib::LogWriter& Log);
   void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
-	       Options & options, InputData & data, LogWriter& Log, 
+	       Options & options, InputData & data, bclib::LogWriter& Log, 
 	       double & SumEnergy, double & SumEnergySq, 
 	       bool AnnealedRun);
 
-  void PrintAcceptanceRates(const Options& options,LogWriter& Log);
-  void Finalize(const Options& options, LogWriter& Log, const InputData& data) ;
-  double getDevianceAtPosteriorMean(const Options& options, LogWriter& Log);
+  void PrintAcceptanceRates(const Options& options,bclib::LogWriter& Log);
+  void Finalize(const Options& options, bclib::LogWriter& Log, const InputData& data) ;
+  double getDevianceAtPosteriorMean(const Options& options, bclib::LogWriter& Log);
   unsigned getNumIndividuals()const{return IC->getSize();}; 
   double* getSumEnergy()const{return 0;};
   double* getSumEnergySq()const{return 0;};
@@ -50,15 +50,15 @@ private:
   HapMixAllelicAssocTest AllelicAssocTest;
   HapMixIndividualCollection* HMIC;
 
-  void ReadInitialValuesFromFile(unsigned startnum, const HapMixOptions& options, LogWriter& Log);
-  void UpdateParameters(int iteration, const Options& _options, LogWriter&, 
+  void ReadInitialValuesFromFile(unsigned startnum, const HapMixOptions& options, bclib::LogWriter& Log);
+  void UpdateParameters(int iteration, const Options& _options, bclib::LogWriter&, 
 			const Vector_s&, const double* Coolnesses, unsigned coolness_index, bool anneal, 
 			double & SumEnergy, double & SumEnergySq, double& AISz);
-  void OutputParameters(int iteration, const Options& options, LogWriter& Log);
+  void OutputParameters(int iteration, const Options& options, bclib::LogWriter& Log);
   void OutputErgodicAverages(int samples, double & SumEnergy, double & SumEnergySq);
-  void OutputTests(HapMixOptions& options, InputData & data, LogWriter& Log  );
-  void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
-  void InitializeErgodicAvgFile(const Options* const options, LogWriter &Log,  
+  void OutputTests(HapMixOptions& options, InputData & data, bclib::LogWriter& Log  );
+  void InitialiseTests(Options& options, const InputData& data, bclib::LogWriter& Log);
+  void InitializeErgodicAvgFile(const Options* const options, bclib::LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
 };
 

@@ -15,6 +15,9 @@
 #include "bclib/misc.h"
 
 //#define DEBUG 1
+using bclib::eh_log;
+using bclib::softmax;
+using bclib::inv_softmax;
 
 bool AlleleFreqSampler::ishapmixmodel;
 
@@ -116,7 +119,7 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts,
     for(unsigned s = 0; s < 2; ++s) {
       temp[s] = Args.PriorParams[s] + coolness*AlleleCounts[s];
     }
-    Rand::gendirichlet(2, temp, phi);
+    bclib::Rand::gendirichlet(2, temp, phi);
     delete[] temp;
   }
 }
@@ -193,7 +196,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
     for(unsigned k = 0; k < args->NumPops; ++k){
       for( unsigned i = 0; i < States; ++i ) {
 	if( args->PriorParams[i] > 0.0 ) {
-	  energy -= *(args->PriorParams+k*States+i) * mylog( *(phi+k*States+i) );
+	  energy -= *(args->PriorParams+k*States+i) * eh_log( *(phi+k*States+i) );
 	}
       }
     }
@@ -340,21 +343,21 @@ double AlleleFreqSampler::getEnergySNP(const double* const params, const void* c
      phi[k] = 1.0 / (1.0+exp(-params[k]));//inverse-logit transformation
   //calculate minus loglikelihood
   for(unsigned k = 0; k < Pops; ++k){
-    energy -= args->AlleleCounts[k]        * mylog(phi[k]);     /*allele1*/
-    energy -= args->AlleleCounts[Pops + k] * mylog(1.0-phi[k]); /*allele2*/
+    energy -= args->AlleleCounts[k]        * eh_log(phi[k]);     /*allele1*/
+    energy -= args->AlleleCounts[Pops + k] * eh_log(1.0-phi[k]); /*allele2*/
     for(unsigned k1 = k+1; k1 < Pops; ++k1){ // loop over upper triangle of array hetCounts
       energy -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
-	mylog(phi[k] + phi[k1] - 2.0*phi[k]*phi[k1]);
+	eh_log(phi[k] + phi[k1] - 2.0*phi[k]*phi[k1]);
     }
   }
   energy *= args->coolness;
   // subtract log prior density in logit basis
   for(unsigned k = 0; k < Pops; ++k){
     if(ishapmixmodel) { // prior is the same across block states and alleles
-      energy -= Pops * *(args->PriorParams) * ( mylog(phi[k]) + mylog(1 - phi[k]) );
+      energy -= Pops * *(args->PriorParams) * ( eh_log(phi[k]) + eh_log(1 - phi[k]) );
     } else {
       if(args->PriorParams[k] > 0.0)
-	energy -= args->PriorParams[2*k]*mylog(phi[k]) + args->PriorParams[2*k+1]*mylog(1 - phi[k]);
+	energy -= args->PriorParams[2*k]*eh_log(phi[k]) + args->PriorParams[2*k+1]*eh_log(1 - phi[k]);
     }
   }
   delete[] phi;

@@ -13,7 +13,10 @@
 #ifndef DIST_H
 #define DIST_H 1
 
+#include "bclib/bclib.h"
 #include <vector>
+
+BEGIN_BCLIB_NAMESPACE
 
 // ************** Densities *******************
 
@@ -37,4 +40,5 @@ void gradientGammaGammaLogLikelihood(const double a, const double a0, const doub
 				     const int N, const std::vector<double>& x, 
 				     const double sumlogx, double* g);
 
+END_BCLIB_NAMESPACE
 #endif /* !DIST_H */

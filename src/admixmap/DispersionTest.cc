@@ -29,18 +29,18 @@ DispersionTest::DispersionTest(){
   NumberOfPopulations = 0;
 }
 
-void DispersionTest::Initialise(const string& resultsDir, LogWriter &Log, int NumLoci, int NumPopulations){
+void DispersionTest::Initialise(const string& resultsDir, bclib::LogWriter &Log, int NumLoci, int NumPopulations){
   NumberOfCompositeLoci = NumLoci;
   NumberOfPopulations = NumPopulations;
 
-  divergentallelefreqstest = alloc2D_i(NumberOfCompositeLoci + 1, NumberOfPopulations );
+  divergentallelefreqstest = bclib::alloc2D_i(NumberOfCompositeLoci + 1, NumberOfPopulations );
   
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   const string filename = resultsDir + "/" + DISPERSION_TEST_FILE;
   Log << "Writing dispersion test results to " << filename << "\n";
   dispersionoutputstream.open( filename.c_str(), ios::out );
   if( !dispersionoutputstream.is_open() ){
-    Log.setDisplayMode(On);
+    Log.setDisplayMode(bclib::On);
     Log << "ERROR: Couldn't open dispersiontestfile\n";
     exit( 1 );
   }
@@ -48,7 +48,7 @@ void DispersionTest::Initialise(const string& resultsDir, LogWriter &Log, int Nu
 }
 
 DispersionTest::~DispersionTest(){
-  free_matrix(divergentallelefreqstest, NumberOfCompositeLoci + 1);
+  bclib::free_matrix(divergentallelefreqstest, NumberOfCompositeLoci + 1);
 }
 
 void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const A, const IndividualCollection* const IC)
@@ -75,13 +75,13 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
       //AlleleCount = A->GetAlleleCounts(j, k);
       AlleleCount = IC->getAlleleCounts(j, k, popfreqs.size());
       int sumcounts = accumulate(AlleleCount.begin(), AlleleCount.end(), 0, plus<int>());
-      rep = Rand::genmultinomial( sumcounts, popfreqs );
+      rep = bclib::Rand::genmultinomial( sumcounts, popfreqs );
 
       // Calculate likelihood of observed and repliate data.
       LogLikelihood[j][k] =
-	log( MultinomialPDF( AlleleCount, popfreqs ) );
+	log( bclib::MultinomialPDF( AlleleCount, popfreqs ) );
       RepLogLikelihood[j][k] =
-	log( MultinomialPDF( rep, popfreqs ) );
+	log( bclib::MultinomialPDF( rep, popfreqs ) );
       if(!( LogLikelihood[j][k] < RepLogLikelihood[j][k]) )
 	divergentallelefreqstest[j][k] ++;
       sum[k] += LogLikelihood[j][k];

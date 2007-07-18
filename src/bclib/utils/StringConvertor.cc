@@ -3,6 +3,8 @@
 
 using namespace std;
 
+BEGIN_BCLIB_NAMESPACE
+
 /// removes quotes from strings. 
 string StringConvertor::dequote(const string& str)
 {
@@ -152,3 +154,4 @@ bool StringConvertor::isListedString(const std::string s, const std::vector<std:
   if(find(list.begin(), list.end(), s) < list.end())b = true;
   return b;
 }
+END_BCLIB_NAMESPACE

@@ -21,7 +21,7 @@ public:
   ///constructor
   HapMixGenotypeLoader();
   ///read case-control genotypesfile
-  void ReadCaseControlGenotypes(const char* filename, LogWriter& Log);
+  void ReadCaseControlGenotypes(const char* filename, bclib::LogWriter& Log);
 
   /**
      Retrieve HAPMIXMAP-style genotype.

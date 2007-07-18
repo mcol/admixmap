@@ -41,8 +41,8 @@ public:
   unsigned int getFirstScoreTestIndividualNumber()const;
   void AccumulateConditionalGenotypeProbs(const HapMixOptions& options, const Genome& Loci);
   void OutputCGProbs(const char* filename, const Vector_s& LocusLabels);
-  double getDevianceAtPosteriorMean(const Options& options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
-				    const double* const MixtureProps, const vector<double>& SumRho);
+  //  double getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *>&R, Genome* Loci, LogWriter &Log,
+  //			    const double* const MixtureProps, const vector<double>& SumRho);
 private:
   const unsigned NumCaseControls;
   int* ConcordanceCounts;//for update of locus-specific sumintensities

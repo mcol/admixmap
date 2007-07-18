@@ -6,9 +6,12 @@
 #ifndef DATAREADER_H
 #define DATAREADER_H 1
 #include <string>
+#include "bclib/bclib.h"
 #include "bclib/DataMatrix.h"
 #include "bclib/StringSplitter.h"
 #include "bclib/LogWriter.h"
+
+BEGIN_BCLIB_NAMESPACE
 
 ///  Utility class for reading data from file into a matrix of strings or a DataMatrix
 class DataReader{
@@ -27,5 +30,5 @@ private:
 
   static void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
 };
-
+END_BCLIB_NAMESPACE
 #endif /* !defined DATAREADER_H */

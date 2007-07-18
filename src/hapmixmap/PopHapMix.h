@@ -67,9 +67,9 @@ public:
   
   ~PopHapMix();
   
-  void Initialise(const string& distanceUnit, LogWriter& Log);
-  void ReadInitialMixturePropsFromFile(const char* initfilename, LogWriter& Log);
-  void ReadInitialArrivalRatesFromFile(const char* initfilename, LogWriter& Log);  
+  void Initialise(const string& distanceUnit, bclib::LogWriter& Log);
+  void ReadInitialMixturePropsFromFile(const char* initfilename, bclib::LogWriter& Log);
+  void ReadInitialArrivalRatesFromFile(const char* initfilename, bclib::LogWriter& Log);  
   
   void SampleArrivalRate(const int* SumAncestry, bool sumlogrho) ;
 
@@ -78,7 +78,7 @@ public:
   
   void SetHMMStateArrivalProbs(bool diploid);
 
-  void OutputParams(int iteration, LogWriter &Log);
+  void OutputParams(int iteration, bclib::LogWriter &Log);
   void OutputParams(ostream& out); 
   ///output average mixture props to an ostream
   void OutputAverageMixtureProps(ostream& out)const;
@@ -87,7 +87,7 @@ public:
   
   const double* getGlobalMixtureProps()const;
   
-  void printAcceptanceRates(LogWriter &Log);
+  void printAcceptanceRates(bclib::LogWriter &Log);
   
   const vector<double>& getlambda()const{return lambda;};
   const vector<double>& getSumLogRho()const{return SumLogLambda;};
@@ -107,10 +107,10 @@ private:
 
   LambdaArguments LambdaArgs;
   LambdaPriorArguments LambdaPriorArgs;
-  HamiltonianMonteCarlo* ArrivalRateSampler;
+  bclib::HamiltonianMonteCarlo* ArrivalRateSampler;
   h_args hargs;
-  StepSizeTuner hTuner;  
-  AdaptiveRejection hARS;
+  bclib::StepSizeTuner hTuner;  
+  bclib::AdaptiveRejection hARS;
   bool fixRateParameter;///< indicates whether to fix the lambda rate parameter
 
   double* MixtureProps;///<global admixture proportions
@@ -120,10 +120,10 @@ private:
   double* SumThetaSq;///< sum of square of mixture props over loci, for calculation of variance
   double eta;///< observed mixture props precision
 
-  DirichletParamSampler MixturePropsPrecisionSampler;
+  bclib::DirichletParamSampler MixturePropsPrecisionSampler;
 
-  void InitialiseMixtureProportions(LogWriter& Log);
-  void InitialiseArrivalRates(LogWriter& Log);
+  void InitialiseMixtureProportions(bclib::LogWriter& Log);
+  void InitialiseArrivalRates(bclib::LogWriter& Log);
   void InitializeOutputFile(const string& distanceUnit);
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);

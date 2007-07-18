@@ -18,6 +18,8 @@
 
 using namespace::std;
 
+BEGIN_BCLIB_NAMESPACE
+
 struct nullstream:
   std::ostream {
   nullstream(): std::ios(0), std::ostream(0) {}
@@ -174,3 +176,4 @@ void LogWriter::ProcessingTime()
   }
 }
 
+END_BCLIB_NAMESPACE

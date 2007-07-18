@@ -9,12 +9,14 @@
 //useless!
 
 //remember also to compile with -fexceptions or they will not work!
-
+#include "bclib/bclib.h"
 #include <gsl/gsl_errno.h>
 #include <string>
 #include <exception>
 
 using std::string;
+
+BEGIN_BCLIB_NAMESPACE
 
 ///generic error and base struct
 class GSLerror : public std::exception{   
@@ -310,5 +312,5 @@ struct indexOutOfRange : public badArgument{
     badArgument(r,f,l) {};
 };
 
-
+END_BCLIB_NAMESPACE
 #endif //__GSLEXCEPTIONS_H__

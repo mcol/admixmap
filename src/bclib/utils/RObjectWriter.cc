@@ -17,6 +17,9 @@
 #include <cmath>
 
 using namespace::std;
+
+BEGIN_BCLIB_NAMESPACE
+
 #define COMMENT_CHAR " # "
 
 //manipulators
@@ -199,3 +202,5 @@ RObjectWriter& operator<<(RObjectWriter& R, const Rcomment& c){
   R.comment(c.str.c_str());
   return R;
 }
+
+END_BCLIB_NAMESPACE

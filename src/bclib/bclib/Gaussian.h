@@ -14,6 +14,9 @@
 #define GAUSSIAN_H 1
 
 #include <fstream>
+#include "bclib/bclib.h"
+
+BEGIN_BCLIB_NAMESPACE
 
 ///Class to represent a multivariate Gaussian distribution and sample from it
 class Gaussian
@@ -74,4 +77,5 @@ private:
 
 };
 
+END_BCLIB_NAMESPACE
 #endif

@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <sstream>
 
+BEGIN_BCLIB_NAMESPACE
+
 StringSplitter DataReader::splitter;
 
 DataReader::DataReader(){
@@ -122,3 +124,4 @@ void DataReader::ReadHeader(const char* filename, std::vector<std::string>& labe
   file.close();
   StringSplitter::Tokenize(header, labels, " \t\"");
 }
+END_BCLIB_NAMESPACE

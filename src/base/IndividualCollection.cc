@@ -82,7 +82,7 @@ void IndividualCollection::LoadData(const Options* const options, const InputDat
 
 void IndividualCollection::LoadCovariates(const InputData* const data_, const Options* const options, bool admixtureAsCovariate){
   if ( strlen( options->getCovariatesFilename() ) > 0 ){
-    DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
+    bclib::DataMatrix& CovData = (bclib::DataMatrix&)data_->getCovariatesMatrix();
     NumberOfInputCovariates = CovData.nCols();
     unsigned NumInds = CovData.nRows();//should already have been checked to be the same as in outcomevarfile
 
@@ -217,10 +217,10 @@ int IndividualCollection::GetNumCovariates() const{
   return NumCovariates;
 }
 
-const DataMatrix& IndividualCollection::getCovariatesMatrix()const{
+const bclib::DataMatrix& IndividualCollection::getCovariatesMatrix()const{
   return Covariates;
 }
-const DataMatrix& IndividualCollection::getOutcomeMatrix()const{
+const bclib::DataMatrix& IndividualCollection::getOutcomeMatrix()const{
   return Outcome;
 }
 
@@ -283,7 +283,7 @@ double IndividualCollection::getLogLikelihood(const Options& options, bool force
   return LogLikelihood;
 }
 
-double IndividualCollection::getEnergy(const Options& options, const vector<Regression*> &R, 
+double IndividualCollection::getEnergy(const Options& options, const vector<bclib::Regression*> &R, 
 				       const bool & annealed) {
   // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
   // called every iteration after burnin, after update of genotype probs and before annealing

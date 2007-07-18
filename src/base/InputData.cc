@@ -13,11 +13,13 @@
 #include "Options.h"
 #include "bclib/StringConvertor.h"
 #include "bclib/DataReader.h"
+#include "bclib/LogWriter.h"
 #include "Genome.h"
 #include <string>
 #include <sstream>
 
 using namespace std;
+using namespace bclib;
 
 /// Extracts population labels from header line of allelefreq input file
 void InputData::getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels){

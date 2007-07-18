@@ -16,12 +16,12 @@
 #include "bclib/StringConvertor.h"
 #include <sstream>
 
-InputHapMixData::InputHapMixData(HapMixOptions *options, LogWriter &Log){
+InputHapMixData::InputHapMixData(HapMixOptions *options, bclib::LogWriter &Log){
   hGenotypeLoader = new HapMixGenotypeLoader;
   //assign pointer in base class to same address
   genotypeLoader = (GenotypeLoader*) hGenotypeLoader;
 
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   try
     {
       ReadData(options, Log);
@@ -38,12 +38,12 @@ InputHapMixData::InputHapMixData(HapMixOptions *options, LogWriter &Log){
   CheckData(options, Log);
 }
 
-void InputHapMixData::CheckData(HapMixOptions *options, LogWriter &Log){
+void InputHapMixData::CheckData(HapMixOptions *options, bclib::LogWriter &Log){
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumCompositeLoci = determineNumberOfCompositeLoci();
   distanceUnit = DetermineUnitOfDistance();
 
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   if(options->CheckData())
     if(!genotypeLoader->CheckForUnobservedAlleles(locusMatrix_, Log))
       exit(1);
@@ -108,7 +108,7 @@ bool InputHapMixData::GetHapMixGenotype(int i, const Genome &Loci,
 void InputHapMixData::ReadBlockStateLabels(HapMixOptions *options){
   
   if(strlen(options->getPriorAlleleFreqFilename()))
-    DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), HiddenStateLabels);
+    bclib::DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), HiddenStateLabels);
 
   else{
     //set default pop labels
@@ -122,7 +122,7 @@ void InputHapMixData::ReadBlockStateLabels(HapMixOptions *options){
 
 ////checks consistency of supplied allelefreqs with locusfile
 ///and determines number of populations and population labels.
-void InputHapMixData::CheckAlleleFreqs(HapMixOptions *options, LogWriter &Log){
+void InputHapMixData::CheckAlleleFreqs(HapMixOptions *options, bclib::LogWriter &Log){
   bool infile = false;//indicates whether a priorallelefreqfile has been specified
   int nrows=0, expectednrows=0;
   int Populations = options->getPopulations();

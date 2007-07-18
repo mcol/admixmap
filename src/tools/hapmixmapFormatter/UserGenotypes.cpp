@@ -46,7 +46,7 @@ UserGenotypes::UserGenotypes(HapMapLegend& Legend, const char* infilename){
     exit(1);
   }
   vector<string> tokens;//vector of typed loci
-  StringSplitter::Tokenize(line, TypedLoci, " \t");
+  bclib::StringSplitter::Tokenize(line, TypedLoci, " \t");
 
    //create vector of positions of typed loci
   vector<unsigned long> TypedPos;
@@ -204,7 +204,7 @@ unsigned UserGenotypes::EncodeGenotypes(vector<ofstream*>& OutGeno, HapMapLegend
 
     //Tokenize line into strings
     vector<string> genotypesline;
-    StringSplitter::Tokenize(line, genotypesline, " \t");
+    bclib::StringSplitter::Tokenize(line, genotypesline, " \t");
     //check individual has the correct number of genotypes
     if(genotypesline.size() != TypedLoci.size()){
       cerr << "** ERROR: inconsistent row lengths in " << inFileName << ". " 

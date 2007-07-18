@@ -11,6 +11,8 @@
 
 using namespace::std;
 
+BEGIN_BCLIB_NAMESPACE
+
 //auxiliary functions
 
 ///use to set a number below a given threshold to 0
@@ -69,3 +71,4 @@ void ProbVector::print(ostream& os){
   copy(this->begin(), this->end(), ostream_iterator<double>(os, " " ) );
   os << endl;
 }
+END_BCLIB_NAMESPACE

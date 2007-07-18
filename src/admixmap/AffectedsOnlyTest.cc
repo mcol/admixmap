@@ -103,16 +103,16 @@ void AffectedsOnlyTest::Output(const Vector_s& PopLabels, const Genome& Loci){
 }
 
 void AffectedsOnlyTest::WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
-					const Genome& Loci, LogWriter& Log){
-  TableWriter finaltable(filename);
-  Log << Quiet << "Affected-only tests for association written to " << filename << "\n";
+					const Genome& Loci, bclib::LogWriter& Log){
+  bclib::TableWriter finaltable(filename);
+  Log << bclib::Quiet << "Affected-only tests for association written to " << filename << "\n";
   finaltable <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
-	     << newline;
+	     << bclib::newline;
 
   OutputAffectedsOnlyTest(finaltable, PopLabels, Loci, "\t", true);
   finaltable.close();
 }
-void AffectedsOnlyTest::OutputAffectedsOnlyTest(FileWriter& outfile, const Vector_s& PopLabels, 
+void AffectedsOnlyTest::OutputAffectedsOnlyTest(bclib::FileWriter& outfile, const Vector_s& PopLabels, 
 						const Genome& Loci, const string& sep, bool final){
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = Loci(j)->GetLabel(0);
@@ -198,7 +198,7 @@ void AffectedsOnlyTest::Accumulate(){
 ///outputs ergodic averages of Likelihood Ratios as R object
 void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector_s& PopLabels, const Genome& Loci){
   //open outut file
-  RObjectWriter likratiostream(filename);
+  bclib::RObjectWriter likratiostream(filename);
 
   double L1, L2;
 
@@ -213,7 +213,7 @@ void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector
       L2 = LikRatio2[ j*K + k] / ( numUpdates );
       
       likratiostream << double2R(L1)
-		     << double2R(L2)<< newline;
+		     << double2R(L2)<< bclib::newline;
     }
   }
   

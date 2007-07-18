@@ -17,7 +17,9 @@
 #include <fstream>
 
 class IndividualCollection;
-class LogWriter;
+namespace bclib{
+  class LogWriter;
+}
 
 /**
    Class to implement score test for admixture association (admixturescoretest)
@@ -29,7 +31,7 @@ public:
   ~AdmixtureAssocTest();
 
   void Initialise(const unsigned K, const unsigned NumOutcomes, const char* filename,
-		  const Vector_s& PLabels, LogWriter &);
+		  const Vector_s& PLabels, bclib::LogWriter &);
 
   void Reset();
 

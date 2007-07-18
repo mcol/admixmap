@@ -113,7 +113,7 @@ void HapMixHMM::SampleJumpIndicators(const int* const HiddenStates,  unsigned in
       xi = true;
       if( HiddenStates[g*Transitions + t-1] == HiddenStates[g*Transitions + t] ){
 	ProbJump = StateArrivalProbs[g][t*K + HiddenStates[t + g*Transitions]]; 
-	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > Rand::myrand());
+	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > bclib::Rand::myrand());
       }
       if( xi ){ // increment sum if jump indicator is 1
 	SumHiddenStates[ t*K + HiddenStates[t+g*Transitions] ]++;

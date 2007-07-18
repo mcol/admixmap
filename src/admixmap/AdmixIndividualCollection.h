@@ -30,21 +30,21 @@ public:
 
   //void DeleteGenotypes(bool);
   void Initialise(const AdmixOptions& options, const Genome& Loci,
-		  const Vector_s& PopulationLabels, LogWriter &Log);
+		  const Vector_s& PopulationLabels, bclib::LogWriter &Log);
   void DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha);
   void LoadData(const AdmixOptions* const options, const InputAdmixData* const);
-  void getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels);
+  void getOnePopOneIndLogLikelihood(bclib::LogWriter &Log, const Vector_s& PopulationLabels);
 
   void HMMUpdates(int iteration, const AdmixOptions& options,
-                  const vector<Regression*> &R, const double* const poptheta,
+                  const vector<bclib::Regression*> &R, const double* const poptheta,
                   const vector<vector<double> > &alpha, 
                   AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
   void SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
-				     const vector<Regression*> &R, const double* const poptheta,
+				     const vector<bclib::Regression*> &R, const double* const poptheta,
 				     const vector<vector<double> > &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
 
   void SampleParameters(int iteration, const AdmixOptions& options,
-			const vector<Regression*> &R, const double* const poptheta,
+			const vector<bclib::Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 			CopyNumberAssocTest& ancestryAssocTest, bool anneal);
   void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha, 
@@ -53,16 +53,16 @@ public:
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
 
   void FindPosteriorModes(const AdmixOptions& options, 
-			  const vector<Regression*> &R, 
+			  const vector<bclib::Regression*> &R, 
 			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, AlleleFreqs* A, 
 			  const Vector_s& PopulationLabels);
 
   void OutputIndAdmixture();
-  double getDevianceAtPosteriorMean(const Options& options, vector<Regression *> &R, Genome* Loci,
-				    LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
+  double getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *> &R, Genome* Loci,
+				    bclib::LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
 
   void WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels)const;
-  void OutputChibResults(LogWriter&)const;
+  void OutputChibResults(bclib::LogWriter&)const;
 
   AdmixedIndividual* getIndividual(int)const;
   //void setAdmixtureProps(const double* const, size_t);
@@ -71,7 +71,7 @@ public:
   const double *getSumLogTheta()const;
 
 //  double getLogLikelihood(const AdmixOptions* const options, bool forceupdate);
-  //double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R,
+  //double getEnergy(const AdmixOptions* const options, const vector<bclib::Regression*> &R,
 			 // const bool & annealed);
   void setGenotypeProbs(const Genome * const G);
 

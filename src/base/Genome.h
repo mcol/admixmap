@@ -23,6 +23,9 @@
 #include "GeneticDistanceUnit.h"
 #include "InputData.h"
 
+namespace bclib{
+  class LogWriter;
+}
 ///Container class for Chromosome and CompositeLocus objects.
 class Genome{
 public:
@@ -31,7 +34,7 @@ public:
   Genome(int);
   virtual ~Genome();
 
-  void Initialise(const InputData* const data_, int populations, LogWriter &Log);
+  void Initialise(const InputData* const data_, int populations, bclib::LogWriter &Log);
 
   const vector<int> GetChrmAndLocus(int) const;
   int getRelativeLocusNumber(int) const;
@@ -108,7 +111,7 @@ private:
   std::vector<std::string> ChrmLabels;
 
   void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations);
-  void PrintSizes(LogWriter &Log, const std::string& distanceUnit)const;
+  void PrintSizes(bclib::LogWriter &Log, const std::string& distanceUnit)const;
 
 
   // UNIMPLEMENTED

@@ -132,8 +132,8 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
       } // ends loop over individuals 
 
       //reset pointers for next compound locus	
-      free_matrix(Prob0, NumSimpleLociWithinCL);
-      free_matrix(Prob1, NumSimpleLociWithinCL);
+      bclib::free_matrix(Prob0, NumSimpleLociWithinCL);
+      bclib::free_matrix(Prob1, NumSimpleLociWithinCL);
       delete[] alleles0;
       delete[] alleles1;
       slocus += NumSimpleLociWithinCL;
@@ -147,12 +147,12 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
   ++numUpdates;
 }
 
-void HWTest::Output(const char* filename, const Vector_s LocusLabels, LogWriter& Log){
+void HWTest::Output(const char* filename, const Vector_s LocusLabels, bclib::LogWriter& Log){
   try{
-    TableWriter outputfile(filename);
-    Log << Quiet << "Tests for Hardy-Weinberg equilibrium writen to " << filename << "\n";
+    bclib::TableWriter outputfile(filename);
+    Log << bclib::Quiet << "Tests for Hardy-Weinberg equilibrium writen to " << filename << "\n";
     //header line
-    outputfile <<"Locus\tScore\tCompleteInfo\tMissingInfo\tObservedInfo\tPercentInfo\tz-score\tp-value" << newline;
+    outputfile <<"Locus\tScore\tCompleteInfo\tMissingInfo\tObservedInfo\tPercentInfo\tz-score\tp-value" << bclib::newline;
 
     for(int j = 0; j < NumLoci; j++ ){
       //call function in base class

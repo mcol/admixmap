@@ -13,6 +13,10 @@
 #ifndef GAUSSIANPROPOSALMH_H
 #define GAUSSIANPROPOSALMH_H 1
 
+#include "bclib/bclib.h"
+
+BEGIN_BCLIB_NAMESPACE
+
 ///Class to implement a Metropolis Hastings update with Gaussian proposal distribution
 class GaussianProposalMH
 {
@@ -51,4 +55,5 @@ private: // members
 
 };
 
+END_BCLIB_NAMESPACE
 #endif /* !defined GAUSSIANPROPOSALMH_H */

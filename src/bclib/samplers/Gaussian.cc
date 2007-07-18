@@ -22,6 +22,8 @@
 
 using namespace::std;
 
+BEGIN_BCLIB_NAMESPACE
+
 // *************** Constructors *************************************************
 Gaussian::Gaussian()
 {
@@ -162,10 +164,10 @@ void Gaussian::Draw(double *beta)const
   double* L = new double[Dimension*Dimension];
  
   for ( i = 0; i < Dimension; i++ )
-    draw[i] = Rand::gennor( (double)0.0, (double)1.0 );
+    draw[i] = bclib::Rand::gennor( (double)0.0, (double)1.0 );
   
   //cholesky decomposition
-  if(cholDecomp(Covariance, L, Dimension)) {
+  if(bclib::cholDecomp(Covariance, L, Dimension)) {
     cerr << "Cholesky decomposition failed in Gaussian::Draw"<<endl;
     exit(1);
   }
@@ -178,3 +180,4 @@ void Gaussian::Draw(double *beta)const
   delete[] L;
   delete[] draw;
 }
+END_BCLIB_NAMESPACE

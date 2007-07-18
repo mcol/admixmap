@@ -15,6 +15,8 @@
 
 #include "FileWriter.h"
 
+BEGIN_BCLIB_NAMESPACE
+
 /**
    enum for three different display modes.
    set DisplayMode to Off to output only to logfile and not screen
@@ -68,5 +70,5 @@ private:
   int rank;
 
 };
-
+END_BCLIB_NAMESPACE
 #endif 

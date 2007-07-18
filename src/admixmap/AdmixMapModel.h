@@ -32,23 +32,23 @@ class InputAdmixData;
 class AdmixMapModel : public Model{
 public:
     ~AdmixMapModel();
-  void Initialise(AdmixOptions & options, InputAdmixData& data,  LogWriter& Log);
-  void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
-  void TestIndivRun(Options& options, InputData& data, LogWriter& Log);
+  void Initialise(AdmixOptions & options, InputAdmixData& data,  bclib::LogWriter& Log);
+  void InitialiseTests(Options& options, const InputData& data, bclib::LogWriter& Log);
+  void TestIndivRun(Options& options, InputData& data, bclib::LogWriter& Log);
   void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
-	       Options & options, InputData & data, LogWriter& Log, 
+	       Options & options, InputData & data, bclib::LogWriter& Log, 
 	       double & SumEnergy, double & SumEnergySq, 
 	       bool AnnealedRun);
   void SubIterate(int iteration, const int & burnin,
-                  Options & options, InputData & data, LogWriter& Log, 
+                  Options & options, InputData & data, bclib::LogWriter& Log, 
                   double & SumEnergy, double & SumEnergySq, 
                   bool AnnealedRun);
 
-  void PrintAcceptanceRates(const Options& options,LogWriter& Log);
-  void Finalize(const Options& options, LogWriter& Log, const InputData& data) ;
+  void PrintAcceptanceRates(const Options& options,bclib::LogWriter& Log);
+  void Finalize(const Options& options, bclib::LogWriter& Log, const InputData& data) ;
   void ResetStepSizeApproximators(int resetk);
-  double getDevianceAtPosteriorMean(const Options& options, LogWriter& Log);
-  void getOnePopOneIndLogLikelihood(LogWriter& Log, const std::vector<std::string>& PopLabels){IC->getOnePopOneIndLogLikelihood(Log, PopLabels);};
+  double getDevianceAtPosteriorMean(const Options& options, bclib::LogWriter& Log);
+  void getOnePopOneIndLogLikelihood(bclib::LogWriter& Log, const std::vector<std::string>& PopLabels){IC->getOnePopOneIndLogLikelihood(Log, PopLabels);};
   unsigned getNumIndividuals()const{return IC->getSize();}; 
   double* getSumEnergy()const;
   double* getSumEnergySq()const;
@@ -63,9 +63,9 @@ private:
   ScoreTests Scoretests;
 
   void UpdateParameters(int iteration, const Options& options, 
-			LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal);
-  void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
-  void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
+			bclib::LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal);
+  void OutputParameters(int iteration, const AdmixOptions *options, bclib::LogWriter& Log);
+  void InitializeErgodicAvgFile(const AdmixOptions* const options, bclib::LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
 
 };

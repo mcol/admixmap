@@ -31,6 +31,8 @@
  
 using namespace::std;
 
+BEGIN_BCLIB_NAMESPACE
+
 // ************** Log Densities *******************
 
 double getGammaLogDensity(double alpha, double beta, double x) {
@@ -781,7 +783,7 @@ void print_vector(std::vector<int> a){
   cout<<endl;
 }
 ///log function with error handling
-double mylog(double x){
+double eh_log(double x){
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   gsl_sf_result result;
   int status = gsl_sf_log_e(x, &result);
@@ -794,13 +796,13 @@ double mylog(double x){
   return result.val;
 }
 ///exp function with error handling
-double myexp(double x){
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler(&GSLErrorHandler);
+double eh_exp(double x){
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler(&bclib::GSLErrorHandler);
   double result = 0.0;
   try{
     result = gsl_sf_exp(x);
   }
-  catch(underflow){
+  catch(bclib::underflow){
     result = 0.0;
   }
   gsl_set_error_handler (old_handler);//restore gsl error handler 
@@ -863,3 +865,4 @@ double trigamma(double x){
   }
   return result.val;
 }
+END_BCLIB_NAMESPACE

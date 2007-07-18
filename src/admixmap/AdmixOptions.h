@@ -25,7 +25,7 @@ public:
   AdmixOptions(int, char**);
   ~AdmixOptions();
   
-  int checkOptions(LogWriter &Log, int NumberOfIndividuals);
+  int checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals);
   void PrintUserOptions(const char* filename);
   bool SetOptions();
 
@@ -141,7 +141,7 @@ private:
   
   void SetDefaultValues();  
   void DefineOptions();
-  void setInitAlpha(LogWriter &Log);
+  void setInitAlpha(bclib::LogWriter &Log);
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
   void AddFilenamesToUserOptions();
 

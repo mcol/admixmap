@@ -16,7 +16,6 @@
 #include "HapMixIndividualCollection.h"
 #include "InputHapMixData.h"
 #include "HapMixFilenames.h"
-#include "bclib/Regression.h"
 #include "bclib/TableWriter.h"
 #include "bclib/LogWriter.h"
 
@@ -37,7 +36,7 @@ void HapMixAllelicAssocTest::Initialise(const char* filename, const int , const 
 }
 
 void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC, 
-				    const Regression* const R, const Genome& Loci){
+				    const bclib::Regression* const R, const Genome& Loci){
   this->Reset();
   const double dispersion = R->getDispersion();
   const double* const EY = R->getExpectedOutcome();
@@ -75,12 +74,12 @@ void HapMixAllelicAssocTest::Output(const Genome& Loci){
   ++numPrintedIterations;
 }
 
-void HapMixAllelicAssocTest::WriteFinalTable(const string& ResultsDir, const Genome& Loci, const InputHapMixData& data, LogWriter& Log){
+void HapMixAllelicAssocTest::WriteFinalTable(const string& ResultsDir, const Genome& Loci, const InputHapMixData& data, bclib::LogWriter& Log){
   const string filename  = ResultsDir + "/" + ALLELICASSOCTEST_FINAL;
-  TableWriter finaltable(filename.c_str());
-  Log << Quiet << "Tests for allelic association written to " << filename << "\n";
+  bclib::TableWriter finaltable(filename.c_str());
+  Log << bclib::Quiet << "Tests for allelic association written to " << filename << "\n";
   finaltable <<"Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
-	     << newline;
+	     << bclib::newline;
 
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = Loci(j)->GetLabel(0);
@@ -113,7 +112,7 @@ HapMixAllelicAssocTest::~HapMixAllelicAssocTest(){
   else \
     X += atof(S.c_str());
 
-void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, const InputHapMixData& data, const char* filename){
+void HapMixAllelicAssocTest::PrintAverageInfo(bclib::LogWriter& Log, const InputHapMixData& data, const char* filename){
   //filename is the final table written by this class earlier
   ifstream ScoreTable(filename);
   //TODO?? check this file exists. It should.
@@ -139,7 +138,7 @@ void HapMixAllelicAssocTest::PrintAverageInfo(LogWriter& Log, const InputHapMixD
   ScoreTable.close();
   const float size = (float)data.getNumTypedLoci();
 
-  Log << Off << "Average Information extracted across untyped loci in allelic assoc score test: " << sumPI / size << "%"
+  Log << bclib::Off << "Average Information extracted across untyped loci in allelic assoc score test: " << sumPI / size << "%"
       << "\nOn average " << sumMissing1/size << "% Missing Info due to uncertainty about genotypes\n and " 
       << sumMissing2/size << "% Missing Info due to uncertainty about model parameters\n\n" ;
 }

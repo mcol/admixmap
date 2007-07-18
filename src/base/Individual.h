@@ -23,7 +23,6 @@
 using namespace std;
 
 class AlleleFreqs;
-class Regression;
 
 ///Class to represent an individual and update individual-level parameters
 class Individual{
@@ -64,7 +63,7 @@ public:
 
   void UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const;
 
-  void SampleMissingOutcomes(DataMatrix *Outcome, const std::vector<Regression*>& R);
+  void SampleMissingOutcomes(bclib::DataMatrix *Outcome, const std::vector<bclib::Regression*>& R);
   
 protected:
   const unsigned myNumber;//< number of this individual, counting from 1

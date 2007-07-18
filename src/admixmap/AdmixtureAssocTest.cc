@@ -39,7 +39,7 @@ AdmixtureAssocTest::~AdmixtureAssocTest(){
 }
 
 void AdmixtureAssocTest::Initialise(const unsigned K, const unsigned NumOutcomes, const char* filename,
-				    const Vector_s& PLabels, LogWriter &Log){
+				    const Vector_s& PLabels, bclib::LogWriter &Log){
   NumPopulations = K;
   NumOutcomeVars = NumOutcomes;
   test = true;
@@ -53,10 +53,10 @@ void AdmixtureAssocTest::Initialise(const unsigned K, const unsigned NumOutcomes
       //OpenFile(Log, &assocscorestream, options->getAssocScoreFilename(), "Tests for admixture association");
       outputfile.open( filename, ios::out );
       if( !outputfile ){
-	Log << On <<"ERROR: Couldn't open admixturescorefile\n";
+	Log << bclib::On <<"ERROR: Couldn't open admixturescorefile\n";
 	exit( 1 );}
       else {
-	Log << Quiet << "Writing tests for admixture association to: " << filename << "\n";
+	Log << bclib::Quiet << "Writing tests for admixture association to: " << filename << "\n";
 	outputfile << setiosflags( ios::fixed );
 	
 	Score = new double[NumPopulations * NumOutcomeVars];
@@ -73,7 +73,7 @@ void AdmixtureAssocTest::Initialise(const unsigned K, const unsigned NumOutcomes
       }
     }
     else{
-      Log << On << "No admixturescorefile given\n";
+      Log << bclib::On << "No admixturescorefile given\n";
       exit(1);}
   }
 }

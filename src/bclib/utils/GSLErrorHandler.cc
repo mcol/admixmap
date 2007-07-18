@@ -3,6 +3,8 @@
 #include <string>
 #include <sstream>
 
+BEGIN_BCLIB_NAMESPACE
+
 ///function definition for GSL error handler
 void GSLErrorHandler(const char * reason, const char * file, 
 		     int line_int, int gsl_errno){
@@ -94,6 +96,7 @@ void GSLErrorHandler(const char * reason, const char * file,
 
 } //ends void GSLErrorHandler(const char*, const char*, int, int);
 
+END_BCLIB_NAMESPACE
 
 
 

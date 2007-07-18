@@ -14,9 +14,12 @@
 #include "HapMixModel.h"
 #include "HapMixIndividual.h"
 #include "HapMixFilenames.h"
+#include "bclib/LogWriter.h"
 
 #define SCORETEST_UPDATE_EVERY 2
 int numdiploidIndivs = 0;
+
+using namespace bclib;
 
 HapMixModel::HapMixModel(){
   L = 0;
@@ -410,7 +413,8 @@ void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWri
 }
 
 double HapMixModel::getDevianceAtPosteriorMean(const Options& options, LogWriter& Log){
-  return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho());
+  //return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho());
+  return 0.0;
 }
 
 void HapMixModel::ReadInitialValuesFromFile(unsigned startnum, const HapMixOptions& options, LogWriter& Log){

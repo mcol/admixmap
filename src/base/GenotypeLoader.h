@@ -17,9 +17,11 @@
 #include <string>
 #include "common.h"
 
-class LogWriter;
 class Genome;
-class DataMatrix;
+namespace bclib{
+  class DataMatrix;
+  class LogWriter;
+}
 
 typedef std::vector<std::vector<unsigned short> > genotype;
 
@@ -32,7 +34,7 @@ public:
   ///destructor
   virtual ~GenotypeLoader(){};
   ///read genotypesfile into a string array
-  void Read(const char* filename, unsigned NumLociInLocusfile, LogWriter& Log);
+  void Read(const char* filename, unsigned NumLociInLocusfile, bclib::LogWriter& Log);
   /**
      retrieve an Individual's genotype.
      reads genotypes as strings from string matrix (read from file) , converts them to vectors of unsigned short ints and allocates them to the Individual's genotype vector.
@@ -46,7 +48,7 @@ public:
 		   std::vector<genotype>* genotypes, bool **Missing)const;
 
   //check genotypes for unobserved alleles
-  bool CheckForUnobservedAlleles(const DataMatrix& LocusData, LogWriter& Log);
+  bool CheckForUnobservedAlleles(const bclib::DataMatrix& LocusData, bclib::LogWriter& Log);
 
   ///returns number of individuals
   virtual unsigned getNumberOfIndividuals()const;
@@ -86,7 +88,7 @@ protected:
   std::vector<unsigned short> GetGenotype(const std::string genostring)const;
   bool determineIfPedFile()const;
   ///looks for sex column 
-  void DetermineSexColumn(unsigned NumLociInLocusfile, LogWriter& Log);
+  void DetermineSexColumn(unsigned NumLociInLocusfile, bclib::LogWriter& Log);
 
 
 };

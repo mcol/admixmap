@@ -13,6 +13,8 @@
 #include "bclib/FileWriter.h"
 #include <iomanip>
 
+BEGIN_BCLIB_NAMESPACE
+
 //manipulators
 void newline(FileWriter& FW){
  FW.needNewLine = true;
@@ -113,3 +115,4 @@ FileWriter& FileWriter::operator<<(const std::string t){
   return write(t);
 }
 
+END_BCLIB_NAMESPACE

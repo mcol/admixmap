@@ -39,13 +39,13 @@ public:
   ScoreTests();
 
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
-		  const Vector_s&, LogWriter &);
+		  const Vector_s&, bclib::LogWriter &);
 
   void Output(const Vector_s& PLabels);
-  void WriteFinalTables(const Vector_s& PLabels, LogWriter& Log);
+  void WriteFinalTables(const Vector_s& PLabels, bclib::LogWriter& Log);
 
   void MergeRareHaplotypes(const std::vector<double> &alpha0);
-  void Update(const vector<Regression* >& R);
+  void Update(const vector<bclib::Regression* >& R);
   void UpdateScoresForResidualAllelicAssociation(const FreqArray& Allelefreqs);
 
   ~ScoreTests();

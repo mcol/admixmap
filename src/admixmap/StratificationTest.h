@@ -20,9 +20,11 @@
 #include "Genome.h"
 
 class AdmixOptions;
-class LogWriter;
 class FreqArray;
 
+namespace bclib{
+  class LogWriter;
+}
 ///Class to implement a test for residual population stratification
 class StratificationTest
 {
@@ -30,13 +32,13 @@ public:
   StratificationTest();
   
   void Initialize( AdmixOptions* const options, const Genome &Loci,  
-		   const IndividualCollection* const IC, LogWriter &Log);
-  void OpenOutputFile( const std::string& , LogWriter &);
+		   const IndividualCollection* const IC, bclib::LogWriter &Log);
+  void OpenOutputFile( const std::string& , bclib::LogWriter &);
 
   void calculate( const IndividualCollection* const individuals, const FreqArray& AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );
 
-  void Output(LogWriter &);
+  void Output(bclib::LogWriter &);
 
 private:
   int T;

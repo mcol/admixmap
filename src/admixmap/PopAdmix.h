@@ -30,15 +30,15 @@ public:
   
   ~PopAdmix();
   
-  void Initialise(int Numindividuals, const Vector_s&  PopulationLabels, LogWriter& Log);  
+  void Initialise(int Numindividuals, const Vector_s&  PopulationLabels, bclib::LogWriter& Log);  
   
   void InitializeOutputFile(const Vector_s&  PopulationLabels);
   
   void UpdateGlobalSumIntensities(const AdmixIndividualCollection* const IC, bool sumlogtheta);
 
-  void UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const, LogWriter &Log);
+  void UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const, bclib::LogWriter &Log);
   
-  void OutputParams(int iteration, LogWriter &Log);
+  void OutputParams(int iteration, bclib::LogWriter &Log);
   void OutputParams(ostream* out); 
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
@@ -53,7 +53,7 @@ public:
   const vector<double>& getSumLogRho()const;
   const double *getpoptheta()const;
   
-  void printAcceptanceRates(LogWriter &Log);
+  void printAcceptanceRates(bclib::LogWriter &Log);
   
   void resetStepSizeApproximator(int k); 
   
@@ -78,7 +78,7 @@ private:
   std::vector<double> SumLogRho; //ergodic sum of log(rho)
 
   //RWM sampler for global rho
-  StepSizeTuner TuneRhoSampler;
+  bclib::StepSizeTuner TuneRhoSampler;
   int w, NumberOfUpdates;
   double step;
   double step0;
@@ -86,7 +86,7 @@ private:
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
   std::vector<double> SumAlpha; //ergodic sums of alphas
   //sampler for alpha
-  DirichletParamSampler PopAdmixSampler;
+  bclib::DirichletParamSampler PopAdmixSampler;
   double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
                        //in the regression model
 

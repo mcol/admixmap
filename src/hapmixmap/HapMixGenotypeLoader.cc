@@ -20,8 +20,8 @@ HapMixGenotypeLoader::HapMixGenotypeLoader(){
   NumCCIndividuals = 0;
 }
 
-void HapMixGenotypeLoader::ReadCaseControlGenotypes(const char* filename, LogWriter& Log){
-  DataReader::ReadData(filename, CCgeneticData_, Log);
+void HapMixGenotypeLoader::ReadCaseControlGenotypes(const char* filename, bclib::LogWriter& Log){
+  bclib::DataReader::ReadData(filename, CCgeneticData_, Log);
   if(CCgeneticData_.size()){
     NumCCIndividuals = CCgeneticData_.size() - 1;
     FindCaseControlLoci();
@@ -154,7 +154,7 @@ void HapMixGenotypeLoader::clear(){
 ///search the loci in genotypesfile for loci in a ccgenotypesfile
 void HapMixGenotypeLoader::FindCaseControlLoci(){
   for(Vector_s::const_iterator j = geneticData_[0].begin()+1; j != geneticData_[0].end(); ++j){
-    isCaseControlSNP.push_back(StringConvertor::isListedString(*j, CCgeneticData_[0]));
+    isCaseControlSNP.push_back(bclib::StringConvertor::isListedString(*j, CCgeneticData_[0]));
   }
 }
 

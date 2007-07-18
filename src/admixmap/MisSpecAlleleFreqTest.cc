@@ -35,7 +35,7 @@ MisSpecAlleleFreqTest::~MisSpecAlleleFreqTest(){
 }
 
 
-void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log )
+void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, bclib::LogWriter &Log )
 {
  if( strlen( options->getAlleleFreqFilename() ) || options->getFixedAlleleFreqs()){
 
@@ -68,7 +68,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
 }
 
 void MisSpecAlleleFreqTest::Output(const string& ResultsDir, const Genome* const Loci, 
-				   const Vector_s& PopLabels, LogWriter& Log){
+				   const Vector_s& PopLabels, bclib::LogWriter& Log){
     if( doTest1){
       const string filename = ResultsDir + "/" + MISSPECALLELEFREQTEST_1;
       Test1.Output(filename.c_str(), Loci, PopLabels, Log);
@@ -113,7 +113,7 @@ MisSpecifiedAlleleFreqTest::~MisSpecifiedAlleleFreqTest(){
 }
 
 
-void MisSpecifiedAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter& Log)
+void MisSpecifiedAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, bclib::LogWriter& Log)
 {
  if( strlen( options->getAlleleFreqFilename() ) || options->getFixedAlleleFreqs()){
 
@@ -164,7 +164,7 @@ void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const indivi
 
   Reset();
   if( test ) {
-    double** phi = alloc2D_d(Populations, Populations);
+    double** phi = bclib::alloc2D_d(Populations, Populations);
     for( int i = 0; i < individuals->getSize(); i++ ){
       const Individual* ind = individuals->getIndividual(i);
       
@@ -190,11 +190,11 @@ void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const indivi
       transform(Info[j], Info[j]+Populations*Populations, SumInfo[j], SumInfo[j], std::plus<double>());
       //SumScoreSq[j] += Score[j] * Score[j].Transpose();
       double* ScoreSq = new double[Populations*Populations];
-      matrix_product(Score[j], ScoreSq, Populations, 1);
+      bclib::matrix_product(Score[j], ScoreSq, Populations, 1);
       transform(ScoreSq, ScoreSq+Populations*Populations, SumScoreSq[j], SumScoreSq[j], std::plus<double>());
       delete[] ScoreSq;
     }
-    free_matrix(phi, Populations);
+    bclib::free_matrix(phi, Populations);
   }
   ++numUpdates;
 }
@@ -264,14 +264,14 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
 }
 
 void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* const Loci, 
-					 const Vector_s& PopLabels, LogWriter& Log)
+					 const Vector_s& PopLabels, bclib::LogWriter& Log)
 {
   if( test){
 
      Log << "Writing score tests for mis-specified allele frequencies(1) to " 
 	 << filename << "\n";
-     TableWriter outputfile(filename);
-     outputfile << "Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tsPValue\tChiSquared\tPValue"<< newline;
+     bclib::TableWriter outputfile(filename);
+     outputfile << "Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tsPValue\tChiSquared\tPValue"<< bclib::newline;
 
     double* ObservedMatrix = new double[Populations*Populations];
     double* ScoreSq = new double[Populations*Populations];
@@ -280,7 +280,7 @@ void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* con
       if( (*Loci)(j)->GetNumberOfLoci() == 1 ){
 	
 	for(int k = 0; k < Populations; ++k)SumScore[j][k] /= (double) numUpdates;
-	matrix_product(SumScore[j], ScoreSq, Populations, 1);//ScoreSq = Score * t(Score)
+	bclib::matrix_product(SumScore[j], ScoreSq, Populations, 1);//ScoreSq = Score * t(Score)
 	//CompleteMatrix = SumInfo[j] / samples;
 	for(int k = 0; k < Populations*Populations; ++k){
 	  SumInfo[j][k] /= (double) numUpdates;//SumInfo[j] = CompleteMatrix
@@ -310,16 +310,16 @@ void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* con
 	  else outputfile << "NA" << "NA";
 	  
 	  if( k < Populations - 1 )
-	    outputfile  << "NA" << "NA" << newline;//output NA in chisq column
+	    outputfile  << "NA" << "NA" << bclib::newline;//output NA in chisq column
 	}
 	// Summary chi-sq test for mis-specification in all continental-populations.
 	try{
-	  double chisq = GaussianMarginalQuadraticForm(Populations, SumScore[j], ObservedMatrix, Populations);
+	  double chisq = bclib::GaussianMarginalQuadraticForm(Populations, SumScore[j], ObservedMatrix, Populations);
 	  double pvalue = 1.0 - gsl_cdf_chisq_P (chisq, 2.0);
-	  outputfile << chisq << pvalue << newline;
+	  outputfile << chisq << pvalue << bclib::newline;
 	}
 	catch(...){
-	  outputfile << "NA" << "NA" << newline;
+	  outputfile << "NA" << "NA" << bclib::newline;
 	}
       }
     }//end locus loop
@@ -361,7 +361,7 @@ MisSpecifiedAlleleFreqTest2::~MisSpecifiedAlleleFreqTest2(){
 }
 
 
-void MisSpecifiedAlleleFreqTest2::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log )
+void MisSpecifiedAlleleFreqTest2::Initialise(const AdmixOptions* const options, const Genome* const Loci, bclib::LogWriter &Log )
 {
  if( strlen( options->getAlleleFreqFilename() ) || options->getFixedAlleleFreqs()){
 
@@ -442,7 +442,7 @@ void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int 
       transform(NewInfo, NewInfo+(NumberOfStates-1)*(NumberOfStates-1), SumInfo[locus][k], SumInfo[locus][k], std::plus<double>());
       //SumScoreSq[locus][k] += NewScore * NewScore.Transpose();
       double* NewScoreSq = new double[(NumberOfStates - 1) * (NumberOfStates - 1 )];
-      matrix_product(NewScore, NewScoreSq, NumberOfStates-1, 1);
+      bclib::matrix_product(NewScore, NewScoreSq, NumberOfStates-1, 1);
       transform(NewScoreSq, NewScoreSq+(NumberOfStates-1)*(NumberOfStates-1), SumScoreSq[locus][k], SumScoreSq[locus][k], std::plus<double>());
       delete[] NewScoreSq;
    }
@@ -451,13 +451,13 @@ void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int 
 }
 
 void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* const Loci, 
-					 const Vector_s& PopLabels, LogWriter& Log)
+					 const Vector_s& PopLabels, bclib::LogWriter& Log)
 {
   if( test ){
      Log << "Writing score tests for mis-specified allele frequencies(2) to " 
 	 << filename << "\n";
-     TableWriter outputfile(filename);
-     outputfile << "Locus\tPopulation\tCompleteInfo\tObservedInfo\tPercentInfo\tChiSquared" << newline;
+     bclib::TableWriter outputfile(filename);
+     outputfile << "Locus\tPopulation\tCompleteInfo\tObservedInfo\tPercentInfo\tChiSquared" << bclib::newline;
 
     //allelefreqscorestream2 << setiosflags(ios::fixed) << setprecision(2);//output 2 decimal places
     for(int j = 0; j < NumCompLoci; j++ ){
@@ -473,7 +473,7 @@ void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* con
 	  score[s] = SumScore[j][k][s] / (double)numUpdates;
 	}
 	
-	matrix_product(score, scoresq, NumberOfStates-1, 1);//scoresq = score * t(score)
+	bclib::matrix_product(score, scoresq, NumberOfStates-1, 1);//scoresq = score * t(score)
 	for(int s = 0; s < (NumberOfStates-1)*(NumberOfStates-1); ++s){
 	  completeinfo[s] = SumInfo[j][k][s] / (double)numUpdates;
 	  observedinfo[s] = completeinfo[s] + scoresq[s] - SumScoreSq[j][k][s] / (double)numUpdates;
@@ -485,8 +485,8 @@ void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* con
 	outputfile << (*Loci)(j)->GetLabel(0) 
 		   << PopLabels[k] ;
 	try{
-	  double det1 = determinant(completeinfo, NumberOfStates-1);
-	  double det2 = determinant(observedinfo, NumberOfStates-1);
+	  double det1 = bclib::determinant(completeinfo, NumberOfStates-1);
+	  double det2 = bclib::determinant(observedinfo, NumberOfStates-1);
 	  outputfile << det1 
 		     << det2 
 		     << 100*det2 / det1 ;
@@ -495,12 +495,12 @@ void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* con
 	  outputfile << "NA" << "NA" << "NA";
 	}
 	try{
-	  double chisq = GaussianMarginalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
+	  double chisq = bclib::GaussianMarginalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
 	  //observedinfo.InvertUsingLUDecomposition();
-	  outputfile << chisq/*double2R((score.Transpose() * observedinfo * score)(0,0))*/  << newline;
+	  outputfile << chisq/*double2R((score.Transpose() * observedinfo * score)(0,0))*/  << bclib::newline;
 	}
 	catch(...){
-	  outputfile << "NA" << newline;
+	  outputfile << "NA" << bclib::newline;
 	}
 	
       }

@@ -73,7 +73,7 @@ void AlleleFreqs::Initialise(bool OutputFreqs){
     }
   }
 }
-void AlleleFreqs::PrintPrior(const Vector_s& , LogWriter& )const{
+void AlleleFreqs::PrintPrior(const Vector_s& , bclib::LogWriter& )const{
 }
 
 
@@ -100,10 +100,10 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
 
 ///reads initial values of allele freqs from file
 ///note: no checking of this file is done; ok if produced by function OutputFinalAlleleFreqs
-void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, LogWriter &Log){
+void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, bclib::LogWriter &Log){
   ifstream infile(filename);
   if(infile.is_open()){
-    Log << Quiet  << "Reading initial values of allele freqs from " << filename << "\n";
+    Log << bclib::Quiet  << "Reading initial values of allele freqs from " << filename << "\n";
     double phi = 0.0;
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
       const int NumStates = Loci->GetNumberOfStates(locus);
@@ -119,7 +119,7 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, LogWriter &Log){
 	  }
 	  //check 0 <= phi <= 1
 	  if(phi < 0 || phi > 1)
-	    throw DataOutOfRangeException("allele frequency", "between 0 and 1", "initialallelefreqfile");
+	    throw bclib::DataOutOfRangeException("allele frequency", "between 0 and 1", "initialallelefreqfile");
 	  if(phi == 1.0)phi = 0.999;
 	  if(phi == 0.0)phi = 0.001;
 	  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] = phi;
@@ -137,7 +137,7 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, LogWriter &Log){
     infile.close();
   }
   else{
-    Log << On << "Error: cannot open " << filename << "\n";
+    Log << bclib::On << "Error: cannot open " << filename << "\n";
     exit(1);
   }
 }
@@ -341,7 +341,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
     for(unsigned s = 0; s < NumStates; ++s)
       temp[s] = PriorParams[i][j*NumStates + s] + coolness*AlleleCounts[i][s*Populations +j];
 
-    Rand::gendirichlet(NumStates, temp, Freqs[i]+j*NumStates);
+    bclib::Rand::gendirichlet(NumStates, temp, Freqs[i]+j*NumStates);
     for(unsigned s = 0; s < NumStates; ++s){
       if(Freqs[i][j*NumStates+s]==0.0) Freqs[i][j*NumStates+s] = 0.000001;
       if(Freqs[i][j*NumStates+s]==1.0) Freqs[i][j*NumStates+s] = 0.999999;
@@ -526,21 +526,21 @@ void AlleleFreqs::OutputAlleleFreqs()
 	  allelefreqoutput <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] ;
 	  // allelefreqoutput << "count " << AlleleCounts[locus][state*Populations + pop] <<"; ";
 	}
-	allelefreqoutput << newline;
+	allelefreqoutput << bclib::newline;
       }
-      allelefreqoutput << newline;
+      allelefreqoutput << bclib::newline;
     }
-    allelefreqoutput << newline;
+    allelefreqoutput << bclib::newline;
   }
 }
 
 //output of freqs to arbitrary file, tab delimited
-void AlleleFreqs::OutputAlleleFreqs(const char* filename, LogWriter& Log)
+void AlleleFreqs::OutputAlleleFreqs(const char* filename, bclib::LogWriter& Log)
 {
   if(strlen(filename)){
     ofstream outfile(filename);
     if(outfile.is_open()){
-      Log << Quiet << "Writing final values of allele freqs to " << filename << "\n";
+      Log << bclib::Quiet << "Writing final values of allele freqs to " << filename << "\n";
       //if( IsRandom() ){
       for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
         for( int pop = 0; pop < Populations; pop++ ){
@@ -555,7 +555,7 @@ void AlleleFreqs::OutputAlleleFreqs(const char* filename, LogWriter& Log)
       outfile.close();
     }
     else{
-      Log << On << "Error: cannot open " << filename << ", not writing allele freqs.\n";
+      Log << bclib::On << "Error: cannot open " << filename << ", not writing allele freqs.\n";
     }
   }
 }

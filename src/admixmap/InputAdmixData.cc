@@ -16,10 +16,13 @@
 #include "bclib/DataReader.h"
 #include <sstream>
 
+using bclib::LogWriter;
+
 InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
+  using bclib::DataReader;
   genotypeLoader = new GenotypeLoader;
 
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   // Read all input files.
   try {
    //read base data files
@@ -49,7 +52,7 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
   NumCompositeLoci = determineNumberOfCompositeLoci();
   distanceUnit = DetermineUnitOfDistance();
 
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
  
   bool badData = false;
   if(options->CheckData())
@@ -94,6 +97,7 @@ void InputAdmixData::GetGenotype(int i, const Genome &Loci,
 }
 
 void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
+  using bclib::DataReader;
   //  if(strlen(options->getAlleleFreqFilename()) || strlen(options->getPriorAlleleFreqFilename()) || strlen(options->getHistoricalAlleleFreqFilename())){
   if(strlen(options->getAlleleFreqFilename()))
     DataReader::ReadHeader(options->getAlleleFreqFilename(), HiddenStateLabels);
@@ -105,7 +109,7 @@ void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
   //  }
   else{
     //read labels from 'poplabels' option
-    StringSplitter::Tokenize(options->getPopLabelString(), HiddenStateLabels, " ,");
+    bclib::StringSplitter::Tokenize(options->getPopLabelString(), HiddenStateLabels, " ,");
     if(HiddenStateLabels.size() != (unsigned)options->getPopulations()){
       HiddenStateLabels.clear();
 
@@ -219,19 +223,19 @@ const Matrix_s& InputAdmixData::getReportedAncestryData() const{
   return reportedAncestryData_;
 }
 
-const DataMatrix& InputAdmixData::getEtaPriorMatrix() const{
+const bclib::DataMatrix& InputAdmixData::getEtaPriorMatrix() const{
   return etaPriorMatrix_;
 }
 
-// const DataMatrix& InputAdmixData::getAlleleFreqMatrix() const {
+// const bclib::DataMatrix& InputAdmixData::getAlleleFreqMatrix() const {
 //     return alleleFreqMatrix_;
 // }
 
-// const DataMatrix& InputAdmixData::getHistoricalAlleleFreqMatrix() const {
+// const bclib::DataMatrix& InputAdmixData::getHistoricalAlleleFreqMatrix() const {
 //     return historicalAlleleFreqMatrix_;
 // }
 
-const DataMatrix& InputAdmixData::getReportedAncestryMatrix() const{
+const bclib::DataMatrix& InputAdmixData::getReportedAncestryMatrix() const{
   return reportedAncestryMatrix_;
 }
 const Vector_s& InputAdmixData::GetPopLabels() const{

@@ -34,12 +34,12 @@ ScoreTests::~ScoreTests(){
 }
 
 void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
-			    const Vector_s& PLabels, LogWriter &Log){
+			    const Vector_s& PLabels, bclib::LogWriter &Log){
   options = op;
   individuals = indiv;
   chrm = Loci->getChromosomes();
   Lociptr = Loci;
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
  
   int K = options->getPopulations();
   int L = Lociptr->GetNumberOfCompositeLoci();
@@ -92,7 +92,7 @@ void ScoreTests::MergeRareHaplotypes(const std::vector<double> &alpha0){
 
 // ****************************** UPDATES ****************************
 
-void ScoreTests::Update(const vector<Regression* >& R)
+void ScoreTests::Update(const vector<bclib::Regression* >& R)
 {
   Reset();//set sums over individuals to zero
   double DInvLink;
@@ -179,7 +179,7 @@ void ScoreTests::Output(const Vector_s& PLabels){
   }
 }
 
-void ScoreTests::WriteFinalTables(const Vector_s& PLabels, LogWriter& Log){
+void ScoreTests::WriteFinalTables(const Vector_s& PLabels, bclib::LogWriter& Log){
   //Allelic association
   if( options->getTestForAllelicAssociation() )    {
     AllelicAssociationTest.WriteFinalTables(Log);

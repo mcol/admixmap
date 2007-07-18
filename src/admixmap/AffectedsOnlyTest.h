@@ -18,7 +18,9 @@
 #include "bclib/RObjectWriter.h"
 
 class Genome;
-class LogWriter;
+namespace bclib{
+  class LogWriter;
+}
 
 /**
    Class to implement affecteds-only score test for linkage with locus ancestry
@@ -39,7 +41,7 @@ public:
 
   void Output(const Vector_s& PopLabels, const Genome& Loci);
   void WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
-		       const Genome& Loci, LogWriter& Log);
+		       const Genome& Loci, bclib::LogWriter& Log);
   void OutputLikRatios(const char* const filename, const Vector_s& PopLabels, const Genome& Loci);
 
 private:
@@ -58,9 +60,9 @@ private:
   double *LikRatio1;
   double *LikRatio2;
 
-  RObjectWriter R;
+  bclib::RObjectWriter R;
 
-  void OutputAffectedsOnlyTest(FileWriter& outfile, const Vector_s& PopLabels, 
+  void OutputAffectedsOnlyTest(bclib::FileWriter& outfile, const Vector_s& PopLabels, 
 			       const Genome& Loci, const std::string& sep, bool final);
 };
 

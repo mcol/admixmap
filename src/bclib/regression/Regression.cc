@@ -1,7 +1,7 @@
 /** 
  *   Regression.cc 
- *   Class to represent and update parameters of a regression model as used in admixmap
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Class to represent and update parameters of a regression model
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -18,6 +18,8 @@
 
 using std::vector;
 using std::string;
+
+BEGIN_BCLIB_NAMESPACE
 
 std::ofstream Regression::outputstream;
 RObjectWriter Regression::EYStream;
@@ -238,3 +240,4 @@ RegressionType Regression::getRegressionType()const{
   return RegType;
 }
 
+END_BCLIB_NAMESPACE

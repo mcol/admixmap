@@ -18,10 +18,14 @@
 
 #include "CopyNumberAssocTest.h"
 class InputHapMixData;
-class LogWriter;
 class HapMixIndividualCollection;
 class Regression;
 class Genome;
+
+namespace bclib{
+  class Regression;
+  class LogWriter;
+}
 
 ///test using conditional distribution of copies of allele2, rather than sampled values
 class HapMixAllelicAssocTest : public CopyNumberAssocTest{
@@ -29,12 +33,12 @@ public:
   HapMixAllelicAssocTest();
   ~HapMixAllelicAssocTest();
   void Initialise(const std::string& ResultsDir, const int NumLoci);
-  void Update(const HapMixIndividualCollection* const IC, const Regression* const R, const Genome& Loci);
+  void Update(const HapMixIndividualCollection* const IC, const bclib::Regression* const R, const Genome& Loci);
   void Output(const Genome& Loci);
-  void WriteFinalTable(const std::string& ResultsDir, const Genome& Loci, const InputHapMixData& data, LogWriter& Log);
+  void WriteFinalTable(const std::string& ResultsDir, const Genome& Loci, const InputHapMixData& data, bclib::LogWriter& Log);
 
 private:
-  void PrintAverageInfo(LogWriter& Log, const InputHapMixData& data, const char* filename);
+  void PrintAverageInfo(bclib::LogWriter& Log, const InputHapMixData& data, const char* filename);
   //override base functions, making them private
   void Initialise(const char* filename, const int NumPopulations, const int NumLoci);
   void Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 

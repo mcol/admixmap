@@ -13,6 +13,8 @@
 
 #include "bclib/StepSizeTuner.h"
 
+BEGIN_BCLIB_NAMESPACE
+
 StepSizeTuner::StepSizeTuner()
 {
   k = 1;   
@@ -84,4 +86,4 @@ double StepSizeTuner::getExpectedAcceptanceRate()const
   else return 0.0;
 }
 
-
+END_BCLIB_NAMESPACE

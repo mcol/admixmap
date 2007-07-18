@@ -26,7 +26,9 @@
 #include <numeric>
 #include <gsl/gsl_linalg.h>
 
-using namespace::std;
+using namespace std;
+
+BEGIN_BCLIB_NAMESPACE
 
 MuSampler::MuSampler(){
   params = 0;
@@ -275,3 +277,5 @@ double MuSampler::ddfMu( double mu, const void* const args )
   }
   return f;
 }
+
+END_BCLIB_NAMESPACE

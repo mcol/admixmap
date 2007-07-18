@@ -13,7 +13,10 @@
  */
 #ifndef DATAMATRIX_H
 #define DATAMATRIX_H 1
+#include "bclib/bclib.h"
 #include <vector>
+
+BEGIN_BCLIB_NAMESPACE
 
 ///Class to represent a matrix of data, possibly read in from file
 class DataMatrix{
@@ -49,4 +52,5 @@ private:
   void throwBoundsViolation(unsigned, unsigned)const;
   //void operator=(const DataMatrix&);
 };
+END_BCLIB_NAMESPACE
 #endif

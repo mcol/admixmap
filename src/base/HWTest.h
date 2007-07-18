@@ -27,7 +27,9 @@
 #include "Genome.h"
 #include "IndividualCollection.h"
 
-class LogWriter;
+namespace bclib{
+  class LogWriter;
+}
 class Options;
 //class IndividualCollection;
 /**
@@ -43,7 +45,7 @@ public:
 
   void Initialise(int nloci);
 
-  void Output(const char* filename, const Vector_s LocusLabels, LogWriter& Log);
+  void Output(const char* filename, const Vector_s LocusLabels, bclib::LogWriter& Log);
 
   void Update(const IndividualCollection* const IC, const Genome* const Loci);
 

@@ -26,7 +26,7 @@ Model::~Model(){
   if(avgstream.is_open())avgstream.close();
 }
 
-void Model::InitialiseGenome(Genome& G, const Options& options, InputData& data, LogWriter& Log){
+void Model::InitialiseGenome(Genome& G, const Options& options, InputData& data, bclib::LogWriter& Log){
   G.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
   //print table of loci for R script to read
   string locustable = options.getResultsDir();
@@ -35,25 +35,25 @@ void Model::InitialiseGenome(Genome& G, const Options& options, InputData& data,
   locustable.clear();
 }
 
-void Model::InitialiseRegressionObjects(Options& options, InputData& data,  LogWriter& Log){
+void Model::InitialiseRegressionObjects(Options& options, InputData& data,  bclib::LogWriter& Log){
   
-  Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
-  Regression::OpenExpectedYFile(options.getEYFilename(), Log);
+  bclib::Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
+  bclib::Regression::OpenExpectedYFile(options.getEYFilename(), Log);
 
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
     //determine regression type and allocate regression objects
     if( data.getOutcomeType(r)== Binary ) 
-      R.push_back( new LogisticRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log) );
+      R.push_back( new bclib::LogisticRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log) );
     else if( data.getOutcomeType(r)== Continuous ) 
-      R.push_back( new LinearRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log));
+      R.push_back( new bclib::LinearRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log));
     else if( data.getOutcomeType(r)== CoxData ) 
-      R.push_back(new CoxRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log));
+      R.push_back(new bclib::CoxRegression(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log));
     
     R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
   }
 }
 
-void Model::Start(Options& options, InputData& data, LogWriter& Log){
+void Model::Start(Options& options, InputData& data, bclib::LogWriter& Log){
   // ******************* Initialize test objects and ergodicaveragefile *******************************
   InitialiseTests(options, data, Log);
   
@@ -83,7 +83,7 @@ void Model::Start(Options& options, InputData& data, LogWriter& Log){
   //     }
 }
 
-void Model::Run(Options& options, InputData& data, LogWriter& Log){
+void Model::Run(Options& options, InputData& data, bclib::LogWriter& Log){
   unsigned samples = options.getTotalSamples();
   unsigned burnin = options.getBurnIn();
   double coolness = 1.0; // default
@@ -149,17 +149,17 @@ void Model::OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & S
 }
 
 /// Output at end
-void Model::Finish(Options& options, InputData& data, LogWriter& Log){
+void Model::Finish(Options& options, InputData& data, bclib::LogWriter& Log){
   cout<< "\nIterations completed                       \n" << flush;
 
-  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
-  else Log.setDisplayMode(Quiet);
+  if(options.getDisplayLevel()==0)Log.setDisplayMode(bclib::Off);	
+  else Log.setDisplayMode(bclib::Quiet);
   
   Finalize(options, Log, data);
   
   //Expected Outcome
   if(options.getNumberOfOutcomes() > 0){
-    Regression::FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), 
+    bclib::Regression::FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), 
                                          data.getOutcomeLabels());
   }
   

@@ -2,6 +2,8 @@
 #include <cctype>
 #include <stdexcept>
 
+BEGIN_BCLIB_NAMESPACE
+
 //definitions of struct members of StringSplitter
 struct StringSplitter::StringSplitterState
 {
@@ -254,3 +256,4 @@ void StringSplitter::QuickTokenize(const std::string& text, std::vector<std::str
     b = text.find_first_not_of(delim, (e<text.size() ? e: text.size()) );
   }
 } 
+END_BCLIB_NAMESPACE

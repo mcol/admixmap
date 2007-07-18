@@ -24,6 +24,7 @@
 #include "bclib/RObjectWriter.h"
 
 using namespace std;
+using bclib::Rand;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 #define SQ( x ) x*x
@@ -42,33 +43,33 @@ PopHapMix::PopHapMix( const HapMixOptions& op, HapMixGenome& loci):
   fixRateParameter = false;
 }
 
-void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
+void PopHapMix::Initialise(const string& distanceUnit, bclib::LogWriter& Log){
   InitialiseMixtureProportions(Log);
   
   InitialiseArrivalRates(Log);
   
   // ** Open paramfile **
-  Log.setDisplayMode(Quiet);
+  Log.setDisplayMode(bclib::Quiet);
   if( strlen( options.getParameterFilename() ) ){
-    outputstream.open( options.getParameterFilename(), ios::out );
+    outputstream.open( options.getParameterFilename(), ios::out);
     if( !outputstream )
       {
-	Log << On << "ERROR: Couldn't open paramfile\n";
+	Log << bclib::On << "ERROR: Couldn't open paramfile\n";
 	exit( 1 );
       }
     else{
-      Log << Quiet << "Writing population-level parameters to " << options.getParameterFilename() << "\n";
+      Log << bclib::Quiet << "Writing population-level parameters to " << options.getParameterFilename() << "\n";
       InitializeOutputFile(distanceUnit);
     }
   }
   else{
-    Log << Quiet << "No paramfile given\n";
+    Log << bclib::Quiet << "No paramfile given\n";
   }
   
 }
 
 ///initialise global admixture proportions
-void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
+void PopHapMix::InitialiseMixtureProportions(bclib::LogWriter& Log){
   const unsigned L = Loci.GetNumberOfCompositeLoci();
   const unsigned KL = K*L;
   MixtureProps = new double[KL];
@@ -127,7 +128,7 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
     fill(MixturePropsPrior, MixturePropsPrior + K, DirParamInit);
 
     //write prior parameters to screen and log
-    Log << Quiet << "Dirichlet prior on mixture proportions" ;
+    Log << bclib::Quiet << "Dirichlet prior on mixture proportions" ;
     if(!options.getFixedMixturePropsPrecision()){
       Log << "\nGamma(" << MPDShape << ", " << MPDRate << ") prior on mixture proportion prior precision\n" ;
     }
@@ -137,33 +138,33 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
 
   }//end if not fixed proportions
   else
-    Log << Quiet << "Model with fixed mixture proportions\n";
+    Log << bclib::Quiet << "Model with fixed mixture proportions\n";
   
 }
 
-void PopHapMix::ReadInitialMixturePropsFromFile(const char* initfilename, LogWriter& Log){
+void PopHapMix::ReadInitialMixturePropsFromFile(const char* initfilename, bclib::LogWriter& Log){
   ifstream initfile(initfilename);
   
   if(initfile.is_open()){
-    Log << Quiet << "Reading initial values of mixture proportions from " << initfilename << "\n";
+    Log << bclib::Quiet << "Reading initial values of mixture proportions from " << initfilename << "\n";
     const unsigned KL = K*Loci.GetNumberOfCompositeLoci();
    //read until vector is filled or end-of-file
     for(unsigned index = 0; index < KL; ++index){
       if(!(initfile >>MixtureProps[index])){
       //reached end of file before vector full -> file too small
-      Log << On << "\nERROR: Too few entries in initialmixturepropsfile. Expected " << KL
+	Log << bclib::On << "\nERROR: Too few entries in initialmixturepropsfile. Expected " << KL
 	  << ", found " << index << "\n";
 	exit(1);
       }
       if(MixtureProps[index] < 0.0 || MixtureProps[index] > 1.0)
-	throw DataOutOfRangeException("mixture proportions", "between 0 and 1", "initialmixturepropsfile");
+	throw bclib::DataOutOfRangeException("mixture proportions", "between 0 and 1", "initialmixturepropsfile");
     }
 
     //see if anything more than whitespace left in file
     string test;
     initfile >> test;
     if(test.find_first_not_of(" \t\n\r") != string::npos){
-      Log << On << "WERROR: Too many entries in initialmixturepropsfile. Expected " << KL << "\n";
+      Log << bclib::On << "\nERROR: Too many entries in initialmixturepropsfile. Expected " << KL << "\n";
       exit(1);
     }
     
@@ -176,7 +177,7 @@ void PopHapMix::ReadInitialMixturePropsFromFile(const char* initfilename, LogWri
   }
 }
 
-void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
+void PopHapMix::InitialiseArrivalRates(bclib::LogWriter& Log){
  const unsigned L = Loci.GetNumberOfCompositeLoci();
 
   //set priors
@@ -199,7 +200,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   LambdaArgs.NumIntervals = numIntervals;
   
   //set up Hamiltonian sampler for lambda
-  ArrivalRateSampler = new HamiltonianMonteCarlo[numIntervals];
+  ArrivalRateSampler = new bclib::HamiltonianMonteCarlo[numIntervals];
   const vector<float>& lambdasamplerparams = options.getLambdaSamplerParams();
   size_t size = lambdasamplerparams.size();
   float initial_stepsize = size? lambdasamplerparams[0] : 0.06;
@@ -218,7 +219,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   LambdaArgs.h = hargs.shape / hargs.rate; // initialise h at prior mean 
   
   //write prior to screen and log
-  Log << Quiet << "Gamma(h, ";
+  Log << bclib::Quiet << "Gamma(h, ";
   if(fixRateParameter)
     Log << LambdaArgs.beta;
   else
@@ -253,7 +254,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
     ++locus;//skip first locus on each chromosome
     for(unsigned i = 1; i < Loci.GetSizeOfChromosome(c); ++i){
-      hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci.GetDistance(locus));
+      hargs.sum_lngamma_hd += bclib::lngamma(LambdaArgs.h*Loci.GetDistance(locus));
       hargs.distances[d] = Loci.GetDistance(locus);
       if(!useinitfile)//initialise at prior mean
         lambda[d]= Rand::gengam(LambdaArgs.h*Loci.GetDistance(locus), LambdaArgs.beta);
@@ -267,37 +268,37 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   
 }
 
-void PopHapMix::ReadInitialArrivalRatesFromFile(const char* initfilename, LogWriter& Log){
+void PopHapMix::ReadInitialArrivalRatesFromFile(const char* initfilename, bclib::LogWriter& Log){
   ifstream initfile(initfilename);
   
   if(initfile.is_open()){
-    Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
+    Log << bclib::Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
     
     //read initial values of h, beta
     initfile >> LambdaArgs.h >> LambdaArgs.beta;
     if(LambdaArgs.h <= 0.0)
-      throw DataOutOfRangeException("Arrival Rate mean", ">0", "initialarrivalratefile");
+      throw bclib::DataOutOfRangeException("Arrival Rate mean", ">0", "initialarrivalratefile");
     if(LambdaArgs.beta <= 0.0)
-      throw DataOutOfRangeException("Arrival Rate rate parameter", ">0", "initialarrivalratefile");
+      throw bclib::DataOutOfRangeException("Arrival Rate rate parameter", ">0", "initialarrivalratefile");
     
    //read until vector is filled or end-of-file
     for(vector<double>::iterator ar = lambda.begin(); ar != lambda.end(); ++ar){
       if(!(initfile >>*ar)){
       //reached end of file before vector full -> file too small
-	Log << On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
+	Log << bclib::On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
 	    << (unsigned)(lambda.size() + 2) << ", found " 
 	    << (unsigned)(lambda.size() - (lambda.end() - ar)+2) << "\n";
 	exit(1);
       }
       if(*ar <= 0.0)
-	throw DataOutOfRangeException("Arrival Rate", ">0", "initialarrivalratefile");
+	throw bclib::DataOutOfRangeException("Arrival Rate", ">0", "initialarrivalratefile");
     }
 
     //see if anything more than whitespace left in file
     string test;
     initfile >> test;
     if(test.find_first_not_of(" \t\n\r") != string::npos){
-      Log << On << "ERROR: Too many entries in initialarrivalratefile\n";
+      Log << bclib::On << "ERROR: Too many entries in initialarrivalratefile\n";
       exit(1);
     }
     initfile.close(); 
@@ -389,7 +390,7 @@ void PopHapMix::Sampleh_RandomWalk(){
      for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
        ++locus;//skip first locus on each chromosome
        for(unsigned i = 1; i < Loci.GetSizeOfChromosome(c); ++i){
-	       sum += lngamma(proposal*Loci.GetDistance(locus));
+	 sum += bclib::lngamma(proposal*Loci.GetDistance(locus));
        }
        ++locus;
      }
@@ -453,8 +454,8 @@ double PopHapMix::LambdaEnergy(const double* const x, const void* const vargs){
 
   double E = 0.0;
   try {
-    double lambda = myexp(*x);
-    double f = myexp(-lambda);
+    double lambda = bclib::eh_exp(*x);
+    double f = bclib::eh_exp(-lambda);
 
     for(unsigned k = 0; k < K; ++k){
       E -= n[k]  * log(              theta[k]*(1.0 - f) )//discordant, omitting constant term
@@ -482,13 +483,13 @@ void PopHapMix::LambdaGradient( const double* const x, const void* const vargs, 
   double f = 0.0;
   double lambda = 0.0;
   try {
-    lambda = myexp(*x);
-    f = myexp(-lambda);
+    lambda = bclib::eh_exp(*x);
+    f = bclib::eh_exp(-lambda);
   } catch(string s) {
     throw string("Error in LambdaGradient: " + s);
   }
-  catch(overflow e){
-    throw InfiniteGradient("LambdaGradient", "PopHapMix.cc");
+  catch(bclib::overflow e){
+    throw bclib::InfiniteGradient("LambdaGradient", "PopHapMix.cc");
   }
 
   //first compute dE / df
@@ -514,7 +515,7 @@ double PopHapMix::hlogf(double h, const void* const vargs){
   double logprior = 0.0;
   try{
     for(unsigned j = 0; j < args->NumIntervals; ++j){
-      sum += lngamma(h*args->distances[j]);
+      sum += bclib::lngamma(h*args->distances[j]);
     }
     loglikelihood = h*(args->Dlogbeta + args->sum_dloglambda) - sum;
     logprior = (args->shape-1.0)*log(h) - args->rate*h;
@@ -531,7 +532,7 @@ double PopHapMix::hdlogf(double h, const void* const vargs){
   double sum = 0.0;
   try{
     for(unsigned j = 0; j < args->NumIntervals; ++j){
-      sum += args->distances[j]*digamma(h*args->distances[j]);
+      sum += args->distances[j]*bclib::digamma(h*args->distances[j]);
     }
   }
   catch(std::string s){
@@ -546,7 +547,7 @@ double PopHapMix::hd2logf(double h, const void* const vargs){
   double sum = 0.0;
   try{
     for(unsigned j = 0; j < args->NumIntervals; ++j){
-      sum += args->distances[j]*args->distances[j]*trigamma(h*args->distances[j]);
+      sum += args->distances[j]*args->distances[j]*bclib::trigamma(h*args->distances[j]);
     }
   }
   catch(std::string s){
@@ -621,7 +622,7 @@ void PopHapMix::OutputAverageMixtureProps(ostream& out)const{
     out << sum[k] / (double)L << "\t";
 }
 
-void PopHapMix::OutputParams(int iteration, LogWriter &){
+void PopHapMix::OutputParams(int iteration, bclib::LogWriter &){
   //output to screen
   if( options.getDisplayLevel() > 2 )
     {
@@ -641,7 +642,7 @@ const double *PopHapMix::getGlobalMixtureProps()const{
   return MixtureProps;
 }
 
-void PopHapMix::printAcceptanceRates(LogWriter &Log) {
+void PopHapMix::printAcceptanceRates(bclib::LogWriter &Log) {
   double av = 0;//average acceptance rate
   for(unsigned j = 0; j < lambda.size(); ++j){
     av += ArrivalRateSampler[j].getAcceptanceRate();
@@ -702,7 +703,7 @@ void PopHapMix::OutputMixtureProps(const char* filename)const{
 void PopHapMix::OutputArrivalRatePosteriorMeans(const char* filename, int samples, const string& distanceUnit)const{
   if(filename == 0 || strlen(filename)==0)
     return;
-  RObjectWriter outfile(filename);
+  bclib::RObjectWriter outfile(filename);
 
   unsigned d = 0;//to index distances
   vector<double>::const_iterator i = SumLogLambda.begin();

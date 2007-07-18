@@ -27,7 +27,7 @@ public:
      \param options pointer to options object
      \param Log LogWriter, for mesages
   */
-  InputHapMixData(HapMixOptions *options, LogWriter &log); 
+  InputHapMixData(HapMixOptions *options, bclib::LogWriter &log); 
 
   /**
      Retrieves an individual's genotypes (obsolete).
@@ -73,7 +73,7 @@ private:
   HapMixGenotypeLoader* hGenotypeLoader;
 
   ///check contents of data files, after hey are read in
-  void CheckData(HapMixOptions *options, LogWriter &Log);
+  void CheckData(HapMixOptions *options, bclib::LogWriter &Log);
   /** read block state labels.
       Read from priorallelefreqfile, if specified. 
       Otherwise assign default names - BlockState1, BlockState2 etc
@@ -83,7 +83,7 @@ private:
   /**
      Checks contents of priorallelefreqfile
   */
-  void CheckAlleleFreqs(HapMixOptions *options, LogWriter &Log);
+  void CheckAlleleFreqs(HapMixOptions *options, bclib::LogWriter &Log);
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.
    */

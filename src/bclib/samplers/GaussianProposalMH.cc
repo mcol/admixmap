@@ -14,6 +14,8 @@
 #include <math.h>
 #include "bclib/rand.h"
 
+BEGIN_BCLIB_NAMESPACE
+
 GaussianProposalMH::GaussianProposalMH
 (double (*funct)( const double, const void* const ),
  double (*dfunct)( const double, const void* const ),
@@ -34,11 +36,11 @@ int GaussianProposalMH::Sample( double *x, const void* const args )
   //determine mode of target distribution
   //and set ddf to 2nd derivative at mode
   //double mode = FindModeByNewtonRaphson(*x, args);
-  double mode = ModeFinder::FindModeByNewtonRaphson(*x, &ddf, args, function, dfunction, ddfunction);
+  double mode = bclib::ModeFinder::FindModeByNewtonRaphson(*x, &ddf, args, function, dfunction, ddfunction);
 
   //generate proposal from Normal distribution centred on mode of target distribution with precision 
   //given as sqrt of -2nd derivative at the mode
-  double xnew = Rand::gennor( mode, 1 / sqrt( -ddf ) );
+  double xnew = bclib::Rand::gennor( mode, 1 / sqrt( -ddf ) );
 
   double LogTarget = (*function)( *x, args );//log of target dist at current value
   double NewLogTarget = (*function)( xnew, args );//log of target dist at proposal
@@ -47,7 +49,7 @@ int GaussianProposalMH::Sample( double *x, const void* const args )
 
   double LogAcceptanceProb = NewLogTarget - LogTarget + ProposalRatio;
   int accept = 0;
-  if( log( Rand::myrand() ) < LogAcceptanceProb ){
+  if( log( bclib::Rand::myrand() ) < LogAcceptanceProb ){
     *x = xnew;
     accept = 1;
   }
@@ -61,3 +63,5 @@ double GaussianProposalMH::LogNormalDensity(double x, double mu, double lambda)
 {
   return( -0.5 * lambda * ( x - mu ) * ( x - mu ) );
 }
+
+END_BCLIB_NAMESPACE

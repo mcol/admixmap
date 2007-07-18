@@ -25,8 +25,8 @@ GenotypeLoader::GenotypeLoader(){
   SexColumn = 0;
 }
 
-void GenotypeLoader::Read(const char* filename, unsigned NumLociInLocusfile, LogWriter& Log){
-  DataReader::ReadData(filename, geneticData_, Log);
+void GenotypeLoader::Read(const char* filename, unsigned NumLociInLocusfile, bclib::LogWriter& Log){
+  bclib::DataReader::ReadData(filename, geneticData_, Log);
   IsPedFile = determineIfPedFile();
   DetermineSexColumn( NumLociInLocusfile, Log);
   NumIndividuals = geneticData_.size() - 1;
@@ -43,7 +43,7 @@ unsigned GenotypeLoader::NumLoci()const{
 
 ///checks number of loci in genotypes file is the same as in locusfile, 
 ///and determines if there is a sex column
-void GenotypeLoader::DetermineSexColumn(unsigned NumLociInLocusfile, LogWriter& Log){
+void GenotypeLoader::DetermineSexColumn(unsigned NumLociInLocusfile, bclib::LogWriter& Log){
    // Determine if "Sex" column present in genotypes file.
   if (NumLociInLocusfile == this->NumLoci() - 1) {
     SexColumn = 0;//no sex col
@@ -78,7 +78,7 @@ vector<unsigned short> GenotypeLoader::GetGenotype(const string genostring)const
   vector<unsigned short> g;
  
   //strip quotes from string
-  const std::string str = StringConvertor::dequote(genostring);
+  const std::string str = bclib::StringConvertor::dequote(genostring);
   if(str.length()==0){
     //if empty string, interpret as missing genotype for backward compatibility
     g.push_back(0);
@@ -223,7 +223,7 @@ void GenotypeLoader::throwGenotypeError(int ind, int locus, std::string label, i
 
 bool GenotypeLoader::isFemale(unsigned i)const{
   if (SexColumn == 1){
-    int sex = StringConvertor::toInt(geneticData_[i][1]);
+    int sex = bclib::StringConvertor::toInt(geneticData_[i][1]);
     if (sex > 2) {
       cout << "Error: sex must be coded as 0 - missing, 1 - male or 2 - female.\n";
       exit(0);
@@ -262,7 +262,7 @@ void GenotypeLoader::clear(){
 
 }
 
-bool GenotypeLoader::CheckForUnobservedAlleles(const DataMatrix& LocusData, LogWriter& Log){
+bool GenotypeLoader::CheckForUnobservedAlleles(const bclib::DataMatrix& LocusData, bclib::LogWriter& Log){
   //sanity checks
   if(!(geneticData_.size()))
     throw runtime_error("CheckForUnobservedAlleles called when genotype data are not available\n");
@@ -278,7 +278,7 @@ bool GenotypeLoader::CheckForUnobservedAlleles(const DataMatrix& LocusData, LogW
 
     //loop over individuals, counting alleles
     for(unsigned i = 1; i < geneticData_.size(); ++i){
-      const string g = StringConvertor::dequote(geneticData_[i][locus+offset]);
+      const string g = bclib::StringConvertor::dequote(geneticData_[i][locus+offset]);
       //find separator in diploid genotypes
       string::size_type sep = g.find_first_of(GENOTYPE_DELIMS);
       const unsigned allele1 = atoi(g.substr(0, sep).c_str());

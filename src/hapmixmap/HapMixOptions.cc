@@ -266,7 +266,7 @@ void HapMixOptions::DefineOptions()
 
 }
 
-int HapMixOptions::checkOptions(LogWriter &Log, int ){
+int HapMixOptions::checkOptions(bclib::LogWriter &Log, int ){
   //check base options
   Options::checkOptions(Log, 1);
 

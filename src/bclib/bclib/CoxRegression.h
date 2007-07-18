@@ -1,9 +1,22 @@
 // *-*-C++-*-*
+/** 
+ *   CoxRegression.h
+ *   Class to represent and update parameters of a Cox regression model
+ *   Copyright (c) 2006-2007 David O'Donnell and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #ifndef COXREGRESSION_H
 #define COXREGRESSION_H 1
 
 #include "bclib/Regression.h"
 #include "bclib/GaussianProposalMH.h"
+
+BEGIN_BCLIB_NAMESPACE
 
 ///Struct to hold arguments for sampling logistic regression parameters
 typedef struct{
@@ -24,15 +37,15 @@ typedef struct{
 }CoxBetaArgs;
 
 ///class to sample the parameters of a Cox regression
-class CoxRegression : public Regression{
+class CoxRegression : public bclib::Regression{
 public:
-  CoxRegression(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+  CoxRegression(unsigned Number, double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 		LogWriter &Log);
   ~CoxRegression();
  
   void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
   //void Initialise(unsigned Number, const IndividualCollection* const individuals);
-  void ReadData(const DataMatrix& CoxData);
+  void ReadData(const bclib::DataMatrix& CoxData);
   double DerivativeInverseLinkFunction(unsigned i)const;
   double getDispersion()const;
   void OutputParams(std::ostream* out)const;
@@ -63,7 +76,8 @@ private:
   void plotloglikelihood(int j, const double* Covariates);
 
   CoxRegression();
-  void Initialise(double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+  void Initialise(double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 		  LogWriter &Log);
 };
+END_BCLIB_NAMESPACE
 #endif

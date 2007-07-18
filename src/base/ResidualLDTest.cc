@@ -273,20 +273,20 @@ void ResidualLDTest::Output(const std::vector<std::string>& LocusLabels){
   }
 }
 
-void ResidualLDTest::WriteFinalTable(const char* filename, const std::vector<std::string>& LocusLabels, LogWriter& Log){
+void ResidualLDTest::WriteFinalTable(const char* filename, const std::vector<std::string>& LocusLabels, bclib::LogWriter& Log){
   if(test){
-    TableWriter finaltable(filename);
-    Log << Quiet << "Tests for residual allelic association" << " written to " 
+    bclib::TableWriter finaltable(filename);
+    Log << bclib::Quiet << "Tests for residual allelic association" << " written to " 
  	<< filename << "\n";
 
-    finaltable << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue" << newline;
+    finaltable << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue" << bclib::newline;
     
     OutputTestsForResidualAllelicAssociation(finaltable, true, LocusLabels);
     finaltable.close();
   }
 }
 
-void ResidualLDTest::OutputTestsForResidualAllelicAssociation(FileWriter& outputstream, bool final,
+void ResidualLDTest::OutputTestsForResidualAllelicAssociation(bclib::FileWriter& outputstream, bool final,
 							      const std::vector<std::string>& LocusLabels){
   //cannot function in base class as it output a line for each dimension of score
   double *score = 0, *ObservedInfo = 0;
@@ -336,7 +336,7 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(FileWriter& output
       //compute chi-squared statistic
       try{
 	double* VinvU = new double[dim];
-	HH_solve(dim, ObservedInfo, score, VinvU);
+	bclib::HH_solve(dim, ObservedInfo, score, VinvU);
 	double chisq = 0.0;
 	for(int i = 0; i < dim; ++i){
 	  chisq += score[i] * VinvU[i];
@@ -346,19 +346,19 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(FileWriter& output
 	if(chisq < 0.0){
 	  outputstream << "NA" ;
 	  if(final) outputstream << "NA";
-	  outputstream << newline;
+	  outputstream << bclib::newline;
 	}
 	else {
 	  //compute p-value
 	  gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
 	  try{
 	    double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-	    if(final)outputstream << double2R(chisq) << double2R(pvalue)<< newline;
-	    else outputstream << double2R(-log10(pvalue)) << newline;
+	    if(final)outputstream << double2R(chisq) << double2R(pvalue)<< bclib::newline;
+	    else outputstream << double2R(-log10(pvalue)) << bclib::newline;
 	  }
 	  catch(...){
-	    if(final)outputstream << double2R(chisq) << "NA" << newline;
-	    else outputstream << "NA" << newline;
+	    if(final)outputstream << double2R(chisq) << "NA" << bclib::newline;
+	    else outputstream << "NA" << bclib::newline;
 	  }
 	  gsl_set_error_handler(old_handler);
 	}
@@ -366,7 +366,7 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(FileWriter& output
       catch(...){//in case ObservedInfo is rank deficient
 	outputstream  << "NA";
 	if(final)outputstream << dim << "NA" << "NA" ;
-	outputstream << newline;
+	outputstream << bclib::newline;
       }
 
 
