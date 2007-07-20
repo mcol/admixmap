@@ -25,7 +25,7 @@ public:
   bool LimitedLoci()const;
   bool Backup()const;
   const std::string& getPrefix()const;
-  unsigned getChrNum()const;
+  //unsigned getChrNum()const;
   unsigned long getMaxLoci()const;
   bool WriteCCFile()const;
   const char* getLocusFilename()const;
@@ -44,7 +44,7 @@ private:
   bool beVerbose, backup;
   std::string prefix;
   //bool LimitLoci;
-  unsigned Chr;//chromosome number
+  //  string Chr;//chromosome number
 
   std::string genotypesfilename, locusfilename;
   std::string incasecontrolfilename;

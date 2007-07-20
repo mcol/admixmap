@@ -23,7 +23,7 @@ my $slash = "/";
 if($^O eq "MSWin32"){ $slash = "\\";}
 
 my $beQuiet = 0;
-my $CHR = 0;
+my $CHR = '';
 my $Panel = "";
 my $Download = 0;
 my $Unzip = 0;
@@ -48,7 +48,7 @@ GetOptions(
 "d!"              => \$Download,
 "u!"              => \$Unzip,
 "f!"              => \$Format,
-"c=i"             => \$CHR,
+"c=s"             => \$CHR,
 "p=s"             => \$Panel,
 "gzip-path=s"     => \$gzip_path,
 "hapmap-url=s"    => \$HapMapURL,
@@ -89,7 +89,7 @@ if(!$dataprefix){
   $dataprefix_arg = "HapMapData/$Panel";
 }
 ##check arguments
-if($CHR < 1 || $CHR > 22){
+if(!($CHR eq 'x' || $CHR eq 'X') && ($CHR < 1 || $CHR > 22)){
   die "Invalid chromosome number: $CHR \n";
 }
 if(!($Panel eq "CEU" || $Panel eq "YRI" || $Panel eq "JPT+CHB" || $Panel eq "AS")){
@@ -97,6 +97,7 @@ if(!($Panel eq "CEU" || $Panel eq "YRI" || $Panel eq "JPT+CHB" || $Panel eq "AS"
 }
 #substitute AS (Asian)
 if($Panel eq "AS"){$Panel = "JPT+CHB";}
+if($CHR eq 'x'){$CHR = 'X';}
 
 if(!$beQuiet){
 ##write info
@@ -128,9 +129,13 @@ if(!$beQuiet){
 ## 1: download files from HapMap and decompress
 if ($Download){
   my $HapMapPrefix = "$HapMapURL/genotypes_chr${CHR}_${Panel}_r21_nr_fwd";
+  if($CHR eq 'X'){$HapMapPrefix = $HapMapPrefix . "_non-par";}
 
   my $LegendFile = "${HapMapPrefix}_legend.txt.gz";
   my $PhasedFile = "${HapMapPrefix}_phased.gz";
+  if($CHR eq 'X'){
+    $PhasedFile = "${HapMapPrefix}.phased.gz";
+  }
   my $SampleFile = "${HapMapPrefix}_sample.txt.gz";
   my @HapMapFiles = ($LegendFile, $PhasedFile, $SampleFile);
 
@@ -147,12 +152,14 @@ if ($Download){
   if(!$beQuiet){print "Downloading files from HapMap\n";}
   for( my $i = 0; $i < 3; ++$i){
     my $zipfile = "@outFiles[$i].gz";
+#print @HapMapFiles[$i];
+#print "\n";
     my $content = getstore( @HapMapFiles[$i], $zipfile);
       ##getstore returns the HTTP response code
       ## 200 = success
       ## 4xx, 5xx, 6xx = error
     if($content != 200){
-      die("Unable to retrieve data from HapMap website")
+      die("Unable to retrieve data from HapMap website - response code $content")
     }
 
     if ($Unzip){
@@ -167,7 +174,7 @@ if ($Download){
 if( $Format){
 #  if(!$beQuiet){print "Formatting data\n";}
 
-  my $cmd = "$formatter_exec -c=$CHR -p=$dataprefix_arg $formatter_args";
+  my $cmd = "$formatter_exec -p=$dataprefix_arg/chr$CHR $formatter_args";
 
   my $status = system($cmd);
   print "\nFormatter exited with status $status\n";

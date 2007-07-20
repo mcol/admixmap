@@ -45,17 +45,19 @@ int main(int argc, char **argv){
   if(options.Verbose()){
     cout << "******************************" << endl
 	 << "Beginning formatting" << endl;
-    cout << "\nprocessing chromosome " << options.getChrNum() << "  " << endl;
+    //cout << "\nprocessing chromosome " << options.getChrNum() << "  " << endl;
   }
 
   try{
-    string prefix;
-    {
-      stringstream ss;
-      ss << options.getPrefix() << "/chr" << options.getChrNum();
-      prefix = ss.str();
-    }
+    const string prefix = options.getPrefix();
+    //    {
+    //       stringstream ss;
+    //       ss << options.getPrefix() << "/chr" << options.getChrNum();
+    //       prefix = ss.str();
+    //    }
     // *** PHASE 0: remove monomorphic loci ***
+    if(options.Verbose())
+      cout << "Checking for monomorphic loci..." << endl;
     RemoveMonomorphicLoci(prefix, options.Verbose(), options.Backup()); 
 
    

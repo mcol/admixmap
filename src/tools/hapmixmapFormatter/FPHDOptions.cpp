@@ -27,7 +27,7 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
   outcasecontrolfilename;
   MaxLoci = 1000000000;  //some number > number of HapMap loci
   //LimitLoci = false;
-  Chr = 0;
+  //Chr = 0;
   flankLength = 10;//10Kb
   MinOverlap_kb = 5000;//5Mb
   MinOverlap_bp = (unsigned) (MinOverlap_kb * 1000.0);
@@ -38,10 +38,10 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
     exit(1);
   }
   ParseOptions(argc, argv);
-  if (Chr <= 0 || Chr > MAXCHROMOSOMES){
-    cerr << "ERROR: Invalid chromosome number: " << Chr << endl;
-    exit(1);
-  }
+//   if (Chr <= 0 || Chr > MAXCHROMOSOMES){
+//     cerr << "ERROR: Invalid chromosome number: " << Chr << endl;
+//     exit(1);
+//   }
 
 }
 
@@ -99,7 +99,7 @@ void FPHDOptions::StripSuffix(std::string& filename){
 void FPHDOptions::DefineOptions(bclib::OptionReader& opt){
   opt.addFlag('h', "help");
   opt.addFlag('v', "verbose");
-  opt.addOption('c', "chromosome", bclib::intOption, &Chr, true);
+  //  opt.addOption('c', "chromosome", bclib::stringOption, &Chr, true);
   opt.addOption('p', "prefix", bclib::stringOption, &prefix);
   opt.addOption('g', "genotypesfile", bclib::stringOption, &genotypesfilename);
   opt.addOption('l', "locusfile", bclib::stringOption, &locusfilename);
@@ -130,7 +130,7 @@ void FPHDOptions::PrintHelpText(){
        << "Usage: " << PROGNAME << " -c=[1...22] [option=value ...]" << endl << endl
        << "Options ('-' signs are optional), = denotes a default: " << endl
        << "-h   -help                  Print this help message and exit" << endl
-       << "-c   -chromosome            Chromosome number" << endl
+    //       << "-c   -chromosome            Chromosome number" << endl
        << "-v   -verbose               Be verbose" << endl
        << "-p   -prefix = .            Prefix where HapMap files are located." << endl 
        << "-l   -locusfile = loci      Output locus file prefix" << endl
@@ -160,8 +160,8 @@ void FPHDOptions::PrintHelpText(){
        << "     -initialmixturepropsfile" << endl
        << "                            File with initial values of mixture proportions." << endl
        << endl
-       << "Note that HapMap input files must be named 'chrN_phased.txt', 'chrN_sample.txt'" << endl
-       << "and 'chrN_legend.txt', where N is an integer from 1 to 22"
+       << "Note that HapMap input files must be named '[prefix]_phased.txt', '[prefix]_sample.txt'" << endl
+       << "and '[prefix]_legend.txt', where N is an integer from 1 to 22"
        << endl << endl;
 }
 
@@ -175,9 +175,9 @@ bool FPHDOptions::Verbose()const{
 const std::string& FPHDOptions::getPrefix()const{
   return prefix;
 }
-unsigned FPHDOptions::getChrNum()const{
-  return Chr;
-}
+// unsigned FPHDOptions::getChrNum()const{
+//   return Chr;
+// }
 
 bool FPHDOptions::Backup()const{
   return backup;

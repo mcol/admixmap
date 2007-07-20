@@ -1,6 +1,7 @@
 AM_CPPFLAGS=-I$(top_srcdir)/src/bclib
 AM_LDFLAGS = -all-static -L$(top_builddir)/src/bclib
-noinst_PROGRAMS = FPHD FUD
+noinst_PROGRAMS = FUD
+bin_PROGRAMS = FPHD
 FPHD_SOURCES = \
   FormatPhasedData.cpp \
   GenotypeEncoding.cpp \

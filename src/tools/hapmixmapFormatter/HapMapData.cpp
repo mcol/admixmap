@@ -163,8 +163,8 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
     exit(1);
   }
 
-  int gamete = 0;
-  int allele = 0;
+  int gamete = 0, linenum = 0, numMales = 0;
+  char allele;
   const unsigned NumLoci = Legend.size();
 
   phasedfile >> allele;
@@ -172,38 +172,48 @@ void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Leg
     //if (beVerbose)
     //cout << "\nChromosome " << options.getChrNum() << "  " << flush;
     string suffix;//to give gametes unique IDs
-    if (!(gamete % 2)){
+    if (!(linenum % 2)){
       samplefile >> ID >> scrap;
       suffix = "_1";
     }
     else
       suffix = "_2";
-    if (beVerbose)
-      cout << "\r" << gamete + 1 << " " << " gametes" << " " << flush;
 
     //write indiv id and sex
-    for(unsigned j = 0; j < Legend.getNumSubChromosomes(); ++j)
-      *(genotypesfiles[j]) << ID  <<  suffix << "\t";        // << sex[indiv] <<"\t";
+    if(allele == '0' || allele == '1'){
+      ++gamete;
+      for(unsigned j = 0; j < Legend.getNumSubChromosomes(); ++j)
+	*(genotypesfiles[j]) << ID  <<  suffix << "\t";        // << sex[indiv] <<"\t";
+    }else{
+      numMales++;
+    }
 
-    //write genotypes for first chromosome
-    for (unsigned j = 0; j <  NumLoci; ++j) {
+    //write genotypes 
+    for (unsigned j = 0; j < NumLoci; ++j) {
 
       //if (j < options.getMaxLoci())
-      if(j >= first && j<last){
+      if(j >= first && j<last && ( allele == '0' || allele == '1')){
 	for(vector<unsigned>::const_iterator sub = Legend[j].subchr.begin(); 
 	    sub != Legend[j].subchr.end(); ++sub){
-	  *(genotypesfiles[*sub]) << allele + 1 << " ";
+	  *(genotypesfiles[*sub]) << atoi(&allele) + 1 << " ";
 	}
       }
       phasedfile >> allele;
     }
-    ++gamete;
-    for(unsigned j = 0; j < Legend.getNumSubChromosomes(); ++j)
-      *(genotypesfiles[j]) << endl;
+    ++linenum;
+    if(allele == '0' || allele == '1')
+      for(unsigned j = 0; j < Legend.getNumSubChromosomes(); ++j)
+	*(genotypesfiles[j]) << endl;
+
+    if (beVerbose)
+      cout << "\r" << gamete << " " << " gametes" << " " << flush;
   }
   phasedfile.close();
   samplefile.close();
 
+  if(beVerbose && numMales > 0){//relevant only for X-chromosome
+    cout << " : " << numMales << " males and " << (gamete - numMales)/2 << " females." << endl;
+  }
 }
 
 void RemoveMonomorphicLoci( const string& prefix, bool beVerbose, bool backup){
@@ -235,17 +245,24 @@ void RemoveMonomorphicLoci( const string& prefix, bool beVerbose, bool backup){
     cerr << "ERROR: cannot open " << PhasedFilename << endl;
     exit(1);
   }
-  char* genotypes = new char[2*NumLoci];
-  vector<unsigned> AlleleSums(NumLoci, 0);
-  unsigned NumIndivs = 0;
-  while(! (phasedfile.get(genotypes, 2*NumLoci).eof())){
-    char* tok = genotypes;
-    for(unsigned i = 0; i < NumLoci ; ++i, tok+=2){
-      AlleleSums[i] += atoi(tok);
+  //char* genotypes = new char[2*NumLoci];//2* NumLoci to include spaces between characters
+  string genotypes;
+  vector<unsigned> AlleleSums(NumLoci, 0);//counts of 1's in file
+  unsigned NumIndivs = 0, NumGametes = 0;
+  //while(! (phasedfile.get(genotypes, 2*NumLoci).eof())){
+  while(getline(phasedfile, genotypes)){
+    //char* tok = genotypes;
+    for(unsigned i = 0; i < NumLoci ; ++i/*, tok+=2*/){
+      //skip '-'s (second X-chr gamete in males)
+      //if(*tok == '1')
+      if(genotypes[2*i] == '1')
+	(AlleleSums[i])++;
     }
     ++NumIndivs;
+    if(genotypes[0] != '-')//skip second gamete in males
+      ++NumGametes;
   }
-
+//delete[] genotypes;
   phasedfile.close();
   phasedfile.clear();
 
@@ -253,7 +270,7 @@ void RemoveMonomorphicLoci( const string& prefix, bool beVerbose, bool backup){
   vector<bool> isMM;
   unsigned numMM = 0;
   for(vector<unsigned>::const_iterator i = AlleleSums.begin(); i != AlleleSums.end(); ++i){
-    if(*i == 0 || *i == NumIndivs){//is monomorphic
+    if(*i == 0 || *i == NumGametes){//is monomorphic
       isMM.push_back(true);
       ++numMM;
     }
@@ -296,7 +313,7 @@ void RemoveMonomorphicLoci( const string& prefix, bool beVerbose, bool backup){
       exit(1);
     }
 
-    unsigned g;
+    char g;
     for(unsigned i = 0; i < NumIndivs; ++i){
       for(locus = 0; locus < NumLoci; ++locus){
 	phasedfile >> g;
@@ -304,6 +321,7 @@ void RemoveMonomorphicLoci( const string& prefix, bool beVerbose, bool backup){
 	  outphasedfile << g << " ";
 	}
       }
+      outphasedfile << endl;
     }//end i loop
     phasedfile.close();
     outphasedfile.close();
