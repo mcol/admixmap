@@ -16,13 +16,13 @@
  */
 
 #include <iostream>
-#include "bcppcl/OptionReader.h"
+#include "bclib/OptionReader.h"
 
 void example( int argc, char* argv[] );
 void PrintUsage();
 
 using namespace::std;
-using namespace::bcppcl;
+using namespace::bclib;
 
 int main( int argc, char* argv[] ){
 

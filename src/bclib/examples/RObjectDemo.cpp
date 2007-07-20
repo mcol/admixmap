@@ -1,4 +1,4 @@
-#include "../bcppcl/RObjectWriter.h"
+#include "../bclib/RObjectWriter.h"
 #include <vector>
 #include <string>
 
@@ -6,7 +6,7 @@ using std::vector;
 using std::string;
 int main(){
 
-  RObjectWriter R("testR.txt");
+  bclib::RObjectWriter R("testR.txt");
 
   R << "label1" << 1 << 2 << 3 << 4 << Rcomment("line1") << newline
     << Rcomment("blank line") << newline
