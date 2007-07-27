@@ -50,6 +50,11 @@ HapMixOptions::~HapMixOptions(){
 }
 
 // each option has a function to return its value
+
+bool HapMixOptions::outputParams()const{
+  return ( ParameterFilename.length() || RegressionOutputFilename.length() || FreqPrecisionOutputFilename.length());
+}
+
 bool HapMixOptions::getFixedAlleleFreqs() const{
   return fixedallelefreqs;
 }

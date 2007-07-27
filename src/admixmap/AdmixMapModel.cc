@@ -278,7 +278,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
 	    }
 	    for(unsigned r = 0; r < R.size(); ++r)//regression params
-	      R[r]->OutputErgodicAvg(samples,&avgstream);
+	      R[r]->OutputErgodicAvg(samples,avgstream);
 
 	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
 	    if(options.getChibIndicator()) AdmixedIndividuals->OutputErgodicChib(&avgstream, options.getFixedAlleleFreqs());
@@ -298,18 +298,52 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log){
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
+  bclib::Delimitedstdout ScreenWriter(' ');
+
   if(options->getIndAdmixHierIndicator()  ){
     //output population-level parameters only when there is a hierarchical model on indadmixture
     // ** pop admixture, sumintensities
-    if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
+    if(options->getPopulations() > 1){
+      //write to file
+      if( iteration > options->getBurnIn() ){
+	L->OutputParams();
+	//write to R object
+	L->OutputParams(paramstream);
+      }
+      //write to screen
+      if(options->getDisplayLevel()>2)
+	L->OutputParams(ScreenWriter);
+    }
+    
     // ** dispersion parameter (if dispersion model)
-    A.OutputEta(iteration, options, Log);
+    if( iteration > options->getBurnIn() ){
+      //write to file
+      A.OutputEta();
+      //write to R object
+      A.OutputEta(paramstream);
+    }
+    //write to screen
+    if(options->getDisplayLevel()>2)
+      A.OutputEta(ScreenWriter);
   }
  
   // ** regression parameters
-  for(unsigned r = 0; r < R.size(); ++r)
-    R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
-  
+  for(unsigned r = 0; r < R.size(); ++r){
+    //output regression parameters to file if after burnin and to screen if displaylevel >2
+    if( iteration > options->getBurnIn() ){
+      //write to paramfile
+      R[r]->OutputParams(options->getNumberOfOutcomes());
+      //write to R object
+      R[r]->OutputParams(paramstream);
+    }
+    //write to screen
+    if(options->getDisplayLevel()>2){
+      if(R.size()>1)
+	cout << "\nRegression " << r +1 << " ";
+      R[r]->OutputParams(ScreenWriter);
+    }
+  }
+
   // ** new line in log file but not on screen 
   if( iteration == 0 && (options->getIndAdmixHierIndicator() || options->getNumberOfOutcomes())) {
     Log.setDisplayMode(Off);
@@ -326,6 +360,8 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
     }
   }
   // cout << endl;
+  if( iteration > options->getBurnIn() )
+    paramstream << bclib::newline;
 }
 
 void AdmixMapModel::PrintAcceptanceRates(const Options& _options, LogWriter& Log){
@@ -424,7 +460,69 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     Log << "\nAnnealed Importance Sampling estimates log marginal likelihood as " << AISsumlogz << "\n";
   }
 
+  //if(options.outputParams())
+  {
+    WriteParamsAsRObjectDimensions(options, data);
+  }
+  
 }
+
+void AdmixMapModel::WriteParamsAsRObjectDimensions(const AdmixOptions& options, const InputData& data){
+  //write dimensions and dimnames of R object holding sampled parameters
+
+  const Vector_s& PopulationLabels = data.GetHiddenStateLabels();
+
+  //population admixture and sumintensities
+  vector<vector<string> > dimnames(1);
+  //if(strlen(options.getParameterFilename()))
+  {
+    for( int i = 0; i < options.getPopulations(); i++ ) {
+      stringstream ss;
+      ss << "Dirichlet." << PopulationLabels[i];
+      dimnames[0].push_back(ss.str());
+    }
+    //SumIntensities
+    if( options.isGlobalRho() )  dimnames[0].push_back("sumIntensities");
+    else  dimnames[0].push_back("sumIntensities.mean");
+    
+  }
+  
+  //allele freq precision
+  //if(strlen(options.getEtaOutputFilename()))
+  {
+    //dispersion model
+    if(strlen( options.getHistoricalAlleleFreqFilename() )){
+      for( int k = 0; k < options.getPopulations(); k++ ){
+	stringstream ss;
+	ss << "eta." << PopulationLabels[k]; 
+	dimnames[0].push_back(ss.str());
+      }
+    }
+    //correlated freqs model
+    else if(options.getCorrelatedAlleleFreqs()){
+      dimnames[0].push_back("eta"); 
+    }
+  }
+  
+  //regression parameters
+  //if(strlen(options.getRegressionOutputFilename()))
+  {
+    for(unsigned r = 0; r < R.size(); ++r){
+      dimnames[0].push_back("intercept");
+      const vector<string>& CovariateLabels = data.getCovariateLabels();
+      for(vector<string>::const_iterator i = CovariateLabels.begin(); i < CovariateLabels.end(); ++i)
+	dimnames[0].push_back(*i);
+      if(R[r]->getRegressionType()==Linear)dimnames[0].push_back("precision");
+    }
+  }
+    
+  vector<int> dims;
+  dims.push_back(dimnames[0].size());
+  dims.push_back(options.getTotalSamples() - options.getBurnIn());
+
+  paramstream.close(dims, dimnames);
+}
+
 void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, LogWriter& Log){
 
   //cast Options object to AdmixOptions for access to ADMIXMAP options
@@ -444,47 +542,49 @@ void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, Lo
     AlleleFreqTest.Initialise(&options, &Loci, Log );  
   if( options.getHWTestIndicator() )
     HWtest.Initialise(Loci.GetTotalNumberOfLoci());
-  InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
+  //InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
 
 
 }
 //this function is here because three different objects have to write to avgstream
-void AdmixMapModel::InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
+void AdmixMapModel::InitializeErgodicAvgFile(const Options& _options, LogWriter &Log,  
 				     const Vector_s& PopulationLabels, const Vector_s& CovariateLabels){
+  AdmixOptions& options = (AdmixOptions&) _options;
+
   Log.setDisplayMode(bclib::Quiet);
   //Open ErgodicAverageFile  
-  if( strlen( options->getErgodicAverageFilename() ) ) {
-    avgstream.open( options->getErgodicAverageFilename(), ios::out );
+  if( strlen( options.getErgodicAverageFilename() ) ) {
+    avgstream.open( options.getErgodicAverageFilename(), ios::out );
     if( ! avgstream ){
       Log.setDisplayMode(bclib::On);
       Log << "ERROR: Couldn't open Ergodic Average file\n";
       //exit( 1 );
     } else {
       Log << "Writing ergodic averages of parameters to "
-	  << options->getErgodicAverageFilename() << "\n\n";
+	  << options.getErgodicAverageFilename() << "\n\n";
     }
     
     // Header line of ergodicaveragefile
-    if( options->getIndAdmixHierIndicator() ){
-      if(options->getPopulations()>1){
-	  for( int i = 0; i < options->getPopulations(); i++ ){
+    if( options.getIndAdmixHierIndicator() ){
+      if(options.getPopulations()>1){
+	  for( int i = 0; i < options.getPopulations(); i++ ){
 	    avgstream << PopulationLabels[i] << "\t";
 	  }
-	if( options->isGlobalRho() ) avgstream << "sumIntensities\t";
+	if( options.isGlobalRho() ) avgstream << "sumIntensities\t";
 	else avgstream << "sumIntensities.mean\t";
       }
       
       // dispersion parameters
-      if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-	for( int k = 0; k < options->getPopulations(); k++ ){
+      if( strlen( options.getHistoricalAlleleFreqFilename() ) ){
+	for( int k = 0; k < options.getPopulations(); k++ ){
 	  avgstream << "eta" << k << "\t";
 	}
       }
     }//end if hierarchical model
 
     // Regression parameters
-    if( options->getNumberOfOutcomes() > 0 ){
-      for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
+    if( options.getNumberOfOutcomes() > 0 ){
+      for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
 	if(IC->getOutcomeType(r)!=CoxData)
 	avgstream << "intercept\t";
 
@@ -497,7 +597,7 @@ void AdmixMapModel::InitializeErgodicAvgFile(const AdmixOptions* const options, 
     }
 
     avgstream << "MeanDeviance\tVarDeviance\t";
-    if(options->getChibIndicator()){// chib calculation
+    if(options.getChibIndicator()){// chib calculation
       avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
 		 << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
     }

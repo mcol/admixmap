@@ -4,7 +4,7 @@
 #include "HapMixFilenames.h"
 #include "gsl/gsl_cdf.h"
 #include "gsl/gsl_math.h"//for gsl_finite
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 #include "bclib/LogWriter.h"
 
 MantelHaenszelTest::MantelHaenszelTest(){
@@ -108,15 +108,15 @@ void MantelHaenszelTest::Output(const std::vector<std::string>& LocusLabels){
 void MantelHaenszelTest::WriteFinalTable(const string& ResultsDir, 
 					 const std::vector<std::string>& LocusLabels, bclib::LogWriter& Log){
   const string filename = ResultsDir + "/" + MH_TEST_FINAL;
-  bclib::TableWriter finaltable(filename.c_str());
+  bclib::DelimitedFileWriter finaltable(filename.c_str());
   Log << bclib::Quiet << "Mantel-Haentszel tests writen to " << filename << "\n";
   //write header
-  finaltable << "Loci\tScore\tCompInfo\tObsInfo\tPercentInfo\tzscore\tPValue" << bclib::newline;
+  finaltable << "Loci" << "Score" << "CompInfo" << "ObsInfo" << "PercentInfo" << "zscore" << "PValue" << bclib::newline;
   OutputTest(finaltable, LocusLabels, true);
   finaltable.close(); 
 }
 
-void MantelHaenszelTest::OutputTest( bclib::FileWriter& outfile, const std::vector<std::string>& LocusLabels, bool final){
+void MantelHaenszelTest::OutputTest( bclib::DelimitedFileWriter& outfile, const std::vector<std::string>& LocusLabels, bool final){
   unsigned locus = 0;
   //loop over pairs of loci
   //NOTE: Exp = sum_over_tables ((obs first cell) - (Exp first cell))

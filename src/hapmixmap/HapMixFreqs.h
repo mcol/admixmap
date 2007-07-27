@@ -43,8 +43,8 @@ public:
   void SamplePriorPrecision(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2);
   void SamplePriorProportions(unsigned locus, double sumlogfreqs1, double sumlogfreqs2);
   void OutputErgodicAvg( int samples, std::ofstream *avgstream)const;
-  //void OutputPriorParams();
-  void OutputPriorParams(bool tofile, bool toscreen);
+  void OutputPriorParams();
+  void OutputPriorParams(bclib::Delimitedostream&);
   void OutputPosteriorMeans(const char* filename, bclib::LogWriter& Log)const;
   void OutputFinalValues(const char* filename, bclib::LogWriter& Log)const;
   //double getHapMixPriorRate()const{return HapMixPriorRate;};
@@ -80,6 +80,7 @@ private:
   unsigned long NumEtaUpdates;
   double* SumEta;//cumulative sum of eta
   double SumLambda;// cumulative sum of EtaRate
+  double SampleMeanEta, SampleVarEta;
 
   bclib::StepSizeTuner* EtaSampler;
   bclib::AdaptiveRejection MuSampler;
@@ -88,7 +89,7 @@ private:
   //TODO: this should be static. No problem in practice as we only have one object of this class
   FreqArray DiploidGenotypeProbs;
 
-  std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior precision
+  bclib::DelimitedFileWriter allelefreqprioroutput;//to output mean and variance of frequency prior precision
 
   void LoadAlleleFreqs(HapMixOptions* const options, InputData* const data_, bclib::LogWriter &Log);
   void InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const options, bclib::LogWriter& Log);

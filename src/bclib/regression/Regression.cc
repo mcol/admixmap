@@ -21,7 +21,7 @@ using std::string;
 
 BEGIN_BCLIB_NAMESPACE
 
-std::ofstream Regression::outputstream;
+bclib::DelimitedFileWriter Regression::outputstream;
 RObjectWriter Regression::EYStream;
 int Regression::NumIndividuals;
 int Regression::NumOutcomeVars;
@@ -57,7 +57,7 @@ void Regression::OpenOutputFile(const unsigned NumOutcomes, const char* const fi
   NumOutcomeVars = NumOutcomes;
   if ( NumOutcomes){ 
     if ( strlen( filename ) ){
-      outputstream.open( filename, std::ios::out );
+      outputstream.open( filename );
       if( !outputstream )
 	{
 	  Log.setDisplayMode(On);
@@ -78,11 +78,11 @@ void Regression::OpenOutputFile(const unsigned NumOutcomes, const char* const fi
 void Regression::InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes)
 {
   // Header line of paramfile
-  outputstream << "intercept\t";
+  outputstream << "intercept";
   for( unsigned i = 0; i < CovariateLabels.size(); i++ ){
-    outputstream << CovariateLabels[i] << "\t";
+    outputstream << CovariateLabels[i] ;
   }
-  if(NumOutcomes == RegNumber+1)outputstream << std::endl;
+  if(NumOutcomes == RegNumber+1)outputstream << bclib::newline;
 }
 
 void Regression::OpenExpectedYFile(const char* Filename, LogWriter & Log){
@@ -157,31 +157,23 @@ void Regression::getExpectedOutcome(const double* const beta, const double* cons
   getExpectedOutcome(beta, X, EY, n, d, -1, 0.0);
 }
 
-void Regression::OutputParams(std::ostream* out)const{
+void Regression::OutputParams(bclib::Delimitedostream& out)const{
   for( int j = 0; j < NumCovariates; j++ ){
-    out->width(9);
-    (*out) << std::setprecision(6) << beta[j] << "\t";
+    out << beta[j];
   }
 }
 
-void Regression::Output(const unsigned NumberOfOutcomes, bool toScreen, bool afterBurnIn){
-  //output to screen
-  if( toScreen )
-    {
-      if(NumberOfOutcomes>1)std::cout << "\nRegression " << RegNumber +1<< "\t";
-      OutputParams(&std::cout);
-      std::cout << std::endl;
-    }
-  //Output to paramfile after BurnIn
-  if( afterBurnIn ){
-    OutputParams(&outputstream);
-    if(RegNumber==NumberOfOutcomes-1) outputstream << std::endl;
+//write params to file
+void Regression::OutputParams(unsigned NumOutcomes){
+  if(outputstream.is_open()){
+    OutputParams(outputstream);
     //output new line in paramfile when last regression model
+    if(RegNumber == NumOutcomes-1) outputstream << bclib::newline;
   }
 }
 
 void Regression::OutputExpectedY(){
-  //output kth Expected Outcome to file
+  //output Expected Outcome to file
   if(EYStream.is_open()){
     for(int i = 0; i < NumIndividuals; ++i)
       EYStream << ExpectedY[i];
@@ -206,11 +198,11 @@ void Regression::FinishWritingEYAsRObject(unsigned NumIterations, const std::vec
   }
 }
 
-void Regression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
+void Regression::OutputErgodicAvg(int samples, std::ofstream& avgstream)const{
  //output to ergodicaveragefile
   for( int j = 0; j < NumCovariates; j++ ){
-    avgstream->width(9);
-    *avgstream << std::setprecision(6) << SumBeta[j] / samples << "\t";
+    avgstream.width(9);
+    avgstream << std::setprecision(6) << SumBeta[j] / samples << "\t";
   }
 }
 

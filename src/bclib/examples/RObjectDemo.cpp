@@ -8,9 +8,9 @@ int main(){
 
   bclib::RObjectWriter R("testR.txt");
 
-  R << "label1" << 1 << 2 << 3 << 4 << Rcomment("line1") << newline
-    << Rcomment("blank line") << newline
-    << "label2" << 5 << 6 << 7 << 8 << Rcomment("line2") << newline;
+  R << "label1" << 1 << 2 << 3 << 4 /*<< Rcomment("line1")*/ << bclib::newline
+    //<< Rcomment("blank line") << bclib::newline
+    << "label2" << 5 << 6 << 7 << 8 /*<< Rcomment("line2")*/ << bclib::newline;
 
   vector<int> dims;
   dims.push_back(5);

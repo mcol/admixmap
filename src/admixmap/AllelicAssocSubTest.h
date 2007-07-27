@@ -17,7 +17,7 @@
 #include <vector>
 class CompositeLocus;
 namespace bclib{
-  class FileWriter;
+  class DelimitedFileWriter;
 }
 
 ///base class for tests in the AllelicAssocTest class
@@ -30,7 +30,7 @@ public:
   virtual void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 			    double YMinusEY, double phi, double DInvLink) = 0;
   virtual void Accumulate() = 0;
-  virtual void Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
+  virtual void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 		      bool final, unsigned numUpdates) = 0;
   static void SetNumCovars(unsigned);
 
@@ -48,11 +48,11 @@ protected:
   static void CentreAndSum(unsigned dim, double *score, double* info, 
 			   double *sumscore, double* sumscoresq, double* suminfo);
 
-  static void OutputScoreTest(bclib::FileWriter& outputstream, unsigned dim, std::vector<std::string> labels,
+  static void OutputScoreTest(bclib::DelimitedFileWriter& outputstream, unsigned dim, std::vector<std::string> labels,
 			      const double* score, const double* scoresq, const double* info, 
 			      bool final, unsigned, unsigned numUpdates );
   
-  static void OutputScalarScoreTest( bclib::FileWriter& outputstream, std::string label,
+  static void OutputScalarScoreTest( bclib::DelimitedFileWriter& outputstream, std::string label,
 				     const double score, const double scoresq, const double info, 
 				     bool final, unsigned numUpdates);
 
@@ -66,7 +66,7 @@ public:
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
+  void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 	      bool final, unsigned numUpdates);
 private:
   double SumScore;
@@ -83,7 +83,7 @@ public:
   virtual void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 		      double YMinusEY, double phi, double DInvLink);
   virtual void Accumulate();
-  virtual void Output(bclib::FileWriter& outfile, const CompositeLocus* const, 
+  virtual void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const, 
 		      bool final, unsigned numUpdates);
 protected:
   double* SumScore;
@@ -103,7 +103,7 @@ public:
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(bclib::FileWriter& outfile, const CompositeLocus* const, 
+  void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const, 
 	      bool final, unsigned numUpdates);
 private:
   HaplotypeTest();
@@ -119,7 +119,7 @@ public:
   void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
 	      double YMinusEY, double phi, double DInvLink);
   void Accumulate();
-  void Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
+  void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 	      bool final, unsigned numUpdates);
 
 private:

@@ -784,16 +784,11 @@ void print_vector(std::vector<int> a){
 }
 ///log function with error handling
 double eh_log(double x){
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  gsl_sf_result result;
-  int status = gsl_sf_log_e(x, &result);
+  //disable default gsl error handler
+  gsl_error_handler_t* old_handler = gsl_set_error_handler(&bclib::GSLErrorHandler);
+  const double result = gsl_sf_log(x);
   gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-    stringstream s;
-    s << "Error in log(" << x << "): "<< gsl_strerror(status);
-    throw s.str();
-  }
-  return result.val;
+  return result;
 }
 ///exp function with error handling
 double eh_exp(double x){
@@ -808,61 +803,30 @@ double eh_exp(double x){
   gsl_set_error_handler (old_handler);//restore gsl error handler 
   return result;
 
-//   if(x < GSL_LOG_DBL_MIN)return 0.0;//avoids underflow
-//   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-//   gsl_sf_result result;
-//   int status = gsl_sf_exp_e(x, &result);
-//   gsl_set_error_handler (old_handler);//restore gsl error handler 
-  
-//   if(status == 16) throw overflow("overflow", );
-//   if(status){
-//     stringstream s;
-//     s << "Error in exp(" << x << "): "<< status << " " << gsl_strerror(status);
-//     throw s.str();
-//     return 0.0;
-//   }
-//   return result.val;
 }
 ///lngamma function with error handling
 double lngamma(double x){
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  gsl_sf_result result;
-  int status = gsl_sf_lngamma_e(x, &result);
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-    stringstream s;
-    s << "Error in lngamma(" << x << "): "<< gsl_strerror(status);
-    throw s.str();
-    return 0.0;
-  }
-  return result.val;
+  //disable default gsl error handler
+  gsl_error_handler_t* old_handler = gsl_set_error_handler(&bclib::GSLErrorHandler);
+  const double result = gsl_sf_lngamma(x);
+  //restore gsl error handler 
+  gsl_set_error_handler (old_handler);
+  return result;
 }
 ///digamma function with error handling
 double digamma(double x){
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  gsl_sf_result result;
-  int status = gsl_sf_psi_e(x, &result);
+  //disable default gsl error handler
+  gsl_error_handler_t* old_handler = gsl_set_error_handler(&bclib::GSLErrorHandler);
+  const double result = gsl_sf_psi(x);
   gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-    stringstream s;
-    s << "Error in digamma(" << x << "): "<< gsl_strerror(status);
-    throw s.str();
-    return 0.0;
-  }
-  return result.val;
+  return result;
 }
 ///trigamma function with error handling
 double trigamma(double x){
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  gsl_sf_result result;
-  int status = gsl_sf_psi_n_e( 1, x, &result);
+  //disable default gsl error handler
+  gsl_error_handler_t* old_handler = gsl_set_error_handler(&bclib::GSLErrorHandler);
+  double result = gsl_sf_psi_n( 1, x);
   gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-    stringstream s;
-    s << "Error in trigamma(" << x << "): "<< gsl_strerror(status);
-    throw s.str();
-    return 0.0;
-  }
-  return result.val;
+  return result;
 }
 END_BCLIB_NAMESPACE

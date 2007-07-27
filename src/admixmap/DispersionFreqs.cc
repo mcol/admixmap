@@ -823,7 +823,7 @@ void DispersionFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta) {
 void DispersionFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, bclib::LogWriter &Log)
 {
   Log.setDisplayMode(bclib::On);
-  outputstream.open( options->getEtaOutputFilename(), ios::out );
+  outputstream.open( options->getEtaOutputFilename());
   if( !outputstream )
     {
       Log <<  "ERROR: Couldn't open dispparamfile\n";
@@ -832,15 +832,18 @@ void DispersionFreqs::InitializeEtaOutputFile(const AdmixOptions* const options,
   else{
     Log << "Writing dispersion parameters to " << options->getEtaOutputFilename() << "\n";
     //Dispersion parameters (eta)
+    outputstream.delimit(false);
+
     if(IsHistoricAlleleFreq){
       for( int k = 0; k < Populations; k++ ){
 	outputstream << "\"eta." << PopulationLabels[k]<< "\"\t"; 
       }
-      outputstream << endl;
     }
     else if(CorrelatedAlleleFreqs){
-      outputstream << "\"eta\"" <<endl; 
+      outputstream << "\"eta\""; 
     }
+    outputstream.delimit(true);
+    outputstream << bclib::newline;
   }
 }
 
@@ -858,56 +861,22 @@ void DispersionFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)co
   }
 }
 
-void DispersionFreqs::OutputEta(int iteration, const AdmixOptions *options, bclib::LogWriter &Log){
-  if( IsHistoricAlleleFreq ){
-    //output to logfile
-    if( iteration == -1 )
-      {
-	Log.setDisplayMode(bclib::Off);
-	Log.setPrecision(6);
-	for( int j = 0; j < Populations; j++ ){
-	  //Log.width(9);
-	  Log << eta[j];
-	}
-      }
-    //output to screen
-    if( options->getDisplayLevel()>2 )
-      {
-	for( int j = 0; j < Populations; j++ ){
-	  cout.width(9);
-	  cout << setprecision(6) << eta[j] << " ";
-	}
-      }
-    //Output to paramfile after BurnIn
-    if( iteration > options->getBurnIn() ){
-      outputstream << eta[0];
-      for( int j = 1; j < Populations; j++ ){
-	outputstream << "\t" << eta[j];
-      }
+void DispersionFreqs::OutputEta(){
+  if(outputstream.is_open()){
+    OutputEta(outputstream);
+    outputstream << bclib::newline;
+  }
+}
 
-      outputstream << endl;
+void DispersionFreqs::OutputEta(bclib::Delimitedostream& os){
+  cout.width(9);
+  if( IsHistoricAlleleFreq ){
+    for( int j = 0; j < Populations; j++ ){
+      os << setprecision(6) << eta[j];
     }
   }
   else if(CorrelatedAlleleFreqs){
-    
-    //output to logfile
-    if( iteration == -1 )
-      {
-	Log.setDisplayMode(bclib::Off);
-	Log.setPrecision(6);
-	Log.width(9);
-	Log << eta[0];
-      }
-    //output to screen
-    if( options->getDisplayLevel()>2 )
-      {
-	cout.width(9);
-	cout << setprecision(6) << eta[0] << " ";
-      }
-    //Output to paramfile after BurnIn
-    if( iteration > options->getBurnIn() ){
-      outputstream << eta[0]<< endl;
-    }
+    os << setprecision(6) << eta[0] ;
   }
 }
 

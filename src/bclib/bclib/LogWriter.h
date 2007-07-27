@@ -13,7 +13,9 @@
 #ifndef LOGWRITER_H
 #define LOGWRITER_H 1
 
-#include "FileWriter.h"
+#include "bclib/bclib.h"
+#include <fstream>
+#include <string>
 
 BEGIN_BCLIB_NAMESPACE
 
@@ -35,7 +37,7 @@ enum DisplayMode {Off, Quiet, On};
 ///Class to write to a logfile.
 ///Use insertion operator after setting appropriate display mode.
 //Currently does not accept manipulators like flush, endl;
-class LogWriter : public FileWriter
+class LogWriter 
 {
 public:
   ///constructor - supply filename and indicate behaviour for quiet mode
@@ -64,6 +66,7 @@ public:
   void ProcessingTime();
 
 private:
+  std::ofstream file;
   bool verbose;///< determines if output goes to screen in quiet mode
   time_t StartTime;
   DisplayMode toscreen;

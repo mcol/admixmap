@@ -18,6 +18,7 @@
 #include "Genome.h"
 #include "bclib/StepSizeTuner.h"//for sampling globalrho
 #include "bclib/DirichletParamSampler.h"//for sampling pop admix
+#include "bclib/DelimitedFIleWriter.h"
 
 class InputData;
 class AdmixIndividualCollection;
@@ -38,8 +39,8 @@ public:
 
   void UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const, bclib::LogWriter &Log);
   
-  void OutputParams(int iteration, bclib::LogWriter &Log);
-  void OutputParams(ostream* out); 
+  void OutputParams();
+  void OutputParams(bclib::Delimitedostream& out); 
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
   
@@ -63,8 +64,6 @@ public:
 //     void OutputLambda(const char*) const{return;};
 
 private:
-  std::ofstream outputstream;//output to paramfile
-
   const AdmixOptions& options;
   Genome& Loci; 
   const int K;///< number of subpopulations / block states
@@ -90,10 +89,8 @@ private:
   double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
                        //in the regression model
 
-  double* globaltheta;//global admixture proportions in a hapmixmodel
-  //double* globalthetaproposal;//for random walk update
-  //StepSizeTuner ThetaTuner;
-  //double thetastep;
+  bclib::DelimitedFileWriter outputstream;//output to paramfile
+
 
   // UNIMPLEMENTED
   // to avoid use

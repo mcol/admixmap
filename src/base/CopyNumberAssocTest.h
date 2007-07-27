@@ -37,7 +37,7 @@ protected:
   bool useprevb;
   unsigned NumStrata, NumOutputStrata, L;
   bclib::RObjectWriter R;
-  void OutputCopyNumberAssocTest(unsigned j, unsigned k, bclib::FileWriter& outfile, std::string label, bool final);
+  void OutputCopyNumberAssocTest(unsigned j, unsigned k, bclib::DelimitedFileWriter& outfile, std::string label, bool final);
 private:
   double **Score;
   double **Info;

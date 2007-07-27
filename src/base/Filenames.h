@@ -4,6 +4,7 @@
    /brief default output filenames for ADMIXMAP/HAPMIXMAP
 */
 
+#define PARAMFILE_ROBJECT "paramsAsRobject.txt"
 #define LOCUS_F_VALUES "LocusfValues.txt"
 #define LOCUS_KL_INFO "LocusKLInfo.txt"
 

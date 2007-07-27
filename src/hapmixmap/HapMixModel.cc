@@ -243,7 +243,7 @@ void HapMixModel::OutputErgodicAverages(int samples, double & SumEnergy, double 
     A.OutputErgodicAvg(samples, &avgstream);//freq Dirichlet param prior rate
     
     for(unsigned r = 0; r < R.size(); ++r)//regression params
-      R[r]->OutputErgodicAvg(samples,&avgstream);
+      R[r]->OutputErgodicAvg(samples, avgstream);
     
     OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
     avgstream << endl;
@@ -266,21 +266,51 @@ void HapMixModel::OutputTests(HapMixOptions& options, InputData & data, LogWrite
 
 void HapMixModel::OutputParameters(int iteration, const Options& options, LogWriter& Log){
 
-  // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
 
-  //output sample mean and variance of arrival rates and the prior parameters
-  if(options.getPopulations() > 1) L->OutputParams(iteration, Log);
+  bclib::Delimitedstdout ScreenWriter(' ');
 
-  if( !options.getFixedAlleleFreqs() )
+  //output sample mean and variance of arrival rates and the prior parameters
+  if(options.getPopulations() > 1){ 
+    //write to Robject
+    if( iteration > options.getBurnIn() ){
+      //write to file
+      L->OutputParams();
+
+      //write to R object
+      L->OutputParams(paramstream);
+    }
+    if( options.getDisplayLevel() > 2 )
+      L->OutputParams(ScreenWriter);
+  }
+
+  if( !options.getFixedAlleleFreqs() ){
     //output Allele freq prior params to file if after burnin and to screen if displaylevel >2
-    A.OutputPriorParams((iteration > options.getBurnIn()), (bool)(options.getDisplayLevel()>2));
+    if(iteration > options.getBurnIn()){
+      A.OutputPriorParams();
+      A.OutputPriorParams(paramstream);
+    }
+
+    if(options.getDisplayLevel()>2)
+      A.OutputPriorParams(ScreenWriter);
+  }
 
   // ** regression parameters
-  for(unsigned r = 0; r < R.size(); ++r)
+  for(unsigned r = 0; r < R.size(); ++r){
     //output regression parameters to file if after burnin and to screen if displaylevel >2
-    R[r]->Output(options.getNumberOfOutcomes(), (bool)(options.getDisplayLevel()>2), (bool)(iteration > options.getBurnIn()) );
-  
+    if( iteration > options.getBurnIn() ){
+      R[r]->OutputParams(paramstream);
+      R[r]->OutputParams(options.getNumberOfOutcomes());
+    }
+    if(options.getDisplayLevel()>2){
+      if(R.size()>1)
+	cout << "\nRegression " << r +1 << " ";
+      R[r]->OutputParams(ScreenWriter);
+     }
+  }
+  if( iteration > options.getBurnIn() )
+    paramstream << bclib::newline;
+
   //if( options->getDisplayLevel()>2 ) cout << endl;
   // ** new line in log file but not on screen 
   if( iteration == 0 ) {
@@ -352,7 +382,53 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
 
     HMIC->OutputCGProbs(s.c_str(), MaskedLocusLabels);
   }
+  //if(options.outputParams())
+    {
+      WriteParamsAsRObjectDimensions(options, data);
+    }
+
 }
+
+void HapMixModel::WriteParamsAsRObjectDimensions(const HapMixOptions& options, const InputData& data){
+  //write dimensions and dimnames of R object holding sampled parameters
+
+  //arrival rate and mixture props summaries
+  vector<vector<string> > dimnames(1);
+  //if(strlen(options.getParameterFilename()))
+  {
+    dimnames[0].push_back("Arrivals.perMb.shapeParam");
+    dimnames[0].push_back("Arrivals.perMb.rateParam");
+    dimnames[0].push_back("Arrivals.perMb.Mean");
+  }
+  
+  //residual allelic diversity summaries
+  //if(strlen(options.getFreqPrecisionOutputFilename()))
+  {
+    dimnames[0].push_back("RAD.Mean");
+    dimnames[0].push_back("RAD.Var");
+    if(options.isFreqPrecisionHierModel())
+      dimnames[0].push_back("RAD.Prior.Rate");
+  }
+  
+  //regression parameters
+  //if(strlen(options.getRegressionOutputFilename()))
+  {
+    for(unsigned r = 0; r < R.size(); ++r){
+      dimnames[0].push_back("intercept");
+      const vector<string>& CovariateLabels = data.getCovariateLabels();
+      for(vector<string>::const_iterator i = CovariateLabels.begin(); i < CovariateLabels.end(); ++i)
+	dimnames[0].push_back(*i);
+      if(R[r]->getRegressionType()==Linear)dimnames[0].push_back("precision");
+    }
+  }
+    
+  vector<int> dims;
+  dims.push_back(dimnames[0].size());
+  dims.push_back(options.getTotalSamples() - options.getBurnIn());
+
+  paramstream.close(dims, dimnames);
+}
+
 void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWriter& Log){
   if( options.getTestForAllelicAssociation() ){
     AllelicAssocTest.Initialise(options.getResultsDir(), Loci.GetNumberOfCompositeLoci());
@@ -360,40 +436,40 @@ void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWr
   if(options.getTestForResidualAllelicAssoc())
     ResidualAllelicAssocScoreTest.Initialise((options.getResultsDir() + "/" + RESIDUAL_LD_TEST_PVALUES).c_str(), IC, &Loci);
   
-  InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
+  //  InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
 }
 //this function is here because three different objects have to write to avgstream
-void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWriter &Log,  
+void HapMixModel::InitializeErgodicAvgFile(const Options&  _options, LogWriter &Log,  
                                            const Vector_s& , const Vector_s& CovariateLabels){
   Log.setDisplayMode(Quiet);
-  const HapMixOptions* options = (const HapMixOptions* )_options;
+  const HapMixOptions& options = (const HapMixOptions& )_options;
 
   //Open ErgodicAverageFile  
-  if( strlen( options->getErgodicAverageFilename() ) ) {
-    avgstream.open( options->getErgodicAverageFilename(), ios::out );
+  if( strlen( options.getErgodicAverageFilename() ) ) {
+    avgstream.open( options.getErgodicAverageFilename(), ios::out );
     if( ! avgstream ){
       Log.setDisplayMode(On);
       Log << "ERROR: Couldn't open Ergodic Average file\n";
       //exit( 1 );
     } else {
       Log << "Writing ergodic averages of parameters to "
-	  << options->getErgodicAverageFilename() << "\n\n";
+	  << options.getErgodicAverageFilename() << "\n\n";
     }
     
     // Header line of ergodicaveragefile
-    if(options->getPopulations()>1){
+    if(options.getPopulations()>1){
       avgstream << "ArrivalRate.mean\t";
       
     }//end if hierarchical model
 
     //rate parameter of prior on frequency Dirichlet prior params
-    if(!options->getFixedAlleleFreqs() && options->isFreqPrecisionHierModel()){
+    if(!options.getFixedAlleleFreqs() && options.isFreqPrecisionHierModel()){
       avgstream << "FreqPrecisionPriorRate\t"; 
     }
 
     // Regression parameters
-    if( options->getNumberOfOutcomes() > 0 ){
-      for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
+    if( options.getNumberOfOutcomes() > 0 ){
+      for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
 	if(IC->getOutcomeType(r)!=CoxData)
           avgstream << "intercept\t";
 

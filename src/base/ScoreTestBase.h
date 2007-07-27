@@ -15,7 +15,7 @@
 
 #include "common.h"
 namespace bclib{
-  class FileWriter;
+  class DelimitedFileWriter;
 }
 
 /// Abstract Base Class for score tests
@@ -40,11 +40,11 @@ protected:
 
 
   //utility functions
-  void OutputScalarScoreTest( int iterations, bclib::FileWriter& outputstream, std::string label,
+  void OutputScalarScoreTest( int iterations, bclib::DelimitedFileWriter& outputstream, std::string label,
 				     const double score, const double scoresq, const double info, bool final);
-  void OutputScoreTest( int iterations, bclib::FileWriter&, unsigned dim, std::vector<std::string> labels,
+  void OutputScoreTest( int iterations, bclib::DelimitedFileWriter&, unsigned dim, std::vector<std::string> labels,
 			       const double* score, const double* scoresq, const double* info, bool final, unsigned dim2);
-  void OutputRaoBlackwellizedScoreTest( bclib::FileWriter&, std::string label,
+  void OutputRaoBlackwellizedScoreTest( bclib::DelimitedFileWriter&, std::string label,
 					const double score, const double scoresq, const double varscore, 
 					const double info, bool final );
 

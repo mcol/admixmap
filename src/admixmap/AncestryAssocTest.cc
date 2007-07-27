@@ -12,7 +12,7 @@
 #include "AncestryAssocTest.h"
 #include "Genome.h"
 #include "bclib/LogWriter.h"
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 #include <vector>
 #include <string>
 
@@ -43,9 +43,10 @@ void AncestryAssocTest::Output(const Vector_s& PopLabels, const Genome& Loci){
 
 void AncestryAssocTest::WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
 					const Genome& Loci, bclib::LogWriter& Log){
-  bclib::TableWriter finaltable(filename);
+  bclib::DelimitedFileWriter finaltable(filename);
   Log << bclib::Quiet << "Tests for locus linkage written to " << filename << "\n";
-  finaltable <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
+  finaltable <<"Locus" << "Population" << "Score" << "CompleteInfo" << "ObservedInfo" 
+	     << "PercentInfo" << "Missing1" << "Missing2" << "StdNormal" << "PValue"
 	     << bclib::newline;
 
   for(unsigned int j = 0; j < L; j++ ){

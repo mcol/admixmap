@@ -20,6 +20,7 @@
 //#include "bclib/StepSizeTuner.h"//for sampling globalrho and globaltheta
 #include "bclib/AdaptiveRejection.h"
 #include "bclib/DirichletParamSampler.h"
+#include "bclib/DelimitedFileWriter.h"
 
 class InputData;
 class IndividualCollection;
@@ -78,8 +79,8 @@ public:
   
   void SetHMMStateArrivalProbs(bool diploid);
 
-  void OutputParams(int iteration, bclib::LogWriter &Log);
-  void OutputParams(ostream& out); 
+  void OutputParams();
+  void OutputParams(bclib::Delimitedostream& out); 
   ///output average mixture props to an ostream
   void OutputAverageMixtureProps(ostream& out)const;
   
@@ -97,7 +98,7 @@ public:
   
 private:
   const unsigned K;///< number of subpopulations / block states
-  std::ofstream outputstream;//output to paramfile
+  bclib::DelimitedFileWriter outputstream;//output to paramfile
 
   const HapMixOptions& options;
   HapMixGenome& Loci; 

@@ -57,7 +57,7 @@ private:
   unsigned NumIntervals;
   
   //OUTPUT
-  void OutputTestsForResidualAllelicAssociation(bclib::FileWriter& outputstream, bool final, 
+  void OutputTestsForResidualAllelicAssociation(bclib::DelimitedFileWriter& outputstream, bool final, 
 						const std::vector<std::string>& LocusLabels);
   
   void UpdateScoresForResidualAllelicAssociation(int c, int locus, const double* const AlleleFreqsA, const double* const AlleleFreqsB);

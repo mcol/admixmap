@@ -14,7 +14,7 @@
 #include "gsl/gsl_cdf.h"
 #include "bclib/linalg.h"//for HH_solve to compute chi-sq
 #include "FreqArrays.h"
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 
 ResidualLDTest::ResidualLDTest(){
   individuals = 0;
@@ -275,18 +275,18 @@ void ResidualLDTest::Output(const std::vector<std::string>& LocusLabels){
 
 void ResidualLDTest::WriteFinalTable(const char* filename, const std::vector<std::string>& LocusLabels, bclib::LogWriter& Log){
   if(test){
-    bclib::TableWriter finaltable(filename);
+    bclib::DelimitedFileWriter finaltable(filename);
     Log << bclib::Quiet << "Tests for residual allelic association" << " written to " 
  	<< filename << "\n";
 
-    finaltable << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue" << bclib::newline;
+    finaltable << "Loci" << "Score" << "CompleteInfo" << "ObservedInfo" << "PercentInfo" << "df" << "ChiSquared" << "PValue" << bclib::newline;
     
     OutputTestsForResidualAllelicAssociation(finaltable, true, LocusLabels);
     finaltable.close();
   }
 }
 
-void ResidualLDTest::OutputTestsForResidualAllelicAssociation(bclib::FileWriter& outputstream, bool final,
+void ResidualLDTest::OutputTestsForResidualAllelicAssociation(bclib::DelimitedFileWriter& outputstream, bool final,
 							      const std::vector<std::string>& LocusLabels){
   //cannot function in base class as it output a line for each dimension of score
   double *score = 0, *ObservedInfo = 0;

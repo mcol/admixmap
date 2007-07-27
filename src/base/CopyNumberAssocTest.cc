@@ -14,7 +14,7 @@
 #include "bclib/linalg.h"
 #include "bclib/dist.h"
 #include "bclib/misc.h"
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 
 using namespace::std;
 
@@ -114,7 +114,7 @@ void CopyNumberAssocTest::Reset(){
   }
 }
 void CopyNumberAssocTest::OutputCopyNumberAssocTest(unsigned j, unsigned k,  
-						    bclib::FileWriter& outfile, string label, bool final){
+						    bclib::DelimitedFileWriter& outfile, string label, bool final){
   OutputRaoBlackwellizedScoreTest(outfile, label, SumScore[ j*NumOutputStrata + k], SumScore2[ j*NumOutputStrata + k], 
 				  SumVarScore[ j*NumOutputStrata + k ],SumInfo[ j*NumOutputStrata + k ], final); 
 }

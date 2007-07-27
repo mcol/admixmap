@@ -15,7 +15,7 @@
  */
 
 #include "AllelicAssocTest.h"
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 #include "AdmixFilenames.h"
 
 AllelicAssocTest::AllelicAssocTest(){
@@ -215,9 +215,10 @@ void AllelicAssocTest::Output(){
 void AllelicAssocTest::WriteFinalTables(bclib::LogWriter& Log){
   {
   string filename = options->getResultsDir() + "/" + ALLELICASSOCTEST_FINAL;
-  bclib::TableWriter finaltable(filename.c_str());
+  bclib::DelimitedFileWriter finaltable(filename.c_str());
   Log << bclib::Quiet << "Tests for allelic association written to " << filename << "\n";
-  finaltable << "Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"
+  finaltable << "Locus" << "Score" << "CompleteInfo" << "ObservedInfo" 
+	     << "PercentInfo" << "StdNormal" << "PValue" << "ChiSquare"
 	     << bclib::newline;
 
   for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
@@ -232,9 +233,10 @@ void AllelicAssocTest::WriteFinalTables(bclib::LogWriter& Log){
   if( options->getTestForHaplotypeAssociation() ){
     
     string filename = options->getResultsDir() + "/" + HAPLOTYPEASSOCTEST_FINAL;
-    bclib::TableWriter finaltable(filename.c_str());
+    bclib::DelimitedFileWriter finaltable(filename.c_str());
     Log << bclib::Quiet << "Tests for haplotype association written to " << filename << "\n";
-    finaltable << "Locus\tHaplotype\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare"
+    finaltable << "Locus" << "Haplotype" << "Score" << "CompleteInfo" << "ObservedInfo" 
+	       << "PercentInfo" << "StdNormal" << "PValue" << "ChiSquare"
 	       << bclib::newline;
 
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ) 

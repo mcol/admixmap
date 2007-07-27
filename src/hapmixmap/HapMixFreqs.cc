@@ -275,9 +275,9 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
 void HapMixFreqs::OpenOutputFile(const char* filename){
   if(strlen(filename)){
     allelefreqprioroutput.open(filename);
-    allelefreqprioroutput << "RAD.Mean\tRAD.Var";
-    if(etaHierModel)allelefreqprioroutput << "\tRAD.Prior.Rate";
-    allelefreqprioroutput << std::endl;
+    allelefreqprioroutput << "RAD.Mean" << "RAD.Var";
+    if(etaHierModel)allelefreqprioroutput << "RAD.Prior.Rate";
+    allelefreqprioroutput << bclib::newline;
   }
 }
 
@@ -295,7 +295,7 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
     SampleEtaRate(afterBurnIn, scalarSumEta);
   }
 
-
+  double sumeta = 0.0, sumetasq = 0.0;//to calculate sample mean and variance of residual allelic diversity
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
     //accumulate summary stats for update of priors
@@ -305,6 +305,10 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
       sumlogfreqs2 += bclib::eh_log(Freqs[i][k*NumberOfStates + 1]);//allele 2
     }
     SamplePriorPrecision(i, Populations, sumlogfreqs1, sumlogfreqs2);
+
+    sumeta += Eta[i];
+    sumetasq += Eta[i] *Eta[i];
+
     if(accumulateEta){
       SumEta[i] += Eta[i];
       ++NumEtaUpdates;
@@ -332,7 +336,9 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
       (*Loci)(i)->SetHapPairProbs();
 
   }
-  
+
+  SampleMeanEta = sumeta / (double) NumberOfCompositeLoci;
+  SampleVarEta = sumetasq / (double)NumberOfCompositeLoci - SampleMeanEta*SampleMeanEta;
 }
 
 /** samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
@@ -480,63 +486,23 @@ void HapMixFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)const{
   }
 }
 
-// void HapMixFreqs::OutputPriorParams(){
-//   if(allelefreqprioroutput.is_open()){
-//     OutputPriorParams(allelefreqprioroutput, false);
-//   }
-// }
-
-void HapMixFreqs::OutputPriorParams(bool tofile, bool toscreen){
-  if(DirichletParams){
-    const unsigned L = NumberOfCompositeLoci;
-    double sumeta = 0.0, sumetasq = 0.0;//, summu = 0.0, summusq = 0.0;
-//    double sumobs = 0.0, sumexp = 0.0;
-    for(unsigned j = 0; j < L; ++j){
-	//const unsigned NumStates = Loci->GetNumberOfStates(j);
-	//double sum1 = 0.0;
-	//double sumsq1 = 0.0;
-	//for(int k = 0; k < Populations; ++k){
-	//sum1 += Freqs[j][k*NumStates];//freq allele 1
-	// sumsq1 += Freqs[j][k*NumStates]*Freqs[j][k*NumStates];
-	//}
-	//double obsvar = sumsq1 / (double)(Populations) - (sum1*sum1) / (double)(Populations*Populations);
-	//double alpha = DirichletParams[j] ;
-	//double beta = Eta[j] - alpha;
-	//double expvar = alpha*beta / ((alpha +  beta)*(alpha+beta)*(alpha+beta+ 1.0));
-
-	sumeta += Eta[j];
-	sumetasq += Eta[j] *Eta[j];
-        //summu += DirichletParams[j]/Eta[j];
-        //summusq += (DirichletParams[j]*DirichletParams[j])/(Eta[j]*Eta[j]);
-	//sumobs += obsvar;
-	//sumexp += expvar;
-    }
-   
-    double meaneta = sumeta / (double) L;
-    double vareta = sumetasq / (double)L - meaneta*meaneta;
-    //double meanmu = summu / (double) L;
-    //double varmu = summusq/ (double) L - meanmu*meanmu;
-
-    if(toscreen){
-      std::cout << meaneta << "\t" << vareta; //<< "\t" << meanmu << "\t" << varmu 
-      if(etaHierModel)
-        std::cout << "\t" << EtaRate;
-      std::cout << std::endl;
-    }
-
-    if(tofile && allelefreqprioroutput.is_open()){
-      allelefreqprioroutput << meaneta << "\t" << vareta;
-      // << "\t" << meanmu << "\t" << varmu 
-      if(etaHierModel)
-        allelefreqprioroutput << "\t" << EtaRate;
-      allelefreqprioroutput << std::endl;
-
-    }
-    //std::cout << sumobs / (double)L << "\t" << sumexp / (double)L << std::endl;
-    //if(tofile && allelefreqprioroutput.is_open())
-    //	allelefreqprioroutput <<sumobs / (double)L << "\t" << sumexp / (double)L << std::endl;
+///write RAD summaries to file
+void HapMixFreqs::OutputPriorParams(){
+  if(allelefreqprioroutput.is_open()){
+    OutputPriorParams(allelefreqprioroutput);
+    allelefreqprioroutput << bclib::newline;
   }
 }
+
+///write RAD summaries to stream
+void HapMixFreqs::OutputPriorParams(bclib::Delimitedostream& os){
+  if(DirichletParams){
+    os << SampleMeanEta << SampleVarEta; //<< meanmu << varmu 
+    if(etaHierModel)
+      os << EtaRate;
+  }
+}
+
 float HapMixFreqs::getAcceptanceRate()const{
   float sum = 0.0;
   for(int j = 0; j < NumberOfCompositeLoci; ++j)

@@ -65,8 +65,8 @@ private:
   void UpdateParameters(int iteration, const Options& options, 
 			bclib::LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal);
   void OutputParameters(int iteration, const AdmixOptions *options, bclib::LogWriter& Log);
-  void InitializeErgodicAvgFile(const AdmixOptions* const options, bclib::LogWriter &Log,  
+  void InitializeErgodicAvgFile(const Options& options, bclib::LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
-
+  void WriteParamsAsRObjectDimensions(const AdmixOptions& options, const InputData& data);
 };
 #endif /* MODEL_TOP_H */

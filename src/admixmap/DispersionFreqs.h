@@ -21,6 +21,8 @@
 #include "bclib/DispersionSampler.h"
 #include "bclib/StepSizeTuner.h"
 #include "bclib/AdaptiveRejection.h"
+#include "bclib/DelimitedFileWriter.h"
+
 class AdmixOptions;
 class InputAdmixData;
 
@@ -39,7 +41,8 @@ public:
   ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   virtual void OutputErgodicAvg( int iteration, std::ofstream *avgstream)const;
   ///output samples of dispersion parameters (eta) to dispparamfile
-  void OutputEta(int iteration, const AdmixOptions *options, bclib::LogWriter &Log);
+  void OutputEta(bclib::Delimitedostream& os);
+  void OutputEta();
 
   void OutputFST();
 
@@ -79,7 +82,7 @@ private:
   // sampler for Dirichlet proportion parameters 
   std::vector<bclib::StepSizeTuner> *MuProposal;
   
-  std::ofstream outputstream;//outputs eta to paramfile
+  bclib::DelimitedFileWriter outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
   void OpenFSTFile(const std::string& ResultsDir, bclib::LogWriter &Log); 

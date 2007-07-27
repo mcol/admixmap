@@ -30,5 +30,5 @@ private:
   std::vector<double> Info;
 
   bclib::RObjectWriter R;
-  void OutputTest( bclib::FileWriter& outfile, const std::vector<std::string>& LocusLabels, bool final);
+  void OutputTest( bclib::DelimitedFileWriter& outfile, const std::vector<std::string>& LocusLabels, bool final);
 };

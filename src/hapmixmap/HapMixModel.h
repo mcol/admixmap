@@ -58,8 +58,9 @@ private:
   void OutputErgodicAverages(int samples, double & SumEnergy, double & SumEnergySq);
   void OutputTests(HapMixOptions& options, InputData & data, bclib::LogWriter& Log  );
   void InitialiseTests(Options& options, const InputData& data, bclib::LogWriter& Log);
-  void InitializeErgodicAvgFile(const Options* const options, bclib::LogWriter &Log,  
+  void InitializeErgodicAvgFile(const Options& options, bclib::LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
+  void WriteParamsAsRObjectDimensions(const HapMixOptions& options, const InputData& data);
 };
 
 

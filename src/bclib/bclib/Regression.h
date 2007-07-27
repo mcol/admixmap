@@ -39,9 +39,9 @@ public:
   static void OpenOutputFile(const unsigned NumOutcomes, const char* const filename, LogWriter &Log); 
   static void OpenExpectedYFile(const char* Filename, LogWriter & Log); 
   virtual void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
-  virtual void Output(const unsigned NumberOfOutcomes, bool toScreen, bool afterBurnIn);
-  virtual void OutputParams(std::ostream* out)const;
-  virtual void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
+  virtual void OutputParams(unsigned NumOutcomes);
+  virtual void OutputParams(bclib::Delimitedostream& out)const;
+  virtual void OutputErgodicAvg(int iteration, std::ofstream& avgstream)const;
   virtual void OutputExpectedY();
   static void FinishWritingEYAsRObject(unsigned NumIterations, const std::vector<std::string>& Labels);
   const double* getbeta() const;
@@ -70,7 +70,7 @@ protected:
   double* ExpectedY;
   double* XtY;
 
-  static std::ofstream outputstream;///< stream for regression parameters
+  static bclib::DelimitedFileWriter outputstream;///< stream for regression parameters
   static RObjectWriter EYStream;///< stream for expected outcomes
 
   void Initialise(unsigned nCovariates, unsigned nIndivs, const double* const Covars);

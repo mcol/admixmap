@@ -41,6 +41,7 @@ public:
   virtual void setPopulations(int) = 0;
 
   //main output files
+  virtual bool outputParams()const = 0;
   const string getResultsDir() const;
   const char *getLogFilename() const;
   const char *getErgodicAverageFilename() const;

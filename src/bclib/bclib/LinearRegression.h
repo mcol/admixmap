@@ -28,8 +28,8 @@ public:
 
   double getDispersion()const;
   double DerivativeInverseLinkFunction(unsigned i)const;
-  void OutputParams(std::ostream* out)const;
-  void OutputErgodicAvg(int samples, std::ofstream *avgstream)const;
+  void OutputParams(bclib::Delimitedostream& out)const;
+  void OutputErgodicAvg(int samples, std::ofstream& avgstream)const;
   void Update(bool sumbeta, const std::vector<double>& Outcome, double coolness);
   double getLogLikelihood(const std::vector<double>& Outcome)const;
   double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome);

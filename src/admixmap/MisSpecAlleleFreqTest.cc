@@ -20,7 +20,7 @@
 #include "MisSpecAlleleFreqTest.h"
 #include "AdmixFilenames.h"
 #include "bclib/LogWriter.h"
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 #include "AlleleFreqs.h"
 #include "Genome.h"
 #include "gsl/gsl_cdf.h"//for pvalues
@@ -270,8 +270,10 @@ void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* con
 
      Log << "Writing score tests for mis-specified allele frequencies(1) to " 
 	 << filename << "\n";
-     bclib::TableWriter outputfile(filename);
-     outputfile << "Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tsPValue\tChiSquared\tPValue"<< bclib::newline;
+     bclib::DelimitedFileWriter outputfile(filename);
+     outputfile << "Locus" << "Population" << "Score" << "CompleteInfo" 
+		<< "ObservedInfo" << "PercentInfo" << "StdNormal" << "PValue" 
+		<< "ChiSquared" << "PValue"<< bclib::newline;
 
     double* ObservedMatrix = new double[Populations*Populations];
     double* ScoreSq = new double[Populations*Populations];
@@ -456,8 +458,8 @@ void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* con
   if( test ){
      Log << "Writing score tests for mis-specified allele frequencies(2) to " 
 	 << filename << "\n";
-     bclib::TableWriter outputfile(filename);
-     outputfile << "Locus\tPopulation\tCompleteInfo\tObservedInfo\tPercentInfo\tChiSquared" << bclib::newline;
+     bclib::DelimitedFileWriter outputfile(filename);
+     outputfile << "Locus" << "Population" << "CompleteInfo" << "ObservedInfo" << "PercentInfo" << "ChiSquared" << bclib::newline;
 
     //allelefreqscorestream2 << setiosflags(ios::fixed) << setprecision(2);//output 2 decimal places
     for(int j = 0; j < NumCompLoci; j++ ){

@@ -62,7 +62,7 @@ private:
 
   bclib::RObjectWriter R;
 
-  void OutputAffectedsOnlyTest(bclib::FileWriter& outfile, const Vector_s& PopLabels, 
+  void OutputAffectedsOnlyTest(bclib::DelimitedFileWriter& outfile, const Vector_s& PopLabels, 
 			       const Genome& Loci, const std::string& sep, bool final);
 };
 

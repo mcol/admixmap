@@ -2,7 +2,6 @@
 /** 
  *   \file RObjectWriter.h
  *   This class encapsulates the details of writing an R object
- *   log-concave distributions. 
  *   Copyright (c) 2007 David O'Donnell
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -14,78 +13,62 @@
 #ifndef ROBJECTWRITER_H
 #define ROBJECTWRITER_H
 
-#include "bclib/FileWriter.h"
-#include <iostream>
-#include <fstream>
-#include <string>
+#include "bclib/DelimitedFileWriter.h"
+#include "DelimitedBuf.h"
 #include <vector>
+#include <string>
 
 BEGIN_BCLIB_NAMESPACE
 
-///struct used to write a comment in an R object
-struct Rcomment{
-  Rcomment(const char* c): str(c){};
-  std::string str;
-};
-
-///class to write an R object
-class RObjectWriter : public FileWriter{
-
+///extension of DelimitedFileWriter to write an array as an R object
+class RObjectWriter : public DelimitedFileWriter{
 public:
-
-  ///no-arg c'tor
-  RObjectWriter();
-  ///c'tor with filename, equivalent to default c'tor + open
-  RObjectWriter(const char*);
-  ///c'tor with filename, equivalent to default c'tor + open
-  RObjectWriter(const std::string&);
-  ///open file and start writing R object
-  void open(const char*);
-  ///open file and start writing R object
-  void open(const std::string&);
-  ///finish writing R object by writing dimensions and dimnames
-  ///supply a vector of dimensions and a vector of labels for at least the first dimension
-  void close(const std::vector<int>& dims, const std::vector< std::vector<std::string> >& dimnames);
-  //write a comment, prefixed by a comment character
+  /**
+     Default constructor.
+     Does nothing except set comma as delimiter.
+  */
+  RObjectWriter():DelimitedFileWriter(','){};
 
   /**
-     manipulator to start new line.
-     differs from endl in that the object does not write the newline until there is more output and it remembers if it needs a comma first.
+     Constructor with filename.
+     Opens output file and sets comma as delimiter.
   */
+  RObjectWriter(const char* filename ):DelimitedFileWriter(filename, ',') {
+    WriteFirstLine();
+  };
+
+  /**
+     opens output file.
+  */
+  void open(const char* filename);
+
+  ///manipulator to call addNewLine function
   friend void newline(RObjectWriter& R );
-  ///add a comment
-  void comment(const char* );
-  ///add a comment
-  void comment(const std::string&);
-  ///write to file
-  RObjectWriter& operator<<(const int);
-  RObjectWriter& operator<<(const unsigned);
-  RObjectWriter& operator<<(const long);
-  RObjectWriter& operator<<(const float);
-  RObjectWriter& operator<<(const double);
-  RObjectWriter& operator<<(const char);
-  RObjectWriter& operator<<(const bool);
-  RObjectWriter& operator<<(const char*);
-  RObjectWriter& operator<<(const std::string);
+
+  /**
+     Close oputput file.
+     Writes the .dim and .dimnames arguments of the array then closes the file.
+     \param dim vector of dimensions of the array
+     \param DimNames 'list' (vector of vectors) of dimension names. May be incomplete. If empty, 'character(0)' is written instead.
+  */
+  void close(const std::vector<int>& dim, const std::vector<std::vector<std::string> >& DimNames);
 
 private:
-  bool needComma;///<used to determine if a comma is needed before a new element
-  std::string comment_cache;
 
-  ///write dimensions of R object
-  void WriteDimensions(const std::vector<int>&, const std::vector< std::vector<std::string> >&);
-  template <class T>
-  RObjectWriter& write(const T);
+  /**
+     Private close function to prevent closing without writing dimensions.
+  */
+  void close();
 
+  ///write first line of object definition
+  void WriteFirstLine();
+  ///write dimensions and dimension names
+  void WriteDimensions(const std::vector<int>& dim, const std::vector<std::vector<std::string> >& DimNames);
+
+  //to prevent undesired copying
+  RObjectWriter(const RObjectWriter& );
+  void operator=(const RObjectWriter& );
 };
-
-//declarations of friend functions
-void newline(RObjectWriter& R);
-
-//stream insertion for newline
-RObjectWriter&  operator<<(RObjectWriter& R, void (*man)(RObjectWriter&));
-//stream insertion for comments
-RObjectWriter&  operator<<(RObjectWriter& R, const Rcomment&);
 
 END_BCLIB_NAMESPACE
 #endif

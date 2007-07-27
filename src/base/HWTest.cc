@@ -17,7 +17,7 @@
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
 #include "bclib/linalg.h"
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 
 HWTest::HWTest(){
   score = 0;
@@ -149,7 +149,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 
 void HWTest::Output(const char* filename, const Vector_s LocusLabels, bclib::LogWriter& Log){
   try{
-    bclib::TableWriter outputfile(filename);
+    bclib::DelimitedFileWriter outputfile(filename);
     Log << bclib::Quiet << "Tests for Hardy-Weinberg equilibrium writen to " << filename << "\n";
     //header line
     outputfile <<"Locus\tScore\tCompleteInfo\tMissingInfo\tObservedInfo\tPercentInfo\tz-score\tp-value" << bclib::newline;

@@ -60,6 +60,8 @@ public:
   
   void InitialiseRegressionObjects(Options & options, InputData& data,  bclib::LogWriter& Log) ;
   virtual void InitialiseTests(Options& options, const InputData& data, bclib::LogWriter& Log) = 0;
+  virtual void InitializeErgodicAvgFile(const Options& options, bclib::LogWriter &Log,  
+					const Vector_s& PopLabels, const Vector_s& CovariateLabels) = 0;
 
   virtual void ResetStepSizeApproximators(int resetk);
   virtual void PrintAcceptanceRates(const Options& options, bclib::LogWriter& Log) = 0;
@@ -87,6 +89,7 @@ protected:
   vector<bclib::Regression*> R;//vector of regression pointers
 
   std::ofstream avgstream; //output to ErgodicAverageFile
+  bclib::RObjectWriter paramstream;
 
   HWTest HWtest;
   ResidualLDTest ResidualAllelicAssocScoreTest;

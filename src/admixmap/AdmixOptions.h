@@ -30,6 +30,7 @@ public:
   bool SetOptions();
 
   //output files
+  bool outputParams()const;
   const char *getEtaOutputFilename() const;
   const char *getIndAdmixtureFilename() const;
   const char* getIndAdmixModeFilename()const;

@@ -13,7 +13,7 @@
 
 #include "AffectedsOnlyTest.h"
 #include "Genome.h"
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 #include "bclib/LogWriter.h"
 #include <gsl/gsl_cdf.h>
 #include <math.h>
@@ -104,15 +104,16 @@ void AffectedsOnlyTest::Output(const Vector_s& PopLabels, const Genome& Loci){
 
 void AffectedsOnlyTest::WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
 					const Genome& Loci, bclib::LogWriter& Log){
-  bclib::TableWriter finaltable(filename);
+  bclib::DelimitedFileWriter finaltable(filename);
   Log << bclib::Quiet << "Affected-only tests for association written to " << filename << "\n";
-  finaltable <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
+  finaltable <<"Locus" << "Population" << "Score" << "CompleteInfo" << "ObservedInfo" 
+	     << "PercentInfo" << "Missing1" << "Missing2" << "StdNormal" << "PValue"
 	     << bclib::newline;
 
   OutputAffectedsOnlyTest(finaltable, PopLabels, Loci, "\t", true);
   finaltable.close();
 }
-void AffectedsOnlyTest::OutputAffectedsOnlyTest(bclib::FileWriter& outfile, const Vector_s& PopLabels, 
+void AffectedsOnlyTest::OutputAffectedsOnlyTest(bclib::DelimitedFileWriter& outfile, const Vector_s& PopLabels, 
 						const Genome& Loci, const string& sep, bool final){
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = Loci(j)->GetLabel(0);

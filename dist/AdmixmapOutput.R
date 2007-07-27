@@ -323,12 +323,14 @@ plotErgodicAverages <- function(ergodicaveragefile, thinning) {
   }
 }
 
-popAdmixProportions <- function(population.labels, params, k) {
+popAdmixProportions <- function(population.labels, params) {
   ## calculate population admixture proportions from Dirichlet parameters
-  pop.admix.prop <- as.data.frame(matrix(data=NA, nrow=n, ncol=k))
+  k <- ncol(params)
+  pop.admix.prop <- matrix(data=NA, nrow=nrow(params), ncol=k)
+  dimnames(pop.admix.prop) <- list(NULL, rep("", k))
   for(j in 1:k) {
     dimnames(pop.admix.prop)[[2]][j] <- paste("prop", population.labels[j], sep=".")
-    for(i in 1:n) {
+    for(i in 1:nrow(params)) {
       pop.admix.prop[i,j] <- params[i,j]/sum(params[i,1:k])
     }
   }
@@ -1146,118 +1148,54 @@ param.samples <- NULL
 effect.pop <- NULL
 pop.admix.prop <- NULL
 
-## read population parameter samples
-if(is.null(user.options$paramfile)) {
-  cat("no paramfile\n", file=outfile, append=T)
-} else {
-  paramfile <- paste(resultsdir,user.options$paramfile, sep="/")
-  if(!file.exists(paramfile)) {
-    cat("paramfile specified but file does not exist\n", file=outfile, append=T)
-  } else {
-    if(length(scan(paramfile,  what='character', quiet=TRUE)) == 0) {
-      cat("paramfile empty\n", file=outfile, append=T)
+## read parameter formatted as R object
+if(!is.null(user.options$rparamfile) && file.exists(paste(resultsdir, user.options$rparamfile, sep="/"))){
+  param.samples <- as.data.frame(t(dget(paste(resultsdir, user.options$rparamfile, sep="/"))))
+
+  if(user.options$hapmixmodel !=1){#admixmap
+    ##get pop admix proportions if admixmap    
+    if(K > 1) {
+      ## extract Dirichlet admixture parameters
+      admixparams <- param.samples[, 1:K,drop=FALSE]
+      ## calculate population admixture proportions from Dirichlet parameters
+      pop.admix.prop <- popAdmixProportions(population.labels, admixparams)
     } else {
-      cat("reading paramfile...", file=outfile, append=T)
-      ## param.samples columns contain:    # K Dirichlet parameters 
-                                        # global sum of intensities or gamma shape param if hierarchical
-      param.samples <- read.table(paramfile, header=TRUE)
-      n <- dim(param.samples)[1]
-      if(user.options$hapmixmodel !=1){#admixmap
-
-        if(K > 1) {
-          ## extract Dirichlet admixture parameters
-          admixparams <- param.samples[, 1:K,drop=FALSE]
-          ## calculate population admixture proportions from Dirichlet parameters
-          pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
-        } else {
-          pop.admix.prop <- NULL
-        }
-      }##end admixmap block
-      cat(" done\n", file=outfile, append=T)
+      pop.admix.prop <- NULL
     }
-  }
-}
-  
-## read regression parameter samples
-if(is.null(user.options$regparamfile) ||
-           length(scan(paste(resultsdir, user.options$regparamfile, sep="/"),
-                       what='character',quiet=TRUE)) == 0)  {
-  cat("No regression paramfile\n", file=outfile, append=T);
-  regparam.samples <- NULL
-  beta.admixture<-NULL
-} else {
-  cat("reading regression parameters...", file=outfile, append=T)
-  regparam.samples <- read.table(paste(resultsdir, user.options$regparamfile, sep="/"), header=TRUE)
-  n.covariates <- getNumCovariates(user.options)
-  
-  #beta.admixture <- getRegressionParamsForAdmixture(user.options, K, n.covariates, population.labels)
-  #if(K > 2 && !is.null(pop.admix.prop)) {
+
+    ##get effect.pop if admixmap
+    ##if(K > 2 && !is.null(pop.admix.prop)) {
     ## calculate estimate of effect of each pop vs all others if there are >2 populations
-    #effect.pop <- effectEstimates(beta.admixture, pop.admix.prop, n, K)
-  #} else {
-  #  effect.pop <- NULL
-  #}
-  outcome.continuous <- getOutcomeType(dimnames(param.samples)[[2]])  
-  ## calculate residual standard deviation
-  if(outcome.continuous == 1) {
-    residual.SD <- getPrecision(user.options)^-0.5
-  }
-  cat(" done\n", file=outfile, append=T)
+    ##effect.pop <- effectEstimates(beta.admixture, pop.admix.prop, n, K)
+    ##} else {
+    ##  effect.pop <- NULL
+    ##}
+    
+  }##end admixmap block
 }
 
-## read allele freq dispersion parameter samples
-if(is.null(user.options$dispparamfile)||
-           length(scan(paste(resultsdir, user.options$dispparamfile, sep="/"),
-                       what='character',quiet=TRUE)) == 0)  {
-  eta.samples <- NULL
-} else {
-  cat("reading allele frequency dispersion parameter...", file=outfile, append=T)
-  eta.samples<-read.table(paste(resultsdir, user.options$dispparamfile,sep="/"), header=TRUE)
-  ## label dispersion parameters
-  if(!is.null(user.options$historicallelefreqfile)) {
-    dimnames(eta.samples)[[2]] <- paste("eta", population.labels, sep="." )
-  }
-  cat(" done\n", file=outfile, append=T)
-}   
 
-## read hapmix allele freq precision samples
-hapmix.freq.precision.samples = NULL
-if(user.options$hapmixmodel == 1){
-  if(!is.null(user.options$residualadfile)){
-  cat("reading allele frequency precision parameters...", file=outfile, append=T)
-  hapmix.freq.precision.samples<-read.table(paste(resultsdir, user.options$residualadfile,sep="/"), header=TRUE)
-  cat(" done\n", file=outfile, append=T)
-  }
-}
-
-## combine samples of Dirichlet params, admixture proportions, dispersion params, regression params
-param.samples.all <- param.samples#cbindIfNotNull(param.samples, pop.admix.prop)
-param.samples.all <- cbindIfNotNull(param.samples.all, eta.samples)
-param.samples.all <- cbindIfNotNull(param.samples.all, hapmix.freq.precision.samples)
-param.samples.all <- cbindIfNotNull(param.samples.all, regparam.samples)
-param.samples.all <- cbindIfNotNull(param.samples.all, effect.pop)
-
-if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
+if(!is.null(param.samples) && (dim(param.samples)[2] > 0)) {
   ## calculate posterior quantiles, including admixture proportions
-  post.quantiles <- calculateAndPlotQuantiles(cbindIfNotNull(pop.admix.prop, param.samples.all))
+  post.quantiles <- calculateAndPlotQuantiles(cbindIfNotNull(pop.admix.prop, param.samples))
   ## plot autocorrelations
   openPlotDevice(paste(resultsdir, "Autocorrelations", sep="/"))
-  plotAutocorrelations(param.samples.all, user.options$every)
+  plotAutocorrelations(param.samples, user.options$every)
   dev.off()
   ## calculate convergence diagnostics
-  checkConvergence(param.samples.all, "Parameters", paste(resultsdir,"ConvergenceDiagnostics.txt" , sep="/"))
+  checkConvergence(param.samples, "Parameters", paste(resultsdir,"ConvergenceDiagnostics.txt" , sep="/"))
   ##plot traces
   openPlotDevice(paste(resultsdir, "TracePlots", sep="/"))
-  nsamples <- dim(param.samples.all)[1]
+  nsamples <- dim(param.samples)[1]
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
-  for(var in 1:ncol(param.samples.all))
-    plot(iters, param.samples.all[,var], xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
+  for(var in 1:ncol(param.samples))
+    plot(iters, param.samples[,var], xlab="Iteration", ylab=dimnames(param.samples)[[2]][var], type='l')
   dev.off()
   ##plot cumulative averages from paramfiles
   openPlotDevice(paste(resultsdir, "CumulativeAverages", sep="/"))
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
-  for(var in 1:ncol(param.samples.all))
-    plot(iters, cumsum(param.samples.all[,var])/c(1:nsamples), xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
+  for(var in 1:ncol(param.samples))
+    plot(iters, cumsum(param.samples[,var])/c(1:nsamples), xlab="Iteration", ylab=dimnames(param.samples)[[2]][var], type='l')
   dev.off()
   
 }
@@ -1372,14 +1310,14 @@ if(!is.null(user.options$haplotypeassociationscorefile) && file.exists(paste(res
 if(!is.null(user.options$ancestryassociationscorefile) && file.exists(paste(resultsdir,user.options$ancestryassociationscorefile, sep="/"))) {
   cat("plotting scores in test for ancestry association...", file=outfile, append=T)
   ## produces warning
-  plotAncestryScoreTest(user.options$ancestryassociationscorefile, "TestsAncestryAssoc",K, population.labels, user.options$every)
+  plotAncestryScoreTest(user.options$ancestryassociationscorefile, "TestAncestryAssoc",K, population.labels, user.options$every)
   cat(" done\n", file=outfile, append=T)
 }
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile) && file.exists(paste(resultsdir,user.options$affectedsonlyscorefile, sep="/"))) {
   cat("plotting scores in affecteds-only test...", file=outfile, append=T)
-  plotAncestryScoreTest(user.options$affectedsonlyscorefile, "TestsAffectedsOnly",K, population.labels, user.options$every)
+  plotAncestryScoreTest(user.options$affectedsonlyscorefile, "TestAffectedsOnly",K, population.labels, user.options$every)
   cat(" done\n", file=outfile, append=T)
 }
 

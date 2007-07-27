@@ -16,7 +16,7 @@
 #include "HapMixIndividualCollection.h"
 #include "InputHapMixData.h"
 #include "HapMixFilenames.h"
-#include "bclib/TableWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 #include "bclib/LogWriter.h"
 
 HapMixAllelicAssocTest::HapMixAllelicAssocTest(){
@@ -76,9 +76,10 @@ void HapMixAllelicAssocTest::Output(const Genome& Loci){
 
 void HapMixAllelicAssocTest::WriteFinalTable(const string& ResultsDir, const Genome& Loci, const InputHapMixData& data, bclib::LogWriter& Log){
   const string filename  = ResultsDir + "/" + ALLELICASSOCTEST_FINAL;
-  bclib::TableWriter finaltable(filename.c_str());
+  bclib::DelimitedFileWriter finaltable(filename.c_str());
   Log << bclib::Quiet << "Tests for allelic association written to " << filename << "\n";
-  finaltable <<"Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue"
+  finaltable <<"Locus" << "Score" << "CompleteInfo" << "ObservedInfo" << "PercentInfo" 
+	     << "Missing1" << "Missing2" << "StdNormal" << "PValue"
 	     << bclib::newline;
 
   for(unsigned int j = 0; j < L; j++ ){

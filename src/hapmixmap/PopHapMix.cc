@@ -51,8 +51,8 @@ void PopHapMix::Initialise(const string& distanceUnit, bclib::LogWriter& Log){
   // ** Open paramfile **
   Log.setDisplayMode(bclib::Quiet);
   if( strlen( options.getParameterFilename() ) ){
-    outputstream.open( options.getParameterFilename(), ios::out);
-    if( !outputstream )
+    outputstream.open( options.getParameterFilename());
+    if( !outputstream.is_open() )
       {
 	Log << bclib::On << "ERROR: Couldn't open paramfile\n";
 	exit( 1 );
@@ -558,20 +558,23 @@ double PopHapMix::hd2logf(double h, const void* const vargs){
 
 void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
   // Header line of paramfile
+  //disable delimiting while writing header
+  outputstream.delimit(false);
   if(!options.getFixedMixturePropsPrecision())
     outputstream << "MixtureProps.Precision\t";
 
   if(!options.getFixedMixtureProps())
     outputstream << "MixtureProps.Sample.Precision\t";
 
-  outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t";
+  outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam";
 
   if(!fixRateParameter)
-    outputstream << "Arrivals.per"<< distanceUnit << ".rateParam\t";
+    outputstream << "\tArrivals.per"<< distanceUnit << ".rateParam";
 
-  outputstream << "Arrivals.per"<< distanceUnit << ".Mean"
+  outputstream << "\tArrivals.per"<< distanceUnit << ".Mean"
 	       << "\tMean.Block.Length.kb"
-	       << endl;
+	       << bclib::newline ;
+  outputstream.delimit(true);
 }
 
 //output sample mean of ergodic average of lambda
@@ -583,9 +586,9 @@ void PopHapMix::OutputErgodicAvg( int samples, std::ofstream& avgstream)
   avgstream << setprecision(6) << sum / (double)lambda.size() << "\t";
 
 }
-
+ 
 ///output to given output stream
-void PopHapMix::OutputParams(ostream& out){
+void PopHapMix::OutputParams(bclib::Delimitedostream& out){
   out.width(9);
   out << setiosflags(ios::fixed) << setprecision(6);
 
@@ -594,20 +597,20 @@ void PopHapMix::OutputParams(ostream& out){
     double sum = 0.0;
     for(unsigned k = 0; k < K; ++k)
       sum += MixturePropsPrior[k];
-    out << sum << "\t";
+    out << sum;
   }
   
   if(!options.getFixedMixtureProps())
     //observed precision
-    out << eta  << "\t";
+    out << eta;
  
   out
     //lambda prior parameters
-    << LambdaArgs.h << "\t";
+    << LambdaArgs.h;
   if(!fixRateParameter) 
-    out<< LambdaArgs.beta << "\t";
+    out<< LambdaArgs.beta;
   //expected number of arrivals per unit distance
-  out << LambdaArgs.h / LambdaArgs.beta << "\t" ;
+  out << LambdaArgs.h / LambdaArgs.beta;
 }
 
 //output mixture proportions averaged over loci
@@ -622,20 +625,14 @@ void PopHapMix::OutputAverageMixtureProps(ostream& out)const{
     out << sum[k] / (double)L << "\t";
 }
 
-void PopHapMix::OutputParams(int iteration, bclib::LogWriter &){
-  //output to screen
-  if( options.getDisplayLevel() > 2 )
-    {
-      OutputParams(cout);
-    }
-  //Output to paramfile after BurnIn
-  if( iteration > options.getBurnIn() ){
-    // OutputAverageMixtureProps(outputstream);
-    OutputParams(outputstream);
-    //write Haplotype block length to file
-    outputstream << (8000 * LambdaArgs.beta) / (LambdaArgs.h * 7)
-		 << endl;
-  }
+void PopHapMix::OutputParams(){
+  //Output to paramfile 
+  // OutputAverageMixtureProps(outputstream);
+  OutputParams(outputstream);
+  //write Haplotype block length to file
+  outputstream << (8000 * LambdaArgs.beta) / (LambdaArgs.h * 7)
+	       << bclib::newline;
+
 }
 
 const double *PopHapMix::getGlobalMixtureProps()const{

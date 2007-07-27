@@ -96,8 +96,8 @@ void LinearRegression::InitializeOutputFile(const std::vector<std::string>& Cova
 {
   Regression::InitializeOutputFile(CovariateLabels, 0);//pass with 0 argument to prevent newline
   //label for precision
-  outputstream<< setprecision(6) << "precision\t";
-  if(NumOutcomes == RegNumber+1)outputstream << endl;
+  outputstream<< setprecision(6) << "precision";
+  if(NumOutcomes == RegNumber+1)outputstream << bclib::newline;
 }
 
 void LinearRegression::Update(bool sumbeta, const std::vector<double>& Outcome, double coolness  ){
@@ -119,17 +119,16 @@ void LinearRegression::SetExpectedY(const double* const _beta){
   }
 }
 
-void LinearRegression::OutputParams(ostream* out)const{
+void LinearRegression::OutputParams(bclib::Delimitedostream& out)const{
   Regression::OutputParams(out);
-  out->width(9);
-  (*out) << setprecision(6) << lambda << "\t";
+  out << lambda;
 }
 
-void LinearRegression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
+void LinearRegression::OutputErgodicAvg(int samples, std::ofstream& avgstream)const{
   //output to ergodicaveragefile
   Regression::OutputErgodicAvg(samples, avgstream);
-  avgstream->width(9);
-  *avgstream << setprecision(6) << SumLambda / samples << "\t";
+  avgstream.width(9);
+  avgstream << setprecision(6) << SumLambda / samples << "\t";
 }
 
 //solves Ax = b by QR decomposition

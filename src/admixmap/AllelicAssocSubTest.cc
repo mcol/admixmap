@@ -2,7 +2,7 @@
 #include "CompositeLocus.h"
 #include "ScoreTestBase.h"
 #include "bclib/linalg.h"
-#include "bclib/FileWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 #include <gsl/gsl_cdf.h>
 #include <cmath>
 #include <string>
@@ -93,7 +93,7 @@ void AllelicAssocSubTest::CentreAndSum(unsigned dim, double *score, double* info
 
 // generic scalar score test
 //TODO: move output of NA in chisq column outside as it is only required if along with vector tests
-void AllelicAssocSubTest::OutputScalarScoreTest(bclib::FileWriter& outputstream, string label, 
+void AllelicAssocSubTest::OutputScalarScoreTest(bclib::DelimitedFileWriter& outputstream, string label, 
 						const double score, const double scoresq, 
 						const double info, bool final, unsigned numUpdates)
 {
@@ -131,7 +131,7 @@ void AllelicAssocSubTest::OutputScalarScoreTest(bclib::FileWriter& outputstream,
 }
 
 //generic vector score test
-void AllelicAssocSubTest::OutputScoreTest( bclib::FileWriter& outputstream, unsigned dim, vector<string> labels,
+void AllelicAssocSubTest::OutputScoreTest( bclib::DelimitedFileWriter& outputstream, unsigned dim, vector<string> labels,
 					   const double* score, const double* scoresq, const double* info, 
 					   bool final, unsigned dim2, unsigned numUpdates)
 {
@@ -224,7 +224,7 @@ void SNPTest::Accumulate(){
   CentreAndSum(dim, Score, Info, &SumScore, &SumScore2, &SumInfo); 
 }
 
-void SNPTest::Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
+void SNPTest::Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 		     bool final,unsigned numUpdates){
   OutputScalarScoreTest(outfile, Locus->GetLabel(0), SumScore, SumScore2, 
 			SumInfo, final, numUpdates);
@@ -265,7 +265,7 @@ void MultiAllelicLocusTest::Accumulate(){
   CentreAndSum(dim, Score, Info, SumScore, SumScore2, SumInfo); 
 }
 
-void MultiAllelicLocusTest::Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
+void MultiAllelicLocusTest::Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 				   bool final, unsigned numUpdates){
 
   vector<string> labels;
@@ -319,7 +319,7 @@ void HaplotypeTest::Accumulate(){
     CentreAndSum(dim, Score, Info, SumScore, SumScore2, SumInfo); 
 }
 
-void HaplotypeTest::Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
+void HaplotypeTest::Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 			   bool final, unsigned numUpdates){
   //here, dim = NumberOfMergedHaplotypes
   //create labels as "locuslabel","haplabel"
@@ -432,7 +432,7 @@ void WithinHaplotypeTest::Accumulate(){
   }
 }
 
-void WithinHaplotypeTest::Output(bclib::FileWriter& outfile, const CompositeLocus* const Locus, 
+void WithinHaplotypeTest::Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 			   bool final, unsigned numUpdates){
 
   //for(int i = 0; i < (*Lociptr)(j)->GetNumberOfLoci(); ++i)labels.push_back("\""+(*Lociptr)(j)->GetLabel(i)+"\"");

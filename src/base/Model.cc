@@ -11,6 +11,7 @@
  */
 
 #include "Model.h"
+#include "Filenames.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -56,7 +57,14 @@ void Model::InitialiseRegressionObjects(Options& options, InputData& data,  bcli
 void Model::Start(Options& options, InputData& data, bclib::LogWriter& Log){
   // ******************* Initialize test objects and ergodicaveragefile *******************************
   InitialiseTests(options, data, Log);
-  
+  InitializeErgodicAvgFile(options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());  
+  //if(options.outputParams())
+  {
+    const string filename = options.getResultsDir() + "/" + PARAMFILE_ROBJECT;
+    paramstream.open(filename.c_str());
+
+  }
+
   //open file to output loglikelihood
   string s = options.getResultsDir()+"/loglikelihoodfile.txt";
   loglikelihoodfile.open(s.c_str());
@@ -156,7 +164,7 @@ void Model::Finish(Options& options, InputData& data, bclib::LogWriter& Log){
   else Log.setDisplayMode(bclib::Quiet);
   
   Finalize(options, Log, data);
-  
+
   //Expected Outcome
   if(options.getNumberOfOutcomes() > 0){
     bclib::Regression::FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), 

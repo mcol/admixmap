@@ -15,6 +15,7 @@
 #include "bclib/StringSplitter.h"
 #include <string>
 #include <sstream>
+#include "Filenames.h"
 
 using namespace std;
 using namespace bclib;
@@ -339,6 +340,8 @@ void Options::PrintUserOptions(const char* filename){
   string ss = ResultsDir;
   ss.append("/");
   ss.append(filename);
+
+  useroptions["rparamfile"] = PARAMFILE_ROBJECT;
 
   OptionReader::PrintUserOptions(ss.c_str());
 }

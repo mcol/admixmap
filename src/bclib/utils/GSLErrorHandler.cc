@@ -15,7 +15,7 @@ void GSLErrorHandler(const char * reason, const char * file,
 
   converter << line_int;
   converter >> line;
-  if(reason == "index out of range"){ //GSL gives this message.
+  if(!strcmp(reason, "index out of range")){ //GSL gives this message.
     throw indexOutOfRange(reason,file,line);
   }
 

@@ -16,7 +16,7 @@
 #include "gsl/gsl_cdf.h"
 #include <math.h>
 #include "bclib/linalg.h"
-#include "bclib/FileWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 
 using namespace std;
 
@@ -27,7 +27,7 @@ ScoreTestBase::~ScoreTestBase(){
 }
 
 ///generic scalar score test
-void ScoreTestBase::OutputScalarScoreTest( int iterations, bclib::FileWriter& outputstream, string label,
+void ScoreTestBase::OutputScalarScoreTest( int iterations, bclib::DelimitedFileWriter& outputstream, string label,
 					const double score, const double scoresq, const double info, bool final)
 {
   const double Score = score / ( double )iterations;
@@ -73,7 +73,7 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, bclib::FileWriter& ou
   outputstream << bclib::newline;
 }
 
-void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  bclib::FileWriter& outputstream, string label,
+void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  bclib::DelimitedFileWriter& outputstream, string label,
 						     const double score, const double scoresq, const double varscore, 
 						     const double info, bool final )
 {
@@ -138,7 +138,7 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  bclib::FileWriter& outputs
 }
 
 ///generic vector score test
-void ScoreTestBase::OutputScoreTest( int iterations,  bclib::FileWriter& outputstream, unsigned dim, vector<string> labels,
+void ScoreTestBase::OutputScoreTest( int iterations,  bclib::DelimitedFileWriter& outputstream, unsigned dim, vector<string> labels,
 				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
 {
   //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element.

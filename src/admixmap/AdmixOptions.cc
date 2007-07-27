@@ -84,6 +84,10 @@ AdmixOptions::~AdmixOptions()
 }
 
 // each option has a function to return its value
+bool AdmixOptions::outputParams()const{
+  return ( ParameterFilename.length() || RegressionOutputFilename.length() || EtaOutputFilename.length());
+}
+
 bool AdmixOptions::getOutputFST() const{
   return OutputFST;
 }

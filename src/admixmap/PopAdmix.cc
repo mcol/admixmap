@@ -94,7 +94,7 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
     if ( options.getIndAdmixHierIndicator()){
       Log.setDisplayMode(bclib::Quiet);
       if( strlen( options.getParameterFilename() ) ){
-	outputstream.open( options.getParameterFilename(), ios::out );
+	outputstream.open( options.getParameterFilename());
 	if( !outputstream )
 	  {
 	    Log.setDisplayMode(bclib::On);
@@ -260,6 +260,7 @@ void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const
 void PopAdmix::InitializeOutputFile(const Vector_s& PopulationLabels) {
   // Header line of paramfile
   //Pop. Admixture
+  outputstream.delimit(false);
   for( int i = 0; i < options.getPopulations(); i++ ) {
     outputstream << "Dirichlet." << PopulationLabels[i] << "\t";
   }
@@ -267,7 +268,8 @@ void PopAdmix::InitializeOutputFile(const Vector_s& PopulationLabels) {
   if( options.isGlobalRho() ) outputstream << "sumIntensities\t";
   else outputstream << "sumIntensities.mean\t";
   
-  outputstream << endl;
+  outputstream.delimit(true);
+  outputstream << bclib::newline;
 }
 
 void PopAdmix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
@@ -283,46 +285,22 @@ void PopAdmix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 }
 
 //output to given output stream
-void PopAdmix::OutputParams(ostream* out){
+void PopAdmix::OutputParams(bclib::Delimitedostream& out){
   //pop admixture params
   for( int j = 0; j < options.getPopulations(); j++ ){
-    out->width(9);
-    (*out) << setprecision(6) << alpha[0][ j ] << "\t";
+    out << setprecision(6) << alpha[0][ j ];
   }
   //sumintensities
-  out->width(9);
   if( options.isGlobalRho() )
-    (*out) << setprecision(6) << rho[0] << "\t";
+    out << setprecision(6) << rho[0] ;
   else
-    (*out) << setprecision(6) << rhoalpha / rhobeta  << "\t";
+    out << setprecision(6) << rhoalpha / rhobeta ;
 }
 
-void PopAdmix::OutputParams(int iteration, bclib::LogWriter &Log){
-  //output initial values to logfile
-  if( iteration == -1 )
-    {
-      Log.setDisplayMode(bclib::Off);
-      Log.setPrecision(6);
-      for( int j = 0; j < options.getPopulations(); j++ ){
-	//Log->width(9);
-	Log << alpha[0][j];
-      }
-      
-      if( !options.isGlobalRho() )
-	Log << rhoalpha / rhobeta;
-      else
-	Log << rho[0];
-    }
-  //output to screen
-  if( options.getDisplayLevel() > 2 )
-    {
-      OutputParams(&cout);
-    }
-  //Output to paramfile after BurnIn
-  if( iteration > options.getBurnIn() ){
-    OutputParams(&outputstream);
-    outputstream << endl;
-  }
+void PopAdmix::OutputParams(){
+  //Output to paramfile
+  OutputParams(outputstream);
+  outputstream << bclib::newline;
 }
 
 const vector<double > &PopAdmix::getalpha0()const{

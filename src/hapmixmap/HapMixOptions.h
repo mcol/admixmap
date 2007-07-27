@@ -32,6 +32,8 @@ public:
   void PrintUserOptions(const char* filename);
 
   //main output files
+  ///indicates whether we are writing at least one of paramfile, regparamfile or FreqPrecisionOutputFilename
+  bool outputParams()const;
   const char *getFreqPrecisionOutputFilename() const;
   const char *getAlleleFreqPriorOutputFilename() const;
   bool OutputAlleleFreqPrior()const;
