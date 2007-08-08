@@ -16,21 +16,21 @@ DataReader::~DataReader(){
 
 }
 
-void DataReader::ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, LogWriter& Log ){
-  readFile(filename, SMatrix, Log);
+void DataReader::ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, LogWriter& Log, bool requireHeader ){
+  readFile(filename, SMatrix, Log, requireHeader);
 }
-void DataReader::ReadData(const char* filename, DataMatrix& DMatrix, LogWriter& Log,size_t row0, size_t col0, size_t ncols ){
+void DataReader::ReadData(const char* filename, DataMatrix& DMatrix, LogWriter& Log,size_t row0, size_t col0, size_t ncols, bool requireHeader ){
   std::vector< std::vector<std::string> > SMatrix;
-  readFile(filename, SMatrix, Log);
+  readFile(filename, SMatrix, Log, requireHeader);
   convertMatrix(SMatrix, DMatrix, row0, col0, ncols);
 }
-void DataReader::ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, DataMatrix& DMatrix, LogWriter& Log ){
-  readFile(filename, SMatrix, Log);
+void DataReader::ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, DataMatrix& DMatrix, LogWriter& Log, bool requireHeader ){
+  readFile(filename, SMatrix, Log, requireHeader);
   convertMatrix(SMatrix, DMatrix, 0, 0, 0);
 }
 
 ///read a file into a string matrix
-void DataReader::readFile(const char *fname, std::vector<std::vector<std::string> >& data, LogWriter &Log)
+void DataReader::readFile(const char *fname, std::vector<std::vector<std::string> >& data, LogWriter &Log, bool requireHeader)
 {
     if (0 == fname || 0 == strlen(fname)) return;
 
@@ -51,13 +51,13 @@ void DataReader::readFile(const char *fname, std::vector<std::vector<std::string
 
       //check for header by searching for alphabetic characters
       getline(in, line);
-      if( find_if(line.begin(), line.end(), isalpha) == line.end() ){
+      if( requireHeader && find_if(line.begin(), line.end(), isalpha) == line.end() ){
 	std::string errstring = "ERROR: No header found in file ";
 	errstring.append(fname);
 	throw(errstring);
       }
 
-      while (!in.eof()) {
+      do{
 	//skip blank lines
 	if (!StringConvertor::isWhiteLine(line.c_str())) {
 	  //tokenise, splitting on whitespace
@@ -74,8 +74,7 @@ void DataReader::readFile(const char *fname, std::vector<std::vector<std::string
 	  }
 	}
 	//read next line
-	getline(in, line);
-      }
+      }while (getline(in, line)); 
     } catch (...) {
       in.close();
       throw;

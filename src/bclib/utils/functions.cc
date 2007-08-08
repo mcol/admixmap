@@ -1,7 +1,7 @@
 /** 
  *   functions.cc 
  *   Miscellaneous functions not belonging to any class
- *   Copyright (c) 2002-2006 David O'Donnell and Paul McKeigue
+ *   Copyright (c) 2002-2007 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -26,6 +26,7 @@
 #include <sstream>
 #include "bclib/GSLErrorHandler.h"
 #include "bclib/GSLExceptions.h"
+#include "bclib/Exceptions.h"
 
 #define MIN(X, Y) X<Y?X:Y
  
@@ -806,6 +807,8 @@ double eh_exp(double x){
 }
 ///lngamma function with error handling
 double lngamma(double x){
+  if(x <= 0.0)
+    throw InfinityException("lngamma", __FILE__);
   //disable default gsl error handler
   gsl_error_handler_t* old_handler = gsl_set_error_handler(&bclib::GSLErrorHandler);
   const double result = gsl_sf_lngamma(x);
@@ -815,6 +818,8 @@ double lngamma(double x){
 }
 ///digamma function with error handling
 double digamma(double x){
+  if(x <= 0.0)
+    throw InfinityException("digamma", __FILE__);
   //disable default gsl error handler
   gsl_error_handler_t* old_handler = gsl_set_error_handler(&bclib::GSLErrorHandler);
   const double result = gsl_sf_psi(x);
@@ -823,6 +828,8 @@ double digamma(double x){
 }
 ///trigamma function with error handling
 double trigamma(double x){
+  if(x <= 0.0)
+    throw InfinityException("trigamma", __FILE__);
   //disable default gsl error handler
   gsl_error_handler_t* old_handler = gsl_set_error_handler(&bclib::GSLErrorHandler);
   double result = gsl_sf_psi_n( 1, x);

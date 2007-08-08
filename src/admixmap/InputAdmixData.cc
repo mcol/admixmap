@@ -30,7 +30,7 @@ InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
 
     DataReader::ReadData(options->getAlleleFreqFilename(), alleleFreqData_, Log);
     DataReader::ReadData(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, Log);            
-    DataReader::ReadData(options->getEtaPriorFilename(), etaPriorData_,etaPriorMatrix_,  Log);
+    DataReader::ReadData(options->getEtaPriorFilename(), etaPriorData_,etaPriorMatrix_,  Log, false);//no header
     DataReader::ReadData(options->getReportedAncestryFilename(), reportedAncestryData_, reportedAncestryMatrix_, Log);
     
     Log << "\n";

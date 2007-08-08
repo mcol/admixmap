@@ -18,7 +18,7 @@
 #include "Genome.h"
 #include "bclib/StepSizeTuner.h"//for sampling globalrho
 #include "bclib/DirichletParamSampler.h"//for sampling pop admix
-#include "bclib/DelimitedFIleWriter.h"
+#include "bclib/DelimitedFileWriter.h"
 
 class InputData;
 class AdmixIndividualCollection;

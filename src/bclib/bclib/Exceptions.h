@@ -8,6 +8,19 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+class InfinityException : public std::exception{
+public:
+  InfinityException();
+  InfinityException(const std::string& fun, const std::string f) :
+    function(fun), file(f){};
+  ~InfinityException()throw(){};
+  const char* what() const throw(){
+    return (("Infinity in function \"" + function + "\" in " + file).c_str());
+  }
+private:
+  std::string function, file;
+};
+
 class InfiniteGradient : public std::exception{
 public:
   InfiniteGradient(){};

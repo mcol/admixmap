@@ -18,9 +18,11 @@ class DataReader{
 public:    
   DataReader();
   ~DataReader();
-  static void ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, LogWriter& Log );
-  static void ReadData(const char* filename, DataMatrix& DMatrix, LogWriter& Log, size_t row0 = 0, size_t col0 = 0, size_t ncols = 0 );
-  static void ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, DataMatrix& DMatrix, LogWriter& Log );
+  static void ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, LogWriter& Log, bool requireHeader=false );
+  static void ReadData(const char* filename, DataMatrix& DMatrix, LogWriter& Log, size_t row0 = 0, size_t col0 = 0, size_t ncols = 0, 
+		       bool requireHeader=false );
+  static void ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, DataMatrix& DMatrix, 
+		       LogWriter& Log, bool requireHeader=false );
 
   static void convertMatrix(const std::vector<std::vector<std::string> >& data, DataMatrix& m, 
 			    size_t row0 = 0, size_t col0 = 0, size_t ncols = 0);
@@ -28,7 +30,7 @@ public:
 private:
   static StringSplitter splitter;
 
-  static void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
+  static void readFile(const char *fname, Matrix_s& data, LogWriter &Log, bool requireHeader=false);
 };
 END_BCLIB_NAMESPACE
 #endif /* !defined DATAREADER_H */

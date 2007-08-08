@@ -12,6 +12,7 @@
  */
 #include "bclib/AdaptiveRejection.h"
 #include "bclib/rand.h"
+#include "bclib/Exceptions.h" //for InfinityException
 #include <iostream>
 #include <sstream>
 
@@ -79,12 +80,28 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
     }
     SetInitialPoints(mode, x, args, secondDeriv);    
 
+    bool infheight = true;//true to ensure loop is executed at least once
     // if log density infinite at x[0], assign x[0] as mean of x[0] and x[1]
-    while( isinf( (*height)( x[0], args ) ) )
-      x[0] = ( x[0] + x[1] ) / 2.0;
+    while( infheight ){
+      try{
+	infheight = isinf( (*height)( x[0], args ) ) ;
+      }catch(InfinityException){
+	infheight = true;
+      }
+      if(infheight)
+	x[0] = ( x[0] + x[1] ) / 2.0;
+    }
     // x[2] similarly
-    while( isinf( (*height)( x[2], args ) ) )
-      x[2] = ( x[2] + x[1] ) / 2.0;
+    infheight = true;//true to ensure loop is executed at least once
+    while( infheight ){
+      try{
+	infheight = isinf( (*height)( x[2], args ) ) ;
+      }catch(InfinityException){
+	infheight = true;
+      }
+      if(infheight)
+	x[2] = ( x[2] + x[1] ) / 2.0;
+    }
   }
 
   else if( dfb > 0 ){ // mode at upper bound; 
@@ -133,12 +150,28 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
   if( dfa > 0.0 && dfb < 0.0 ){
     SetInitialPoints(mode, x, args, secondDeriv);    
 
+    bool infheight = true;//true to ensure loop is executed at least once
     // if log density infinite at x[0], assign x[0] as mean of x[0] and x[1]
-    while( isinf( (*height)( x[0], args ) ) )
-      x[0] = ( x[0] + x[1] ) / 2.0;
+    while( infheight ){
+      try{
+	infheight = isinf( (*height)( x[0], args ) ) ;
+      }catch(InfinityException){
+	infheight = true;
+      }
+      if(infheight)
+	x[0] = ( x[0] + x[1] ) / 2.0;
+    }
     // x[2] similarly
-    while( isinf( (*height)( x[2], args ) ) )
-      x[2] = ( x[2] + x[1] ) / 2.0;
+    infheight = true;//true to ensure loop is executed at least once
+    while( infheight ){
+      try{
+	infheight = isinf( (*height)( x[2], args ) ) ;
+      }catch(InfinityException){
+	infheight = true;
+      }
+      if(infheight)
+	x[2] = ( x[2] + x[1] ) / 2.0;
+    }
   }
 
   else if( dfb > 0 ){ // mode at upper bound; 
