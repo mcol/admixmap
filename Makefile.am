@@ -46,9 +46,12 @@ admixmap-bindist:
 hapmixmap-bindist:
 	@ (cd src/base && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 	@ (cd src/hapmixmap && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
+	@ (cd src/tools/hapmixmapFormatter && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 	rm -Rf dist/hapmixmap/hapmixmap
 	mkdir -p dist/hapmixmap/hapmixmap
 	cp -f src/hapmixmap/hapmixmap$(EXEEXT) dist/hapmixmap/hapmixmap
+	cp -f src/tools/hapmixmapFormatter/FPHD$(EXEEXT) dist/hapmixmap/hapmixmap
+	cp -f $(top_srcdir)/src/tools/hapmixmapFormatter/getdata.pl dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/hapmixmap/README.txt dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/admixmap/COPYING.txt dist/hapmixmap/hapmixmap
 	cp -uf $(top_srcdir)/dist/AdmixmapOutput.R dist/hapmixmap/hapmixmap

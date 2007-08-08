@@ -22,7 +22,7 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
   //set defaults
   beVerbose = false;
   backup = true;
-  prefix = ".";
+  //prefix = ".";
   incasecontrolfilename;
   outcasecontrolfilename;
   MaxLoci = 1000000000;  //some number > number of HapMap loci
@@ -100,13 +100,13 @@ void FPHDOptions::DefineOptions(bclib::OptionReader& opt){
   opt.addFlag('h', "help");
   opt.addFlag('v', "verbose");
   //  opt.addOption('c', "chromosome", bclib::stringOption, &Chr, true);
-  opt.addOption('p', "prefix", bclib::stringOption, &prefix);
+  opt.addOption('p', "prefix", bclib::stringOption, &prefix, true);
   opt.addOption('g', "genotypesfile", bclib::stringOption, &genotypesfilename);
   opt.addOption('l', "locusfile", bclib::stringOption, &locusfilename);
   opt.addFlag('b', "backup");
   //  opt.addOption('n', "numloci", bclib::longOption, &locuslimit);
   opt.addOption('M', "maxloci", bclib::intOption, &MaxLoci);
-  opt.addOption("minoverlap", bclib::floatOption, &MinOverlap_kb);
+  opt.addOption('O', "minoverlap", bclib::floatOption, &MinOverlap_kb);
   opt.addOption('i', "inputfile", bclib::stringOption, &incasecontrolfilename);
   opt.addOption('o', "outputfile", bclib::stringOption, &outcasecontrolfilename);
   opt.addOption('f', "flank", bclib::floatOption, &flankLength);
@@ -127,12 +127,15 @@ void FPHDOptions::PrintHelpText(){
        << "and prepares initial value files, breaking into separate files as necessary." << endl
        << "Copyright (c) David O'Donnell 2007" << endl
        << "All parts of this program are freely distributable" << endl << endl
-       << "Usage: " << PROGNAME << " -c=[1...22] [option=value ...]" << endl << endl
+       << "Usage: " << PROGNAME << "[option=value ...]" << endl << endl
        << "Options ('-' signs are optional), = denotes a default: " << endl
        << "-h   -help                  Print this help message and exit" << endl
     //       << "-c   -chromosome            Chromosome number" << endl
        << "-v   -verbose               Be verbose" << endl
-       << "-p   -prefix = .            Prefix where HapMap files are located." << endl 
+       << "-p   -prefix = .            Prefix where HapMap files are located." << endl
+       << "     Note that HapMap input files must be named '[prefix]_phased.txt', " << endl
+       << "     '[prefix]_sample.txt' and '[prefix]_legend.txt'"
+       << endl 
        << "-l   -locusfile = loci      Output locus file prefix" << endl
        << "-g   -genotypesfile = genotypes.txt" << endl
        << "                            Output genotypes file prefix" << endl
@@ -159,9 +162,6 @@ void FPHDOptions::PrintHelpText(){
        << "                            File with initial values of arrival rates." << endl
        << "     -initialmixturepropsfile" << endl
        << "                            File with initial values of mixture proportions." << endl
-       << endl
-       << "Note that HapMap input files must be named '[prefix]_phased.txt', '[prefix]_sample.txt'" << endl
-       << "and '[prefix]_legend.txt', where N is an integer from 1 to 22"
        << endl << endl;
 }
 

@@ -16,7 +16,7 @@ For each chromosome and each population, there are 3 files, *.legend.txt.gz, *.s
 Having downloaded and unzipped the data files, run the formatting program FPHD to produce a correctly-formatted locusfile and genotypesfile. The program can also be run via the getdata.pl script.
 You can also supply a case-control genotypes file in the format described below and the program will not only encode the genotypes to match the HapMap encoding but also produce reduced locusfile and genotypesfile, containing only loci in the region typed. This will reduce redundancy and memory requirements when running HAPMIXMAP. It can also subdivide long chromosomes where necessary.
 Type FPHD -h for a full list of program options. A typical usage would be as follows:
-./FPHD -c7 -pHapMapData/CEU -lHapMapData/CEU/chr7loci.txt -gHapMapData/CEU/chr7genotypes.txt -imyData/rawgenotypes.txt -omyData/CaseControlgenotypes.txt -maxloci=50000
+./FPHD -pHapMapData/CEU/chr7 -lHapMapData/CEU/chr7loci.txt -gHapMapData/CEU/chr7genotypes.txt -imyData/rawgenotypes.txt -omyData/CaseControlgenotypes.txt -maxloci=50000
 
 Specifying maxloci, causes the chromosome to be subdivided if there are more than 50000 loci. To specify the size of the overlap between segments and the size of the flanking region either side of the typed region, use the 'minoverlap' and 'flanksize' options.
 
