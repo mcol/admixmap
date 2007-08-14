@@ -272,6 +272,8 @@ void Options::DefineOptions(){
   addOption("checkdata", boolOption, &checkData);// set to 0 to skip some data checks
   addOption("deleteoldresults", boolOption, &DeleteOldResultsIndicator);
 
+  //null options - so argsfile can be used for input
+  addOption("rparamfile", nullOption, 0);
 }
 
 bool Options::SetOptions(){

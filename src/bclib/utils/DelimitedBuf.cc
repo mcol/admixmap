@@ -27,7 +27,8 @@ std::streamsize DelimitedStreamBuf::xsputn (const char* s,
 
 DelimitedFileBuf::~DelimitedFileBuf(){
   if(needNewLine)
-    putchar('\n');
+    //putchar('\n');
+    std::filebuf::overflow('\n');
   close();
 }
 

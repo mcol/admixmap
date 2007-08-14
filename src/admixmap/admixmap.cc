@@ -14,7 +14,7 @@
 #include <fstream>
 
 #define ADMIXMAP_VERSION 3
-#define SUBVERSION 7
+#define SUBVERSION 8
 
 using namespace std;
 

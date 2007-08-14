@@ -1,6 +1,6 @@
 AC_PREREQ(2.59)
 
-AC_INIT([bclib],[1.2])
+AC_INIT([bclib],[1.3])
 
 #put auxiliary files here
 AC_CONFIG_AUX_DIR(config)
