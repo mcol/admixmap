@@ -296,7 +296,8 @@ double IndividualCollection::getEnergy(const Options& options, const vector<bcli
     LogLikHMM += _child[i]->getLogLikelihood(options, false, !annealed); // store result if not an annealed run
     // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
     
-    if(annealed)  _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
+    if(annealed) 
+      _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
     else _child[i]->HMMIsBad(false); 
   }
   // get regression log-likelihood 

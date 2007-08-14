@@ -783,3 +783,6 @@ void PopHapMix::SetHMMStateArrivalProbs(bool diploid){
   }
 }
 
+bool PopHapMix::fixedRateParameter()const{
+  return fixRateParameter;
+}

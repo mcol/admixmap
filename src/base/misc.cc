@@ -42,7 +42,7 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
     string dirpath = "./";
 #endif
     dirpath.append(dirname);
-    pdir=opendir(dirpath.c_str()); //"." refers to the current dir
+    pdir=opendir(dirpath.c_str()); 
     if (!pdir) {
       //dir does not exist
       cout << "Creating directory "<< dirpath <<endl;
@@ -50,16 +50,18 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
       //this block is safer but only works in Windows
       int status = mkdir(dirpath.c_str()/*, POSIX permissions go here*/);
       if(status) {
-        cerr << "Unable to create directory. Exiting." << endl;
-        exit(EXIT_FAILURE);
-      }
 #else
       //KLUDGE: 'mkdir' not guaranteed to work on all systems; no error-checking
       //should be ok for normal use
       string cmd = "mkdir ";
       cmd.append(dirname);
       system(cmd.c_str());
+      if(!opendir(dirpath.c_str())){
 #endif
+        cerr << "Unable to create directory. Exiting." << endl;
+        exit(EXIT_FAILURE);
+      }
+
     }
     else if(DeleteExistingFiles){
       cout << "Directory \"" << dirname << "\" exists. Contents will be deleted."<<endl;

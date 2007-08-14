@@ -112,10 +112,6 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
     }
 
     for( int iteration = 0; iteration <= samples; iteration++ ) {
-      //Write Iteration Number to screen
-      if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
-	WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
-      }
       
       //Sample Parameters
       UpdateParameters(iteration, options, Log, data.GetHiddenStateLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
@@ -157,11 +153,16 @@ void HapMixModel::UpdateParameters(int iteration, const Options& _options, LogWr
   // Update individual-level parameters, sampling hidden states
   ///////////////////////////////////////////////////////////////
     
-  HMIC->SampleHiddenStates(options, iteration);
-  //accumulate energy
-  if( iteration > options.getBurnIn()) 
-    AccumulateEnergy(Coolnesses, coolness_index, _options, SumEnergy, SumEnergySq, AISz, anneal, iteration );
+    HMIC->SampleHiddenStates(options, iteration);
+    //accumulate energy
+    if( iteration > options.getBurnIn()) 
+      AccumulateEnergy(Coolnesses, coolness_index, _options, SumEnergy, SumEnergySq, AISz, anneal, iteration );
   
+    //Write Iteration Number to screen
+    if( !anneal &&  !(iteration % options.getSampleEvery()) ) {
+      WriteIterationNumber(iteration, (int)log10((double)options.getTotalSamples()+1 ), options.getDisplayLevel());
+    }
+
   IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
     
   if( options.getHWTestIndicator() || options.getMHTest() || options.getTestForResidualAllelicAssoc() ) {
@@ -226,8 +227,8 @@ void HapMixModel::UpdateParameters(int iteration, const Options& _options, LogWr
   // update regression parameters (if regression model)
   //////////////////////////////////////////////////////////////////////////
 
-  bool condition = (!anneal && iteration > options.getBurnIn());
-  for(unsigned r = 0; r < R.size(); ++r){
+    bool condition = (!anneal && iteration > options.getBurnIn());
+    for(unsigned r = 0; r < R.size(); ++r){
     R[r]->Update(condition, IC->getOutcome(r), coolness );
     //output expected values of outcome variables to file every 'every' iterations after burnin
     if(condition && !(iteration % options.getSampleEvery()) ) {
@@ -397,7 +398,8 @@ void HapMixModel::WriteParamsAsRObjectDimensions(const HapMixOptions& options, c
   //if(strlen(options.getParameterFilename()))
   {
     dimnames[0].push_back("Arrivals.perMb.shapeParam");
-    dimnames[0].push_back("Arrivals.perMb.rateParam");
+    if(!L->fixedRateParameter())
+      dimnames[0].push_back("Arrivals.perMb.rateParam");
     dimnames[0].push_back("Arrivals.perMb.Mean");
   }
   
@@ -424,7 +426,7 @@ void HapMixModel::WriteParamsAsRObjectDimensions(const HapMixOptions& options, c
     
   vector<int> dims;
   dims.push_back(dimnames[0].size());
-  dims.push_back(options.getTotalSamples() - options.getBurnIn());
+  dims.push_back((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery());
 
   paramstream.close(dims, dimnames);
 }

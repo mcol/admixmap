@@ -128,8 +128,9 @@ void Model::Run(Options& options, InputData& data, bclib::LogWriter& Log){
   Finish(options, data, Log);    
 }
 
-void Model::AccumulateEnergy(const double* Coolnesses, unsigned coolness, const Options & options, double & SumEnergy, double & SumEnergySq, 
-		      double& AISz, bool AnnealedRun, int iteration){
+void Model::AccumulateEnergy(const double* Coolnesses, unsigned coolness, const Options & options, 
+			     double & SumEnergy, double & SumEnergySq, 
+			     double& AISz, bool AnnealedRun, int iteration){
   //accumulate energy as minus loglikelihood, calculated using unannealed genotype probs
 
   double Energy = IC->getEnergy(options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun

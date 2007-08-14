@@ -85,7 +85,9 @@ public:
   void OutputAverageMixtureProps(ostream& out)const;
   
   void OutputErgodicAvg( int, std::ofstream& avgstream);
-  
+
+  ///indicates whether the rate parameter is fixed
+  bool fixedRateParameter()const;
   const double* getGlobalMixtureProps()const;
   
   void printAcceptanceRates(bclib::LogWriter &Log);

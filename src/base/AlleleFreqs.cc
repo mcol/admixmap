@@ -105,6 +105,7 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, bclib::LogWriter &
   if(infile.is_open()){
     Log << bclib::Quiet  << "Reading initial values of allele freqs from " << filename << "\n";
     double phi = 0.0;
+    unsigned long count = 0;
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
       const int NumStates = Loci->GetNumberOfStates(locus);
 
@@ -115,8 +116,13 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, bclib::LogWriter &
 	
 	for( int state = 0; state < NumStates-1; state++ ){
 	  if(!(infile >> phi)){
-	    throw string( "ERROR: Too few entries in initialallelefreqfile.\n") ;
+	    stringstream ss;
+	    ss << "ERROR: Too few entries in initialallelefreqfile. Expected " 
+	       << Populations*NumberOfCompositeLoci 
+	       << ", found " << count << " " << phi << "\n"; 
+	    throw ss.str() ;
 	  }
+	  ++count;
 	  //check 0 <= phi <= 1
 	  if(phi < 0 || phi > 1)
 	    throw bclib::DataOutOfRangeException("allele frequency", "between 0 and 1", "initialallelefreqfile");
@@ -539,6 +545,9 @@ void AlleleFreqs::OutputAlleleFreqs(const char* filename, bclib::LogWriter& Log)
 {
   if(strlen(filename)){
     ofstream outfile(filename);
+    outfile.setf(std::ios::fixed); 
+    outfile.precision(12);
+
     if(outfile.is_open()){
       Log << bclib::Quiet << "Writing final values of allele freqs to " << filename << "\n";
       //if( IsRandom() ){
