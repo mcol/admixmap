@@ -1,0 +1,42 @@
+#!/bin/bash
+# -*- coding: UTF-8 -*-
+#
+# Perform an operation on all the directories in the configuration file
+#
+# This file is part of Genepi, genetic data analysis software.
+# Copyright (C) 2007 Maciej Bliziński
+# 
+# Genepi is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# Genepi is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with Genepi; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+function usage() {
+echo "Usage: $0 <config> <command> [ <options> ]"
+exit "$1"
+}
+
+if [[ -z "$1" || -z "$2" ]]; then usage 1; fi
+
+ANALYSES_CONF="$1"
+shift
+
+while read LINE
+do
+	# Skip comments
+	if [[ "$(echo ${LINE} | head -c 1)" = "#" ]]; then continue; fi
+	ANALYSIS_DIR="$(echo ${LINE} | cut -d: -f1)"
+	pushd "../${ANALYSIS_DIR}" > /dev/null
+	# echo -- "$@"
+	"$@"
+	popd > /dev/null
+done < "${ANALYSES_CONF}"

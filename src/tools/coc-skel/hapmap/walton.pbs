@@ -1,0 +1,16 @@
+#!/bin/bash
+#PBS -N %(name)s
+#PBS -l nodes=%(nodes)s:ppn=2
+#PBS -l walltime=%(hours)s:%(minutes)s:00
+#PBS -A ndlif006b
+
+PBS_O_WORKDIR="%(workdir)s"
+
+. ${MODULESHOME}/init/sh
+module load taskfarm
+
+echo Working directory is ${PBS_O_WORKDIR}
+cd "${PBS_O_WORKDIR}"
+
+# Run a taskfarm
+mpiexec taskfarm "./%(script)s"

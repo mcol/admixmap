@@ -1,0 +1,103 @@
+This package can:
+
+ * set up sets of analyses with hapmixmap on ICHEC
+ * collect the results and generate HTML reports
+
+Word `analysis' means here three runs of hapmixmap, for 3 populations:
+African, Asian and European.
+
+Limitations:
+
+ * It only operates with 6-state HMM models. The number of states is
+   hard-coded in several places, you can't easily change the number of
+   states.
+
+Required directory setup:
+
+$HOME/
+	coc-skel	Directory with scripts (this README is inside it)
+	main-directory	Directory (or a symbolic link to it) used for keeping
+	                (physically) all the files
+	coc-...		Symbolic links to directories with analyses and
+	                and results. They will be create automatically.
+
+Steps to set up analyses on a new server:
+
+  1. Place the package in $HOME/coc-skel
+  2. mkdir $HOME/shared-genepi-physical (optional: it can be someplace
+     else, different partition for example; you only need to
+	     $HOME/shared-genepi to point at it.)
+  3. ln -s $HOME/shared-genepi-physical $HOME/shared-genepi
+  4. Place the data files in $HOME/genepi-old/hapmap/{Afr,Asian,Eur}/chr22data
+
+The above steps only need to be performed once.
+
+Package usage:
+
+
+  1. Create a configuration file.
+     
+     Configuration file defines the set of analyses. The format is:
+
+     analysis-name:--parameter1="value1" --parameter2="value2"
+
+     Where the parameters are the hapmixmap's parameters according to documentation at:
+     http://www.ucd.ie/genepi/hapmixmap/options.html
+
+     The configuration file can be generated, there is a script which
+     generates configuration file: generate-analyses.sh. You can
+     configure this script by editing it. The typical usage would be:
+
+     bash generate-analyses.sh my-set-of-analyses.txt
+
+     All other options are defined inside the hapmixmap/chr22.pl Perl
+     script.
+
+  2. Submit the analyses
+
+     First, try a dry run (default), then run it with --submit option.
+
+     bash manage-analyses.sh --action setup --config my-set-of-analyses.txt
+
+     After this run, all the files should be put in place. You can
+     examine your MAIN_DIRECTORY and check the subdirectories, config
+     files and data files.
+
+     If you believe that the runs are set up correctly, submit your tasks.
+
+     bash manage-analyses.sh --action setup --config my-set-of-analyses.txt --force --submit
+
+     The option --force is needed to `force' the script to delete the
+     previously created directories. Otherwise the script will stop if
+     it encounters an existing directory.
+
+  3. Collect results
+
+     When the runs have completed, generate HTML reports.
+
+     bash manage-analyses.sh --action results --config my-set-of-analyses.txt
+
+     When it's complete, you can open your DEST_DIR with a web browser.
+
+== Testing ==
+
+When you want to test if it works, without destroying the configuration:
+
+ 1. Create a new analyses-XX.txt file with one analysis
+ 2. In hapmap dir change configuration call from prod to test in
+    config.sh file
+ 3. Run generate-taskfarm
+ 4. Update pbs.m4, set small amount of time
+
+When finished, reverse those steps:
+ 1. Change config.sh
+ 2. generate-taskfarm
+ 3. Update pbs.m4
+
+== Impute ==
+
+Scripts for working with Impute.
+http://www.stats.ox.ac.uk/~marchini/software/gwas/impute.html
+
+impute-prepare.py
+impute-to-ppgenotypes.py

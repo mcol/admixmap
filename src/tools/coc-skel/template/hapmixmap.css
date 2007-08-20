@@ -1,0 +1,38 @@
+td.numeric { text-align: right; }
+body { font-size: 12px; font-family: sans-serif; }
+td { border: 1px solid #DDD; }
+h4 { background-color: #EEE; }
+img.chart {
+   border: 1px solid #DDD;
+   padding: 8px;
+   margin: 4px;
+}
+div.energy-plot {
+   float: left;
+   margin: 8px;
+}
+div.posterior-quantiles {
+   float: left;
+   margin: 8px;
+}
+
+ul.results_charts {
+    list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+ul.results_charts > li {
+	display: inline;
+}
+
+div#toc {
+	float: right;
+	border: 1px solid #DDD;
+}
+
+div#toc ul {
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}

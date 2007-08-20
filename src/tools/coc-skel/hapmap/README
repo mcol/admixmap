@@ -1,0 +1,69 @@
+Analysis is performed in directory genepi/trunk/hapmap
+
+ 1. Settings
+
+Numbers of states and other variables can be configured in the
+config.sh file. Example content:
+
+POPULATIONS="Eur Afr Asian"
+STATES_LIST=$(seq 18 -2 2)
+SAMPLES=4000
+
+Edit the generate-taskfarm-file.sh to set the percent of masked
+individuals and loci.
+
+Source data (phased_genotypes.txt, phased_loci.txt) is expected to be
+in:
+
+~/shared-genepi/hapmap
+
+You can create this directory by hand or create a symlink. In my case
+the symlink is:
+
+/ichec/home/users/maciej/shared-genepi -> /ichec/work/ndlif006b/genepi
+
+ 2. Preparing the data
+
+./generate-taskfarm-file.sh
+
+This command will generate scripts to prepare the data, according to
+the configuration from config.sh. Execute masking with the following
+command:
+
+bash mutual-information-prep.sh
+
+ 3. Running the analysis
+
+ 3.1. Sequentially
+
+If you want to execute the analysis sequentially, on a local machine
+(not on a cluter), execute this:
+
+bash mutual-information-tf.sh
+
+ 3.2. On a cluster
+
+Use the launch-taskfarm.pbs script; edit it and set the walltime.
+Submit it:
+
+qsub launch-taskfarm.pbs
+
+ 4. Read the results
+
+After the analysis has finished, you can read the results with the
+following command:
+
+bash collect-mi.sh
+
+It will display a text table. If you want a table for a Trac wiki,
+you can type:
+
+bash collect-mi.sh "" '||'
+
+It will use Trac table syntax, which can be copied and pasted into
+Trac wiki pages or ticket comments.
+
+Alternatively, a LaTeX(-ish) table will be produced by:
+
+bash collect-mi.sh "" '&'
+

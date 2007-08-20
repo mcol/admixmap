@@ -1,0 +1,1 @@
+# coc-mp-fixed:--fixedmixtureprops=1 --fixedmixturepropsprecision=1

@@ -1,0 +1,16 @@
+#!/bin/bash
+#PBS -N irw-1-arp-12-0.5-1-0.5-afpp-2-8-s1
+#PBS -l nodes=4:ppn=2
+#PBS -l walltime=24:00:00
+#PBS -A ndlif006b
+
+PBS_O_WORKDIR=/ichec/home/users/maciej/irw-1-arp-12-0.5-1-0.5-afpp-2-8-s1/hapmap
+
+. ${MODULESHOME}/init/sh
+module load taskfarm
+
+echo Working directory is ${PBS_O_WORKDIR}
+cd "${PBS_O_WORKDIR}"
+
+# Run a taskfarm
+mpiexec taskfarm ./mutual-information-tf.sh
