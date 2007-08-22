@@ -82,5 +82,7 @@ if($test){
   }
   # Run with HapMap + Case/Control data
   $arg_hash->{resultsdir} = "Results";
+  $arg_hash->{testgenotypesfile} = "data/CaseControlGenotypes.txt";
+  $arg_hash->{allelicassociationtest = 1;
   doAnalysis($executable, $rscript, $arg_hash);
 }

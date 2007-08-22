@@ -62,26 +62,40 @@ int main( int argc , char** argv ){
     bclib::Rand RNG;//allocate random number generator
     RNG.setSeed( options.getSeed() );  // set random number seed
   
-    //read data files and check (except allelefreq files)
+    //read data files 
     //also sets 'numberofoutcomes' and 'states' options
     InputHapMixData data(&options, Log);
 
-     //check user options
+    //check data 
+    bool inputOK = true;
+    if(options.CheckData())
+      inputOK = inputOK & data.CheckData(&options, Log);
+
+    //check user options
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
-      Log << bclib::On << "\nProgram aborted due to bad options. See logfile for details\n";
-      exit(1);
+      inputOK = false;
+      Log << bclib::On << "\nBad options. See logfile for details\n";
     }
   
-    //print user options to args.txt; must be done after all options are set
-    options.PrintUserOptions("args.txt");
-
     //end of program, in checkmode
     if(options.getFlag("checkmode")){
-      Log << bclib::On << "-------------------------------------------------------\n"
-	  <<  "  *** Everything looks good ***\n\n  *** Check Mode Complete ***\n" 
+      Log << bclib::On << "-------------------------------------------------------\n";
+      if(inputOK)
+	Log << " *** Everything looks good ***\n";
+      else
+	Log << " !!! Some checks failed !!!\n";
+
+      Log << " *** Check Mode Complete ***\n" 
 	  << "-------------------------------------------------------\n";
       exit(0);
     }
+
+    //stop if bad data or bad options
+    if(!inputOK)
+      exit(1);
+
+    //print user options to args.txt; must be done after all options are set
+    options.PrintUserOptions("args.txt");
 
     //create directory to write final parameter values, unless it is the same as resultsdir
     const string& finalvaluedir = options.getFinalValueDir();

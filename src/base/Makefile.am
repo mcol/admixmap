@@ -12,6 +12,7 @@ Chromosome.cc Chromosome.h \
 common.h \
 CompositeLocus.cc CompositeLocus.h \
 CopyNumberAssocTest.cc CopyNumberAssocTest.h \
+Filenames.h \
 FreqArrays.h \
 GeneticDistanceUnit.h \
 Genome.cc Genome.h \

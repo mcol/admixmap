@@ -69,8 +69,8 @@ int main(int argc, char **argv){
     options.setMaxLoci(Legend.getLastIndex());
     
     // *** PHASE 2: read case-control genotypes and set chromosome bounds  ***  
-    UserGenotypes UG(Legend, options.getInCCFilename());
-    if(options.WriteCCFile()){
+    UserGenotypes UG(Legend, options.getInObsGenoFilename());
+    if(options.WriteObsGenoFile()){
 
       //set first and last loci in Legend
       Legend.setLimits(UG.getFirstTypedLocus(), UG.getLastTypedLocus());
@@ -95,22 +95,22 @@ int main(int argc, char **argv){
       cout << endl;
     }
 
-    if(options.WriteCCFile()){
+    if(options.WriteObsGenoFile()){
       if(Legend.getNumSubChromosomes() > 1)
 	Legend.AdjustFlankingRegions(UG.getTypedLoci(), options.getFlankLength());
       if(options.Verbose())
-	cout << "Writing case-control genoypes to " << options.getOutCCFilename() << endl;
-      //format case-control file
+	cout << "Writing observed genotypes to " << options.getOutObsGenoFilename() << endl;
+      //encode observed genotypes 
       unsigned NumTypedInd = UG.FormatUserGenotypes(Legend,  
-						options.getOutCCFilename(), options.getMissingChar());
+						options.getOutObsGenoFilename(), options.getMissingChar());
       if(options.Verbose()){
-	cout << NumTypedInd << " case-control individuals" << endl
+	cout << NumTypedInd << " typed individuals" << endl
 	     << UG.getNumberOfTypedLoci() << " typed loci" << endl;
 	//TODO: give numbers of typed loci on each sub-chromosome
       }
     }
     
-    //   if(!options.WriteCCFile() /*&& options.LimitedLoci()*/){
+    //   if(!options.WriteObsGenoFile() /*&& options.LimitedLoci()*/){
     //     first = 0;
     //     last = options.getMaxLoci();
     //   }

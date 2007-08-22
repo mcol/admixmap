@@ -29,6 +29,9 @@ public:
   */
   InputHapMixData(HapMixOptions *options, bclib::LogWriter &log); 
 
+  ///check contents of data files, after they are read in
+  bool CheckData(HapMixOptions *options, bclib::LogWriter &Log);
+
   /**
      Retrieves an individual's genotypes (obsolete).
      retrieves ADMIXMAP-style genotypes.
@@ -48,11 +51,11 @@ public:
   bool GetHapMixGenotype(int i, const Genome &Loci, std::vector<unsigned short>* genotypes, bool** Missing);
 
   /**
-     Determines if an Individual is a case/control or not.
+     Determines if an Individual is under test or not.
      \param i Individual number (count from 1)
-     \return true if case/control, false if not
+     \return true if under test, false if not
   */
-  bool IsCaseControl(int i)const;
+  bool IsTestIndividual(int i)const;
 
   /**
      Determines if a locus is typed (case/control)
@@ -64,16 +67,17 @@ public:
   ///returns number of typed loci
   unsigned getNumTypedLoci()const;
 
-  ///returns the number of case-control individuals
-  int getNumberOfCaseControlIndividuals()const;
+  ///returns the number of test individuals
+  int getNumberOfTestIndividuals()const;
 
 private:
 
   ///object to read and assign hapmix genotypes
   HapMixGenotypeLoader* hGenotypeLoader;
 
-  ///check contents of data files, after hey are read in
-  void CheckData(HapMixOptions *options, bclib::LogWriter &Log);
+  ///check outcome variables and covariates and extract required variables 
+  void CheckRegressionData(HapMixOptions *options, bclib::LogWriter &Log);
+
   /** read block state labels.
       Read from priorallelefreqfile, if specified. 
       Otherwise assign default names - BlockState1, BlockState2 etc
@@ -83,7 +87,7 @@ private:
   /**
      Checks contents of priorallelefreqfile
   */
-  void CheckAlleleFreqs(HapMixOptions *options, bclib::LogWriter &Log);
+  bool CheckAlleleFreqs(HapMixOptions *options, bclib::LogWriter &Log);
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.
    */

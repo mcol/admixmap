@@ -90,11 +90,11 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options,
   /* Allocate space for unordered genotype probs
      They have form of vector of vectors of vectors of doubles.
      condition is : if genotypes have been masked (because then we are using UnorderedProbs to output posterior predictive Genotype Probs)
-                    OR this is a case or control and the score test is on (only cases and controls are included in the score test)
-                    OR there are no cases or controls and the score test is on (in this case, all individuals are included in the score test).
+                    OR this is a test individual and the score test is on (only test individuals are included in the score test)
+                    OR there are no test individuals and the score test is on (in this case, all individuals are included in the score test).
   */
   if(isMasked || ( options->getTestForAllelicAssociation() && 
-		   (Data->IsCaseControl(number) || !Data->getNumberOfCaseControlIndividuals())
+		   (Data->IsTestIndividual(number) || !Data->getNumberOfTestIndividuals())
 		   )
      ){
     vector<double> v1 = vector<double>(1);

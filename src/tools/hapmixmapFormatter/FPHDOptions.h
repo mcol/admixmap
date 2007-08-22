@@ -27,11 +27,11 @@ public:
   const std::string& getPrefix()const;
   //unsigned getChrNum()const;
   unsigned long getMaxLoci()const;
-  bool WriteCCFile()const;
+  bool WriteObsGenoFile()const;
   const char* getLocusFilename()const;
   const char* getGenotypesFilename()const;
-  const char* getInCCFilename()const;
-  const char* getOutCCFilename()const;
+  const char* getInObsGenoFilename()const;
+  const char* getOutObsGenoFilename()const;
   const char* getInitialMixturePropsFilename()const;
   const char* getInitialArrivalRateFilename()const;
   const char* getInitialAlleleFreqFilename()const;
@@ -47,8 +47,8 @@ private:
   //  string Chr;//chromosome number
 
   std::string genotypesfilename, locusfilename;
-  std::string incasecontrolfilename;
-  std::string outcasecontrolfilename;
+  std::string inobsgenofilename;
+  std::string outobsgenofilename;
   unsigned long MaxLoci;//max loci per subchromosome
   unsigned MinOverlap_bp;//minimum overlap between subchromosomes
   float MinOverlap_kb;

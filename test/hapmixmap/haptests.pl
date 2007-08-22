@@ -146,7 +146,7 @@ CompareThenMove($arg_hash->{resultsdir});
 #Case-control analysis
 delete $arg_hash->{initialvaluedir};
 $arg_hash->{resultsdir}      = 'ResultsCaseControl';
-$arg_hash->{ccgenotypesfile} = "$datadir/genotypes_casectrl.txt";
+$arg_hash->{testgenotypesfile} = "$datadir/genotypes_casectrl.txt";
 $arg_hash->{outcomevarfile} = "$datadir/outcome.txt";
 $arg_hash->{allelicassociationtest} = 1;
 callDoAnalysis();

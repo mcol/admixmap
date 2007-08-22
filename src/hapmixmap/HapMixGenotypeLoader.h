@@ -21,7 +21,7 @@ public:
   ///constructor
   HapMixGenotypeLoader();
   ///read case-control genotypesfile
-  void ReadCaseControlGenotypes(const char* filename, bclib::LogWriter& Log);
+  void ReadTestGenotypes(const char* filename, bclib::LogWriter& Log);
 
   /**
      Retrieve HAPMIXMAP-style genotype.
@@ -36,16 +36,16 @@ public:
   bool GetHapMixGenotype(int i, const Genome &Loci,
 			 std::vector<unsigned short>* genotypes, bool** Missing);
 
-  ///returns number of individuals (including cases and controls)
+  ///returns number of individuals (including typed)
   unsigned getNumberOfIndividuals()const;
-  ///returns number of cases and controls
-  unsigned getNumberOfCaseControlIndividuals()const;
-  ///returns the number of typed loci in a hapmix case-control analysis
+  ///returns number of test individuals
+  unsigned getNumberOfTestIndividuals()const;
+  ///returns the number of typed loci in a hapmix test analysis
   unsigned getNumTypedLoci()const;
-  ///returns number of case-control loci (columns in ccgenotypesfile)
-  unsigned NumCaseControlLoci()const;
-  ///determines if an individual is a case-control or not
-  bool IsCaseControl(unsigned i)const;
+  ///returns number of typed loci (columns in testgenotypesfile)
+  unsigned NumTestLoci()const;
+  ///determines if an individual is under test or not
+  bool IsTestIndividual(unsigned i)const;
   ///determines if a locus is typed (in case-control file) or not
   bool isTypedLocus(unsigned locus)const;
   ///free memory
@@ -59,23 +59,23 @@ public:
 		   std::vector<genotype>* genotypes, bool **Missing)const;
 private:
   ///string matrix to store case-control genotypes for hapmixmodel
-  Matrix_s CCgeneticData_;
+  Matrix_s testGeneticData_;
   ///vector of indicators of typed loci
-  std::vector<bool> isCaseControlSNP;
+  std::vector<bool> isTypedSNP;
   ///number of cases/controls
-  int NumCCIndividuals;
+  int NumTestIndividuals;
 
   /**
-     gets a hapmix case-control genotype from the ccgenotypes file.
+     gets a hapmix test genotype from the testgenotypes file.
      \param locus locus index
-     \param cclocus case-control locus index (incremented if the locus is typed)
+     \param test test locus index (incremented if the locus is typed)
      \param individual individual number (count from 1)
      \return vector of length 1(haploid) or 2(diploid) of alles
   */
-  std::vector<unsigned short> GetCaseControlGenotype(unsigned locus, unsigned* cclocus, 
-						     int individual)const;
-  ///determine which loci in genotypesfile are also in case-control genotypes file
-  void FindCaseControlLoci();
+  std::vector<unsigned short> GetTestGenotype(unsigned locus, unsigned* testlocus, 
+					      int individual)const;
+  ///determine which loci in genotypesfile are also in test genotypes file
+  void FindTypedLoci();
   /// retrieve ADMIXMAP-style case-control genotype (obsolete)
-  void GetCaseControlGenotype(int i, const Genome &Loci, std::vector<genotype>* genotypes, bool** Missing)const;
+  void GetTestGenotype(int i, const Genome &Loci, std::vector<genotype>* genotypes, bool** Missing)const;
 };

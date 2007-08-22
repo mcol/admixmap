@@ -17,21 +17,21 @@
 #include "bclib/StringConvertor.h"
 
 HapMixGenotypeLoader::HapMixGenotypeLoader(){
-  NumCCIndividuals = 0;
+  NumTestIndividuals = 0;
 }
 
-void HapMixGenotypeLoader::ReadCaseControlGenotypes(const char* filename, bclib::LogWriter& Log){
-  bclib::DataReader::ReadData(filename, CCgeneticData_, Log);
-  if(CCgeneticData_.size()){
-    NumCCIndividuals = CCgeneticData_.size() - 1;
-    FindCaseControlLoci();
+void HapMixGenotypeLoader::ReadTestGenotypes(const char* filename, bclib::LogWriter& Log){
+  bclib::DataReader::ReadData(filename, testGeneticData_, Log, true);
+  if(testGeneticData_.size()){
+    NumTestIndividuals = testGeneticData_.size() - 1;
+    FindTypedLoci();
   }
 }
 
 ///fills a hapmix individual's genotype vector
 bool HapMixGenotypeLoader::GetHapMixGenotype(int i, const Genome &Loci, 
 					     vector<unsigned short>* genotypes, bool** Missing){
-  const bool isCaseControl = IsCaseControl(i);
+  const bool isTestIndiv = IsTestIndividual(i);
 
   unsigned long numhaploid = 0, numdiploid = 0, numhaploidX = 0, numdiploidX = 0;
   //unsigned numCompositeLoci = Loci.GetNumberOfCompositeLoci();
@@ -43,8 +43,8 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, const Genome &Loci,
     bool isXChr = Loci.isXChromosome(j);
     for(unsigned jj = 0; jj < Loci.GetSizeOfChromosome(j); ++jj){
       
-      std::vector<unsigned short> g = isCaseControl ?
-        GetCaseControlGenotype(locus, &cclocus,i)//function will increment cclocus if this locus is typed
+      std::vector<unsigned short> g = isTestIndiv ?
+        GetTestGenotype(locus, &cclocus,i)//function will increment cclocus if this locus is typed
         : GenotypeLoader::GetGenotype(locus, i);
 
       //for backward-compatibility, allow diploid X-chr genotypes for males
@@ -108,7 +108,7 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, const Genome &Loci,
     }
   }
 
-  const string ID = isCaseControl ? CCgeneticData_[i - NumIndividuals][0] : geneticData_[i][0];
+  const string ID = isTestIndiv ? testGeneticData_[i - NumIndividuals][0] : geneticData_[i][0];
 
   CheckGenotypes((numhaploid + numdiploid + numhaploidX + numdiploidX), 
 		 numhaploid, numdiploid, numhaploidX, numdiploidX, i, ID);
@@ -117,61 +117,61 @@ bool HapMixGenotypeLoader::GetHapMixGenotype(int i, const Genome &Loci,
   return isHaploid;
 }
 
-unsigned HapMixGenotypeLoader::getNumberOfCaseControlIndividuals()const{
-  return NumCCIndividuals;
+unsigned HapMixGenotypeLoader::getNumberOfTestIndividuals()const{
+  return NumTestIndividuals;
 }
 
 unsigned HapMixGenotypeLoader::getNumberOfIndividuals()const{
-  return (NumIndividuals + NumCCIndividuals);
+  return (NumIndividuals + NumTestIndividuals);
 }
 
-unsigned HapMixGenotypeLoader::NumCaseControlLoci()const{
-return CCgeneticData_[0].size();
+unsigned HapMixGenotypeLoader::NumTestLoci()const{
+  return testGeneticData_[0].size();
 }
 
 //returns the number of typed loci in a hapmix case-control analysis
 unsigned HapMixGenotypeLoader::getNumTypedLoci()const{
-  return isCaseControlSNP.size();
+  return isTypedSNP.size();
 }
 
-bool HapMixGenotypeLoader::IsCaseControl(unsigned i)const{
-  return (bool)(i > getNumberOfIndividuals() - getNumberOfCaseControlIndividuals() );
+bool HapMixGenotypeLoader::IsTestIndividual(unsigned i)const{
+  return (bool)(i > getNumberOfIndividuals() - getNumberOfTestIndividuals() );
 }
 
 bool HapMixGenotypeLoader::isTypedLocus(unsigned locus)const{
-  if(isCaseControlSNP.size())
-    return isCaseControlSNP[locus];
+  if(isTypedSNP.size())
+    return isTypedSNP[locus];
   else
     return false;
 }
 void HapMixGenotypeLoader::clear(){
   GenotypeLoader::clear();
-  for(unsigned i = 0; i < CCgeneticData_.size(); ++i)
-    CCgeneticData_[i].clear();
-  CCgeneticData_.clear();
+  for(unsigned i = 0; i < testGeneticData_.size(); ++i)
+    testGeneticData_[i].clear();
+  testGeneticData_.clear();
 }
 
-///search the loci in genotypesfile for loci in a ccgenotypesfile
-void HapMixGenotypeLoader::FindCaseControlLoci(){
+///search the loci in genotypesfile for loci in a testgenotypesfile
+void HapMixGenotypeLoader::FindTypedLoci(){
   for(Vector_s::const_iterator j = geneticData_[0].begin()+1; j != geneticData_[0].end(); ++j){
-    isCaseControlSNP.push_back(bclib::StringConvertor::isListedString(*j, CCgeneticData_[0]));
+    isTypedSNP.push_back(bclib::StringConvertor::isListedString(*j, testGeneticData_[0]));
   }
 }
 
-///gets a hapmix case-control genotype from the ccgenotypes file
+///gets a hapmix case-control genotype from the testgenotypes file
 vector<unsigned short> 
-HapMixGenotypeLoader::GetCaseControlGenotype(unsigned locus, unsigned* cclocus,
-					     int individual)const{
+HapMixGenotypeLoader::GetTestGenotype(unsigned locus, unsigned* obslocus,
+				      int individual)const{
   vector<unsigned short> g;
-  //if(individual <= NumIndividuals || !NumCCIndividuals) {//not case or control
+  //if(individual <= NumIndividuals || !NumTestIndividuals) {//not case or control
     //throw string("Trying to read case-control genotype but there are none!");
   //}
-  int col = 1 + SexColumn + *cclocus;
-  if (IsPedFile)col = 1 + SexColumn + 2* (*cclocus);
+  int col = 1 + SexColumn + *obslocus;
+  if (IsPedFile)col = 1 + SexColumn + 2* (*obslocus);
 
-  if(isCaseControlSNP[locus]){//is a typed locus
-    g = GenotypeLoader::GetGenotype(CCgeneticData_[individual-NumIndividuals][col]);
-    ++(*cclocus);
+  if(isTypedSNP[locus]){//is a typed locus
+    g = GenotypeLoader::GetGenotype(testGeneticData_[individual-NumIndividuals][col]);
+    ++(*obslocus);
   }
   else 
     //g has one zero. 
@@ -185,8 +185,8 @@ HapMixGenotypeLoader::GetCaseControlGenotype(unsigned locus, unsigned* cclocus,
 void HapMixGenotypeLoader::GetGenotype(int i, const Genome &Loci,  
 				       vector<genotype>* genotypes, bool** Missing)const{
   //these next lines should be removed (but cannot be yet as HapMixIndividual still calls this function)
-  if(i > NumIndividuals && NumCCIndividuals) {
-    GetCaseControlGenotype(i, Loci, genotypes, Missing);
+  if(i > NumIndividuals && NumTestIndividuals) {
+    GetTestGenotype(i, Loci, genotypes, Missing);
   }
   else
     GenotypeLoader::GetGenotype(i, Loci, genotypes, Missing);
@@ -194,7 +194,7 @@ void HapMixGenotypeLoader::GetGenotype(int i, const Genome &Loci,
 
 ///obsolete function for retrieving a hapmix case/control genotype, called by admixmap's GetGenotype function
 //should be removed
-void HapMixGenotypeLoader::GetCaseControlGenotype(int i, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
+void HapMixGenotypeLoader::GetTestGenotype(int i, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
   unsigned int simplelocus = 0;//simple locus counter
   unsigned complocus = 0;
   unsigned long numhaploid = 0;
@@ -204,7 +204,7 @@ void HapMixGenotypeLoader::GetCaseControlGenotype(int i, const Genome &Loci, vec
   unsigned long cclocus = 0;//case-control locus counter
   //  unsigned numXloci = 0;
 
-  //  const std::vector<std::string>& CCLoci = CCgeneticData_[0];//labels of loci in case-control genotypesfile
+  //  const std::vector<std::string>& CCLoci = testGeneticData_[0];//labels of loci in case-control genotypesfile
   for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
     bool isXchrm = Loci.isXChromosome(c);
     for(unsigned int j = 0; j < Loci.GetSizeOfChromosome(c); ++j){
@@ -216,11 +216,11 @@ void HapMixGenotypeLoader::GetCaseControlGenotype(int i, const Genome &Loci, vec
       for (int locus = 0; locus < numLoci; locus++) {
 	const int numalleles = 2;
 	vector<unsigned short> g;
-	if(isCaseControlSNP[simplelocus]){
+	if(isTypedSNP[simplelocus]){
 	  int col = 1 + SexColumn + cclocus;
 	  if (IsPedFile)col = 1 + SexColumn + 2*cclocus;
 	  
-	  g = GenotypeLoader::GetGenotype(CCgeneticData_[i-NumIndividuals][col]);
+	  g = GenotypeLoader::GetGenotype(testGeneticData_[i-NumIndividuals][col]);
 	  ++cclocus;
 	  }
 	else g.assign(2,0);//set genotypes at untyped loci 0

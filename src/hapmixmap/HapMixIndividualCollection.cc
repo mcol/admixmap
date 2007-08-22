@@ -22,7 +22,7 @@ HapMixIndividualCollection
 ::HapMixIndividualCollection(const HapMixOptions* const options, 
 			     InputHapMixData* const Data, Genome* Loci, const double* theta):
   IndividualCollection(Data->getNumberOfIndividuals(), options->getPopulations(), Loci->GetNumberOfCompositeLoci()),
-  NumCaseControls(Data->getNumberOfCaseControlIndividuals()){
+  NumTestIndividuals(Data->getNumberOfTestIndividuals()){
 
   SetNullValues();
   //NumCompLoci = Loci->GetNumberOfCompositeLoci();
@@ -31,10 +31,7 @@ HapMixIndividualCollection
   ConcordanceCounts = new int[NumCompLoci*2*(options->getNumberOfBlockStates())];
   SumArrivalCounts = new int[NumCompLoci*options->getNumberOfBlockStates()];
 
-  //Populations = options->getPopulations();
-  //NumInd = Data->getNumberOfIndividuals();//number of individuals, including case-controls
   size = NumInd;
-  //  NumCaseControls = Data->getNumberOfCaseControlIndividuals();
   
   //  Individual::SetStaticMembers(Loci, options);
   Individual::SetStaticMembers(Loci, options);
@@ -86,8 +83,8 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions& options
     if (
 	(//If it's after the burnin 
 	 (int)iteration > options.getBurnIn()
-	 // and it's a case or control individual
-	 && isCaseControl(i)
+	 // and it's a test individual
+	 && isTestIndividual(i)
 	 // and if the score tests are switched on
 	 && options.getTestForAllelicAssociation()
 	 // and the individual is diploid
@@ -124,18 +121,18 @@ const int* HapMixIndividualCollection::getSumArrivalCounts()const{
 }
 
 int HapMixIndividualCollection::getNumberOfIndividualsForScoreTests()const{
-  if(NumCaseControls > 0)return NumCaseControls;
+  if(NumTestIndividuals > 0)return NumTestIndividuals;
   else return size;
 }
 
 unsigned int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()const{
-  if(NumCaseControls > 0)return size - NumCaseControls;
+  if(NumTestIndividuals > 0)return size - NumTestIndividuals;
   else return 0;
 }
 
 ///determines if individual i is a case/control ie its genotype came from ccgenotypesfile
-bool HapMixIndividualCollection::isCaseControl(unsigned i)const{
-  return ( i > (size - NumCaseControls) );
+bool HapMixIndividualCollection::isTestIndividual(unsigned i)const{
+  return ( i > (size - NumTestIndividuals) );
 }
 
 void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions& options, const Genome& Loci){

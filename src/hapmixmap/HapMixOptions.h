@@ -51,7 +51,7 @@ public:
   std::string getInitialMixturePropsFilename(unsigned startindex=0)const;
   std::string getInitialAlleleFreqFilename(unsigned startindex=0)const;
   std::string getInitialFreqPriorFilename(unsigned startindex=0)const;
-  const char* getCCGenotypesFilename()const;
+  const char* getTestGenotypesFilename()const;
 
   //indicators and model options
   bool getHapMixModelIndicator() const;
@@ -93,7 +93,7 @@ private:
   std::vector<double> MixturePropsPrecisionPrior;// parameters of Gamma prior on mixture props dispersion
 
   //data files
-  std::string CCGenotypesFilename;//case-control genotypes file
+  std::string TestGenotypesFilename;//test genotypes file
 
   //parameter output
   std::string FreqPrecisionOutputFilename;

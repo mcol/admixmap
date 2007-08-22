@@ -35,8 +35,8 @@ public:
   ///returns sufficient statistics for update of mixture proportions
   const int* getSumArrivalCounts()const;
   const HapMixIndividual* getHapMixIndividual(int num)const;
-  ///determines if individual i is a case/control ie its genotype came from ccgenotypesfile
-  bool isCaseControl(unsigned i)const;
+  ///determines if individual i is under test ie its genotype came from testgenotypesfile
+  bool isTestIndividual(unsigned i)const;
   int getNumberOfIndividualsForScoreTests()const;
   unsigned int getFirstScoreTestIndividualNumber()const;
   void AccumulateConditionalGenotypeProbs(const HapMixOptions& options, const Genome& Loci);
@@ -44,7 +44,7 @@ public:
   //  double getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *>&R, Genome* Loci, LogWriter &Log,
   //			    const double* const MixtureProps, const vector<double>& SumRho);
 private:
-  const unsigned NumCaseControls;
+  const unsigned NumTestIndividuals;
   int* ConcordanceCounts;//for update of locus-specific sumintensities
   int* GlobalConcordanceCounts;//ConcordanceCounts summed over processes, kept on master processes
   int* SumArrivalCounts;

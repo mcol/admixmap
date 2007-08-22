@@ -160,8 +160,8 @@ const std::vector<double> & HapMixOptions::getAlleleFreqPriorParams()const{
 const char* HapMixOptions::getArrivalRateOutputFilename()const{
     return ArrivalRateOutputFilename.c_str();
 }
-const char* HapMixOptions::getCCGenotypesFilename()const{
-  return CCGenotypesFilename.c_str();
+const char* HapMixOptions::getTestGenotypesFilename()const{
+  return TestGenotypesFilename.c_str();
 }
 
 const vector<unsigned>& HapMixOptions::getMaskedIndividuals()const{
@@ -202,7 +202,8 @@ void HapMixOptions::DefineOptions()
   /*
     data and initial values
   */
-  addOption("ccgenotypesfile", stringOption, &CCGenotypesFilename);
+  addOption("ccgenotypesfile", stringOption, &TestGenotypesFilename);//obsolescent
+  addOption("testgenotypesfile", stringOption, &TestGenotypesFilename);
   addOption("initialvaluedir", stringOption, &InitialValueDir);
   addOption("numberofstarts", intOption, &NumStarts);
 
@@ -298,8 +299,8 @@ int HapMixOptions::checkOptions(bclib::LogWriter &Log, int ){
   }
   Log << "\n";
 
-  if(CCGenotypesFilename.size() && !OutcomeVarFilename.size()){
-    Log << "WARNING: Case-Control genotypes supplied but no outcome variable!\n";
+  if(TestGenotypesFilename.size() && !OutcomeVarFilename.size()){
+    Log << "WARNING: observed genotypes supplied but no outcome variable!\n";
   }
   if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
     if(NumberOfOutcomes > 0){

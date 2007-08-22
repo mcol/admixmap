@@ -290,6 +290,7 @@ bool Options::SetOptions(){
   EYFilename = ResultsDir + "/" + EYFilename;
   //set indicators
   OutputAlleleFreq = (AlleleFreqOutputFilename.size()>0);
+  checkData = checkData | getFlag("checkmode");
 
   return true;
 }

@@ -25,7 +25,7 @@ InputHapMixData::InputHapMixData(HapMixOptions *options, bclib::LogWriter &Log){
   try
     {
       ReadData(options, Log);
-      hGenotypeLoader->ReadCaseControlGenotypes(options->getCCGenotypesFilename(), Log);
+      hGenotypeLoader->ReadTestGenotypes(options->getTestGenotypesFilename(), Log);
 
     } catch (const exception& e) {
     cerr << "\nException occured during parsing of input file: \n" << e.what() << endl;
@@ -35,34 +35,46 @@ InputHapMixData::InputHapMixData(HapMixOptions *options, bclib::LogWriter &Log){
     cerr << "\nException occured during parsing of input file: \n" << s << endl;;
     exit(1);
   }
-  CheckData(options, Log);
-}
-
-void InputHapMixData::CheckData(HapMixOptions *options, bclib::LogWriter &Log){
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumCompositeLoci = determineNumberOfCompositeLoci();
   distanceUnit = DetermineUnitOfDistance();
+  SetLocusLabels();
+  ReadBlockStateLabels(options);
+
+  CheckRegressionData(options, Log);
+}
+
+bool InputHapMixData::CheckData(HapMixOptions *options, bclib::LogWriter &Log){
 
   Log.setDisplayMode(bclib::Quiet);
-  if(options->CheckData())
-    if(!genotypeLoader->CheckForUnobservedAlleles(locusMatrix_, Log))
-      exit(1);
- 
-  bool badData = false;
-  if(options->CheckData())
-    badData = !checkLocusFile(Log);
 
-  if(badData)
-    exit(1);
+  bool DataOK = true;
 
-  SetLocusLabels();
- 
-  CheckAlleleFreqs(options, Log);
-  ReadBlockStateLabels(options);
+  try{
+    DataOK = DataOK & genotypeLoader->CheckForUnobservedAlleles(locusMatrix_, Log);
+  }catch(string s){
+    Log << bclib::On << s << bclib::Quiet;
+    DataOK = false;
+  }
+  DataOK = DataOK & checkLocusFile(Log);
+  
+  if( strlen( options->getPriorAlleleFreqFilename() )) {
+    DataOK = DataOK & CheckAlleleFreqs(options, Log);
+  }
+
+  return DataOK;
+}
+
+/**
+   checks outcome variables, covariates and extracts required variables, 
+   detecting which type of regression (linear/logistic) is required.
+   Exits if any problames encountered
+*/
+void InputHapMixData::CheckRegressionData(HapMixOptions *options, bclib::LogWriter &Log){
 
   //detects regression model
   if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() )){//if outcome specified
-    unsigned N =  hGenotypeLoader->getNumberOfCaseControlIndividuals();
+    unsigned N =  hGenotypeLoader->getNumberOfTestIndividuals();
     if(N == 0) N = genotypeLoader->getNumberOfIndividuals();
 
     if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
@@ -70,8 +82,8 @@ void InputHapMixData::CheckData(HapMixOptions *options, bclib::LogWriter &Log){
     }
     if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 ){
       OutcomeType.push_back( CoxData );
-	if(options->CheckData())
-	  CheckCoxOutcomeVarFile( Log);
+      if(options->CheckData())
+	CheckCoxOutcomeVarFile( Log);
     }
     if ( strlen( options->getCovariatesFilename() ) != 0 )
       CheckCovariatesFile(N, options, Log);
@@ -88,12 +100,12 @@ bool InputHapMixData::isTypedLocus(unsigned locus)const{
 unsigned InputHapMixData::getNumTypedLoci()const{
   return hGenotypeLoader->getNumTypedLoci();
 }
-int InputHapMixData::getNumberOfCaseControlIndividuals()const {
-  return hGenotypeLoader->getNumberOfCaseControlIndividuals();
+int InputHapMixData::getNumberOfTestIndividuals()const {
+  return hGenotypeLoader->getNumberOfTestIndividuals();
 }
 
-bool InputHapMixData::IsCaseControl(int i)const{
-  return hGenotypeLoader->IsCaseControl(i);
+bool InputHapMixData::IsTestIndividual(int i)const{
+  return hGenotypeLoader->IsTestIndividual(i);
 }
 
 void InputHapMixData::GetGenotype(int i, const Genome &Loci, 
@@ -120,48 +132,32 @@ void InputHapMixData::ReadBlockStateLabels(HapMixOptions *options){
   }
 }
 
-////checks consistency of supplied allelefreqs with locusfile
-///and determines number of populations and population labels.
-void InputHapMixData::CheckAlleleFreqs(HapMixOptions *options, bclib::LogWriter &Log){
-  bool infile = false;//indicates whether a priorallelefreqfile has been specified
-  int nrows=0, expectednrows=0;
-  int Populations = options->getPopulations();
-  int NumberOfStates = 0;
-
-  unsigned index = 0;
-  for(unsigned i = 0; i < NumCompositeLoci; ++i){
-    int states = 1;
-
-    do{
-      states *= (int)locusMatrix_.get( index, 0 );
-      index++;
-    }
-    while( index < locusMatrix_.nRows() && !locusMatrix_.isMissing(index, 1) && locusMatrix_.get( index, 1 ) == 0 );
-    NumberOfStates += states;
+///checks the priorallelefreqfile has the correct number of rows
+bool InputHapMixData::CheckAlleleFreqs(HapMixOptions *options, bclib::LogWriter &Log){
+  unsigned int NumberOfStates = 2*NumCompositeLoci;
+  
+  //use the following block if allowing multiallelic loci
+  //   unsigned index = 0;
+  //   for(unsigned i = 0; i < NumCompositeLoci; ++i){
+  //     int states = 1;
+  
+  //     do{
+  //       states *= (int)locusMatrix_.get( index, 0 );
+  //       index++;
+  //     }
+  //     while( index < locusMatrix_.nRows() && !locusMatrix_.isMissing(index, 1) && locusMatrix_.get( index, 1 ) == 0 );
+  //     NumberOfStates += states;
+  //   }
+  
+  if(priorAlleleFreqData_.size() != NumberOfStates+1){
+    Log << "Incorrect number of rows in priorallelefreqfile.\n" 
+	<< "Expecting " << NumberOfStates+1 << " rows, but there are " << priorAlleleFreqData_.size() << " rows.\n";
+    return false;
   }
+  //set number of block states as the number of columns in priorallelefreqfile -1
+  options->setPopulations(priorAlleleFreqData_[0].size() - 1);
 
-  //prior allelefreqs
-  if( strlen( options->getPriorAlleleFreqFilename() )) {
-     infile = true;
-    nrows = priorAlleleFreqData_.size();
-    expectednrows = NumberOfStates+1;
-    Populations = priorAlleleFreqData_[0].size() - 1;
-  }
-  if(infile){
-    if(nrows != expectednrows){
-      Log << "Incorrect number of rows in priorallelefreqfile.\n" 
-	  << "Expecting " << expectednrows << " rows, but there are " << nrows << " rows.\n";
-      exit(1);
-    }
-    options->setPopulations(Populations);
-  }
-  //  else{//'states' option
-    //     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    //       if(Loci->GetNumberOfStates(i) < 2){
-    // 	Log << "ERROR: The number of alleles at a locus is " << Loci->GetNumberOfStates(i) << "\n";
-    // 	exit(1);
-    //       }
-    //     }
-  //  }
+  //if all is ok return true
+  return true;
 }
  

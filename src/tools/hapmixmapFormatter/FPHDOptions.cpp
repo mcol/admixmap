@@ -23,8 +23,8 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
   beVerbose = false;
   backup = true;
   //prefix = ".";
-  incasecontrolfilename;
-  outcasecontrolfilename;
+  inobsgenofilename;
+  outobsgenofilename;
   MaxLoci = 1000000000;  //some number > number of HapMap loci
   //LimitLoci = false;
   //Chr = 0;
@@ -72,9 +72,9 @@ void FPHDOptions::ParseOptions(int argc, char** argv){
   //set backup flag
   backup = opt.getFlag("backup");
 
-  //set default ouput ccgenotypesfilename if none specified
-  if(incasecontrolfilename.size() && !outcasecontrolfilename.size())
-    outcasecontrolfilename = "CaseControlGenotypes.txt";
+  //set default ouput testgenotypesfilename if none specified
+  if(inobsgenofilename.size() && !outobsgenofilename.size())
+    outobsgenofilename = "ObservedGenotypes.txt";
 
   //set min overlap when dividing chromosomes
   MinOverlap_bp = (unsigned) (MinOverlap_kb * 1000.0);
@@ -82,13 +82,13 @@ void FPHDOptions::ParseOptions(int argc, char** argv){
   if(beVerbose){
     cout << "Writing genotypes to " << genotypesfilename << endl;
     cout << "Writing locusfile to " << locusfilename << endl;
-    if(incasecontrolfilename.size())
-      cout << "Writing case-control genotypes to " << outcasecontrolfilename << endl; 
+    if(inobsgenofilename.size())
+      cout << "Writing observed genotypes to " << outobsgenofilename << endl; 
   }
 
   StripSuffix(locusfilename);
   StripSuffix(genotypesfilename);
-  StripSuffix(outcasecontrolfilename);
+  StripSuffix(outobsgenofilename);
 }
 
 void FPHDOptions::StripSuffix(std::string& filename){
@@ -107,8 +107,8 @@ void FPHDOptions::DefineOptions(bclib::OptionReader& opt){
   //  opt.addOption('n', "numloci", bclib::longOption, &locuslimit);
   opt.addOption('M', "maxloci", bclib::intOption, &MaxLoci);
   opt.addOption('O', "minoverlap", bclib::floatOption, &MinOverlap_kb);
-  opt.addOption('i', "inputfile", bclib::stringOption, &incasecontrolfilename);
-  opt.addOption('o', "outputfile", bclib::stringOption, &outcasecontrolfilename);
+  opt.addOption('i', "inputfile", bclib::stringOption, &inobsgenofilename);
+  opt.addOption('o', "outputfile", bclib::stringOption, &outobsgenofilename);
   opt.addOption('f', "flank", bclib::floatOption, &flankLength);
   opt.addOption('m', "missing", bclib::charOption, &MissingChar);
   opt.addOption("initialmixturepropsfile", bclib::stringOption, &InitialMixturePropsFilename);
@@ -140,11 +140,11 @@ void FPHDOptions::PrintHelpText(){
        << "-g   -genotypesfile = genotypes.txt" << endl
        << "                            Output genotypes file prefix" << endl
        << "-b   -backup                Back up original data if monomorphic loci found" << endl
-       << "-i   -inputfile             Raw case-control genotypes file. This file will be" << endl
-       << "                            formatted and used to restrict the range of " << endl 
-       << "                            HapMap loci output." << endl
-       << "-o   -outputfile = CaseControlGenotypes.txt" << endl
-       << "                            output case-control-file prefix (valid only with -i)" << endl
+       << "-i   -inputfile             Raw observed genotypes file. The genotypes will be" << endl
+       << "                            encoded consistently with the HapMap genotypes and" << endl 
+       << "                            the range of HapMap loci output will be restricted." << endl 
+       << "-o   -outputfile = ObservedGenotypes.txt" << endl
+       << "                            output testgenotypesfile prefix (valid only with -i)" << endl
        << "-M   -maxloci               Maximum number of loci per sub-chromosome/file." << endl
        << "                            If not specified, all available loci will be used" << endl
        << "     -minoverlap = 5000     Minimum overlap between sub-chromosomes in kb." << endl
@@ -187,8 +187,8 @@ unsigned long FPHDOptions::getMaxLoci()const{
   return MaxLoci;
 }
 
-bool FPHDOptions::WriteCCFile()const{
-  return (incasecontrolfilename.size()>0);
+bool FPHDOptions::WriteObsGenoFile()const{
+  return (inobsgenofilename.size()>0);
 }
 const char* FPHDOptions::getLocusFilename()const{
   return locusfilename.c_str();
@@ -196,11 +196,11 @@ const char* FPHDOptions::getLocusFilename()const{
 const char* FPHDOptions::getGenotypesFilename()const{
   return genotypesfilename.c_str();
 }
-const char* FPHDOptions::getInCCFilename()const{
-  return incasecontrolfilename.c_str();
+const char* FPHDOptions::getInObsGenoFilename()const{
+  return inobsgenofilename.c_str();
 }
-const char* FPHDOptions::getOutCCFilename()const{
-  return outcasecontrolfilename.c_str();
+const char* FPHDOptions::getOutObsGenoFilename()const{
+  return outobsgenofilename.c_str();
 }
 float FPHDOptions::getFlankLength()const{
   return flankLength;
