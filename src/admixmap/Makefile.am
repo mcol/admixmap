@@ -13,7 +13,9 @@ AdmixIndividualCollection.cc AdmixIndividualCollection.h \
 admixmap.cc \
 AdmixMapModel.cc AdmixMapModel.h \
 AdmixOptions.cc AdmixOptions.h \
+AdmixFreqs.cc AdmixFreqs.h \
 chib.cc chib.h \
+CorrelatedFreqs.cc CorrelatedFreqs.h \
 DispersionFreqs.cc DispersionFreqs.h \
 DispersionTest.cc DispersionTest.h \
 IndAdmixOutputter.cc IndAdmixOutputter.h \

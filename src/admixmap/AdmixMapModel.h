@@ -24,13 +24,14 @@
 #include "DispersionTest.h"
 #include "MisSpecAlleleFreqTest.h"
 #include "AdmixIndividualCollection.h"
-#include "DispersionFreqs.h"
+#include "AdmixFreqs.h"
 #include "ScoreTests.h"
 
 class InputAdmixData;
 
 class AdmixMapModel : public Model{
 public:
+  AdmixMapModel();
     ~AdmixMapModel();
   void Initialise(AdmixOptions & options, InputAdmixData& data,  bclib::LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, bclib::LogWriter& Log);
@@ -55,7 +56,7 @@ public:
 private:
   Genome Loci;
   PopAdmix* L;
-  DispersionFreqs A;
+  AdmixFreqs* A;
   AdmixIndividualCollection* AdmixedIndividuals;
   StratificationTest StratTest;
   DispersionTest DispTest;

@@ -44,7 +44,7 @@ AlleleFreqs::~AlleleFreqs(){
   hetCounts.dealloc(NumberOfCompositeLoci);
 
   if(PriorParams) {
-    for(int i = 0; i < NumberOfCompositeLoci; ++i){
+    for(unsigned i = 0; i < NumberOfCompositeLoci; ++i){
       if(PriorParams[i])delete[] PriorParams[i];
     }
     delete[] PriorParams;
@@ -58,24 +58,68 @@ AlleleFreqs::~AlleleFreqs(){
   //delete[] SumKLInfo;
 }
 
-void AlleleFreqs::Initialise(bool OutputFreqs){
-  if(OutputFreqs){
+void AlleleFreqs::Initialise(Options* const options, InputData* const data, 
+			     Genome *pLoci, bclib::LogWriter &Log, bool MAP){
+
+  Loci = pLoci;
+  Populations = options->getPopulations();
+  NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  //set model indicators
+  RandomAlleleFreqs = !options->getFixedAlleleFreqs();
+
+  if(options->getOutputAlleleFreq()){
 //     SumKLInfo = new float[NumberOfCompositeLoci];
 //     fill(SumKLInfo, SumKLInfo + NumberOfCompositeLoci, 0.0);
 
     if(Populations > 1){
       SumLocusInfo = new float*[NumberOfCompositeLoci];
       const int NumPopPairs = (Populations*(Populations-1))/2;
-      for(int j = 0; j < NumberOfCompositeLoci; ++j){
+      for(unsigned j = 0; j < NumberOfCompositeLoci; ++j){
 	SumLocusInfo[j] = new float[NumPopPairs];
 	fill(SumLocusInfo[j], SumLocusInfo[j] + NumPopPairs, 0.0);
       }
     }
   }
-}
-void AlleleFreqs::PrintPrior(const Vector_s& , bclib::LogWriter& )const{
-}
 
+  //allocate frequency arrays
+  Freqs.array = new double*[NumberOfCompositeLoci];
+  AlleleFreqsMAP.array = Freqs.array;
+
+  LoadAlleleFreqs(options, data, Log);
+  Log.setDisplayMode(bclib::On);
+  //open allelefreqoutputfile
+  if(IsRandom() ){
+    const char* s = options->getAlleleFreqOutputFilename();
+    if(strlen(s))
+      OpenOutputFile(s);
+  }
+  
+  if(MAP)
+    setAlleleFreqsMAP();    
+  for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
+    if(RandomAlleleFreqs){
+      if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
+	//set up samplers for allelefreqs
+	FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
+						    PriorParams[i], false));
+      }
+    }
+    //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
+    //initialise AlleleProbsMAP pointer to 0
+    //allocate HapPairProbs and calculate them using AlleleProbs
+    (*Loci)(i)->InitialiseHapPairProbs(Freqs[i], false);
+    //If using Chib algorithm, allocate HapPairProbsMAP and copy values in HapPairProbs
+    if(MAP) {
+      //set AlleleProbsMAP in Composite Locus to point to AlleleFreqsMAP
+      (*Loci)(i)->setAlleleProbsMAP(AlleleFreqsMAP[i]);
+      (*Loci)(i)->InitialiseHapPairProbsMAP();
+    }
+  }//end comp locus loop
+  
+
+  AllocateAlleleCountArrays(options->getPopulations());
+
+}
 
 void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
   const int L = Loci->GetNumberOfCompositeLoci();
@@ -106,12 +150,12 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, bclib::LogWriter &
     Log << bclib::Quiet  << "Reading initial values of allele freqs from " << filename << "\n";
     double phi = 0.0;
     unsigned long count = 0;
-    for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
+    for( unsigned locus = 0; locus < NumberOfCompositeLoci; locus++ ){
       const int NumStates = Loci->GetNumberOfStates(locus);
 
       Freqs.array[locus] = new double[NumStates* Populations];
 
-      for( int pop = 0; pop < Populations; pop++ ){
+      for( unsigned pop = 0; pop < Populations; pop++ ){
         Freqs[locus][NumStates-1 + pop*NumStates] = 1.0;
 	
 	for( int state = 0; state < NumStates-1; state++ ){
@@ -182,7 +226,7 @@ void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, boo
   double d = 0.0;
 
   if(oldformat){//old format allelefreqfile
-    for(int k = 0; k < Populations; ++k){
+    for(unsigned k = 0; k < Populations; ++k){
       Freqs[i][(NumberOfStates-1) + k*NumberOfStates] = 1.0;
       for(unsigned j = 0; j < NumberOfStates-1; ++j){
 	d = convertValueFromFile(New[row0+j][k+1]);
@@ -195,7 +239,7 @@ void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, boo
     double sumalpha;
     // allele frequencies are initialised as expectations over the Dirichlet prior distribution, 
     // by dividing each prior parameter by the sum of the parameters.
-    for( int j = 0; j < Populations; j++ ){
+    for( unsigned j = 0; j < Populations; j++ ){
       //vector<double> NewCol = New.getCol(j);
       //sumalpha = accumulate( NewCol.begin(), NewCol.end(), 0.0, std::plus<double>() );
       sumalpha = 0.0;
@@ -211,7 +255,7 @@ void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, boo
     // priorallelefreqs model, with or without correlated allelefreqs
     RandomAlleleFreqs = true;
     for(unsigned row = 0; row < NumberOfStates; ++row)
-      for(int col = 0; col < Populations; ++col){
+      for(unsigned col = 0; col < Populations; ++col){
         PriorParams[i][col*NumberOfStates + row] = convertValueFromFile(New[row0+row][col+1]);//New.get(row0+row, col+1); 
       }
 
@@ -232,49 +276,9 @@ void AlleleFreqs::SetDefaultPriorParams(int i, double defaultpriorparams){
 void AlleleFreqs::SetDefaultAlleleFreqs(int i){
   int NumberOfStates = Loci->GetNumberOfStates(i);
   // initialize frequencies as equal for all alleles at locus
-  for(int j = 0; j < NumberOfStates*Populations; ++j)
+  const unsigned LK = NumberOfStates*Populations;
+  for(unsigned j = 0; j < LK; ++j)
     Freqs[i][j] = 1.0/NumberOfStates;
-}
-
-// ************************** Sampling and Updating *****************************************
-/// samples allele frequencies and prior parameters.
-void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
-  // Sample prior parameters
-  
-  // Sample allele frequencies conditional on Dirichlet priors
-  // then use AlleleProbs to set HapPairProbs in CompositeLocus
-  // this is the only point at which SetHapPairProbs is called, apart from when 
-  // the composite loci are initialized
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
-    //accumulate summary stats for update of priors
-    //    double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0; 
-    //     for(int k = 0; k < Populations; ++k){
-    // 	sumlogfreqs1 += mylog(Freqs[i][k*NumberOfStates]);//allele 1
-    // 	sumlogfreqs2 += mylog(Freqs[i][k*NumberOfStates + 1]);//allele 2
-    //       }
-
-    //Sample prior parameters
-    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER && (NumberOfStates > 2 ||
-                                                  accumulate(hetCounts[i], hetCounts[i]+Populations*Populations, 0, std::plus<int>()) > 0 )) {
-      if(NumberOfStates==2) //shortcut for SNPs
-	FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, 
-				       coolness);
-      else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, NumberOfStates, Populations, 
-					     coolness);
-    }
-    else //if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
-      SampleAlleleFreqs(i, coolness);
-
-    if(afterBurnIn)
-      (*Loci)(i)->AccumulateAlleleProbs();
-
-    //no need to update alleleprobs, they are the same as Freqs
-    //set HapPair probs using updated alleleprobs
-    (*Loci)(i)->SetHapPairProbs();
-
-  }
-  
 }
 
 /// resets all counts to 0
@@ -325,37 +329,47 @@ void AlleleFreqs::UpdateAlleleCounts(const int locus, const int h[2], const int 
 
 void AlleleFreqs::resetStepSizeApproximator(int k) {
   if (RandomAlleleFreqs && FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER) {
-    for( int i = 0; i < NumberOfCompositeLoci; ++i ){
+    for( unsigned i = 0; i < NumberOfCompositeLoci; ++i ){
       FreqSampler[i]->resetStepSizeApproximator(k);
     }
   }
 }
 
-/** samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
-    and stores result in array Freqs 
-*/
-void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
-{
-  unsigned NumStates = Loci->GetNumberOfStates(i);
-  double* temp = new double[NumStates];
-  double *freqs = new double[NumStates];
-  
-  //if there is, the Dirichlet params are common across populations
-  for( int j = 0; j < Populations; j++ ){
+/// samples allele frequencies and prior parameters.
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
+  // Sample allele frequencies conditional on Dirichlet priors 
+  // then use AlleleProbs to set HapPairProbs in CompositeLocus
+  // this is the only point at which SetHapPairProbs is called, apart from when 
+  // the composite loci are initialized
+  for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
+   const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
+   //accumulate summary stats for update of priors
+//    double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0; 
+//     for(unsigned k = 0; k < Populations; ++k){
+// 	sumlogfreqs1 += mylog(Freqs[i][k*NumberOfStates]);//allele 1
+// 	sumlogfreqs2 += mylog(Freqs[i][k*NumberOfStates + 1]);//allele 2
+//       }
 
-    // to flatten likelihood when annealing, multiply realized allele counts by coolness
-    for(unsigned s = 0; s < NumStates; ++s)
-      temp[s] = PriorParams[i][j*NumStates + s] + coolness*AlleleCounts[i][s*Populations +j];
-
-    bclib::Rand::gendirichlet(NumStates, temp, Freqs[i]+j*NumStates);
-    for(unsigned s = 0; s < NumStates; ++s){
-      if(Freqs[i][j*NumStates+s]==0.0) Freqs[i][j*NumStates+s] = 0.000001;
-      if(Freqs[i][j*NumStates+s]==1.0) Freqs[i][j*NumStates+s] = 0.999999;
+   //Sample prior parameters
+    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER && (NumberOfStates > 2 ||
+	accumulate(hetCounts[i], hetCounts[i]+Populations*Populations, 0, std::plus<int>()) > 0 )) {
+      if(NumberOfStates==2) //shortcut for SNPs
+	FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, 
+				       coolness);
+      else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, NumberOfStates, Populations, 
+					     coolness);
     }
+    else //if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
+      SampleAlleleFreqs(i, coolness);
+
+    if(afterBurnIn)
+      (*Loci)(i)->AccumulateAlleleProbs();
+
+    //no need to update alleleprobs, they are the same as Freqs
+    //set HapPair probs using updated alleleprobs
+    (*Loci)(i)->SetHapPairProbs();
 
   }
-  delete[] freqs;  
-  delete[] temp;
 }
 
 /** does two things:
@@ -369,12 +383,12 @@ void AlleleFreqs::setAlleleFreqsMAP()
   if(!AlleleFreqsMAP.array || (AlleleFreqsMAP.array == Freqs.array) ){
     AlleleFreqsMAP.array = new double*[NumberOfCompositeLoci];
   }
-  for(int i = 0; i < NumberOfCompositeLoci;++i) {
+  for(unsigned i = 0; i < NumberOfCompositeLoci;++i) {
 
     AlleleFreqsMAP.array[i] = new double[Loci->GetNumberOfStates(i) * Populations];
 
     int numstates = Loci->GetNumberOfStates(i);
-    for(int k = 0; k < Populations; ++k) {
+    for(unsigned k = 0; k < Populations; ++k) {
       for(int j = 0; j < numstates; ++j) {
 	AlleleFreqsMAP[i][k*numstates + j] = Freqs[i][k*numstates + j]; //*Loci->GetNumberOfStates(i)];
       } 
@@ -384,11 +398,11 @@ void AlleleFreqs::setAlleleFreqsMAP()
 
 void AlleleFreqs::AccumulateKLInfo(){
   if(SumKLInfo){
-  for(int j = 0; j < NumberOfCompositeLoci; ++j){
+  for(unsigned j = 0; j < NumberOfCompositeLoci; ++j){
     vector<double> psum(Populations, 0);
     double p_entropy = 0.0;
     const int numstates = Loci->GetNumberOfStates(j);
-    for(int k = 0; k < Populations; ++k){
+    for(unsigned k = 0; k < Populations; ++k){
       for(int s = 0; s < numstates; ++s){
 	double p = Freqs[j][k*numstates + s];
 	psum[k] += p;
@@ -396,7 +410,7 @@ void AlleleFreqs::AccumulateKLInfo(){
       }
     }
     double pbar_entropy = 0.0;
-    for(int k = 0; k < Populations; ++k){
+    for(unsigned k = 0; k < Populations; ++k){
       psum[k] /= (double) numstates;
       pbar_entropy -= psum[k]*log(psum[k]);
     }
@@ -407,11 +421,11 @@ void AlleleFreqs::AccumulateKLInfo(){
 
 void AlleleFreqs::AccumulateLocusInfo(){
   if(SumLocusInfo && Populations >1){
-    for(int j = 0; j < NumberOfCompositeLoci; ++j){
+    for(unsigned j = 0; j < NumberOfCompositeLoci; ++j){
       const int numstates = Loci->GetNumberOfStates(j);
       int k = 0;
-      for(int k1 = 0; k1 < Populations; ++k1)
-	for(int k2 = k1+1; k2 < Populations; ++k2){
+      for(unsigned k1 = 0; k1 < Populations; ++k1)
+	for(unsigned k2 = k1+1; k2 < Populations; ++k2){
 	  
 	  float f = 0.0; 
 	  for(int s = 0; s < numstates; ++s){
@@ -524,11 +538,11 @@ void AlleleFreqs::OpenOutputFile(const char* filename)
 void AlleleFreqs::OutputAlleleFreqs()
 {
   if( IsRandom() ){
-    for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
+    for( unsigned locus = 0; locus < NumberOfCompositeLoci; locus++ ){
       const string LocusLabel = "\"" + (*Loci)(locus)->GetLabel(0) + "\"";
       for( int state = 0; state < Loci->GetNumberOfStates(locus)-1; state++ ){
 	allelefreqoutput << LocusLabel;
-	for( int pop = 0; pop < Populations; pop++ ){
+	for( unsigned pop = 0; pop < Populations; pop++ ){
 	  allelefreqoutput <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] ;
 	  // allelefreqoutput << "count " << AlleleCounts[locus][state*Populations + pop] <<"; ";
 	}
@@ -551,8 +565,8 @@ void AlleleFreqs::OutputAlleleFreqs(const char* filename, bclib::LogWriter& Log)
     if(outfile.is_open()){
       Log << bclib::Quiet << "Writing final values of allele freqs to " << filename << "\n";
       //if( IsRandom() ){
-      for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
-        for( int pop = 0; pop < Populations; pop++ ){
+      for( unsigned locus = 0; locus < NumberOfCompositeLoci; locus++ ){
+        for( unsigned pop = 0; pop < Populations; pop++ ){
           for( int state = 0; state < Loci->GetNumberOfStates(locus)-1; state++ ){
             outfile <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] << "\t";
             //			<< AlleleCounts[locus][state*Populations + pop] << "\t"
@@ -572,12 +586,12 @@ void AlleleFreqs::OutputAlleleFreqs(const char* filename, bclib::LogWriter& Log)
 void AlleleFreqs::CloseOutputFile(int iterations, const Vector_s& PopulationLabels)
 {
   int nrows = 0;
-  for(int j = 0; j < NumberOfCompositeLoci; ++j)
+  for(unsigned j = 0; j < NumberOfCompositeLoci; ++j)
     nrows += Loci->GetNumberOfStates(j)-1;
 
   vector<vector<string> > dimnames(1);
   dimnames[0].push_back("Locus");
-  for (int i = 0; i < Populations; i++){
+  for (unsigned i = 0; i < Populations; i++){
     dimnames[0].push_back(PopulationLabels[i]);
   }
   vector<int> dims;
@@ -587,11 +601,6 @@ void AlleleFreqs::CloseOutputFile(int iterations, const Vector_s& PopulationLabe
 
   allelefreqoutput.close(dims, dimnames);
 } 
-
-void AlleleFreqs::OutputErgodicAvg( int , std::ofstream *)const
-{
-
-}
 
 #include <iomanip>
 #include "Filenames.h"
@@ -611,7 +620,7 @@ void AlleleFreqs::OutputAlleleFreqSamplerAcceptanceRates(const string& ResultsDi
 void AlleleFreqs::WriteKLInfo(unsigned samples, ostream& os){
   if(SumKLInfo){
     os << "Locus\tKLInfo" << endl;
-    for(int j = 0; j < NumberOfCompositeLoci; ++j){
+    for(unsigned j = 0; j < NumberOfCompositeLoci; ++j){
       os << "\""<< (*Loci)(j)->GetLabel(0) << "\"\t" << SumKLInfo[j] / (float)samples << endl;
     }
   }
@@ -622,8 +631,8 @@ void AlleleFreqs::WriteLocusInfo(unsigned samples, const string& ResultsDir, con
     ofstream os((ResultsDir + "/" + LOCUS_F_VALUES).c_str());
 
     os << "Locus";
-    for(int k1 = 0; k1 < Populations; ++k1)
-      for(int k2 = k1+1; k2 < Populations; ++k2){
+    for(unsigned k1 = 0; k1 < Populations; ++k1)
+      for(unsigned k2 = k1+1; k2 < Populations; ++k2){
 	os << "\tf." << PopLabels[k1] << "." << PopLabels[k2];
       }
     os << endl;
@@ -633,10 +642,10 @@ void AlleleFreqs::WriteLocusInfo(unsigned samples, const string& ResultsDir, con
     os.precision(3);
     os.width(3);
 
-    const int NumPopPairs = (Populations*(Populations-1))/2;
-    for(int j = 0; j < NumberOfCompositeLoci; ++j){
+    const unsigned NumPopPairs = (Populations*(Populations-1))/2;
+    for(unsigned j = 0; j < NumberOfCompositeLoci; ++j){
       os << "\""<< (*Loci)(j)->GetLabel(0) << "\"";
-      for(int k = 0; k < NumPopPairs; ++k)
+      for(unsigned k = 0; k < NumPopPairs; ++k)
 	os << "\t" << SumLocusInfo[j][k] / (float)samples;
       os << endl;
     }

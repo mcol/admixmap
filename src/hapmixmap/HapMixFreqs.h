@@ -37,8 +37,8 @@ public:
   ~HapMixFreqs();
   void Initialise(HapMixOptions* const options, InputData* const Data, Genome *pLoci, bclib::LogWriter &Log);
   void ReadInitialPriorParamsFromFile(const char* filename, bclib::LogWriter& Log);
-  void setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*/);
-  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool AllHaploid);
+  void setSampler(bool thermo, bool /*DefaultPriors*/);
+  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
   void PrintPrior(bclib::LogWriter& Log)const;
   void SamplePriorPrecision(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2);
   void SamplePriorProportions(unsigned locus, double sumlogfreqs1, double sumlogfreqs2);
@@ -75,6 +75,7 @@ private:
   double EtaRatePriorShape;// params of Gamma Prior on params of Gamma prior on params of Dirichlet prior on freqs
   double EtaRatePriorRate;
 
+  bool noDiploidData;
   bool etaHierModel;//indicates whether to fir a hierarchical model for eta
   bool accumulateEta;//indicates whether to accumulate Eta for output
   unsigned long NumEtaUpdates;
@@ -91,7 +92,7 @@ private:
 
   bclib::DelimitedFileWriter allelefreqprioroutput;//to output mean and variance of frequency prior precision
 
-  void LoadAlleleFreqs(HapMixOptions* const options, InputData* const data_, bclib::LogWriter &Log);
+  void LoadAlleleFreqs(Options* const options, InputData* const data_, bclib::LogWriter &Log);
   void InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const options, bclib::LogWriter& Log);
   void OpenOutputFile(const char* filename);
   void SampleAlleleFreqs(int, const double coolness);

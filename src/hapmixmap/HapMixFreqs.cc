@@ -26,6 +26,7 @@ HapMixFreqs::HapMixFreqs(){
   NumEtaUpdates = 0;
   accumulateEta = false;
   etaHierModel = true;
+  noDiploidData = true;//assumes only haploid data by default
   DiploidGenotypeProbs.array = 0;
   FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
 }
@@ -58,7 +59,7 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
   AllocateAlleleCountArrays(options->getPopulations());
 }
 
-void HapMixFreqs::setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*/){
+void HapMixFreqs::setSampler(bool thermo, bool /*DefaultPriors*/){
 //   // set which sampler will be used for allele freqs
 //   // current version uses conjugate sampler if annealing without thermo integration
 //   if( (options->getThermoIndicator() ) ||
@@ -69,12 +70,12 @@ void HapMixFreqs::setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*
 //     FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
 //   }
 
-  if(!thermo && (AllHaploid /*|| !DefaultPriors*/))
+  if(!thermo && (noDiploidData /*|| !DefaultPriors*/))
     FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
   else//thermo, some diploid data, default priors
     FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
   
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+  for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
     if(RandomAlleleFreqs){
       if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
 	//set up samplers for allelefreqs
@@ -84,23 +85,25 @@ void HapMixFreqs::setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*
     }
     //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
     //allocate HapPairProbs and calculate them using AlleleProbs
-    (*Loci)(i)->InitialiseHapPairProbs(Freqs[i], AllHaploid);
+    (*Loci)(i)->InitialiseHapPairProbs(Freqs[i], noDiploidData);
     
   }//end comp locus loop
 
 }
 
 void HapMixFreqs::AllocateDiploidGenotypeProbs(){
+  noDiploidData = false;
+
   DiploidGenotypeProbs.array = new double*[NumberOfCompositeLoci];
-  for(int i = 0; i < NumberOfCompositeLoci; ++i)
+  for(unsigned i = 0; i < NumberOfCompositeLoci; ++i)
      DiploidGenotypeProbs.array[i] = new double[3*Populations*Populations];
 }
 
 void HapMixFreqs::SetDiploidGenotypeProbs(){
 if(DiploidGenotypeProbs.array)
-  for(int i = 0; i < NumberOfCompositeLoci; ++i){
-    for(int k0 = 0; k0 < Populations; ++k0)
-      for(int k1 = 0; k1 < Populations; ++k1){
+  for(unsigned i = 0; i < NumberOfCompositeLoci; ++i){
+    for(unsigned k0 = 0; k0 < Populations; ++k0)
+      for(unsigned k1 = 0; k1 < Populations; ++k1){
 
       //1,1   =  phi_k0,1 * phi_k1,1
        DiploidGenotypeProbs[i][k0*Populations*3 + k1*3   ] = Freqs[i][k0*2] * Freqs[i][k1*2];
@@ -166,7 +169,7 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
     ReadInitialPriorParamsFromFile(initialvaluefilename.c_str(), Log);
   }
   else{
-    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
       //set precision to prior mean
       Eta[i] = (EtaShape / EtaRate);
       //set proportions to 0.5
@@ -174,7 +177,7 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
     }
   }
   //initialise sampler and set cumulative sums to 0
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+  for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
     EtaSampler[i].SetParameters(0.1, 0.00001, 100.0, 0.26);
     if(accumulateEta)SumEta[i] = 0.0;
   }
@@ -186,7 +189,7 @@ void HapMixFreqs::ReadInitialPriorParamsFromFile(const char* filename, bclib::Lo
   if(initialvaluefile.is_open()){
     Log << bclib::Quiet << "Reading initial values of allele freq prior from " << filename << "\n";
 
-    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
       //read eta (precision) and alpha (mean)
       if(!( initialvaluefile >> Eta[i] >> DirichletParams[i]))
 	{//reached end-of-file too early
@@ -226,8 +229,9 @@ void HapMixFreqs::PrintPrior(bclib::LogWriter& Log)const{
 
 }
 
-void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const data_, bclib::LogWriter &Log)
+void HapMixFreqs::LoadAlleleFreqs(Options* const a_options, InputData* const data_, bclib::LogWriter &Log)
 {
+  HapMixOptions* const options = (HapMixOptions*)a_options;
   int newrow;
   int row = 0;
   const Matrix_s* temporary = 0;
@@ -256,7 +260,7 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
       temporary = &(data_->getPriorAlleleFreqData());
     }
     
-    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
       Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
       
       if(file){//read allele freqs from file
@@ -282,7 +286,7 @@ void HapMixFreqs::OpenOutputFile(const char* filename){
 }
 
 /// samples allele frequencies and prior parameters.
-void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool AllHaploid){
+void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
   
   // Sample allele frequencies conditional on Dirichlet priors 
   // then use AlleleProbs to set HapPairProbs in CompositeLocus
@@ -291,16 +295,16 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 
   if(etaHierModel){//sample rate parameter of gamma prior on eta
     double scalarSumEta = 0.0;
-    for( int i = 0; i < NumberOfCompositeLoci; i++ )scalarSumEta += Eta[i];
+    for( unsigned i = 0; i < NumberOfCompositeLoci; i++ )scalarSumEta += Eta[i];
     SampleEtaRate(afterBurnIn, scalarSumEta);
   }
 
   double sumeta = 0.0, sumetasq = 0.0;//to calculate sample mean and variance of residual allelic diversity
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+  for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
     const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
     //accumulate summary stats for update of priors
     double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0; 
-    for(int k = 0; k < Populations; ++k){
+    for(unsigned k = 0; k < Populations; ++k){
       sumlogfreqs1 += bclib::eh_log(Freqs[i][k*NumberOfStates]);//allele 1
       sumlogfreqs2 += bclib::eh_log(Freqs[i][k*NumberOfStates + 1]);//allele 2
     }
@@ -332,7 +336,7 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 
     //no need to update alleleprobs, they are the same as Freqs
     //set HapPair probs using updated alleleprobs
-    if(!AllHaploid)//skip if all haploid data
+    if(!noDiploidData)//do only if some diploid data
       (*Loci)(i)->SetHapPairProbs();
 
   }
@@ -351,7 +355,7 @@ void HapMixFreqs::SampleAlleleFreqs(int i, double coolness)
   double *freqs = new double[NumStates];
   
   //if there is, the Dirichlet params are common across populations
-  for( int j = 0; j < Populations; j++ ){
+  for( unsigned j = 0; j < Populations; j++ ){
 
     // to flatten likelihood when annealing, multiply realized allele counts by coolness
     for(unsigned s = 0; s < NumStates; ++s)
@@ -505,13 +509,13 @@ void HapMixFreqs::OutputPriorParams(bclib::Delimitedostream& os){
 
 float HapMixFreqs::getAcceptanceRate()const{
   float sum = 0.0;
-  for(int j = 0; j < NumberOfCompositeLoci; ++j)
+  for(unsigned j = 0; j < NumberOfCompositeLoci; ++j)
     sum += EtaSampler[j].getExpectedAcceptanceRate();
   return sum / (float)NumberOfCompositeLoci;
 }
 float HapMixFreqs::getStepSize()const{
   float sum = 0.0;
-  for(int j = 0; j < NumberOfCompositeLoci; ++j)
+  for(unsigned j = 0; j < NumberOfCompositeLoci; ++j)
     sum += EtaSampler[j].getStepSize();
   return sum / (float)NumberOfCompositeLoci;
 
@@ -528,7 +532,7 @@ void HapMixFreqs::OutputPosteriorMeans(const char* filename, bclib::LogWriter& L
     if(outfile.is_open()){
       Log << bclib::Quiet << "Writing posterior means of residual allelic diversity to " << filename << "\n"; 
       
-      for(int j = 0; j < NumberOfCompositeLoci; ++j){
+      for(unsigned j = 0; j < NumberOfCompositeLoci; ++j){
 	outfile << SumEta[j] / (double)(NumEtaUpdates) << " ";
       }
       outfile.close();
@@ -547,7 +551,7 @@ void HapMixFreqs::OutputFinalValues(const char* filename, bclib::LogWriter& Log)
     if(outfile.is_open()){
       Log << bclib::Quiet << "Writing final values of allele freq prior to " << filename << "\n"; 
 
-      for(int j = 0; j < NumberOfCompositeLoci; ++j){
+      for(unsigned j = 0; j < NumberOfCompositeLoci; ++j){
         outfile << Eta[j] << " " << DirichletParams[j] / Eta[j] << " ";
       }
       outfile.close();

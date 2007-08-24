@@ -58,14 +58,15 @@ void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  Log
   numdiploidIndivs = IC->getNumDiploidIndividuals();
   Loci.SetHMMDimensions(options.getNumberOfBlockStates(), (bool)(numdiploidIndivs !=0));
 
-  A.setSampler(options.getThermoIndicator(), (!numdiploidIndivs), 
-	       ( !strlen(options.getPriorAlleleFreqFilename()) && !(options.getInitialAlleleFreqFilename().size()) ));
-
   //if there are any diploid individuals, allocate space for diploid genotype probs
   if(numdiploidIndivs){
     A.AllocateDiploidGenotypeProbs();
     A.SetDiploidGenotypeProbs();
   }
+  A.setSampler(options.getThermoIndicator(), 
+	       ( !strlen(options.getPriorAlleleFreqFilename()) 
+		 && !(options.getInitialAlleleFreqFilename().size()) ));
+
   HapMixIndividual::SetGenotypeProbs(&Loci, A.getHaploidGenotypeProbs(), A.getDiploidGenotypeProbs());
 
   const int numindivs = data.getNumberOfIndividuals();
@@ -195,7 +196,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options& _options, LogWr
   // update allele frequencies conditional on locus ancestry states
   ///////////////////////////////////////////////////////////////////
   if( !options.getFixedAlleleFreqs()){
-    A.Update(IC, (iteration > options.getBurnIn() && !anneal), coolness, (numdiploidIndivs==0));
+    A.Update(IC, (iteration > options.getBurnIn() && !anneal), coolness);
 
     A.SetDiploidGenotypeProbs();
   }//end if random allele freqs

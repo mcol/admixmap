@@ -14,23 +14,38 @@
 #include "AdmixMapModel.h"
 #include "AdmixFilenames.h"
 #include "bclib/LogWriter.h"
+#include "DispersionFreqs.h"
+#include "CorrelatedFreqs.h"
 
 using namespace::bclib;
 
-// AdmixMapModel::AdmixMapModel(){
-
-// }
+AdmixMapModel::AdmixMapModel(){
+  L = 0;
+  A = 0;
+}
 
 AdmixMapModel::~AdmixMapModel(){
-    delete L;
+  delete L;
+  delete A;
 }
 
 void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  LogWriter& Log){
 
   InitialiseGenome(Loci, options, data, Log);
 
-  A.Initialise(&options, &data, &Loci, Log, options.getChibIndicator()); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
-  pA = &A;//set pointer to AlleleFreqs object
+  //choose allele frequency model:
+  //correlated frequencies
+  if(options.getCorrelatedAlleleFreqs())
+    A = new CorrelatedFreqs;
+  //dispersion model ('historic allele freqs')
+  else if(strlen(options.getHistoricalAlleleFreqFilename()))
+    A = new DispersionFreqs;
+  //normal random- or fixed-frequency model
+  else
+    A = new AdmixFreqs;
+
+  A->Initialise(&options, &data, &Loci, Log, options.getChibIndicator()); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
+  pA = A;//set pointer to AlleleFreqs object
   
   AdmixedIndividuals = new AdmixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
   IC = (IndividualCollection*) AdmixedIndividuals;
@@ -53,7 +68,7 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
   
   L = new PopAdmix(options, Loci);    
   L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
-  A.PrintPrior(data.GetPopLabels(), Log);
+  A->PrintPrior(data.GetPopLabels(), Log);
   
   if( options.getPopulations()>1 && (options.isGlobalRho())) {
     Loci.SetLocusCorrelation(L->getrho());
@@ -130,7 +145,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
     AdmixedIndividuals->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses);
 
 
-  A.ResetAlleleCounts(options.getPopulations());
+  A->ResetAlleleCounts(options.getPopulations());
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
@@ -144,9 +159,9 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
   //find posterior modes of individual admixture at end of burn-in
   //set Chib numerator
   if(!anneal && iteration == options.getBurnIn() && (options.getChibIndicator() || strlen(options.getIndAdmixModeFilename()))) {
-    AdmixedIndividuals->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A, PopulationLabels);
+    AdmixedIndividuals->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A, PopulationLabels);
     if( options.getChibIndicator() ) {
-      AdmixedIndividuals->setChibNumerator(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A);
+      AdmixedIndividuals->setChibNumerator(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A);
     }
   }
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,7 +181,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
 				   Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
   
   // loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
-  AdmixedIndividuals->SampleHapPairs(options, &A, &Loci, true, anneal, true);
+  AdmixedIndividuals->SampleHapPairs(options, A, &Loci, true, anneal, true);
   
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if( !anneal && iteration > options.getBurnIn() ){
@@ -177,7 +192,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
     }
     if(options.getTestForResidualAllelicAssoc()){
       ResidualAllelicAssocScoreTest.Reset();
-      ResidualAllelicAssocScoreTest.Update(A.GetAlleleFreqs(), options.getHapMixModelIndicator());
+      ResidualAllelicAssocScoreTest.Update(A->GetAlleleFreqs(), options.getHapMixModelIndicator());
     }
   }
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -189,13 +204,13 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   if( options.getChibIndicator() && !anneal && iteration >= options.getBurnIn() )
-    AdmixedIndividuals->updateChib(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A);
+    AdmixedIndividuals->updateChib(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A);
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
   if( !options.getFixedAlleleFreqs()){
-    A.Update(IC, (iteration > options.getBurnIn() && !anneal), coolness);
+    A->Update(IC, (iteration > options.getBurnIn() && !anneal), coolness);
   }//end if random allele freqs
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
@@ -256,13 +271,13 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
       //Updates and Output after BurnIn     
       if( !AnnealedRun && iteration > burnin){
 	//dispersion test
-	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A, IC);
+	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(A, IC);
 	//stratification test
-	if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
+	if( options.getStratificationTest() )StratTest.calculate(IC, A->GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
 								 options.getPopulations());
 	//tests for mis-specified allelefreqs
 	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-	  AlleleFreqTest.Update(IC, &A, &Loci);
+	  AlleleFreqTest.Update(IC, A, &Loci);
 	//test for Hardy-Weinberg eq
 	if( options.getHWTestIndicator() )
 	  HWtest.Update(IC, &Loci);
@@ -275,7 +290,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 	    int samples = iteration - burnin;
 	    if( options.getIndAdmixHierIndicator() ){
 	      L->OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
-	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
+	      A->OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
 	    }
 	    for(unsigned r = 0; r < R.size(); ++r)//regression params
 	      R[r]->OutputErgodicAvg(samples,avgstream);
@@ -318,13 +333,13 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
     // ** dispersion parameter (if dispersion model)
     if( iteration > options->getBurnIn() ){
       //write to file
-      A.OutputEta();
+      A->OutputParams();
       //write to R object
-      A.OutputEta(paramstream);
+      A->OutputParams(paramstream);
     }
     //write to screen
     if(options->getDisplayLevel()>2)
-      A.OutputEta(ScreenWriter);
+      A->OutputParams(ScreenWriter);
   }
  
   // ** regression parameters
@@ -356,7 +371,7 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
     if( strlen( options->getIndAdmixtureFilename() ) ) AdmixedIndividuals->OutputIndAdmixture();
     if(options->getOutputAlleleFreq()){
-	A.OutputAlleleFreqs();
+	A->OutputAlleleFreqs();
     }
   }
   // cout << endl;
@@ -374,30 +389,10 @@ void AdmixMapModel::PrintAcceptanceRates(const Options& _options, LogWriter& Log
    if(options.getPopulations() > 1 ){
      L->printAcceptanceRates(Log);
    }
-   if(options.getCorrelatedAlleleFreqs()){
-     Log<< "Expected acceptance rates in sampler for allele frequency proportion parameters: \n";
-     for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
-       if(Loci(i)->GetNumberOfStates()>2)
-         Log << A.getAlphaSamplerAcceptanceRate(i) << " ";
-     }
-     Log<< "Expected acceptance rate in sampler for allele frequency dispersion parameter: \n";
-     Log << A.getEtaSamplerAcceptanceRate(0)
-         << "\nwith final step sizes of \n";
-     for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
-       if(Loci(i)->GetNumberOfStates()>2)
-         Log << A.getAlphaSamplerStepsize(i) << " " ;
-     }
-     Log <<  A.getEtaSamplerStepsize(0) << "\n" ;
-   }
-   
-   if( strlen( options.getHistoricalAlleleFreqFilename() )){
-     Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
-     for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaSamplerAcceptanceRate(k)<< " " ;}
-     Log << "\nwith final step sizes of ";
-     for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaSamplerStepsize(k) << " ";}
-     Log << "\n";
-   }
-   A.OutputAlleleFreqSamplerAcceptanceRates(options.getResultsDir());
+
+   A->PrintAcceptanceRates(Log);
+
+   A->OutputAlleleFreqSamplerAcceptanceRates(options.getResultsDir());
  }
 }
 
@@ -413,18 +408,18 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     AdmixedIndividuals->WritePosteriorMeans(options, data.GetHiddenStateLabels());
   }
   //FST
-  if( strlen( options.getHistoricalAlleleFreqFilename()) ){
-    A.OutputFST();
-  }
-  A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), 
+//   if( strlen( options.getHistoricalAlleleFreqFilename()) ){
+//     A->OutputFST();
+//   }
+  A->CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), 
 		    data.GetHiddenStateLabels());
 
   if(options.getOutputAlleleFreq()){
 //     ofstream klinfofile((options.getResultsDir() + "/KLinfo.txt").c_str());
-//     A.WriteKLInfo((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), klinfofile);
+//     A->WriteKLInfo((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), klinfofile);
 //     klinfofile.close();
 
-    A.WriteLocusInfo((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), options.getResultsDir(), data.GetHiddenStateLabels());
+    A->WriteLocusInfo((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), options.getResultsDir(), data.GetHiddenStateLabels());
   }
 
   //stratification test
@@ -609,7 +604,7 @@ void AdmixMapModel::InitializeErgodicAvgFile(const Options& _options, LogWriter 
 
 
 double AdmixMapModel::getDevianceAtPosteriorMean(const Options& options, LogWriter& Log){
-  return AdmixedIndividuals->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
+  return AdmixedIndividuals->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getSumLogRho(), Loci.GetNumberOfChromosomes(), A);
 }
 double* AdmixMapModel::getSumEnergy()const{
     return AdmixedIndividuals->getSumEnergy();

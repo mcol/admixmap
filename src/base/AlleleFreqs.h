@@ -34,14 +34,14 @@ class AlleleFreqs{
 public:
   AlleleFreqs();
   virtual ~AlleleFreqs();
-  //virtual void Initialise(Options* const options, InputData* const Data, Genome *pLoci, bclib::LogWriter &Log, bool MAP=false);
+
+  virtual void Initialise(Options* const options, InputData* const data, 
+			  Genome *pLoci, bclib::LogWriter &Log, bool MAP);
+
   void LoadInitialAlleleFreqs(const char* filename, bclib::LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
-  virtual void PrintPrior(const Vector_s&, bclib::LogWriter& Log)const;
-  virtual void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
 
-  ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
-  virtual void OutputErgodicAvg( int iteration, std::ofstream *avgstream)const;
+  virtual void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
 
   void OutputAlleleFreqs();
   void OutputAlleleFreqs(const char* filename, bclib::LogWriter& Log);
@@ -51,7 +51,6 @@ public:
   void ResetAlleleCounts(unsigned K);
   bool IsRandom()const;
 
-  const double *GetStatsForEta( int , int locus)const;
   double GetAlleleProbsMAP( int x, int ancestry , int locus)const;
   std::vector<double> GetPriorAlleleFreqs( int locus, int population )const;
   std::vector<int> GetAlleleCounts( int locus, int population )const;
@@ -65,9 +64,6 @@ public:
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
 
-//   float getEtaRWSamplerAcceptanceRate(int k)const;
-//   float getEtaRWSamplerStepsize(int k)const; 
-
   void OutputAlleleFreqSamplerAcceptanceRates(const string& ResultsDir);
 
   virtual void resetStepSizeApproximator(int k);
@@ -76,13 +72,11 @@ public:
   void WriteLocusInfo(unsigned samples, const std::string& ResultsDir, const std::vector<std::string>& PopLabels);
 
 protected:
-  int Populations, NumberOfCompositeLoci;
+  unsigned Populations, NumberOfCompositeLoci;
   FreqArray Freqs;// allele frequencies
   FreqArray AlleleFreqsMAP; // posterior mode of allele freqs
   array_of_allelecounts AlleleCounts;
   array_of_allelecounts hetCounts;//counts of het individuals with distinct ancestry states at SNPs
-  int worker_rank;
-  int NumWorkers;
   double **PriorParams;
   int FREQSAMPLER;// 1 = conjugate sampler, 2 = Hamiltonian sampler
   std::vector<AlleleFreqSampler*> FreqSampler;
@@ -93,20 +87,15 @@ protected:
   float* SumKLInfo;// to accumulate Kullback-Liebler info
   float** SumLocusInfo;//to accumulate locus information content (f)
 
+  virtual void LoadAlleleFreqs(Options* const options, InputData* const data, bclib::LogWriter &Log) = 0 ;
   virtual void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
   virtual void OpenOutputFile(const char* filename);
-  virtual void SampleAlleleFreqs(int, const double coolness);
+  virtual void SampleAlleleFreqs(int, const double coolness)=0;
   void SetDefaultAlleleFreqs(int i);
   virtual void SetDefaultPriorParams(int i, double defaultpriorparams);
 
-  void Initialise(bool OutputFreqs);
   void AccumulateKLInfo();
   void AccumulateLocusInfo();
-private:
-  //void LoadAlleleFreqs(Options* const options, InputData* const data, bclib::LogWriter &Log);
-
-  static double muEnergyFunction(unsigned K, const double * const alpha, const double* const *args);
-  static void muGradient(unsigned K, const double * const alpha, const double* const *args, double *g);
 
 };
 
