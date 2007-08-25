@@ -42,7 +42,7 @@ Package usage:
      should be a burnin. For example, if you want the burnin to be 1% of
      the whole, set factor to 1 and divisor to 100.
 
-     This exapmle file contains two configurations: set and prod, so you
+     This example file contains two configurations: set and prod, so you
      can easily switch between those two. Once you have the config.sh
      file ready, run:
 
