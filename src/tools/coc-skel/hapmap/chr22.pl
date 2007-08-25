@@ -472,7 +472,7 @@ sub storeState {
 sub restoreState {
     my $args = shift;
     my $rerun = shift;
-    $latest_dir = $args->{resultsdir} . "/state/trained-latest";
+    my $latest_dir = $args->{resultsdir} . "/state/trained-latest";
     if ($rerun and -d $latest_dir) {
         $args->{initialvaluedir} = $latest_dir;
     }

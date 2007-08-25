@@ -17,7 +17,7 @@ Required directory setup:
 $HOME/
 	coc-skel	Directory with scripts (this README is inside it)
 	main-directory	Directory (or a symbolic link to it) used for keeping
-	                (physically) all the files
+			folders with parameter sets.
 	coc-...		Symbolic links to directories with analyses and
 	                and results. They will be create automatically.
 
@@ -34,12 +34,28 @@ The above steps only need to be performed once.
 
 Package usage:
 
-
-  1. Create a configuration file.
+  1. Create a configuration file 
      
-     Configuration file defines the set of analyses. The format is:
+     See copy coc-skel/hapmap/config.sh.example to
+     coc-skel/hapmap/config.sh and edit it. Set your number of states,
+     number of samples for both runs, and what fraction of the run
+     should be a burnin. For example, if you want the burnin to be 1% of
+     the whole, set factor to 1 and divisor to 100.
 
-     analysis-name:--parameter1="value1" --parameter2="value2"
+     This exapmle file contains two configurations: set and prod, so you
+     can easily switch between those two. Once you have the config.sh
+     file ready, run:
+
+     bash generate-taskfarm-file.sh
+
+     Now you have a new file: cat mutual-information-tf.sh, it's
+     a script for Walton's `taskfarm' utility.
+
+  2. Create config file with all parameter sets.
+     
+     Configuration file defines all parameter sets. The format is:
+
+     parameter-set-name:--parameter1="value1" --parameter2="value2"
 
      Where the parameters are the hapmixmap's parameters according to documentation at:
      http://www.ucd.ie/genepi/hapmixmap/options.html
@@ -48,16 +64,16 @@ Package usage:
      generates configuration file: generate-analyses.sh. You can
      configure this script by editing it. The typical usage would be:
 
-     bash generate-analyses.sh my-set-of-analyses.txt
+     bash generate-analyses.sh my-set-of-parameter-sets.txt
 
      All other options are defined inside the hapmixmap/chr22.pl Perl
      script.
 
-  2. Submit the analyses
+  3. Submit jobs
 
      First, try a dry run (default), then run it with --submit option.
 
-     bash manage-analyses.sh --action setup --config my-set-of-analyses.txt
+     bash manage-analyses.sh --action setup --config my-set-of-parameter-sets.txt
 
      After this run, all the files should be put in place. You can
      examine your MAIN_DIRECTORY and check the subdirectories, config
@@ -65,17 +81,17 @@ Package usage:
 
      If you believe that the runs are set up correctly, submit your tasks.
 
-     bash manage-analyses.sh --action setup --config my-set-of-analyses.txt --force --submit
+     bash manage-analyses.sh --action setup --config my-set-of-parameter-sets.txt --force --submit
 
      The option --force is needed to `force' the script to delete the
      previously created directories. Otherwise the script will stop if
      it encounters an existing directory.
 
-  3. Collect results
+  4. Collect results
 
      When the runs have completed, generate HTML reports.
 
-     bash manage-analyses.sh --action results --config my-set-of-analyses.txt
+     bash manage-analyses.sh --action results --config my-set-of-parameter-sets.txt
 
      When it's complete, you can open your DEST_DIR with a web browser.
 
