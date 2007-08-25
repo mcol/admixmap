@@ -24,7 +24,7 @@ public:
   /**
      Default constructor
   */
-  Delimitedostream(){};
+  Delimitedostream();
   /**
      Constructor with streambuf pointer as argument.
      Otherwise, the std::ostream default is used.
