@@ -2,7 +2,7 @@ changequote([,])dnl
 define([PBS_SCRIPT], [#!/bin/bash
 #PBS -N $2
 #PBS -l nodes=4:ppn=2
-#PBS -l walltime=12:00:00
+#PBS -l walltime=00:05:00
 #PBS -A ndlif006b
 
 PBS_O_WORKDIR=$1/hapmap
