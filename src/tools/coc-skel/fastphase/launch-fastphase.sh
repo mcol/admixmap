@@ -30,12 +30,10 @@ do
 	# do
 	# 	cp -v "$SRC_DATA_DIR" "$WORKING_DATA_DIR"
 	# done
-	pushd cut-loci
 	perl convert-to-fastphase.pl \
 		--haploid "../${WORKING_DATA_DIR}/mi" \
 		--fastphase "../${WORKING_DATA_DIR}/fastphase_haplotypes.inp" \
 		--no-loci-count
-	popd
 	pushd "$WORKING_DATA_DIR"
 	# -M2 options has the same effect as `fixed mixture proportions'
 	# in hapmixmap.
@@ -71,7 +69,7 @@ do
 
 	# Extract the posterior distribution and save it as separate
 	# file with values, in R `dget' format.
-	python cut-loci/extract-posterior-probs.py \
+	python extract-posterior-probs.py \
 		--sampled "${WORKING_DATA_DIR}/fastphase_sampledHgivG.txt" \
 		--output "${WORKING_DIR}/PPGenotypeProbs.txt" \
 		--args-file "${WORKING_DATA_DIR}/mi_cc_index.txt" \
@@ -90,7 +88,7 @@ do
 		--chromosome=Chr22 \
 		--population=${POPULATION}-fastPHASE \
 		--states=${STATES} \
-		MutualInformation.R
+		../hapmap/MutualInformation.R
 done
 }
 

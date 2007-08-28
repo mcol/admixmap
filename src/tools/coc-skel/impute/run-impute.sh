@@ -4,7 +4,6 @@ POPULATIONS="Eur Afr Asian"
 SRC_DATA_DIR="/home/maciej/chr22-data"
 GENETIC_MAP="${SRC_DATA_DIR}/genetic_map_chr22.txt"
 
-BIN_DIR="../hapmap/cut-loci"
 IMPUTE_DATA_BASE_DIR="$(pwd)"
 
 function quiet {
@@ -30,8 +29,6 @@ POPULATION="$1"
 IMPUTE_DATA_DIR="${IMPUTE_DATA_BASE_DIR}/${POPULATION}"
 mkdir -p "${POPULATION}"
 
-quiet pushd "${BIN_DIR}"
-
 # Usage: impute-prepare.py [options]
 # 
 # Options:
@@ -54,8 +51,6 @@ display-and-run ./impute-prepare.py --data-dir ${SRC_DATA_DIR}/${POPULATION}/chr
 	--haplo ${IMPUTE_DATA_DIR}/haplo.txt \
 	--geno ${IMPUTE_DATA_DIR}/geno.txt \
 	--legend ${IMPUTE_DATA_DIR}/legend.txt
-
-quiet popd
 
 # Run impute
 display-and-run time impute \

@@ -33,7 +33,7 @@ hapmixmodel      = 1     # ignored, must be 1
 ######################################## 
 locusfile        #[data/loci.txt] file with locus information 
 genotypesfile    #[data/genotypes.txt] file with genotype data
-#ccgenotypesfile #[data/ccgenotypes.txt] file with case-control genotypes
+#testgenotypesfile #[data/testgenotypes.txt] file with observed genotypes
 
 ########################################
 #     output files                     #

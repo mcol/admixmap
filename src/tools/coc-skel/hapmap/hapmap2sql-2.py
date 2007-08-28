@@ -3,23 +3,15 @@
 # 
 # Hapmap.org to SQL converter
 #
-# This file is part of Genepi, genetic data analysis software.
 # Copyright (C) 2007 Maciej Bliziński
 # 
-# Genepi is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
+# This script is free software distributed WITHOUT ANY WARRANTY. 
+# You can redistribute it and/or modify it under the terms of the
+# GNU General Public License, 
+# version 2 or later, as published by the Free Software Foundation. 
+# See the file COPYING for details.
 # 
-# Genepi is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with Genepi; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
+ 
 import sys
 from optparse import OptionParser
 from userdata import *
@@ -48,30 +40,20 @@ def main():
     hapmap = Hapmap()
     import psycopg
     conn = psycopg.connect("dbname='genepi'")
-    curs = conn.cursor()
-    print "Building a dictionary of loci"
-    curs.execute("SELECT id, snp_id FROM locus;")
     loci_numbers = {}
-    for row in curs.fetchall():
-        loci_numbers[row[1]] = row[0]
-    curs.close()
     for chr in hapmap.get_chromosomes():
+    # for chr in ['chr22']:
         for pop in hapmap.get_populations():
-            # Splitting data into chunks
+            print pop
             leg_fn = os.path.join(options.hapmap_dir,
                     hapmap.get_legend_fn(chr, pop))
             hap_fn = os.path.join(options.hapmap_dir,
                     hapmap.get_haplotypes_fn(chr, pop))
             sam_fn = os.path.join(options.hapmap_dir,
                     hapmap.get_sample_fn(chr, pop))
-            sc = SqlConverter(conn, hap_fn, leg_fn, sam_fn,
+            si = SqlInserter(conn, hap_fn, leg_fn, sam_fn,
                     loci_numbers)
-            print "Writing SQL for", chr, pop
-            fh = open("%s-%s.sql" % (chr, pop), "w")
-            sc.write(fh, pop)
-            fh.close()
-            del sc
-
+            si.write(pop)
 
 if __name__ == '__main__':
     # import cProfile

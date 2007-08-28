@@ -204,7 +204,7 @@ my $arg_hash = {
     #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
 };
 
-$arg_hash->{resultsdir} = "$POP/Chr22Results$STATES"."States2";
+$arg_hash->{resultsdir} = "$POP/Chr22Results$STATES"."States";
 
 # Setting the current state directory
 # and creating it if needded
@@ -231,7 +231,7 @@ if ($ccgenotypesfile) {
 if ($mask_data) {
     print "Preparing train and test data.\n";
 
-    my $prep_script = "cut-loci/mask-genotypes.py";
+    my $prep_script = "mask-genotypes.py";
     my @data_prepare_args = (
         "python ${prep_script}",
         "--in-haplotypes ${datadir}/phased_genotypes.txt",

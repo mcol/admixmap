@@ -5,27 +5,43 @@
 # Reads PPGenotypeProbs.txt file and calculates bayesian information
 # reward.
 #
-# Should be called in batch mode, exactly like this:
+# Should be called like this:
 #
-# R CMD BATCH --no-save --no-restore \
-# --chromosome=Chr22 --population=Eur --states=4 MutualInformation.R
+# R --vanilla --args datadir=data_dir resultsdir=output_dir \
+#   <bayesian-information-reward.R [>logfile]
 
-# Reading some functions.
+# Read some functions from external script
 source("maskGenotypesFunctions.R")
 
-args <- commandArgs()
-chromosome <- get_option("chromosome", args[7])
-# chromosome <- "Chr22"
-population <- get_option("population", args[8])
-# population <- "Eur"
-states <- get_option("states", args[9], int = TRUE)
-# states <- "8"
+##retrieve command-line arguments
+##args is the full command used to invoke R
+##typically /path/to/Rterm <R args like --vanilla> [--args [args to script]] 
+args <- commandArgs();
+##check if --args used. This avoids a problem with earlier versions of R
+##or when script run without '--args'. args.pos is the index of '--args' in the args array.
+args.pos <- match("--args", args)
+
+print(args)
+print(args.pos)
+
+if(is.null(args) || is.na(args.pos) || length(args) != args.pos +2){
+  cat ("Incorrect syntax: should be\n",
+##       "R CMD BATCH --vanilla --args datadir=... resultsdir=... bayesian-information-reward.R\n",
+##  "or\n",
+  "R --vanilla --args datadir=... resultsdir=... <bayesian-information-reward.R\n")
+  q("no")
+}
+
+##data.dir <- args[args.pos + 1]
+##results.dir <- args[args.pos + 2]
+data.dir <- get.option("datadir", args[args.pos+1])
+results.dir <- get.option("resultsdir", args[args.pos+2])
+
+print (data.dir)
+print (results.dir)
+q("no")
 
 genotypes <- c("1,1", "1,2", "2,2")
-
-results.dir <- paste(population, "/", chromosome, "Results", states, "States2", sep = "")
-
-print(results.dir)
 
 # Dimensions of Genotype Probs are:
 #
@@ -33,11 +49,11 @@ print(results.dir)
 # 2. Locus
 # 3. Individual
 GP <- dget(paste(results.dir, "PPGenotypeProbs.txt", sep = "/"))
-orig <- dget(paste(population, "chr22data", "mi_cc_observed_dput.txt", sep = "/"))
+orig <- dget(paste(data.dir, "mi_cc_observed_dput.txt", sep = "/"))
 v <- as.vector(as.matrix(orig))
 v[which(v == "2,1")] <- "1,2"
 orig <- matrix(v, nrow = dim(orig)[1], ncol = dim(orig)[2])
-prior <- dget(paste(population, "chr22data", "genotype-freqs.R", sep = "/"))
+prior <- dget(paste(data.dir, "genotype-freqs.R", sep = "/"))
 
 # Debug, to look at the data by hand
 gp.dbg <- function(indiv, loc) {
@@ -50,10 +66,10 @@ gp.dbg <- function(indiv, loc) {
 # mi <- get.coc.table(GP, orig, genotypes)
 nan_idx <- as.vector(which(is.na(GP[1,,1])))
 # Array for mutual information.
-mi <- matrix(nrow = length(GP[1,,1]), ncol = 3)
-colnames(mi) <- c(
-	"Mutual information",
-	"Mutual information, no uncertainity",
+BIR <- matrix(nrow = length(GP[1,,1]), ncol = 3)
+colnames(BIR) <- c(
+	"BIR",
+	"BIR, no uncertainity",
 	"Unique genotypes")
 
 for (locus.no in 1:length(GP[1,,1])) {
@@ -67,28 +83,33 @@ for (locus.no in 1:length(GP[1,,1])) {
 	# print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
 	joint.pd <- joint.prob(GP, locus.no, genotypes)
 	joint.pd.no.uncert <- joint.prob(GP, locus.no, genotypes, throw_away_uncertainity = TRUE)
-	# mi[locus.no, ] <- coc.locus(locus.no, GP, orig, genotypes)
-	mi.tmp <- bir.locus(locus.no, GP, orig, genotypes, prior)
-	mi[locus.no, 1] <- mi.tmp[1]
-	mi[locus.no, 2] <- mi.tmp[2]
-	mi[locus.no, 3] <- mi.tmp[3]
+	# BIR[locus.no, ] <- coc.locus(locus.no, GP, orig, genotypes)
+	BIR.tmp <- bir.locus(locus.no, GP, orig, genotypes, prior)
+	BIR[locus.no, 1] <- BIR.tmp[1]
+	BIR[locus.no, 2] <- BIR.tmp[2]
+	BIR[locus.no, 3] <- BIR.tmp[3]
 }
 
-# mi <- get.coc.table (GP, orig, genotypes)
+# BIR <- get.coc.table (GP, orig, genotypes)
 
 # Unique loci in original data. Numer 1 indicates that all individuals
 # had the same genotype in specific locus.
 
 # for (locus.id in 1:length(dimnames(GP)[[2]]) {
 
-write.table(mi,
-	file = paste(results.dir, "bayesian-information-reward-by-locus.txt", sep = "/"),
-	row.names = TRUE, col.names = NA)
-dput(mi, file = paste(results.dir, "bayesian-information-reward-by-locus-dput.txt", sep = "/"))
-write.table(mean(mi[,1], na.rm = TRUE),
-	file = paste(results.dir, "mean-bayesian-information-reward.txt", sep = "/"),
-	col.names = FALSE, row.names = FALSE)
-write.table(mean(mi[,2], na.rm = TRUE),
-	file = paste(results.dir, "mean-bayesian-information-reward-no-uncert.txt", sep = "/"),
-	col.names = FALSE, row.names = FALSE)
+write.table(BIR,
+            file = paste(results.dir, "bayesian-information-reward-by-locus.txt",
+              sep = "/"),
+            row.names = TRUE, col.names = NA)
+dput(BIR, file = paste(results.dir, "bayesian-information-reward-by-locus-dput.txt",
+            sep = "/"))
+
+write.table(mean(BIR[,1], na.rm = TRUE),
+            file = paste(results.dir, "mean-bayesian-information-reward.txt", sep = "/"),
+            col.names = FALSE, row.names = FALSE)
+
+write.table(mean(BIR[,2], na.rm = TRUE),
+            file = paste(results.dir, "mean-bayesian-information-reward-no-uncert.txt",
+              sep = "/"),
+            col.names = FALSE, row.names = FALSE)
 

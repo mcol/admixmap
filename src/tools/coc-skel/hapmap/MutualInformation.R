@@ -13,11 +13,11 @@
 source("maskGenotypesFunctions.R")
 
 args <- commandArgs()
-chromosome <- get_option("chromosome", args[7])
+chromosome <- get.option("chromosome", args[7])
 # chromosome <- "Chr22"
-population <- get_option("population", args[8])
+population <- get.option("population", args[8])
 # population <- "Eur"
-states <- get_option("states", args[9], int = TRUE)
+states <- get.option("states", args[9], int = TRUE)
 # states <- "8"
 
 genotypes <- c("1,1", "1,2", "2,2")
