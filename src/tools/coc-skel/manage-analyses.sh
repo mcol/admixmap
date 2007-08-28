@@ -38,7 +38,8 @@ PBS_FILE="launch-taskfarm.pbs"
 RESDIRS="Eur Afr Asian"
 
 # SOURCE_DATA_DIR="${HOME}/genepi-old/hapmap"
-SOURCE_DATA_DIR="$HOME/shared-genepi/maciej/chr22-tuned-2/hapmap"
+# SOURCE_DATA_DIR="$HOME/shared-genepi/maciej/chr22-tuned-2/hapmap"
+SOURCE_DATA_DIR="" # no default
 
 # Additional configuration:
 # pbs.m4
@@ -55,12 +56,12 @@ echo "Usage: bash manage-analyses.sh [ options ]"
 echo "Options:"
 echo "    --action <action>         Action, see below"
 echo "    --config <config>         Configuration file"
+echo "    --data <dir>              Source data directory (no default)"
 echo "  [ --force                ]  Delete directories when they exist."
 echo "                              This can destroy existing results!"
 echo "  [ --submit               ]  Submit tasks to cluster"
 echo "  [ --output <dir>         ]  HTML output directory (default: \`html')"
 echo "  [ --main-directory <dir> ]  Main working directory (default: \`shared-genepi/maciej')"
-echo "  [ --data <dir> ]            Source data directory (default: \`~/genepi-old/hapmap')"
 echo ""
 echo "Action are:"
 echo "  setup      Set up analysis"
@@ -148,6 +149,12 @@ done
 if [[ -z "${ACTION}" ]]
 then
 	echo "No action has been given."
+	usage 1
+fi
+
+if [[ -z "${SOURCE_DATA_DIR}" ]]
+then
+	echo "No data directory given."
 	usage 1
 fi
 

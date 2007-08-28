@@ -28,7 +28,7 @@ Steps to set up analyses on a new server:
      else, different partition for example; you only need to
 	     $HOME/shared-genepi to point at it.)
   3. ln -s $HOME/shared-genepi-physical $HOME/shared-genepi
-  4. Place the data files in $HOME/genepi-old/hapmap/{Afr,Asian,Eur}/chr22data
+  4. Place the data files in <data-dir>/hapmap/{Afr,Asian,Eur}/chr22data
 
 The above steps only need to be performed once.
 
@@ -73,7 +73,9 @@ Package usage:
 
      First, try a dry run (default), then run it with --submit option.
 
-     bash manage-analyses.sh --action setup --config my-set-of-parameter-sets.txt
+     bash manage-analyses.sh --action setup \
+     	--config my-set-of-parameter-sets.txt \
+	--data <data-dir>
 
      After this run, all the files should be put in place. You can
      examine your MAIN_DIRECTORY and check the subdirectories, config
@@ -81,7 +83,8 @@ Package usage:
 
      If you believe that the runs are set up correctly, submit your tasks.
 
-     bash manage-analyses.sh --action setup --config my-set-of-parameter-sets.txt --force --submit
+     bash manage-analyses.sh --action setup \
+     	--config my-set-of-parameter-sets.txt --force --submit
 
      The option --force is needed to `force' the script to delete the
      previously created directories. Otherwise the script will stop if
