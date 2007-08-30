@@ -11,9 +11,14 @@
    Copyright (c) David O'Donnell 2007
 */
 #include "HapMapLegend.h"
-#include <fstream>
 
 using namespace::std;
+
+// void LocusInfo::print(ostream& os)const
+// {
+//   os << rsnumber << " " << position << " " 
+//      << alleles.first << " " << alleles.second;
+// }
 
 HapMapLegend::HapMapLegend(const char* filename) {
   ifstream LegendFile(filename);
@@ -47,6 +52,7 @@ HapMapLegend::HapMapLegend(const char* filename) {
 void HapMapLegend::print(ostream& os) {
   for(vector<LocusInfo>::const_iterator i = LocusVector.begin(); i != LocusVector.end(); ++i) {
     i->print(os);
+    os << '\n';
   }
 
 }
@@ -80,12 +86,6 @@ void HapMapLegend::OffsetLimits(float offset) {
 
 }
 
-void LocusInfo::print(ostream& os)const
-{
-  os << rsnumber << " " << position << " " << alleles.first << " " << alleles.second << endl;
-}
-
-#include <iostream>
 void HapMapLegend::DetermineCutPoints(unsigned maxLoci, unsigned long minOverlap){
   /*
     divides chromosome as follows
@@ -235,6 +235,9 @@ const LocusInfo& HapMapLegend::operator[](const std::string& s){
 }
 const std::string& HapMapLegend::getRSNumber(unsigned long i)const{
   return LocusVector[i].rsnumber;
+}
+unsigned HapMapLegend::getIndex(const std::string& s){
+  return RSmap[s];
 }
 unsigned HapMapLegend::size()const{
   return LocusVector.size();

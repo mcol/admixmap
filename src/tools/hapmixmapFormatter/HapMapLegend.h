@@ -18,7 +18,8 @@
 #include <string>
 #include <map>
 
-//class std::ofstream;
+#include <iostream>
+#include <fstream>
 
 ///struct to hold locus information
 typedef struct{
@@ -27,7 +28,11 @@ typedef struct{
   std::pair<char, char> alleles;
   std::vector<unsigned> subchr;
 
-  void print(std::ostream& os)const;
+  void print(std::ostream& os)const{
+    os << rsnumber << " " << position << " " 
+       << alleles.first << " " << alleles.second;
+  }
+
 }LocusInfo;
 
 ///class to represent a HapMap legend
@@ -57,6 +62,9 @@ public:
 
   ///get the rs number of ith locus
   const std::string& getRSNumber(unsigned long i)const;
+
+  ///get the index of locus with a given rsnumber
+  unsigned getIndex(const std::string& s);
 
   ///print contents to stream
   void print(std::ostream& os);

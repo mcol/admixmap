@@ -37,10 +37,6 @@ if(is.null(args) || is.na(args.pos) || length(args) != args.pos +2){
 data.dir <- get.option("datadir", args[args.pos+1])
 results.dir <- get.option("resultsdir", args[args.pos+2])
 
-print (data.dir)
-print (results.dir)
-q("no")
-
 genotypes <- c("1,1", "1,2", "2,2")
 
 # Dimensions of Genotype Probs are:
@@ -62,9 +58,9 @@ gp.dbg <- function(indiv, loc) {
 	print(c("sum:", sum(GP[,indiv,loc])))
 }
 
-# This, when called as a function, works horribly slow.
+# This, when called as a function, works horribly slowly.
 # mi <- get.coc.table(GP, orig, genotypes)
-nan_idx <- as.vector(which(is.na(GP[1,,1])))
+
 # Array for mutual information.
 BIR <- matrix(nrow = length(GP[1,,1]), ncol = 3)
 colnames(BIR) <- c(
@@ -73,21 +69,18 @@ colnames(BIR) <- c(
 	"Unique genotypes")
 
 for (locus.no in 1:length(GP[1,,1])) {
-	if (length(nan_idx) > 0) {
-		# FIXME: This is an ad-hoc fix that only works for 1 NA
-		# locus. If there are more NA loci, it will fail.
-		if (locus.no == nan_idx[1]) {
-			next
-		}
-	}
-	# print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
-	joint.pd <- joint.prob(GP, locus.no, genotypes)
-	joint.pd.no.uncert <- joint.prob(GP, locus.no, genotypes, throw_away_uncertainity = TRUE)
-	# BIR[locus.no, ] <- coc.locus(locus.no, GP, orig, genotypes)
-	BIR.tmp <- bir.locus(locus.no, GP, orig, genotypes, prior)
-	BIR[locus.no, 1] <- BIR.tmp[1]
-	BIR[locus.no, 2] <- BIR.tmp[2]
-	BIR[locus.no, 3] <- BIR.tmp[3]
+  if (is.na(GP[1,locus,1]) {
+    next
+  }
+      
+      ## print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
+      joint.pd <- joint.prob(GP, locus.no, genotypes)
+      joint.pd.no.uncert <- joint.prob(GP, locus.no, genotypes, throw_away_uncertainity = TRUE)
+      ## BIR[locus.no, ] <- coc.locus(locus.no, GP, orig, genotypes)
+      BIR.tmp <- bir.locus(locus.no, GP, orig, genotypes, prior)
+      BIR[locus.no, 1] <- BIR.tmp[1]
+      BIR[locus.no, 2] <- BIR.tmp[2]
+      BIR[locus.no, 3] <- BIR.tmp[3]
 }
 
 # BIR <- get.coc.table (GP, orig, genotypes)
