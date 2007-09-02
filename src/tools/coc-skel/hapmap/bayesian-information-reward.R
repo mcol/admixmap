@@ -37,19 +37,14 @@ if(is.null(args) || is.na(args.pos) || length(args) != args.pos +2){
 data.dir <- get.option("datadir", args[args.pos+1])
 results.dir <- get.option("resultsdir", args[args.pos+2])
 
-genotypes <- c("1,1", "1,2", "2,2")
-
 # Dimensions of Genotype Probs are:
 #
 # 1. Genotype
 # 2. Locus
 # 3. Individual
 GP <- dget(paste(results.dir, "PPGenotypeProbs.txt", sep = "/"))
-orig <- dget(paste(data.dir, "mi_cc_observed_dput.txt", sep = "/"))
-v <- as.vector(as.matrix(orig))
-v[which(v == "2,1")] <- "1,2"
-orig <- matrix(v, nrow = dim(orig)[1], ncol = dim(orig)[2])
-prior <- dget(paste(data.dir, "genotype-freqs.R", sep = "/"))
+obs.genotypes <- dget(paste(data.dir, "obs_masked_genotypes.txt", sep = "/"))
+prior <- dget(paste(data.dir, "genotype_freqs.txt", sep = "/"))
 
 # Debug, to look at the data by hand
 gp.dbg <- function(indiv, loc) {
@@ -61,34 +56,21 @@ gp.dbg <- function(indiv, loc) {
 # This, when called as a function, works horribly slowly.
 # mi <- get.coc.table(GP, orig, genotypes)
 
-# Array for mutual information.
-BIR <- matrix(nrow = length(GP[1,,1]), ncol = 3)
-colnames(BIR) <- c(
-	"BIR",
-	"BIR, no uncertainity",
-	"Unique genotypes")
+# Array for Bayesian information reward
 
-for (locus.no in 1:length(GP[1,,1])) {
-  if (is.na(GP[1,locus,1]) {
+BIR <- NULL
+masked.loci <- dimnames(GP)[[2]]
+for (locus.name in masked.loci) {
+  if (is.na(GP[1,locus.name,1])) {
     next
   }
       
-      ## print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
-      joint.pd <- joint.prob(GP, locus.no, genotypes)
-      joint.pd.no.uncert <- joint.prob(GP, locus.no, genotypes, throw_away_uncertainity = TRUE)
-      ## BIR[locus.no, ] <- coc.locus(locus.no, GP, orig, genotypes)
-      BIR.tmp <- bir.locus(locus.no, GP, orig, genotypes, prior)
-      BIR[locus.no, 1] <- BIR.tmp[1]
-      BIR[locus.no, 2] <- BIR.tmp[2]
-      BIR[locus.no, 3] <- BIR.tmp[3]
+  ## print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
+  BIR <- rbind(BIR, bir.locus2(locus.name, GP, obs.genotypes, prior))      
+  ##}
 }
+dimnames(BIR) <- list(masked.loci, c("BIR","BIR, no uncertainity","Unique genotypes"))
 
-# BIR <- get.coc.table (GP, orig, genotypes)
-
-# Unique loci in original data. Numer 1 indicates that all individuals
-# had the same genotype in specific locus.
-
-# for (locus.id in 1:length(dimnames(GP)[[2]]) {
 
 write.table(BIR,
             file = paste(results.dir, "bayesian-information-reward-by-locus.txt",

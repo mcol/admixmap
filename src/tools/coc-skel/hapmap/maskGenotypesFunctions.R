@@ -274,45 +274,11 @@ coc.locus <- function (locus.no, GP, orig, genotypes) {
 # Return number of the genotype, based by the genotype.
 # There probably is a better way to implement it using a dictionary.
 num.by.genotype <- function (genotypes, genotype) {
-	for (idx in 1:length(genotypes)) {
-		if (genotype == genotypes[idx]) {
-			return(idx)
-		}
-	}
-}
-
-bir.locus <- function (locus.no, GP, orig, genotypes, prior) {
-	# joint.pd <- joint.prob(GP, locus.no, genotypes)
-	# joint.pd.no.uncert <- joint.prob(GP, locus.no, genotypes, throw_away_uncertainity = TRUE)
-	# mi[locus.no, 1] <- coefficient.of.constraint(joint.pd)
-	# mi[locus.no, 2] <- coefficient.of.constraint(joint.pd.no.uncert)
-	# mi[locus.no, 3] <- length(unique(na.omit(orig[, locus.no])))
-	print(locus.no)
-	tmp.prior <- prior[locus.no, ]
-	# print(dim(GP))
-	# print(c("GP"))
-	# print(GP[,locus.no,])
-	# print(dim(orig))
-	# print(orig[,locus.no])
-	# print(genotypes)
-
-	# print(prior[locus.no,])
-	indivs <- length(orig[,locus.no])
-	# print(indivs)
-	tmp.bir <- rep(0, length(indivs))
-	for (idx in 1:indivs) {
-		# print(c(idx,
-		# orig[idx,locus.no],
-		# num.by.genotype(genotypes, orig[idx,locus.no]),
-		# GP[,locus.no,idx], prior[locus.no, ]))
-		tmp.predictive <- GP[, locus.no, idx]
-		correct.class <- num.by.genotype(genotypes, orig[idx,locus.no])
-		tmp.bir[idx] <- info.reward2(tmp.prior, tmp.predictive, correct.class)
-	}
-	return(c(
-		mean(tmp.bir),
-		0,
-		length(unique(na.omit(orig[, locus.no])))))
+  for (idx in 1:length(genotypes)) {
+    if (genotype == genotypes[idx]) {
+      return(idx)
+    }
+  }
 }
 
 get.coc.table <- function (GP, orig, genotypes) {
@@ -397,3 +363,55 @@ info.reward2 <- function(prior, predictive, t) {
    return(i.reward)
 }
 
+bir.locus <- function (locus.no, GP, orig, genotypes, prior) {
+##  tmp.prior <- prior[locus.no, ]
+  ## print(dim(GP))
+  ## print(c("GP"))
+  ## print(GP[,locus.no,])
+  ## print(dim(orig))
+  ## print(orig[,locus.no])
+  ## print(genotypes)
+
+  ## print(prior[locus.no,])
+  indivs <- length(orig[,locus.no])
+  ## print(indivs)
+  tmp.bir <- rep(0, length(indivs))
+  for (idx in 1:indivs) {
+    ## print(c(idx,
+    ## orig[idx,locus.no],
+    ## num.by.genotype(genotypes, orig[idx,locus.no]),
+    ## GP[,locus.no,idx], prior[locus.no, ]))
+    tmp.predictive <- GP[, locus.no, idx]
+    correct.class <- num.by.genotype(genotypes, orig[idx,locus.no])
+    tmp.bir[idx] <- info.reward2(tmp.prior, tmp.predictive, correct.class)
+  }
+  return(c(
+           mean(tmp.bir),
+           0,
+           length(unique(na.omit(orig[, locus.no])))))
+}
+
+bir.locus2 <- function (locus.name, GP, obs, prior) {
+  ## locus.name is the name of the locus, used to index the arrays (eg "rs123456")
+  ## if there are L loci, N individuals (with masked data) and K states, then
+  ## predicted is an L*N*K array of posterior predictive probabilities
+  ## obs is an L*K array of observed values
+  ## prior is an L*K array of prior predictive probabilities
+  
+  ##indivs <- length(obs[,locus.name])
+  indivs <- dim(GP)[3]
+
+  tmp.bir <- rep(0, length(indivs))
+  for (idx in 1:indivs) {
+    ## print(c(idx,
+    ## orig[idx,locus.no],
+    ## num.by.genotype(genotypes, orig[idx,locus.no]),
+    ## GP[,locus.name,idx], prior[locus.name, ]))
+
+    tmp.bir[idx] <- info.reward2(prior[locus.name,], GP[, locus.name, idx], obs[idx,locus.name])
+  }
+  return(c(
+           mean(tmp.bir),
+           0,
+           length(unique(na.omit(obs[, locus.name])))))
+}
