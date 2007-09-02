@@ -1,5 +1,5 @@
 /** 
- *   HAMIXMAP
+ *   HAPMIXMAP
  *   HapMixAllelicAssocTest.cc
  *   wrapper for the hapmix model allelic assoc test
  *   Extension of the CopyNumberAssocTest   

@@ -12,8 +12,9 @@
  */
 #include "HapMixIndividual.h"
 #include "InputHapMixData.h"
+#include "HapMixOptions.h"
 #include <algorithm>
-//#include "../common/DebugMacros.h"
+//#include "../base/DebugMacros.h"
 
 const FreqArray* HapMixIndividual::HaploidGenotypeProbs;
 const FreqArray* HapMixIndividual::DiploidGenotypeProbs;
@@ -52,8 +53,8 @@ struct ungp_t {
 map<int, int> HapMixIndividual::ord2unord;
 
 //Note: assuming SetStaticMembers is called first
-HapMixIndividual::HapMixIndividual(int number, const Options* const options, 
-				   InputHapMixData* const Data, const double* GlobalTheta, bool isMasked)
+HapMixIndividual::HapMixIndividual(int number, const HapMixOptions* const options, 
+				   InputHapMixData* const Data, const double* GlobalTheta)
   :Individual(number){
 
   GenotypesMissing = new bool*[numChromosomes];
@@ -93,9 +94,10 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options,
                     OR this is a test individual and the score test is on (only test individuals are included in the score test)
                     OR there are no test individuals and the score test is on (in this case, all individuals are included in the score test).
   */
-  if(isMasked || ( options->getTestForAllelicAssociation() && 
-		   (Data->IsTestIndividual(number) || !Data->getNumberOfTestIndividuals())
-		   )
+  if(( options->OutputCGProbs() && Data->IsTestIndividual(number)) ||
+     ( options->getTestForAllelicAssociation() && 
+       (Data->IsTestIndividual(number) || !Data->getNumberOfTestIndividuals())
+       )
      ){
     vector<double> v1 = vector<double>(1);
     vector<vector<double> > v3 = vector<vector<double> >(3, v1);

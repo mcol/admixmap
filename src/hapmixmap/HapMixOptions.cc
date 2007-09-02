@@ -33,6 +33,7 @@ void HapMixOptions::SetDefaultValues(){
   FixedMixturePropsPrecision = true;
   MixturePropsPrecision = 0.0;
   MHTestIndicator = false;
+  PredictGenotypes = false;
   NumStarts = 0;
 
   // option names and default option values are stored as strings in a map container 
@@ -44,6 +45,7 @@ void HapMixOptions::SetDefaultValues(){
   useroptions["residualadhiermodel"] = "0";
   useroptions["fixedmixtureprops"] = "1";
   useroptions["fixedmixturepropsprecision"] = "1";
+  useroptions["predictgenotypes"] = "0";
 }
 
 HapMixOptions::~HapMixOptions(){
@@ -164,14 +166,8 @@ const char* HapMixOptions::getTestGenotypesFilename()const{
   return TestGenotypesFilename.c_str();
 }
 
-const vector<unsigned>& HapMixOptions::getMaskedIndividuals()const{
-  return MaskedIndividuals;
-}
-const vector<unsigned>& HapMixOptions::getMaskedLoci()const{
-  return MaskedLoci;
-}
 bool HapMixOptions::OutputCGProbs()const{
-  return (MaskedLoci.size() && MaskedIndividuals.size()); 
+  return PredictGenotypes; 
 }
 string HapMixOptions::getFinalAlleleFreqFilename()const{
   return (FinalValueDir + "/" + ALLELEFREQSTATEFILE);
@@ -187,12 +183,6 @@ string HapMixOptions::getFinalMixturePropsFilename()const{
 }
 const string& HapMixOptions::getFinalValueDir()const{
   return FinalValueDir;
-}
-unsigned HapMixOptions::GetNumMaskedIndividuals()const{
-  return MaskedIndividuals.size();
-}
-unsigned HapMixOptions::GetNumMaskedLoci()const{
-  return MaskedLoci.size();
 }
 
 void HapMixOptions::DefineOptions()
@@ -259,8 +249,7 @@ void HapMixOptions::DefineOptions()
   //Mantel-Haentszel test
   addOption("mhtest", boolOption, &MHTestIndicator);
   //for output of posterior predictive genotype probs
-  addOption("maskedindivs", rangeOption, &MaskedIndividuals);
-  addOption("maskedloci", rangeOption, &MaskedLoci);
+  addOption("predictgenotypes", boolOption, &PredictGenotypes);
 
   /*
     old names for test options, kept for compatibility with R script
@@ -299,9 +288,15 @@ int HapMixOptions::checkOptions(bclib::LogWriter &Log, int ){
   }
   Log << "\n";
 
-  if(TestGenotypesFilename.size() && !OutcomeVarFilename.size()){
+  if(TestGenotypesFilename.size() && !OutcomeVarFilename.size() && !PredictGenotypes){
     Log << "WARNING: observed genotypes supplied but no outcome variable!\n";
   }
+  if(PredictGenotypes && !TestGenotypesFilename.size()){
+    Log << "ERROR: 'predictgenotypes' option is valid only with a 'testgenotypesfile'\n";
+    PredictGenotypes=false;
+    useroptions["predictgenotypes"] = "0";
+  }
+
   if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
     if(NumberOfOutcomes > 0){
       Log.setDisplayMode(On);
@@ -445,29 +440,6 @@ int HapMixOptions::checkOptions(bclib::LogWriter &Log, int ){
   if(!FinalValueDir.size()){
     FinalValueDir = ResultsDir;
     useroptions["finalvaluedir"] = ResultsDir;
-  }
-//check maskedloci and maskedindivs options
-  if(MaskedLoci.size()){
-      if(!MaskedIndividuals.size()){
-          Log << On << "Error: maskedloci option specified without maskedindivs\n";
-          MaskedLoci.clear();
-      }
-      else if(MaskedLoci[0] <= 0){
-          Log << On << "Warning: " << MaskedLoci[0] 
-              << " is not a valid value for a masked locus and will be ignored\n";
-          MaskedLoci.erase(MaskedLoci.begin());
-      }
-  }
-  if(MaskedIndividuals.size()){
-      if(!MaskedLoci.size()){
-          Log << On << "Error: maskedindivs option specified without maskedloci\n";
-          MaskedIndividuals.clear();
-      }
-      else if(MaskedIndividuals[0] <= 0){
-          Log << On << "Warning: " << MaskedIndividuals[0] 
-              << " is not a valid value for a masked individual and will be ignored\n";
-          MaskedIndividuals.erase(MaskedIndividuals.begin());
-      }
   }
 
   AddFilenamesToUserOptions();

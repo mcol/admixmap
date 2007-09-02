@@ -20,13 +20,14 @@
 
 using namespace std;
 class InputHapMixData;
+class HapMixOptions;
 
 ///Class to represent an individual in a hapmixmodel
 class HapMixIndividual : public Individual
 {
 public:
   HapMixIndividual();
-  HapMixIndividual(int number, const Options* const options, InputHapMixData* const Data, const double* GlobalTheta, bool isMasked);
+  HapMixIndividual(int number, const HapMixOptions* const options, InputHapMixData* const Data, const double* GlobalTheta);
   ~HapMixIndividual();
   static void SetGenotypeProbs(HapMixGenome* const G, const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs);
   void SetMissingGenotypes();

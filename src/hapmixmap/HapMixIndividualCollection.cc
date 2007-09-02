@@ -40,14 +40,14 @@ HapMixIndividualCollection
   for (unsigned int i = 0; i < size; i++) {
     // _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
     //NB: first arg sets Individual's number
-    HapMixChild.push_back(new HapMixIndividual(i+1, options, Data, theta, isMaskedIndividual(i, options->getMaskedIndividuals())));
+    HapMixChild.push_back(new HapMixIndividual(i+1, options, Data, theta));
 
     _child[i] = HapMixChild[i];
     if(!_child[i]->isHaploidIndividual())
       ++NumDiploidIndividuals;
   }
   
-  if(options->OutputCGProbs())GPO.Initialise(options->GetNumMaskedIndividuals(), options->GetNumMaskedLoci());
+  if(options->OutputCGProbs())GPO.Initialise(Data->getNumberOfTestIndividuals(), Data->getNumTypedLoci());
 }
 
 HapMixIndividualCollection::~HapMixIndividualCollection(){
@@ -61,20 +61,10 @@ const HapMixIndividual* HapMixIndividualCollection::getHapMixIndividual(int num)
   }
 }
 
-//indicates if an individual's genotypes have been masked
-bool HapMixIndividualCollection::isMaskedIndividual(unsigned i, const vector<unsigned>& maskedIndividuals)const{
-  const vector<unsigned>::const_iterator mi_end = maskedIndividuals.end();
-  return (find(maskedIndividuals.begin(), mi_end, i+1) != mi_end);
-
-}
 void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions& options, unsigned iteration){
 
   fill(ConcordanceCounts, ConcordanceCounts + NumCompLoci*(options.getPopulations()+1), 0);
   fill(SumArrivalCounts, SumArrivalCounts + NumCompLoci*options.getPopulations(), 0);
-
-  const vector<unsigned>& maskedIndividuals = options.getMaskedIndividuals();
-  const vector<unsigned>::const_iterator mi_begin = maskedIndividuals.begin();
-  const vector<unsigned>::const_iterator mi_end = maskedIndividuals.end();
 
   for(unsigned int i = 0; i < size; i++ ){
 
@@ -92,7 +82,7 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions& options
 	 )
 	//or it's a masked individual
 	// maskedIndividuals indices are 1-based, offset of 1 is needed
-	|| (find(mi_begin, mi_end, i+1) != mi_end)
+	|| (options.OutputCGProbs() && isTestIndividual(i))
 	)
     {
      HapMixChild[i]->calculateUnorderedGenotypeProbs(options);
@@ -132,24 +122,19 @@ unsigned int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()cons
 
 ///determines if individual i is a case/control ie its genotype came from ccgenotypesfile
 bool HapMixIndividualCollection::isTestIndividual(unsigned i)const{
-  return ( i > (size - NumTestIndividuals) );
+  return ( i >= (size - NumTestIndividuals) );
 }
 
-void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions& options, const Genome& Loci){
+void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions& options, 
+								    const InputHapMixData &Data, unsigned NumCompositeLoci){
   
-  const std::vector<unsigned>& MaskedLoci = options.getMaskedLoci();
-  const std::vector<unsigned>& MaskedIndividuals = options.getMaskedIndividuals();
-  // vu_ci stands for vector<unsigned>::const_iterator
-  typedef std::vector<unsigned>::const_iterator vu_ci;
   unsigned j = 0;
-  //NB: indices count from 1 so must be offset by -1
-  for(vu_ci locus_i = MaskedLoci.begin(); locus_i!= MaskedLoci.end(); ++j, ++locus_i) {
-    if (*locus_i <= Loci.GetNumberOfCompositeLoci()){
+  for(unsigned locus_i = 0; locus_i < NumCompositeLoci; ++locus_i) {
+    if (Data.isTypedLocus(locus_i)){
+      ++j;
       unsigned i = 0;
-      for(vu_ci indiv_i = MaskedIndividuals.begin(); indiv_i!= MaskedIndividuals.end(); ++i, ++indiv_i) {
-        if(*indiv_i <= size) {
-          GPO.Update(i, j, HapMixChild[(*indiv_i) - 1]->getUnorderedProbs((*locus_i) - 1));
-        }
+      for(unsigned indiv_i = size - NumTestIndividuals; indiv_i < size; ++i, ++indiv_i) {
+	GPO.Update(i, j, HapMixChild[indiv_i]->getUnorderedProbs(locus_i));
       }
     }
   }

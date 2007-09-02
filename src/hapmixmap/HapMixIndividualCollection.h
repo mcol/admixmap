@@ -39,7 +39,8 @@ public:
   bool isTestIndividual(unsigned i)const;
   int getNumberOfIndividualsForScoreTests()const;
   unsigned int getFirstScoreTestIndividualNumber()const;
-  void AccumulateConditionalGenotypeProbs(const HapMixOptions& options, const Genome& Loci);
+  void AccumulateConditionalGenotypeProbs(const HapMixOptions& options, 
+					  const InputHapMixData &Data, unsigned NumCompositeLoci);
   void OutputCGProbs(const char* filename, const Vector_s& LocusLabels);
   //  double getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *>&R, Genome* Loci, LogWriter &Log,
   //			    const double* const MixtureProps, const vector<double>& SumRho);
@@ -53,7 +54,6 @@ private:
 
   std::vector<HapMixIndividual*> HapMixChild; 
 
-  bool isMaskedIndividual(unsigned i, const vector<unsigned>& maskedIndividuals)const;
   //default c'tor not implemented
   HapMixIndividualCollection();
 

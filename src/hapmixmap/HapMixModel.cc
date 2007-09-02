@@ -115,7 +115,7 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
     for( int iteration = 0; iteration <= samples; iteration++ ) {
       
       //Sample Parameters
-      UpdateParameters(iteration, options, Log, data.GetHiddenStateLabels(), Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
+      UpdateParameters(iteration, options, Log, data, Coolnesses, coolness, AnnealedRun, SumEnergy, SumEnergySq, AISz);
       
       //Output Parameters
       if(!AnnealedRun){    
@@ -142,7 +142,7 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
 
 }
 void HapMixModel::UpdateParameters(int iteration, const Options& _options, LogWriter&, 
-                                   const Vector_s&, const double* Coolnesses, unsigned coolness_index, bool anneal, 
+                                   const InputData & data, const double* Coolnesses, unsigned coolness_index, bool anneal, 
 				   double & SumEnergy, double & SumEnergySq, double& AISz){
   const double coolness = Coolnesses[coolness_index];
   //cast Options pointer to HapMixOptions for access to HAPMIXMAP options
@@ -174,7 +174,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options& _options, LogWr
 
     //accumulate conditional genotype probs for masked individuals at masked loci
   if(options.OutputCGProbs() && iteration > options.getBurnIn())
-    HMIC->AccumulateConditionalGenotypeProbs(options, Loci);
+    HMIC->AccumulateConditionalGenotypeProbs(options, (const InputHapMixData &)data, Loci.GetNumberOfCompositeLoci());
  
   ////////////////////////////////////////////////////////////////
   //score tests
@@ -375,12 +375,12 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
   if(options.OutputCGProbs()){
     std::string s = options.getResultsDir();
     s.append("/PPGenotypeProbs.txt");
-    const vector<unsigned>& maskedLoci = options.getMaskedLoci();
+
     const Vector_s& LocusLabels = data.getLocusLabels();
     Vector_s MaskedLocusLabels;
-    for(vector<unsigned>::const_iterator l = maskedLoci.begin(); l!=maskedLoci.end(); ++l)
+    for(unsigned locus = 0; locus < Loci.GetNumberOfCompositeLoci(); ++locus)
       // Masked loci indices are 1-based, need to offset by one
-      MaskedLocusLabels.push_back(LocusLabels[(*l) - 1]);
+      MaskedLocusLabels.push_back(LocusLabels[locus - 1]);
 
     HMIC->OutputCGProbs(s.c_str(), MaskedLocusLabels);
   }

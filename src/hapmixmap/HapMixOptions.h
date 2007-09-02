@@ -72,11 +72,7 @@ public:
   //score test indicators 
   bool getMHTest()const;  
   
-  const std::vector<unsigned>& getMaskedIndividuals()const;
-  const std::vector<unsigned>& getMaskedLoci()const;
   bool OutputCGProbs()const;
-  unsigned GetNumMaskedIndividuals()const;
-  unsigned GetNumMaskedLoci()const;
 
 private:
   //model settings
@@ -104,6 +100,8 @@ private:
 
   //tests
   bool MHTestIndicator;
+  bool PredictGenotypes;//output posterior predictive genotypes probs 
+                        //for individuals in testgenotypesfile
 
   //intitial values
   unsigned NumStarts;//number of starts for a multistart run
@@ -116,10 +114,6 @@ private:
   //final values
   std::string FinalValueDir;
 
-  //indices for assessing prediction of missing genotypes in hapmixmodel
-  std::vector<unsigned> MaskedIndividuals;
-  std::vector<unsigned> MaskedLoci;
-  
   void SetDefaultValues();  
   void DefineOptions();
   void AddFilenamesToUserOptions();

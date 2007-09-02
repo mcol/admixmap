@@ -52,7 +52,7 @@ private:
 
   void ReadInitialValuesFromFile(unsigned startnum, const HapMixOptions& options, bclib::LogWriter& Log);
   void UpdateParameters(int iteration, const Options& _options, bclib::LogWriter&, 
-			const Vector_s&, const double* Coolnesses, unsigned coolness_index, bool anneal, 
+			const InputData & data, const double* Coolnesses, unsigned coolness_index, bool anneal, 
 			double & SumEnergy, double & SumEnergySq, double& AISz);
   void OutputParameters(int iteration, const Options& options, bclib::LogWriter& Log);
   void OutputErgodicAverages(int samples, double & SumEnergy, double & SumEnergySq);
