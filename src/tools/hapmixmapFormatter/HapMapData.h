@@ -27,7 +27,7 @@ class HapMapLegend;
    \beVerbose indicates whether to write information to screen
 */
 void WriteLocusFile(HapMapLegend& Legend, const char* fileprefix, 
-		    unsigned first, unsigned last, bool beVerbose);
+		    unsigned first, unsigned last, bool beVerbose, const std::string& ChrLabel);
 
 /**
    Write genotypes file(s).

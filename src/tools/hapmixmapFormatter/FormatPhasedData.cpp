@@ -120,7 +120,7 @@ int main(int argc, char **argv){
     //  }
     
     // *** PHASE 3: write locus file, count number of loci  ***
-    WriteLocusFile(Legend, options.getLocusFilename(), first, last, options.Verbose());
+    WriteLocusFile(Legend, options.getLocusFilename(), first, last, options.Verbose(), options.getChrLabel());
     if(options.Verbose())
       cout << "Finished writing locusfile. "
 	   << endl << endl;

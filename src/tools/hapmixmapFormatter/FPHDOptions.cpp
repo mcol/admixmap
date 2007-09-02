@@ -27,7 +27,6 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
   outobsgenofilename;
   MaxLoci = 1000000000;  //some number > number of HapMap loci
   //LimitLoci = false;
-  //Chr = 0;
   flankLength = 10;//10Kb
   MinOverlap_kb = 5000;//5Mb
   MinOverlap_bp = (unsigned) (MinOverlap_kb * 1000.0);
@@ -38,10 +37,6 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
     exit(1);
   }
   ParseOptions(argc, argv);
-//   if (Chr <= 0 || Chr > MAXCHROMOSOMES){
-//     cerr << "ERROR: Invalid chromosome number: " << Chr << endl;
-//     exit(1);
-//   }
 
 }
 
@@ -99,7 +94,7 @@ void FPHDOptions::StripSuffix(std::string& filename){
 void FPHDOptions::DefineOptions(bclib::OptionReader& opt){
   opt.addFlag('h', "help");
   opt.addFlag('v', "verbose");
-  //  opt.addOption('c', "chromosome", bclib::stringOption, &Chr, true);
+  opt.addOption('c', "chromosome", bclib::stringOption, &ChrLabel);
   opt.addOption('p', "prefix", bclib::stringOption, &prefix, true);
   opt.addOption('g', "genotypesfile", bclib::stringOption, &genotypesfilename);
   opt.addOption('l', "locusfile", bclib::stringOption, &locusfilename);
@@ -130,7 +125,7 @@ void FPHDOptions::PrintHelpText(){
        << "Usage: " << PROGNAME << "[option=value ...]" << endl << endl
        << "Options ('-' signs are optional), = denotes a default: " << endl
        << "-h   -help                  Print this help message and exit" << endl
-    //       << "-c   -chromosome            Chromosome number" << endl
+       << "-c   -chrlabel              label to put in 4th col of locusfile" << endl
        << "-v   -verbose               Be verbose" << endl
        << "-p   -prefix = .            Prefix where HapMap files are located." << endl
        << "     Note that HapMap input files must be named '[prefix]_phased.txt', " << endl
@@ -175,9 +170,9 @@ bool FPHDOptions::Verbose()const{
 const std::string& FPHDOptions::getPrefix()const{
   return prefix;
 }
-// unsigned FPHDOptions::getChrNum()const{
-//   return Chr;
-// }
+const string& FPHDOptions::getChrLabel()const{
+  return ChrLabel;
+}
 
 bool FPHDOptions::Backup()const{
   return backup;

@@ -21,22 +21,22 @@
 
 using namespace::std;
 
-void OpenLocusFiles( vector<ofstream*>& locusfiles, const char* fileprefix, unsigned NumSubChrs);
+void OpenLocusFiles( vector<ofstream*>& locusfiles, const char* fileprefix, unsigned NumSubChrs, bool chrlabel);
 void OpenGenotypeFiles(vector<ofstream*>& genofiles, const char* fileprefix, unsigned NumSubChrs);
 void WriteGenotypesHeader(vector<ofstream*>& genotypesfiles, HapMapLegend& Legend, unsigned first, unsigned last);
 void WriteLocusFileBody(HapMapLegend& Legend, vector<ofstream*>& locusfiles,
-			unsigned first, unsigned last, bool beVerbose);
+			unsigned first, unsigned last, bool beVerbose, const string& ChrLabel);
 void WriteGenotypesFileBody(vector<ofstream*>& genotypesfiles, HapMapLegend& Legend, 
 			    unsigned first, unsigned last, const string& prefix, bool beVerbose);
 vector<unsigned> FindMonomorphicLoci(vector<unsigned> AlleleCounts[2]);
 
 void WriteLocusFile(HapMapLegend& Legend, const char* fileprefix, 
-		    unsigned first, unsigned last, bool beVerbose){
+		    unsigned first, unsigned last, bool beVerbose, const string& ChrLabel){
 
   vector<ofstream*> locusfiles;
 
-  OpenLocusFiles(locusfiles, fileprefix, Legend.getNumSubChromosomes());
-  WriteLocusFileBody(Legend, locusfiles, first, last, beVerbose);
+  OpenLocusFiles(locusfiles, fileprefix, Legend.getNumSubChromosomes(), (ChrLabel.size()>0));
+  WriteLocusFileBody(Legend, locusfiles, first, last, beVerbose, ChrLabel);
 
   //clean up
   for(vector<ofstream*>::iterator i = locusfiles.begin(); i != locusfiles.end(); ++i){
@@ -64,7 +64,7 @@ void WriteGenotypesFile(HapMapLegend& Legend, const char* fileprefix, const stri
   //  genotypefile.close();
 }
 
-void OpenLocusFiles(vector<ofstream*>& locusfiles, const char* fileprefix, unsigned NumSubChrs){
+void OpenLocusFiles(vector<ofstream*>& locusfiles, const char* fileprefix, unsigned NumSubChrs, bool chrlabel){
   for(unsigned j = 0; j < NumSubChrs; ++j){
     stringstream locusfilename;
     if(NumSubChrs==1)
@@ -77,13 +77,14 @@ void OpenLocusFiles(vector<ofstream*>& locusfiles, const char* fileprefix, unsig
       cout << "Error: cannot open locusfile\n";
       exit(1);
     }
-    *(locusfiles[j]) << "\"SNPid\"\t\"NumAlleles\"\t\"DistanceinMb\"\n"; //locusfile header
-    *(locusfiles[j]) << setiosflags(ios::fixed) << setprecision(8);
+    *(locusfiles[j]) << "\"SNPid\"\t\"NumAlleles\"\t\"DistanceinMb\""; //locusfile header
+    if(chrlabel)*(locusfiles[j]) << "\t\"Chr\"";
+    *(locusfiles[j]) << '\n' << setiosflags(ios::fixed) << setprecision(8);
   }
 }
 
 void WriteLocusFileBody(HapMapLegend& Legend, vector<ofstream*>& locusfiles, 
-			unsigned first, unsigned last, bool beVerbose){
+			unsigned first, unsigned last, bool beVerbose, const string& ChrLabel){
 
   unsigned long prev = 0, position = 0;
   vector<bool>isFirstLocus (locusfiles.size(), true);
@@ -105,7 +106,9 @@ void WriteLocusFileBody(HapMapLegend& Legend, vector<ofstream*>& locusfiles,
 	  //locusfile << 0.0000013 * (position-prev);
 	  //convert position to distance in megabases
 	  *(locusfiles[*j]) << 0.000001 * (position - prev);
-	*(locusfiles[*j]) << /*chrnumber << */ endl;
+
+	if(ChrLabel.size()) *(locusfiles[*j])<< "\t" <<ChrLabel;
+	*(locusfiles[*j]) <<  '\n';
 	isFirstLocus[*j] = false;
       }
 
