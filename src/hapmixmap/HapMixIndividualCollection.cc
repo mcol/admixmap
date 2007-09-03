@@ -47,7 +47,7 @@ HapMixIndividualCollection
       ++NumDiploidIndividuals;
   }
   
-  if(options->OutputCGProbs())GPO.Initialise(Data->getNumberOfTestIndividuals(), Data->getNumTypedLoci());
+  if(options->OutputCGProbs())GPO.Initialise(Data->getNumberOfTestIndividuals(), Loci->GetNumberOfCompositeLoci()-Data->getNumTypedLoci());
 }
 
 HapMixIndividualCollection::~HapMixIndividualCollection(){
@@ -130,12 +130,12 @@ void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMix
   
   unsigned j = 0;
   for(unsigned locus_i = 0; locus_i < NumCompositeLoci; ++locus_i) {
-    if (Data.isTypedLocus(locus_i)){
-      ++j;
+    if (!Data.isTypedLocus(locus_i)){
       unsigned i = 0;
       for(unsigned indiv_i = size - NumTestIndividuals; indiv_i < size; ++i, ++indiv_i) {
 	GPO.Update(i, j, HapMixChild[indiv_i]->getUnorderedProbs(locus_i));
       }
+      ++j;
     }
   }
 }

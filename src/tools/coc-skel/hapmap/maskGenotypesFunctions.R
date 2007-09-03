@@ -384,6 +384,7 @@ bir.locus <- function (locus.no, GP, orig, genotypes, prior) {
     tmp.predictive <- GP[, locus.no, idx]
     correct.class <- num.by.genotype(genotypes, orig[idx,locus.no])
     tmp.bir[idx] <- info.reward2(tmp.prior, tmp.predictive, correct.class)
+    
   }
   return(c(
            mean(tmp.bir),
@@ -409,6 +410,9 @@ bir.locus2 <- function (locus.name, GP, obs, prior) {
     ## GP[,locus.name,idx], prior[locus.name, ]))
 
     tmp.bir[idx] <- info.reward2(prior[locus.name,], GP[, locus.name, idx], obs[idx,locus.name])
+    if(is.infinite(tmp.bir[idx]) || is.nan(tmp.bir[idx]) || is.na(tmp.bir[idx])){
+      cat(idx, " ", locus.name, " " , prior[locus.name,], " ", GP[, locus.name, idx], " ", obs[idx,locus.name], " ", tmp.bir[idx],"\n", file="infsandnans.txt", append=T)
+    }
   }
   return(c(
            mean(tmp.bir),

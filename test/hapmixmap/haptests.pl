@@ -149,6 +149,7 @@ $arg_hash->{resultsdir}      = 'ResultsCaseControl';
 $arg_hash->{testgenotypesfile} = "$datadir/genotypes_casectrl.txt";
 $arg_hash->{outcomevarfile} = "$datadir/outcome.txt";
 $arg_hash->{allelicassociationtest} = 1;
+$arg_hash->{predictgenotypes}=1;
 callDoAnalysis();
 CompareThenMove($arg_hash->{resultsdir});
 

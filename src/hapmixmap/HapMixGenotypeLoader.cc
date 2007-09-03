@@ -125,13 +125,8 @@ unsigned HapMixGenotypeLoader::getNumberOfIndividuals()const{
   return (NumIndividuals + NumTestIndividuals);
 }
 
-unsigned HapMixGenotypeLoader::NumTestLoci()const{
-  return testGeneticData_[0].size();
-}
-
-//returns the number of typed loci in a hapmix case-control analysis
 unsigned HapMixGenotypeLoader::getNumTypedLoci()const{
-  return isTypedSNP.size();
+  return testGeneticData_[0].size()-1;//-1 to exclude header
 }
 
 bool HapMixGenotypeLoader::IsTestIndividual(unsigned i)const{

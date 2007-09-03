@@ -1,1 +1,1 @@
-SUBDIRS = ancestrymapConversion hapmixmapFormatter hapmix2impute 
+SUBDIRS = ancestrymapConversion hapmap FPHD hapmix2impute 

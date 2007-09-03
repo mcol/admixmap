@@ -40,10 +40,9 @@ public:
   unsigned getNumberOfIndividuals()const;
   ///returns number of test individuals
   unsigned getNumberOfTestIndividuals()const;
-  ///returns the number of typed loci in a hapmix test analysis
+  ///returns the number of typed loci in a hapmix test analysis (columns in testgenotypesfile)
   unsigned getNumTypedLoci()const;
-  ///returns number of typed loci (columns in testgenotypesfile)
-  unsigned NumTestLoci()const;
+
   ///determines if an individual is under test or not
   bool IsTestIndividual(unsigned i)const;
   ///determines if a locus is typed (in case-control file) or not

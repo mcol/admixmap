@@ -91,12 +91,12 @@ void InputHapMixData::CheckRegressionData(HapMixOptions *options, bclib::LogWrit
 
 }
 
-///tells if a given locus is typed, in a hapmix case-control analysis
+///tells if a given locus is typed, in a testing analysis
 bool InputHapMixData::isTypedLocus(unsigned locus)const{
   return hGenotypeLoader->isTypedLocus(locus);
 }
 
-//returns the number of typed loci in a hapmix case-control analysis
+//returns the number of typed loci in a testing analysis
 unsigned InputHapMixData::getNumTypedLoci()const{
   return hGenotypeLoader->getNumTypedLoci();
 }

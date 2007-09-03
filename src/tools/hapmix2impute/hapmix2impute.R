@@ -31,7 +31,7 @@ num.training.gametes <- 120#number of rows in haploid genotypes file
 haplotypes <- read.table(hapmixmap.train.genotypes.file, header=T, nrow=num.training.gametes)
 first.locus <- dimnames(haplotypes)[[2]][2]
 last.locus <- dimnames(haplotypes)[[2]][ncol(haplotypes)]
-haplotypes <- as.matrix(haplotypes[,-1])-1
+haplotypes <- t(as.matrix(haplotypes[,-1])-1)
 ##write transposes the matrix
 write(haplotypes, paste(outputdir, impute.haplotype.file, sep="/"), ncol=ncol(haplotypes))
 rm(haplotypes)

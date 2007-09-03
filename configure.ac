@@ -83,7 +83,8 @@ AC_CONFIG_FILES([Makefile
 	   src/scripts/Makefile
            src/scripts/genepi-config
 	   src/tools/Makefile
-           src/tools/hapmixmapFormatter/Makefile
+           src/tools/hapmap/Makefile
+           src/tools/FPHD/Makefile
            src/tools/hapmix2impute/Makefile
            src/tools/ancestrymapConversion/Makefile
 	   src/doxygen/Makefile
