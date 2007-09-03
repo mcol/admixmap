@@ -3,10 +3,12 @@
 priorfromcounts <- function(counts) {
   ## argument is integer vector of length 2 containing counts of each allele
   ## returns probability vector of length 3 
-  ## fix this later to marginalize over population freqs
-  p <- (counts[1] + 0.5) / (sum(counts) + 1)
-  q <- 1 - p
-  return(c(p^2, 2*p*q, q^2))
+  ## draw 10000 samples from posterior distribution of population allele freqs
+  p <- rbeta(10000, counts[1] + 0.5, counts[2] + 0.5)
+  ## average genotype freqs assuming HWE
+  gprobs11 <- mean(p^2)
+  gprobs22 <- mean((1 - p)^2)
+  return(c(gprobs11, 1 - gprobs11 - gprobs22, gprobs22))
 }
 
 info.reward2 <- function(prior, predictive, t) {
@@ -29,6 +31,9 @@ info.reward2 <- function(prior, predictive, t) {
      i.minus <- sum( log( (1 - predictive[-t]) / (1 - prior[-t]) ) )
      i.reward <- (i.plus + i.minus) / K
    }
+   ## max value of info.reward2 given prior is for a confident prediction of the
+   ## true value.  predictive[t]= 1-predictive[-t] = 1
+   ## evaluates to  - log(prior[t]) + log(1 - prior[-t]) 
    return(i.reward)
 }
 
@@ -74,8 +79,8 @@ bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
 N <- 2
 numloci <- 4
 
-counts2d <- matrix(data = c(10, 12, 10, 30,
-                     10, 20, 10, 20), nrow=2)
+counts2d <- matrix(data = c(50, 60, 50, 60,
+                     80, 40, 70, 30), nrow=2)
 predictiveprobs3d <- array(data = c(0.5, 0.25, 0.25, 0.5, 0.25, 0.25,
                              0.5, 0.25, 0.25, 0.5, 0.25, 0.25,
                              0.5, 0.25, 0.25, 0.5, 0.25, 0.25,
