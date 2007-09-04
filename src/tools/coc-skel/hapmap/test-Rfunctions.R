@@ -49,25 +49,28 @@ bir.locus <- function(prior, predictiveprobs2d, truevalues) {
 }
   
 bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
-  ## this function loops over loci and returns the mean bayesian info reward
+  ## this function loops over loci and returns the bayesian info reward as a vector
   ## counts - dim 2 x numloci
-  ## predictiveprobs3d - dim 3 x N x numloci
+  ## predictiveprobs3d - dim 3 x numloci x N
   ## truevalues2d - dim N x numloci
+  
   ## check array dimensions for consistency
   if(dim(predictiveprobs3d)[1] != 3 ||
-     dim(predictiveprobs3d)[2] != dim(truevalues2d)[1] ||
-     dim(predictiveprobs3d)[3] != dim(truevalues2d)[2] ||
+     dim(predictiveprobs3d)[3] != dim(truevalues2d)[1] ||
+     dim(predictiveprobs3d)[2] != dim(truevalues2d)[2] ||
      dim(counts2d)[1] !=2 ||
      dim(counts2d)[2] != dim(truevalues2d)[2]) {
     print("inconsistent array dimensions")
     return(1)
-  } 
-  bir <- numeric(numloci)
-  for(locus in 1:numloci) {
-    prior <- priorfromcounts(counts2d[, locus])
-    bir[locus] <- bir.locus(prior, predictiveprobs3d[, , locus], truevalues2d[, locus])
   }
-  return(mean(bir))
+
+  masked.loci <- dimnames(GP)[[2]]
+  bir <- NULL
+  for (locus in masked.loci) {
+    prior <- priorfromcounts(counts2d[, locus])
+    bir <- c(bir, bir.locus(prior, predictiveprobs3d[,locus ,], truevalues2d[, locus]))
+  }
+  return(bir)
 }
 
 
@@ -87,4 +90,5 @@ predictiveprobs3d <- array(data = c(0.5, 0.25, 0.25, 0.5, 0.25, 0.25,
                              0.5, 0.25, 0.25, 0.5, 0.25, 0.25), dim=c(3, 2, 4))
 truevalues2d <- matrix(data=c(1, 2, 3, 1, 2, 3, 2, 3), nrow=2)
 
-cat("BIR is ", bir.loci(counts2d, predictiveprobs3d, truevalues2d), "\n")
+BIR <- bir.loci(counts2d, predictiveprobs3d, truevalues2d)
+cat("BIR is ", mean(BIR), "\n")
