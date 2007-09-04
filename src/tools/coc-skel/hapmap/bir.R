@@ -21,9 +21,6 @@ info.reward2 <- function(prior, predictive, t) {
    ## predictive is a probability vector of length K
    ## t is the correct class: integer between 1 and K
    K <- length(prior)
-
-   ## fix this later to normalize by dividing by max value given the prior
-   
    ## normalize prior probability vector
    prior <- prior / sum(prior)
    if (sum(predictive) == 0) { ## no prediction, return zero
@@ -81,7 +78,7 @@ bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
 
 #######################################################################################
 
-## from console on walton, create a tar file containing genotype probs
+## from console on walton, create a tar file of genotype probs in all directories
 ## find -name "PPGenotypeProbs.txt" | xargs tar rvf PPGenotypeProbs.tar
 ## from local console, download the tar file
 ## scp -r -P 8022 pmckeigue@walton-local:/ichec/work/ndlif006b/maciej/PPGenotypeProbs.tar .
@@ -118,18 +115,34 @@ for(pop in 1:3) {
   truevalues2d[truevalues=="1,2" | truevalues=="2,1"] <- 2
   truevalues2d[truevalues=="2,2"] <- 3
   truevalues2d <- matrix(data=truevalues2d, nrow=N)
+
+
+  ## read original phased genotypes
+  ## this appears to be all ~40k loci but excluding masked individuals
+  g.all <- read.table(paste(datadir,"phased_genotypes.txt", sep="/"), header=T,
+                        colClasses=c("character", rep("integer", numloci)))[, -1]
+  ## drop all but masked loci 
+  g.all <- g.all[, dimnames(g.all)[[2]] %in% locusnames.truevalues]
+  cols.ordered <- match(locusnames.truevalues, dimnames(g.all)[[2]])
+  g.all <- g.all[, cols.ordered]
+  dimnames(g.all)[[2]] <- locusnames.truevalues
+  locusnames.g <- dimnames(g.all)[[2]]
+  if(length(locusnames.truevalues[locusnames.truevalues!=locusnames.g]) > 0) {
+    print("locusnames mismatch between true values and genotypes table")
+  }
   
-  ## these freqs appear to be calculated from 60 diploid individuals: should have
-  ## excluded the 10 indivs with masked genotypes
-  gfreqs <- dget(paste(datadir,"genotype-freqs.R", sep="/"))
-  counts1 <-  2*gfreqs[, 1] + gfreqs[, 2]
-  counts2 <-  gfreqs[, 2] + 2*gfreqs[, 3]
-  counts2d <- 60 * rbind(counts1, counts2)
-  ## check that locus names match
-  if(length(locusnames.truevalues[dimnames(gfreqs)[[1]]!=locusnames.truevalues]) > 0) {
-    print(filenames(run), "locus names mismatch between true values and genotype freqs\n")
+  ## drop all but last 2N gametes (masked indivs)
+  ##num.gametes <- dim(g.all)[1]
+  ##g.all <- g.all[1:(num.gametes - 2*N), ]
+
+  ## obtain allele counts as table
+  counts2d <- apply(g.all, 2, table)
+  monomorphic <- counts2d[1, ]==0 || counts2d[2, ]==0
+  if(length(table(monomorphic)) > 1) {
+    print("monomorphic loci\n")
   }
 
+  system("rm birResults.txt")
   ## loop over directories containing results
   for(run in 1:length(filenames)) {
     predictiveprobs3d <- aperm(dget(filenames[run]),c(1, 3, 2))
@@ -141,6 +154,6 @@ for(pop in 1:3) {
     priors <- c(param.priors[run, 1], param.priors[run, 2], seed[run])
     cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
     ## append results to file
-    #cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
+    cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
   }
 }
