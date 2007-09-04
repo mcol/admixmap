@@ -98,16 +98,19 @@ for(pop in 1:3) {
   priors2 <- t(matrix(unlist(strsplit(runs.table[, 1], "afpp-")), nrow=2))
   priors2 <- t(matrix(unlist(strsplit(runs.table[, 1], "afpp-")), nrow=2))
   arrival.priors <- t(matrix(unlist(strsplit(priors2[, 1],    "arp-" )), nrow=2))[, 2]
-  dispersion.priors <- t(matrix(unlist(strsplit(priors2[, 2],    "-s" )), nrow=2))[, 1]
+  dispersion.priors <- t(matrix(unlist(strsplit(priors2[, 2],    "-s" )), nrow=2))
+  seed <- dispersion.priors[, 2]
+  dispersion.priors <- dispersion.priors[, 1]
   param.priors <- data.frame(arrival.priors, dispersion.priors, stringsAsFactors=F)
 
 
   ## set data directory for this population
   datadir <- paste("chr22-5k-data", popnames[pop], sep="/")
 
-  ## get true values and priors
+  ## get true values and priors from data directory
   truevalues <- as.matrix(dget(paste(datadir, "mi_cc_observed_dput.txt", sep="/")))
   N <- dim(truevalues)[1]
+  locusnames.truevalues <- dimnames(truevalues)[[2]]
   numloci <- dim(truevalues)[2]
   truevalues <- as.vector(truevalues)
   truevalues2d <- integer(N * numloci)
@@ -122,13 +125,22 @@ for(pop in 1:3) {
   counts1 <-  2*gfreqs[, 1] + gfreqs[, 2]
   counts2 <-  gfreqs[, 2] + 2*gfreqs[, 3]
   counts2d <- 60 * rbind(counts1, counts2)
+  ## check that locus names match
+  if(length(locusnames.truevalues[dimnames(gfreqs)[[1]]!=locusnames.truevalues]) > 0) {
+    print(filenames(run), "locus names mismatch between true values and genotype freqs\n")
+  }
 
+  ## loop over directories containing results
   for(run in 1:length(filenames)) {
     predictiveprobs3d <- aperm(dget(filenames[run]),c(1, 3, 2))
+    ## check that locus names match
+    if(length(locusnames.truevalues[locusnames.truevalues!=dimnames(predictiveprobs3d)[[3]]]) > 0) {
+      print(filenames(run), "locus names mismatch between true values and predictive probs\n")
+    }
     bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
-    priors <- c(param.priors[run, 1], param.priors[run, 2])
-    cat(priors, dim(predictiveprobs3d), bir.result, "\n")
+    priors <- c(param.priors[run, 1], param.priors[run, 2], seed[run])
+    cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
     ## append results to file
-    #cat(priors, dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
+    #cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
   }
 }
