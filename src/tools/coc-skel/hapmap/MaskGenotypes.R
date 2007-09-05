@@ -6,14 +6,9 @@
 ## 5. allele counts over the unmasked individuals at the masked loci
 ##
 
-data.dir <- "/ichec/work/ndlif006b/maciej/chr22-data/Eur/chr22data"
-num.loci <- 34026
-num.gametes <- 120
-
-##determine how many individuals were masked and at which loci 
-results.dir <- "/ichec/work/ndlif006b/maciej/irw-2-arp-12-0.5-2-afpp-2-8-s1/hapmap/Eur/Chr22results6States2"
-
-## normally we determine which individuals' genotypes are to be masked at at which loci some other way (eg random selection).
+MaskGenotypes <- function(results.dir, data.dir, num.loci, num.gametes){
+  ##determine how many individuals were masked and at which loci 
+  ## normally we determine which individuals' genotypes are to be masked at at which loci some other way (eg random selection).
 ## For now, determine this from the program output.
 PPG <- dget(paste(results.dir, "PPGenotypeProbs.txt", sep="/"))
 masked.loci <- dimnames(PPG)[[2]]
@@ -106,3 +101,20 @@ locusfile.no.mm <- locusfile[-monomorphic.loci.indices,]
 locusfile.no.mm[,3] <- pos-pos2
 rm(pos, pos2)
 write.table(locusfile.no.mm, paste(data.dir, "train_loci.txt", sep="/"), row.names=F, col.names=T, quote=F)
+}
+
+
+## loop over populations
+Pops <- c("Eur", "Afr", "Asian")
+num.loci <- c(34026,38224, 32713)
+num.gametes <- c(120, 120, 180)
+
+for(pop in 1:3){
+  results.dir <- paste("/ichec/work/ndlif006b/maciej/irw-2-arp-12-0.5-2-afpp-2-8-s1/hapmap", Pops[pop], sep="/")
+  results.dir <- paste(results.dir, "Chr22results6States2", sep="/")
+  
+  data.dir <- paste("/ichec/work/ndlif006b/maciej/chr22-data", pop, sep="/")
+  data.dir <- paste(data.dir, "chr22data", sep="/")
+  
+  MaskGenotypes(results.dir, data.dir, num.loci[pop], num.gametes[pop]
+}
