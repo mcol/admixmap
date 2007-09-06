@@ -142,7 +142,7 @@ void FPHDOptions::PrintHelpText(){
        << "                            output testgenotypesfile prefix (valid only with -i)" << endl
        << "-M   -maxloci               Maximum number of loci per sub-chromosome/file." << endl
        << "                            If not specified, all available loci will be used" << endl
-       << "     -minoverlap = 5000     Minimum overlap between sub-chromosomes in kb." << endl
+       << "-O   -minoverlap = 5000     Minimum overlap between sub-chromosomes in kb." << endl
        << "-m   -missing = N           missing-value character" << endl
        << "-f   -flank = 10            length in Kb of flanking region outside of" << endl
        << "                            typed region. Valid only with -i." << endl << endl

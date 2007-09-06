@@ -14,6 +14,7 @@
 #include "HapMapLegend.h"
 #include "bclib/OptionReader.h"
 #include "bclib/StringSplitter.h"
+#include "bclib/StringConvertor.h"
 #include <string>
 
 using namespace::std;
@@ -150,8 +151,11 @@ int main(int argc, char** argv){
 
   //format of haplotypefile is: one line per SNP, one col per gamete
   for(unsigned j = 0; j < NumLoci; ++j){
-    for(unsigned i = 0; i < NumHaplotypes; ++i)
-      outHaplotypes << haploArray[i*NumLoci +j]-1 << " ";
+    //write the first one then write a space before each of the rest
+    // IMPUTE gets confused if there are extra spaces
+    outHaplotypes << " " << haploArray[j]-1 ;
+    for(unsigned i = 1; i < NumHaplotypes; ++i)
+      outHaplotypes << " " << haploArray[i*NumLoci +j]-1 ;
     outHaplotypes << '\n';
   }
 
@@ -175,12 +179,13 @@ int main(int argc, char** argv){
   if(options.getFlag("verbose"))
     cout << "Writing legend file ... ";
 
-  const unsigned firstindex = Legend.getIndex(firstlocus);
-  const unsigned lastindex = Legend.getIndex(lastlocus);
+  const unsigned firstindex = Legend.getIndex(StringConvertor::dequote(firstlocus));
+  const unsigned lastindex = Legend.getIndex(StringConvertor::dequote(lastlocus));
   //write header
   outLegend << "rs position X0 X1\n";
   for(unsigned j = firstindex; j <= lastindex; ++j){
     Legend[j].print(outLegend);
+    outLegend << '\n';
   }
 
   outLegend.close();
@@ -232,11 +237,13 @@ int main(int argc, char** argv){
   genomap["0,0"] = "0 0 0";
   genomap["1,1"] = "1 0 0";
   genomap["1,2"] = "0 1 0";
+  genomap["2,1"] = "0 1 0";
   genomap["2,2"] = "0 0 1";
   //quoted versions (saves having to dequote)
   genomap["\"0,0\""] = "0 0 0";
   genomap["\"1,1\""] = "1 0 0";
   genomap["\"1,2\""] = "0 1 0";
+  genomap["\"2,1\""] = "0 1 0";
   genomap["\"2,2\""] = "0 0 1";
 
 
@@ -244,7 +251,7 @@ int main(int argc, char** argv){
   // locus_ID rs# position allele0 allele1 p0 p1 p2 p0 p1 p2 ...
   for(unsigned locus = 0; locus < NumTypedLoci; ++locus){
     outGeno << "Locus" << locus+1 << " ";
-    Legend[locusnames[locus]].print(outGeno);
+    Legend[StringConvertor::dequote(locusnames[locus])].print(outGeno);
     for(unsigned i = 0; i < NumTypedIndividuals; ++i){
       outGeno << " " << genomap[genoArray[i*NumTypedLoci + locus]];
     }
@@ -281,7 +288,7 @@ int main(int argc, char** argv){
 
     //read and write header  
     getline(inMap, header);
-    outMap << header;
+    outMap << header << '\n';
 
     unsigned linenumber = 0;
     string line;
