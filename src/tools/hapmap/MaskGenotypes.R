@@ -92,7 +92,7 @@ MaskGenotypes <- function(results.dir, data.dir, num.loci, num.gametes, fastphas
   dput(gcounts, paste(data.dir,"obs_allele_counts.txt", sep="/"))
   
   ## read locusfile and exclude monomorphic loci
-  locusfile <- read.table(paste(data.dir, "phased_5000_loci.txt", sep="/"), header=T, colClasses="character", nrow=num.loci)
+  locusfile <- read.table(paste(data.dir, "phased_5000_loci.txt", sep="/", na.strings=c("NA, #"), comment.char="%"), header=T, colClasses="character", nrow=num.loci)
   pos <- cumsum(locusfile[,3])[-monomorphic.loci.indices]
   pos2 <- c(0, pos[1:(length(pos)-1)])
   
