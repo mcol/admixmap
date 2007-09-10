@@ -22,9 +22,9 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   masked.loci.indices <- sort(sample(c(1:num.loci), size=num.masked.loci, replace=F))
   
   ## read in the original phased genotypes
-  all.geno <- read.table(paste(prefix,"_genotypes.txt", sep="/"),
+  all.geno <- read.table(paste(prefix,"_genotypes.txt", sep=""),
                          header=T, nrows=num.gametes, colClasses=c("character", rep("integer", num.loci)))
-  masked.loci <- dimnames(all.geno)[[2]][maskedloci.indices+1]##+1 to skip ID column  
+  masked.loci <- dimnames(all.geno)[[2]][masked.loci.indices+1]##+1 to skip ID column  
   
   ##separate into masked and unmasked individuals and exclude unmasked loci
   
@@ -108,7 +108,7 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   #################################
   ## read locusfile and exclude monomorphic loci
   #################################
-  locusfile <- read.table(paste(prefix, "_loci.txt", sep="/"), na.strings=c("NA, #"),
+  locusfile <- read.table(paste(prefix, "_loci.txt", sep=""), na.strings=c("NA, #"),
                           comment.char="%", header=T, colClasses="character", nrow=num.loci)
   locusfile[1,3] <- "0"
   pos <- cumsum(locusfile[,3])[-monomorphic.loci.indices]

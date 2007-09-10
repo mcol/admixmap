@@ -20,7 +20,8 @@ for(pop in 1:3){
   ## Mask 5k genotypes, no fastphase data
   data.dir <- paste(paste(workdir, "data/chr22_5kloci/hapmixmap", sep="/"), Panels[pop], sep="/")
  
-  MaskGenotypes(percent.masked.loci, num.masked.indivs[pop], paste(data.dir, "phased_5000", sep="/"),
+  MaskGenotypes(percent.masked.loci, num.masked.indivs[pop],
+                paste(data.dir, "phased_5000", sep="/"),
                 data.dir, 5000, num.gametes[pop], "", "")
 
   ## Mask full chr22 data and write both HAPMIXMAP and fastphase format

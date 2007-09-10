@@ -98,7 +98,7 @@ for(pop in 1:3) {
   ## irw-2 runs appear to be comparisons of different priors
   #system(paste("find * -name PPGenotypeProbs.txt | grep irw-2 | grep",
   #             popnames[pop], "> filenames.txt"))
-  system(paste("find results2/ -name PPGenotypeProbs.txt | grep",
+  system(paste("find results5k/ -name PPGenotypeProbs.txt | grep",
                hpopnames[pop], "> filenames.txt"))
   # read as table with one col, then select col 1
   filenames <- read.table(file="filenames.txt", header=F, as.is=T)
@@ -113,7 +113,7 @@ for(pop in 1:3) {
   param.priors <- data.frame(arrival.priors, dispersion.priors, stringsAsFactors=F)
 
   ## set data directory for this population
-  datadir <- paste("data/chr22/hapmixmap", hpopnames[pop], sep="/")
+  datadir <- paste("data/chr22_5kloci/hapmixmap", hpopnames[pop], sep="/")
   #datadir <- paste("chr22-5k-data", popnames[pop], sep="/")
 
   ## get true values from data directory
@@ -178,10 +178,10 @@ for(pop in 1:3) {
       print(paste(filenames[run],
                   "locus names mismatch between true values and hapmixmap predictive probs\n"))
     }
-    #bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
+    bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
     priors <- c(states[run], param.priors[run, 1], param.priors[run, 2]  #, #seed[run]
                 )
-    #cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
+    cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
     ## append results to file
     #cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
   }
