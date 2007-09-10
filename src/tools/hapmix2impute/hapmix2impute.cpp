@@ -82,7 +82,7 @@ int main(int argc, char** argv){
   string haplotypeFilename="haplo.txt";
   options.addOption('H', "haplotypefile", stringOption, &haplotypeFilename);
   string genotypeFilename="geno.txt";
-  options.addOption('G', "genotypefile", stringOption, &haplotypeFilename);
+  options.addOption('G', "genotypefile", stringOption, &genotypeFilename);
   string outMapFilename="map.txt";
   options.addOption('M', "mapout", stringOption, &outMapFilename);
   string outLegendFilename="legend.txt";
@@ -128,9 +128,6 @@ int main(int argc, char** argv){
   //names of first and last loci. 
   //We need these later for the map and legend files
   const unsigned NumLoci = locusnames.size();
-  const string firstlocus = locusnames[0];
-  const string lastlocus = locusnames[NumLoci-1];
-  locusnames.clear();
 
   //we now read the haplotypes and write them transposed
   vector<unsigned short > haploArray;//array to store haplotypes
@@ -179,12 +176,10 @@ int main(int argc, char** argv){
   if(options.getFlag("verbose"))
     cout << "Writing legend file ... ";
 
-  const unsigned firstindex = Legend.getIndex(StringConvertor::dequote(firstlocus));
-  const unsigned lastindex = Legend.getIndex(StringConvertor::dequote(lastlocus));
   //write header
   outLegend << "rs position X0 X1\n";
-  for(unsigned j = firstindex; j <= lastindex; ++j){
-    Legend[j].print(outLegend);
+  for(vector<string>::const_iterator j = locusnames.begin(); j != locusnames.end(); ++j){
+    Legend[StringConvertor::dequote(*j)].print(outLegend);
     outLegend << '\n';
   }
 
@@ -212,9 +207,10 @@ int main(int argc, char** argv){
   inGeno >> scrap;
   getline(inGeno, header);
   //count number of typed loci
-  StringSplitter::Tokenize(header,locusnames, " \t");
-  const unsigned NumTypedLoci = locusnames.size();
- 
+  vector<string> TypedLocusNames;
+  StringSplitter::Tokenize(header,TypedLocusNames, " \t");
+  const unsigned NumTypedLoci = TypedLocusNames.size(); 
+
   //read genotypes into a temp array as they must be transposed and converted on output
   vector<string> genoArray;
   unsigned NumTypedIndividuals = 0;
@@ -251,7 +247,7 @@ int main(int argc, char** argv){
   // locus_ID rs# position allele0 allele1 p0 p1 p2 p0 p1 p2 ...
   for(unsigned locus = 0; locus < NumTypedLoci; ++locus){
     outGeno << "Locus" << locus+1 << " ";
-    Legend[StringConvertor::dequote(locusnames[locus])].print(outGeno);
+    Legend[StringConvertor::dequote(TypedLocusNames[locus])].print(outGeno);
     for(unsigned i = 0; i < NumTypedIndividuals; ++i){
       outGeno << " " << genomap[genoArray[i*NumTypedLoci + locus]];
     }
@@ -264,10 +260,9 @@ int main(int argc, char** argv){
 	 << NumTypedLoci << " typed loci, " 
 	 << NumTypedIndividuals << " typed individuals\n" ;
 
+  TypedLocusNames.clear();
   genomap.clear();
   genoArray.clear();
-  locusnames.clear();
-  Legend.clear();
 
   //write map file
   if(inMapFilename.size()){
@@ -292,12 +287,24 @@ int main(int argc, char** argv){
 
     unsigned linenumber = 0;
     string line;
-    while(linenumber <= lastindex && !inMap.eof()){
-      getline(inMap,line);
-      if(linenumber >= firstindex)
-	outMap << line << '\n'; 
-      ++linenumber;
+    //NB we have to allow for gaps in the genome, where HapMap loci have been omitted
+    for(vector<string>::const_iterator j = locusnames.begin(); j != locusnames.end(); ++j){
+      const unsigned next_index = Legend.getIndex(StringConvertor::dequote(*j));
+      for(; linenumber <= next_index; ++linenumber){
+	if(!getline(inMap,line)){
+	  cerr << "ERROR: too few lines in map file\n";
+	  exit(1);
+	}
+      }
+      outMap << line << '\n'; 
     }
+
+//     while(linenumber <= lastindex && !inMap.eof()){
+//       getline(inMap,line);
+//       if(linenumber >= firstindex)
+// 	outMap << line << '\n'; 
+//       ++linenumber;
+//     }
 
     outMap.close();
     inMap.close();
@@ -305,6 +312,8 @@ int main(int argc, char** argv){
       cout << "Done.\n " ;
   }
 
+  Legend.clear();
+  locusnames.clear();
   //finished
   if(options.getFlag("verbose"))
      cout << "Finished" << endl;

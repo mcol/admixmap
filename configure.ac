@@ -87,6 +87,7 @@ AC_CONFIG_FILES([Makefile
            src/tools/FPHD/Makefile
            src/tools/hapmix2impute/Makefile
            src/tools/ancestrymapConversion/Makefile
+         src/tools/bir/Makefile
 	   src/doxygen/Makefile
 	   src/doxygen/Doxyfile
 	   test/Makefile
