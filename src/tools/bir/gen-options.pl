@@ -21,22 +21,28 @@ sub trainandtest {
     if(exists $arg_hash->{testgenotypesfile}) {
 	delete $arg_hash->{testgenotypesfile};
     }
-    my $optionsfilename = "training_$run_name.txt";
+    my $optionsfilename = "configfiles/training_$run_name.txt";
     writeOptionsFile($arg_hash, $optionsfilename);
     system("hapmixmap $optionsfilename");
     
     # testing run
     $arg_hash->{testgenotypesfile}="$testgenotypesfile";
-    $optionsfilename = "testing_$run_name.txt";
+    $optionsfilename = "configfiles/testing_$run_name.txt";
     $arg_hash->{predictgenotypes} = 1;
     writeOptionsFile($arg_hash, $optionsfilename);
     system("hapmixmap $optionsfilename");
 };
   
 ###################################################################
-my $dataprefix="data/chr22/hapmixmap";
+
+## change these prefixes to run entire chromosome
+my $dataprefix="data/chr22_5kloci/hapmixmap";
+my $resultsprefix="results5k";
+
 my @Panels=("YRI", "CEU", "JPTCHB");
-my $resultsprefix="results2";
+if(!(-e "configfiles")) { 
+    mkdir "configfiles";
+}
 
 my $arg_hash = {
     deleteoldresults => 0,
@@ -51,7 +57,7 @@ my $arg_hash = {
     displaylevel    => 2,
     samples         => 250, #$samples,
     burnin          => 50,  #$burnin,
-    every           => 5,   #$every,
+    every           => 10,   #$every,
     numannealedruns => 0,
     thermo          => 0,
     hapmixmodel     => 1,
