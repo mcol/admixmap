@@ -26,7 +26,7 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
   inobsgenofilename;
   outobsgenofilename;
   MaxLoci = 1000000000;  //some number > number of HapMap loci
-  //LimitLoci = false;
+  LocusLimit = 1000000000;
   flankLength = 10;//10Kb
   MinOverlap_kb = 5000;//5Mb
   MinOverlap_bp = (unsigned) (MinOverlap_kb * 1000.0);
@@ -56,8 +56,6 @@ void FPHDOptions::ParseOptions(int argc, char** argv){
   if(!opt.SetOptions() | !opt.CheckRequiredOptions())
     exit(1);
 
-  //check for upper limit on loci
- 
   //convert flankLength in kb to bp
   flankLength *= 1000;
 
@@ -99,7 +97,7 @@ void FPHDOptions::DefineOptions(bclib::OptionReader& opt){
   opt.addOption('g', "genotypesfile", bclib::stringOption, &genotypesfilename);
   opt.addOption('l', "locusfile", bclib::stringOption, &locusfilename);
   opt.addFlag('b', "backup");
-  //  opt.addOption('n', "numloci", bclib::longOption, &locuslimit);
+  opt.addOption('n', "numloci", bclib::longOption, &LocusLimit);
   opt.addOption('M', "maxloci", bclib::intOption, &MaxLoci);
   opt.addOption('O', "minoverlap", bclib::floatOption, &MinOverlap_kb);
   opt.addOption('i', "inputfile", bclib::stringOption, &inobsgenofilename);
@@ -140,6 +138,8 @@ void FPHDOptions::PrintHelpText(){
        << "                            the range of HapMap loci output will be restricted." << endl 
        << "-o   -outputfile = ObservedGenotypes.txt" << endl
        << "                            output testgenotypesfile prefix (valid only with -i)" << endl
+       << "-n   -locuslimit            Output only this many loci to file." << endl
+       << "                            Takes precedence over -M, ignored if used with -i." << endl
        << "-M   -maxloci               Maximum number of loci per sub-chromosome/file." << endl
        << "                            If not specified, all available loci will be used" << endl
        << "-O   -minoverlap = 5000     Minimum overlap between sub-chromosomes in kb." << endl
@@ -164,8 +164,8 @@ bool FPHDOptions::Verbose()const{
   return beVerbose;
 }
 // bool FPHDOptions::LimitedLoci()const{
-//   return LimitLoci;
-// }
+//   return ();
+//  }
 
 const std::string& FPHDOptions::getPrefix()const{
   return prefix;
@@ -180,6 +180,10 @@ bool FPHDOptions::Backup()const{
 
 unsigned long FPHDOptions::getMaxLoci()const{
   return MaxLoci;
+}
+
+unsigned long FPHDOptions::getLocusLimit()const{
+  return LocusLimit;
 }
 
 bool FPHDOptions::WriteObsGenoFile()const{
@@ -207,7 +211,11 @@ unsigned FPHDOptions::getMinOverlap()const{
   return MinOverlap_bp;
 }
 void FPHDOptions::setMaxLoci(unsigned L){
-  MaxLoci = L < MaxLoci ? L : MaxLoci;
+  //set maximum loci to min(L, MaxLoci)
+  // does nothing if L > current max
+  //usually, L is the index of the last locus in the legend file
+  if(L < MaxLoci)
+    MaxLoci = L;
 }
 const char* FPHDOptions::getInitialMixturePropsFilename()const{
   return InitialMixturePropsFilename.c_str();

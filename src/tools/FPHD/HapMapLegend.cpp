@@ -20,7 +20,7 @@ using namespace::std;
 //      << alleles.first << " " << alleles.second;
 // }
 
-HapMapLegend::HapMapLegend(const char* filename) {
+HapMapLegend::HapMapLegend(const char* filename, unsigned max) {
   ifstream LegendFile(filename);
   if (!LegendFile.is_open()) {
     string errstring("Could not open legend file, ");
@@ -36,7 +36,7 @@ HapMapLegend::HapMapLegend(const char* filename) {
   unsigned index = 0;
   first = 0;
   last  = 0;
-  while(!LegendFile.eof()) {
+  while(!LegendFile.eof() && LocusVector.size() < max) {
     LocusVector.push_back(info);
     RSmap[info.rsnumber] = index++;
     ++last;

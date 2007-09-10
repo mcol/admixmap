@@ -39,8 +39,9 @@ using namespace::std;
 
 int main(int argc, char **argv){  
   FPHDOptions options(argc, argv);
-  unsigned first;//first locus to print on each chr
-  unsigned last; //last    "      "      "     "
+  //indices of terminal loci on the chromosome
+  unsigned first;
+  unsigned last; 
 
   if(options.Verbose()){
     cout << "******************************" << endl
@@ -64,7 +65,7 @@ int main(int argc, char **argv){
     // *** PHASE 1: read legend file  ***
     
     //read HapMap legend file
-    HapMapLegend Legend((prefix + "_legend.txt").c_str());
+    HapMapLegend Legend((prefix + "_legend.txt").c_str(), options.getLocusLimit());
     //set upper limit on loci to the total number of loci, if none specified
     options.setMaxLoci(Legend.getLastIndex());
     
@@ -84,6 +85,7 @@ int main(int argc, char **argv){
       //       cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
       // 	   << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
     }
+
     //divide up chromosome as required
     Legend.DetermineCutPoints(options.getMaxLoci(), options.getMinOverlap());
     
@@ -108,16 +110,14 @@ int main(int argc, char **argv){
 	     << UG.getNumberOfTypedLoci() << " typed loci" << endl;
 	//TODO: give numbers of typed loci on each sub-chromosome
       }
+      //use limits determined by size of flanking region
+      first = Legend.getFirstIndex();
+      last = Legend.getLastIndex();
+    }else{       //if no test genotypes to process
+      first = 0; //start at first locus
+      //and finish at whatever the user specified (last one if none specified)
+      last = options.getMaxLoci();
     }
-    
-    //   if(!options.WriteObsGenoFile() /*&& options.LimitedLoci()*/){
-    //     first = 0;
-    //     last = options.getMaxLoci();
-    //   }
-    //   else{
-    first = Legend.getFirstIndex();
-    last = Legend.getLastIndex();
-    //  }
     
     // *** PHASE 3: write locus file, count number of loci  ***
     WriteLocusFile(Legend, options.getLocusFilename(), first, last, options.Verbose(), options.getChrLabel());

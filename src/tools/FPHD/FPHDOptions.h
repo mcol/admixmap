@@ -22,11 +22,11 @@ public:
   ~FPHDOptions(){};
   static void PrintHelpText();
   bool Verbose()const;
-  bool LimitedLoci()const;
   bool Backup()const;
   const std::string& getPrefix()const;
   const string& getChrLabel()const;
   unsigned long getMaxLoci()const;
+  unsigned long getLocusLimit()const;
   bool WriteObsGenoFile()const;
   const char* getLocusFilename()const;
   const char* getGenotypesFilename()const;
@@ -43,16 +43,16 @@ public:
 private:
   bool beVerbose, backup;
   std::string prefix;
-  //bool LimitLoci;
   string ChrLabel;//chromosome label
 
   std::string genotypesfilename, locusfilename;
   std::string inobsgenofilename;
   std::string outobsgenofilename;
   unsigned long MaxLoci;//max loci per subchromosome
+  unsigned long LocusLimit;//max total loci
   unsigned MinOverlap_bp;//minimum overlap between subchromosomes
   float MinOverlap_kb;
-  float flankLength;//length in Kb of flanking region if using CCgenotypesfile 
+  float flankLength;//length in Kb of flanking region if using testgenotypesfile 
   char MissingChar;
 
   //initial value files

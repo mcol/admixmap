@@ -1,3 +1,3 @@
-EXTRA_DIST = README.txt MaskGenotypes.R BIR.R calculate-bir.sh hapmix2fastphase.R PrepareData.R
+EXTRA_DIST = README.txt MaskGenotypes.R bir.R calculate-bir.sh PrepareData.R gen-options.pl
 
 

@@ -19,7 +19,10 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   ##determine how many individuals are to be masked and at which loci 
   num.masked.loci <- num.loci*percent.masked.loci/100
   num.unmasked.gametes <- num.gametes - (num.masked.indivs*2)
-  masked.loci.indices <- sort(sample(c(1:num.loci), size=num.masked.loci, replace=F))
+  masked.loci.indices <- sort(sample(num.loci, size=num.masked.loci, replace=F))
+
+  ## write a list of the masked loci to file
+  cat(masked.loci.indices, file=paste(data.dir, "masked_loci.txt", sep="/"))
   
   ## read in the original phased genotypes
   all.geno <- read.table(paste(prefix,"_genotypes.txt", sep=""),
@@ -39,32 +42,41 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   ## and exclude monomorphic loci from separated tables
   col.sums <- colSums(unmasked.geno)
   monomorphic.masked.loci.indices <- which((( col.sums == num.unmasked.gametes) | (col.sums == 2*num.unmasked.gametes)), masked.loci)
-  dimorphic.masked.loci <- masked.loci[-monomorphic.masked.loci.indices]
-  num.masked.loci <- length(dimorphic.masked.loci)
-  rm(col.sums)
+  if(length(monomorphic.masked.loci.indices)>0){
+    dimorphic.masked.loci <- masked.loci[-monomorphic.masked.loci.indices]
+
+    ##revise unmasked indivs at dimorphic masked loci
+    unmasked.geno <- unmasked.geno[,-monomorphic.masked.loci.indices]
+  
+  }else{##no monomorphic masked loci
+    dimorphic.masked.loci <- masked.loci
+  }
+  num.dimorphic.masked.loci <- length(dimorphic.masked.loci)
   
   col.sums <- colSums(unmasked.geno.all.loci)
   monomorphic.loci.indices <- which((( col.sums == num.unmasked.gametes) | (col.sums == 2*num.unmasked.gametes)), all.loci)
-  all.dimorphic.loci <- all.loci[-monomorphic.loci.indices]
+  if(length(monomorphic.loci.indices)>0){
+    all.dimorphic.loci <- all.loci[-monomorphic.loci.indices]
+
+  }else{#no monomorphic loci
+    all.dimorphic.loci <- all.loci
+  }
   dimorphic.unmasked.loci <- all.dimorphic.loci[-match(dimorphic.masked.loci, all.dimorphic.loci)]
   rm(col.sums)
+
+  ##TODO: should stop if all loci are monomorphic
   
   ##masked indivs at dimorphic masked loci
   masked.geno <- all.geno[(num.unmasked.gametes + 1):num.gametes, dimorphic.masked.loci]
   ##masked gametes at unmasked loci (include ID column)
   masked.haploid.geno <- all.geno[(num.unmasked.gametes + 1):num.gametes, dimorphic.unmasked.loci]
   
-  ##revise unmasked indivs at dimorphic masked loci
-  unmasked.geno <- unmasked.geno[,-monomorphic.masked.loci.indices]
-  
-  ## revise unmasked indivs at all loci
-  unmasked.geno.all.loci <- data.frame(ID=all.geno[1:num.unmasked.gametes,1], all.geno[1:num.unmasked.gametes, all.dimorphic.loci])
-
   #########################################
   ## write genotypes for unmasked individuals at all dimorphic loci back to file
   #########################################
-  write.table(unmasked.geno.all.loci, paste(data.dir, "train_genotypes.txt", sep="/"), row.names=F, col.names=T)
-  
+  unmasked.geno.all.loci <- data.frame(ID=all.geno[1:num.unmasked.gametes,1], all.geno[1:num.unmasked.gametes, all.dimorphic.loci])
+  write.table(unmasked.geno.all.loci, file=paste(data.dir, "train_genotypes.txt", sep="/"), row.names=F, col.names=T)
+
   ######################################
   ## recode observed diploid masked genotypes as integers 1, 2,3
   ## and save to file
@@ -111,10 +123,16 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   locusfile <- read.table(paste(prefix, "_loci.txt", sep=""), na.strings=c("NA, #"),
                           comment.char="%", header=T, colClasses="character", nrow=num.loci)
   locusfile[1,3] <- "0"
-  pos <- cumsum(locusfile[,3])[-monomorphic.loci.indices]
+  if(length(monomorphic.loci.indices)>0){
+    locusfile.no.mm <- locusfile[-monomorphic.loci.indices,]
+    pos <- cumsum(locusfile[,3])[-monomorphic.loci.indices]
+  }else{
+    locusfile.no.mm <- locusfile
+    pos <- cumsum(locusfile[,3])
+  }
   pos2 <- c(0, pos[1:(length(pos)-1)])
   
-  locusfile.no.mm <- locusfile[-monomorphic.loci.indices,]
+
   ##replace distances
   locusfile.no.mm[,3] <- format(pos-pos2)
   rm(pos2)
@@ -124,15 +142,18 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   ##############################
   ## write fastPHASE input files
   ###############################
-  if(length(fastphase.diploid.file)>0){
+
+  ## write masked diploid genotypes
+  if(!is.null(fastphase.diploid.file)){
     write(num.masked.indivs, file=fastphase.diploid.file)
     write(length(all.dimorphic.loci), file=fastphase.diploid.file, append=T)
     cat("P ", as.numeric(pos)*1e6, "\n", file=fastphase.diploid.file, append=T)
     ##  write("\nSSSSS", file=fastphase.diploid.file, append=T)
-    
-    ## write masked gametes
+    ## NOTE: S line seems to confuse fastPHASE when P line is there ??
+
+    ##convert to character an dreplace missing values
     masked.geno.all.loci <- format(all.geno[(num.unmasked.gametes+1):num.gametes, all.dimorphic.loci]-1)
-    masked.geno.all.loci[,dimorphic.masked.loci] <- "?"
+    masked.geno.all.loci[,dimorphic.masked.loci] <- "?"##missing genotypes are denoted by '?'
     
     for(i in 1:num.masked.indivs){
       ## id line
@@ -142,9 +163,9 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
       cat(unlist(masked.geno.all.loci[(i*2),]), "\n", file=fastphase.diploid.file, append=T)
     }
   }
-  if(length(fastphase.diploid.file)>0){
+  if(!is.null(fastphase.haploid.file)){
     ## write unmasked gametes to haplotype file
-    haploid.out <- t(cbind(haploid.genotypes[,1], matrix(apply(unmasked.geno.all.loci[,-1], 1, paste, collapse=" "),
+    haploid.out <- t(cbind(all.geno[1:num.unmasked.gametes,1], matrix(apply(unmasked.geno.all.loci[,-1], 1, paste, collapse=" "),
                                                          nrow=num.unmasked.gametes, byrow=T)))
     cat(num.unmasked.gametes, haploid.out, file=fastphase.haploid.file, sep="\n")    
   }
