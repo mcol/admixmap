@@ -88,6 +88,9 @@ bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
 ## irw-1 directories contain runs with 8 states and entire chromosome
 ## irw-2 directories contain runs with 6 states and first 5000 loci only
 
+dataprefix <- "data/chr22_5kloci/hapmixmap"
+#dataprefix <- "data/chr22/hapmixmap"
+
 
 system("[ -e birResults.txt ] && rm birResults.txt")
 popnames <- c("Afr", "Eur", "Asian")
@@ -113,8 +116,7 @@ for(pop in 1:3) {
   param.priors <- data.frame(arrival.priors, dispersion.priors, stringsAsFactors=F)
 
   ## set data directory for this population
-  datadir <- paste("data/chr22_5kloci/hapmixmap", hpopnames[pop], sep="/")
-  #datadir <- paste("chr22-5k-data", popnames[pop], sep="/")
+  datadir <- paste(dataprefix, hpopnames[pop], sep="/")
 
   ## get true values from data directory
   truevalues2d <- as.matrix(dget(paste(datadir,
