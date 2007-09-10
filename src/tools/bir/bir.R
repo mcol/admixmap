@@ -89,7 +89,7 @@ bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
 ## irw-2 directories contain runs with 6 states and first 5000 loci only
 
 
-#system("rm birResults.txt")
+system("[ -e birResults.txt ] && rm birResults.txt")
 popnames <- c("Afr", "Eur", "Asian")
 hpopnames <- c("YRI", "CEU", "JPTCHB")
 # loop over 3 populations
@@ -105,12 +105,12 @@ for(pop in 1:3) {
   if(length(dim(filenames)) > 1) filenames <- filenames[, 1]
   ## separate into 3 cols and select col 2
   runs.table <- read.table(file="filenames.txt", header=F, sep="/", as.is=T)[, 2]
-  priors2 <- t(matrix(unlist(strsplit(runs.table, "_")), nrow=3))
-  arrival.priors <- priors2[, 2]
-  dispersion.priors <- priors2[, 3]
-  #seed <- dispersion.priors[, 2]
+  priors2 <- t(matrix(unlist(strsplit(runs.table, "_")), nrow=4))
+  states <- priors2[, 2]
+  arrival.priors <- priors2[, 3]
+  dispersion.priors <- priors2[, 4]
+  #seed <- dispersion.priors[, 5]
   param.priors <- data.frame(arrival.priors, dispersion.priors, stringsAsFactors=F)
-
 
   ## set data directory for this population
   datadir <- paste("data/chr22/hapmixmap", hpopnames[pop], sep="/")
@@ -163,10 +163,10 @@ for(pop in 1:3) {
       print(filenames[run], "locus names mismatch between true values and predictive probs\n")
     }
     bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
-    priors <- c(param.priors[run, 1], param.priors[run, 2]  #, #seed[run]
+    priors <- c(states[run], param.priors[run, 1], param.priors[run, 2]  #, #seed[run]
                 )
     cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
     ## append results to file
-    #cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
+    cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
   }
 }
