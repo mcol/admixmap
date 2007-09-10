@@ -35,7 +35,7 @@ sub trainandtest {
   
 ###################################################################
 my $dataprefix="data/chr22/hapmixmap";
-my @Panels=("CEU", "YRI", "JPTCHB");
+my @Panels=("YRI", "CEU", "JPTCHB");
 my $resultsprefix="results2";
 
 my $arg_hash = {
@@ -127,4 +127,4 @@ for my $pop(@Panels) { # loop over 3 populations
 	    trainandtest($arg_hash, $run_name, $testgenotypesfile);
 	}
     }
-}
+};
