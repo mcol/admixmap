@@ -64,10 +64,10 @@ bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
      dim(predictiveprobs3d)[3] != dim(truevalues2d)[2] ||
      dim(counts2d)[1] !=2 ||
      dim(counts2d)[2] != dim(truevalues2d)[2]) {
-    cat("inconsistent array dimensions\n")
-    cat("truevalues2d", dim(truevalues2d))
-    cat("counts2d", dim(counts2d))
-    cat("predictiveprobs3d", dim(predictiveprobs3d))
+    cat("array dimensions inconsistent \n")
+    cat(" truevalues2d", dim(truevalues2d))
+    cat(" counts2d", dim(counts2d))
+    cat(" predictiveprobs3d", dim(predictiveprobs3d))
     return(1)
   } 
   bir <- numeric(numloci)
@@ -154,19 +154,35 @@ for(pop in 1:3) {
   if(length(table(monomorphic)) > 1) {
     print("monomorphic loci\n")
   }
-
-  ## loop over directories containing results
+  
+  ## output impute results
+  impfilename <- paste("impgenotypes", hpopnames[pop], ".txt", sep="")
+  gprobs <- read.table(file=impfilename, row.names=2)[, -c(1:4)]
+  gprobs <- gprobs[row.names(gprobs) %in% locusnames.truevalues, ]
+  ## check that locus names match
+  if(length(locusnames.truevalues[locusnames.truevalues!=row.names(gprobs)]) > 0) {
+    print(paste(popnames[pop],
+                "locus names mismatch between true values and impute predictive probs\n"))
+  }
+  numloci <- dim(gprobs)[1]
+  N <- dim(gprobs)[2] / 3
+  predictiveprobs3d <- array(t(as.matrix(gprobs)), dim=c(3, N, numloci))
+  bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
+  cat("impute", popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
+  
+  ## loop over directories containing hapmixmap results
   for(run in 1:length(filenames)) {
     predictiveprobs3d <- aperm(dget(as.character(filenames[run])),c(1, 3, 2))
     ## check that locus names match
     if(length(locusnames.truevalues[locusnames.truevalues!=dimnames(predictiveprobs3d)[[3]]]) > 0) {
-      print(filenames[run], "locus names mismatch between true values and predictive probs\n")
+      print(paste(filenames[run],
+                  "locus names mismatch between true values and hapmixmap predictive probs\n"))
     }
-    bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
+    #bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
     priors <- c(states[run], param.priors[run, 1], param.priors[run, 2]  #, #seed[run]
                 )
-    cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
+    #cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
     ## append results to file
-    cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
+    #cat(priors, popnames[pop], dim(predictiveprobs3d), bir.result, "\n", file="birResults.txt", append=T)
   }
 }
