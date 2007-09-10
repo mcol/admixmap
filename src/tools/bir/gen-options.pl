@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 # script to generate options files for multiple runs of hapmixmap with different prior or different numbers of states
-
 use strict; 
 
 sub writeOptionsFile{
@@ -50,9 +49,9 @@ my $arg_hash = {
 
     #main options
     displaylevel    => 2,
-    samples         => 3, #$samples,
-    burnin          => 1,  #$burnin,
-    every           => 1,  #$every,
+    samples         => 250, #$samples,
+    burnin          => 50,  #$burnin,
+    every           => 5,   #$every,
     numannealedruns => 0,
     thermo          => 0,
     hapmixmodel     => 1,
@@ -63,24 +62,32 @@ my $arg_hash = {
     
     #output files
     logfile =>'logfile.txt',
-    paramfile         =>'paramfile.txt',#mean and var of sampled arrival rates
+    paramfile         =>'paramfile.txt', #mean and var of sampled arrival rates
     freqprecisionfile =>'freqprecision.txt', #mean and var of sampled allele freq precision
     arrivalrateposteriormeanfile => "ArrivalRatePosteriorMeans.txt",
 };
 
-
+print "\n";
 for my $pop(@Panels) { # loop over 3 populations
-    print "$pop\n";
     
     # data files
     $arg_hash->{locusfile}="$dataprefix/$pop/train_loci.txt";
     $arg_hash->{genotypesfile}="$dataprefix/$pop/train_genotypes.txt";
     my $testgenotypesfile="$dataprefix/$pop/test_genotypes.txt";
     
-    # loop over different numbers of states
+    $arg_hash->{arrivalrateprior} = "1.2, 0.05, 1, 0.5";
+    $arg_hash->{residualadprior} = "0.25, 1";
+
+    # loop over numbers of states
     my @numstates = (2, 4, 6, 8, 10);
     for my $num(@numstates) {
-	my $run_name = "$pop"."\_"."states$num";
+        $arg_hash->{states} = $num;
+	my $run_name = "$pop"."\_".
+	    "states-$arg_hash->{states}"."\_".
+	    "arp-$arg_hash->{arrivalrateprior}"."\_".
+	    "afpp-$arg_hash->{residualadprior}";
+	$run_name =~ s/ //g;
+	$run_name =~ s/\,/\-/g;
 	print "$run_name\n";
 	
 	# output folders
@@ -90,7 +97,7 @@ for my $pop(@Panels) { # loop over 3 populations
 	# write config files
 	trainandtest($arg_hash, $run_name, $testgenotypesfile);
     }
-
+    
     $arg_hash->{states} = 6; # default
     # loop over priors
     my @apriors = ("1.2, 0.05, 1, 0.5", "1.2, 0.05, 2", 
@@ -98,14 +105,16 @@ for my $pop(@Panels) { # loop over 3 populations
     for my $aprior(@apriors) { # loop over arrival rate priors
 	
 	$arg_hash->{arrivalrateprior}= $aprior;
-
+	
 	my @rpriors = ("0.25, 1", "2, 8");
 	for my $rprior(@rpriors) { # loop over allelic diversity priors
 	    $arg_hash->{residualadprior}=$rprior;
 	    
 	    my $run_name 
 		= "$pop"."\_".
-		"arp-$arg_hash->{arrivalrateprior}_afpp-$arg_hash->{residualadprior}";
+		"states-$arg_hash->{states}"."\_".
+		"arp-$arg_hash->{arrivalrateprior}"."\_".
+		"afpp-$arg_hash->{residualadprior}";
 	    $run_name =~ s/ //g;
 	    $run_name =~ s/\,/\-/g;
 	    print "$run_name\n";
