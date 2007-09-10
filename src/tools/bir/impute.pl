@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 use strict;
 
-my$dataprefix = "data/chr22/impute";
+my$dataprefix = "data/chr22_5kloci/impute";
+
 my @Panels = ("YRI", "CEU", "JPTCHB");
 my $options =  "-Ne 11400 -outdp 6";
 
