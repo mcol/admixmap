@@ -36,32 +36,39 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
   if(strlen(dirname) && strcmp(dirname, ".") && strcmp(dirname, "..")){
     DIR *pdir;
     struct dirent *pent;
-#ifdef WIN32
-    string dirpath = ".\\";
-#else
+    
     string dirpath = "./";
-#endif
     dirpath.append(dirname);
+    
+#ifdef WIN32
+    //replace '/' with '\'
+    string::size_type i = 0;
+    while(i != string::npos){
+      i = dirpath.find("/", i+1);
+      dirpath[i] = '\\';
+    }
+    string cmd = "mkdir ";
+#else
+    string cmd = "mkdir -p ";
+#endif
+    
     pdir=opendir(dirpath.c_str()); 
     if (!pdir) {
       //dir does not exist
       cout << "Creating directory "<< dirpath <<endl;
-#ifdef WIN32
-      //this block is safer but only works in Windows
-      int status = mkdir(dirpath.c_str()/*, POSIX permissions go here*/);
-      if(status) {
-#else
+
       //KLUDGE: 'mkdir' not guaranteed to work on all systems; no error-checking
       //should be ok for normal use
-      string cmd = "mkdir ";
-      cmd.append(dirname);
+      // -p = make recursively and no warning if dir exists
+
+      cmd.append(dirpath);
       system(cmd.c_str());
       if(!opendir(dirpath.c_str())){
-#endif
-        cerr << "Unable to create directory. Exiting." << endl;
-        exit(EXIT_FAILURE);
-      }
 
+	cerr << "Unable to create directory. Exiting." << endl;
+	exit(EXIT_FAILURE);
+      }
+      
     }
     else if(DeleteExistingFiles){
       cout << "Directory \"" << dirname << "\" exists. Contents will be deleted."<<endl;
@@ -70,7 +77,7 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
       errno=0;
       while ((pent=readdir(pdir))){//read filenames
 	if(strcmp(pent->d_name, ".") && strcmp(pent->d_name, "..")//skip . and ..
-           && strncmp(pent->d_name, "state", 5)){//skip any files starting 
+	   && strncmp(pent->d_name, "state", 5)){//skip any files starting 
 	  string filepath = dirpath + "/"; 
 	  filepath.append(pent->d_name);
 	  remove(filepath.c_str());//delete

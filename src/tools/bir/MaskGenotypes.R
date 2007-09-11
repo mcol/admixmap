@@ -19,7 +19,6 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   ##determine how many individuals are to be masked and at which loci 
   num.masked.loci <- num.loci*percent.masked.loci/100
   num.unmasked.gametes <- num.gametes - (num.masked.indivs*2)
-  set.seed(100)
   masked.loci.indices <- sort(sample(num.loci, size=num.masked.loci, replace=F))
 
   ## write a list of the masked loci to file
@@ -167,7 +166,7 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   if(!is.null(fastphase.haploid.file)){
     ## write unmasked gametes to haplotype file
     haploid.out <- t(cbind(all.geno[1:num.unmasked.gametes,1], matrix(apply(unmasked.geno.all.loci[,-1], 1, paste, collapse=" "),
-                                                         nrow=num.unmasked.gametes, byrow=T)))
+                                                         nrow=num.unmasked.gametes, byrow=T)-1))
     cat(num.unmasked.gametes, haploid.out, file=fastphase.haploid.file, sep="\n")    
   }
 }
