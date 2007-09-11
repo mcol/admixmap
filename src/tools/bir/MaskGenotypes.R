@@ -19,6 +19,7 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   ##determine how many individuals are to be masked and at which loci 
   num.masked.loci <- num.loci*percent.masked.loci/100
   num.unmasked.gametes <- num.gametes - (num.masked.indivs*2)
+  set.seed(100)
   masked.loci.indices <- sort(sample(num.loci, size=num.masked.loci, replace=F))
 
   ## write a list of the masked loci to file
