@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 use strict;
+use File::Path;
 
 my $dataprefix = "data/chr22_5kloci/fastphase";
 
@@ -20,7 +21,10 @@ my $options =  "-T20 -C50 -K$states -S1000 -p -M2 ";
 
 for my $pop (@Panels) {
     my $datadir = "$dataprefix/$pop";
-    my $resultsdir = "results/fastphase/$pop";	
+    my $resultsdir = "results/fastphase/$pop";
+    if(!(-e "$resultsdir")) {
+ 	 mkpath "$resultsdir" or die "cannot make directory $resultsdir";
+ 	 }	
     system("fastPHASE $options -b$datadir/fphaplotypes.inp -o$resultsdir/fastphase $datadir/fastphase.inp");
 };
 
