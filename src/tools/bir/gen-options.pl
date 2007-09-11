@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 # script to generate options files for multiple runs of hapmixmap with different prior or different numbers of states
 use strict; 
+use File::Path;
 
 sub writeOptionsFile{
     my $hash = $_[0];
@@ -36,10 +37,11 @@ sub trainandtest {
 ###################################################################
 
 ## change these prefixes to run entire chromosome
-#my $dataprefix="data/chr22_5kloci/hapmixmap";
-my $dataprefix="data/chr22/hapmixmap";
-#my $resultsprefix="results5k";
-my $resultsprefix="resultsall";
+my $whichchr = "chr22_5kloci";
+#my $whichchr = "chr22";
+
+my $dataprefix="data/$whichchr/hapmixmap";
+my $resultsprefix="results/$whichchr/hapmixmap";
 
 my @Panels=("YRI", "CEU", "JPTCHB");
 if(!(-e "configfiles")) { 
@@ -56,10 +58,10 @@ my $arg_hash = {
     fixedmixturepropsprecision => 1,
 
     #main options
-    displaylevel    => 2,
-    samples         => 250, #$samples,
-    burnin          => 50,  #$burnin,
-    every           => 10,   #$every,
+    displaylevel    => 1,
+    samples         => 12, #$samples,
+    burnin          => 2,  #$burnin,
+    every           => 1,   #$every,
     numannealedruns => 0,
     thermo          => 0,
     hapmixmodel     => 1,
@@ -129,6 +131,11 @@ for my $pop(@Panels) { # loop over 3 populations
 	    
 	    # output folders
 	    $arg_hash->{resultsdir}="$resultsprefix/$run_name";
+	    if(!(-e "$resultsprefix")) { 
+		mkpath "$resultsprefix" or die "cannot make directory $resultsprefix";
+	    }
+
+
 	    $arg_hash->{finalvaluedir}="$resultsprefix/$run_name"."_fv";
 	    
 	    # write config files
