@@ -36,8 +36,10 @@ sub trainandtest {
 ###################################################################
 
 ## change these prefixes to run entire chromosome
-my $dataprefix="data/chr22_5kloci/hapmixmap";
-my $resultsprefix="results5k";
+#my $dataprefix="data/chr22_5kloci/hapmixmap";
+my $dataprefix="data/chr22/hapmixmap";
+#my $resultsprefix="results5k";
+my $resultsprefix="resultsall";
 
 my @Panels=("YRI", "CEU", "JPTCHB");
 if(!(-e "configfiles")) { 
