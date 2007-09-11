@@ -43,7 +43,7 @@ public:
      Constructor.
      \param filename name of file containing HapMap legend.
   */
-  HapMapLegend(const char* filename, unsigned max);
+  HapMapLegend(const char* filename, unsigned max=99999999);
   ///Destructor
   ~HapMapLegend(){
     clear();

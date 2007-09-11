@@ -395,7 +395,7 @@ WARN_LOGFILE           = doxygen-warning
 INPUT                  = @top_srcdir@/src/base/ \
                          @top_srcdir@/src/admixmap/ \
                          @top_srcdir@/src/hapmixmap/ \
-                         @top_srcdir@/src/tools/hapmixmapFormatter/
+                         @top_srcdir@/src/tools/FPHD/
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
