@@ -1,6 +1,6 @@
 ## script to read all data files and print their dimensions
 
-system("find data/chr22/hapmixmap -name '*.txt' > filenames.txt")
+system("find data/chr22*/hapmixmap -name '*.txt' > filenames.txt")
 
 filenames <- read.table(file="filenames.txt", header=F, as.is=T)[, 1]
 
