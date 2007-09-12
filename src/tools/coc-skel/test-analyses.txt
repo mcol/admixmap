@@ -1,2 +1,0 @@
-irw-2-arp-1.2-0.05-1-0.5-afpp-2-8-s1: --arrivalrateprior="1.2, 0.05, 1, 0.5" --allelefreqprecisionprior="2, 8" --fixedmixtureprops="1" --seed="1"
-irw-2-arp-1.2-0.05-1-0.5-afpp-0.25-1-s1: --arrivalrateprior="1.2, 0.05, 1, 0.5" --allelefreqprecisionprior="0.25, 1" --fixedmixtureprops="1" --seed="1"

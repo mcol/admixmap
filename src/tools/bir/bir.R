@@ -104,10 +104,13 @@ read.fastphase <- function(fpfilename, tested.gametes, tested.loci) {
   g <- g[, tested.loci]
   numtested.loci <- length(tested.loci[tested.loci])
   g <- array(g, dim=c(numsamples, numtested.indivs, numtested.loci))
+  
   ## check that this fills correctly
   inv.numsamples <- 1 / numsamples
-  gprobs <- inv.numsamples * apply(g, 2:3, table) 
-  return(gprobs)
+  gprobs <- inv.numsamples * apply(g, 2:3, table)
+  
+  ## gprobs should have dims 3, numtested.loci, numtested.indivs  
+  return(aperm(gprobs, c(1, 3, 2)))
 }
 
 #######################################################################################
@@ -171,26 +174,29 @@ for( pop in popnames){
   gprobs <- gprobs[row.names(gprobs) %in% locusnames.truevalues, ]
   ## check that locus names match
   if(length(locusnames.truevalues[locusnames.truevalues!=row.names(gprobs)]) > 0) {
-    print(paste(popnames[pop],
+    print(paste(pop,
                 "locus names mismatch between true values and impute predictive probs\n"))
   }
   numloci <- dim(gprobs)[1]
   N <- dim(gprobs)[2] / 3 # num masked individuals 
   predictiveprobs3d <- aperm(array(as.matrix(gprobs), dim=c(numloci, N, 3)), c(3, 1, 2))
   bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
-  cat("impute", popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
+  cat("impute", pop, dim(predictiveprobs3d), bir.result, "\n")
 
   ##
   ## fastphase results
-  ##
-  
-  ##fpfilename <- paste(results, which.chr, fastphase, fp_hapguess_switch.out)
-  ##fpfilename <- paste(results, which.chr, fastphase, fp_sampledHgivG.txt)
-  ## ? sampledHgivG file is not written
+  ##  
+  fpfilename <- paste(results, which.chr, fastphase, pop, fastphase_sampledHgivG.txt, sep="/")
 
+  masked.loci <- scan(paste(dataprefix, chr22, hapmixmap, pop, "masked_loci.txt", sep="/"), quiet=T)
+  if(pop == "JPTCHB"){
+    masked.gametes <- c(rep(F, 150), rep(T, 30))
+  }else{
+    masked.gametes <- c(rep(F, 100), rep(T, 20))
+  }
   ##predictiveprobs3d <- read.fastphase(fpfilename, masked.gametes, masked.loci)
   ##bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
-  ##cat("fastphase", popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
+  ##cat("fastphase", pop, dim(predictiveprobs3d), bir.result, "\n")
   
 
   
