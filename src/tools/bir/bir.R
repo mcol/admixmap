@@ -88,9 +88,11 @@ bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
 ## irw-1 directories contain runs with 8 states and entire chromosome
 ## irw-2 directories contain runs with 6 states and first 5000 loci only
 
-dataprefix <- "data/chr22_5kloci/hapmixmap"
-#dataprefix <- "data/chr22/hapmixmap"
 
+whichchr <- "chr22_5kloci"
+
+dataprefix <- paste("data", whichchr, "hapmixmap", sep="/")
+# TODO: fix results dir structure to same as other 2 progs
 
 system("[ -e birResults.txt ] && rm birResults.txt")
 popnames <- c("Afr", "Eur", "Asian")
@@ -101,13 +103,13 @@ for(pop in 1:3) {
   ## irw-2 runs appear to be comparisons of different priors
   #system(paste("find * -name PPGenotypeProbs.txt | grep irw-2 | grep",
   #             popnames[pop], "> filenames.txt"))
-  system(paste("find results5k/ -name PPGenotypeProbs.txt | grep",
+  system(paste("find results/ -name PPGenotypeProbs.txt | grep",
                hpopnames[pop], "> filenames.txt"))
   # read as table with one col, then select col 1
   filenames <- read.table(file="filenames.txt", header=F, as.is=T)
   if(length(dim(filenames)) > 1) filenames <- filenames[, 1]
   ## separate into 3 cols and select col 2
-  runs.table <- read.table(file="filenames.txt", header=F, sep="/", as.is=T)[, 2]
+  runs.table <- read.table(file="filenames.txt", header=F, sep="/", as.is=T)[, 4]
   priors2 <- t(matrix(unlist(strsplit(runs.table, "_")), nrow=4))
   states <- priors2[, 2]
   arrival.priors <- priors2[, 3]
@@ -158,7 +160,11 @@ for(pop in 1:3) {
   }
   
   ## output impute results
-  impfilename <- paste("impgenotypes", hpopnames[pop], ".txt", sep="")
+  system(paste("find results/ -name impgenotypes.txt | grep",
+               hpopnames[pop], "> filenames_impute.txt"))
+  # read as table with one col, then select col 1
+  impfilename <- read.table(file="filenames_impute.txt", header=F, as.is=T)[1, 1]
+
   gprobs <- read.table(file=impfilename, row.names=2)[, -c(1:4)]
   gprobs <- gprobs[row.names(gprobs) %in% locusnames.truevalues, ]
   ## check that locus names match
