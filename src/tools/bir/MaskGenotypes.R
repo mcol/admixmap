@@ -19,7 +19,7 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   ##determine how many individuals are to be masked and at which loci 
   num.masked.loci <- num.loci*percent.masked.loci/100
   num.unmasked.gametes <- num.gametes - (num.masked.indivs*2)
-  seed(100)
+  set.seed(100)
   masked.loci.indices <- sort(sample(num.loci, size=num.masked.loci, replace=F))
 
   ## write a list of the masked loci to file
@@ -152,7 +152,7 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
     ##  write("\nSSSSS", file=fastphase.diploid.file, append=T)
     ## NOTE: S line seems to confuse fastPHASE when P line is there ??
 
-    ##convert to character an dreplace missing values
+    ##convert to character and replace missing values
     masked.geno.all.loci <- format(all.geno[(num.unmasked.gametes+1):num.gametes, all.dimorphic.loci]-1)
     masked.geno.all.loci[,dimorphic.masked.loci] <- "?"##missing genotypes are denoted by '?'
     
@@ -166,8 +166,17 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   }
   if(!is.null(fastphase.haploid.file)){
     ## write unmasked gametes to haplotype file
-    haploid.out <- t(cbind(all.geno[1:num.unmasked.gametes,1], matrix(apply(unmasked.geno.all.loci[,-1], 1, paste, collapse=" "),
-                                                         nrow=num.unmasked.gametes, byrow=T)-1))
+    ## first subtract 1 from all elements of haplotype table to code alleles as 0, 1
+    ## reformat N haplotypes as strings of integers separated by spaces
+    ## reformat as matrix with N rows and 1 col
+    ## cbind this matrix to vector of IDs to obtain a matrix with N rows and 2 cols
+    ## transpose to obtain a matrix with 2 rows and 1 col
+    ## in which row 1 contains IDs, row 2 contains haplotype strings
+    ## write to file, with N as header line and newline as separator 
+    haploid.out <- t(cbind(all.geno[1:num.unmasked.gametes, 1],
+                           matrix(apply(unmasked.geno.all.loci[, -1] - 1,
+                                        1, paste, collapse=" "),
+                                  nrow=num.unmasked.gametes, byrow=T)))
     cat(num.unmasked.gametes, haploid.out, file=fastphase.haploid.file, sep="\n")    
   }
 }
