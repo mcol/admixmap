@@ -47,11 +47,20 @@ HapMap/data/chr22
                            /YRI
                            /JPTCHB
 
-     /results/hapmixmap/arp-0.5-1-2-radp-0.25-1-s1
-             /impute
-             /fastphase/ .... /CEU
-                              /YRI
-                              /JPTCHB
+Results are organised as follows:
+     /results/chr22
+             /chr22_5kloci
+                          /hapmixmap/
+                                    /CEU
+                                    /YRI
+                                    /JPTCHB
+                                           /arp-0.5-1-2-radp-0.25-1-s1
+                                           /....
+                         /impute
+                         /fastphase
+                                  /CEU
+                                  /YRI
+                                  /JPTCHB
       
 
 
@@ -59,8 +68,8 @@ HapMap/data/chr22
  -- comparisons of different priors (5k loci) --
 
    - Use gen-options.pl to write options files for HAPMIXMAP 
-   - write PBS script and submit
-   - run bir.sh, which will read a list of resultsdirs and run BIR.R in each, calculating BIR then collect them into a table
+   - write lists of tasks, PBS scripts and submit
+   - run bir.R
 
  -- estimates of parameters with weak priors (full chromosome) --
 

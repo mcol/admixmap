@@ -18,6 +18,8 @@ fastphase.options <- paste("-T20 -C50 -K", STATES, " -s1000 -p -M2", sep="")
 Ne.values <- c(11418, 17469, 14269)## for IMPUTE
 
 source("MaskGenotypes.R")
+##set random seed, for consistency
+set.seed(100)
 
 ## loop over populations
 for(pop in 1:3){
