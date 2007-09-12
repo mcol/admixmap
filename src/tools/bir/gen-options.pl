@@ -24,36 +24,29 @@ sub trainandtest {
     }
     my $optionsfilename = "configfiles/training_$run_name.txt";
     writeOptionsFile($arg_hash, $optionsfilename);
-    print TRAIN_TASK_LIST "hapmixmap $optionsfilename\n";
-    #system("hapmixmap $optionsfilename");
+    system("hapmixmap.pathscale $optionsfilename");
     
     # testing run
     $arg_hash->{testgenotypesfile}="$testgenotypesfile";
     $optionsfilename = "configfiles/testing_$run_name.txt";
     $arg_hash->{predictgenotypes} = 1;
     writeOptionsFile($arg_hash, $optionsfilename);
-    print TEST_TASK_LIST "hapmixmap $optionsfilename\n";
-    #system("hapmixmap $optionsfilename");
+    system("hapmixmap.pathscale $optionsfilename");
 };
   
 ###################################################################
 
 ## change these prefixes to run entire chromosome
 my $whichchr = "chr22_5kloci";
-#my $whichchr = "chr22"; 
+#my $whichchr = "chr22";
 
-my $dataprefix="data/$whichchr/hapmixmap"; 
-my $resultsprefix="results/$whichchr/hapmixmap"; 
+my $dataprefix="data/$whichchr/hapmixmap";
+my $resultsprefix="results/$whichchr/hapmixmap";
 
 my @Panels=("YRI", "CEU", "JPTCHB");
-my @seeds=(2190, 3367, 5211, 7318);
-
 if(!(-e "configfiles")) { 
     mkdir "configfiles";
 }
-
-open(TRAIN_TASK_LIST, ">hapmixmap_train_tasks.txt") or die ("could not open task list");
-open(TEST_TASK_LIST, ">hapmixmap_test_tasks.txt") or die ("could not open task list");
 
 my $arg_hash = {
     deleteoldresults => 0,
@@ -65,10 +58,10 @@ my $arg_hash = {
     fixedmixturepropsprecision => 1,
 
     #main options
-    displaylevel    => 2,
-    samples         => 250, #$samples,
-    burnin          => 50,  #$burnin,
-    every           => 10,   #$every,
+    displaylevel    => 1,
+    samples         => 120, #$samples,
+    burnin          => 20,  #$burnin,
+    every           => 5,   #$every,
     numannealedruns => 0,
     thermo          => 0,
     hapmixmodel     => 1,
@@ -86,61 +79,23 @@ my $arg_hash = {
 
 print "\n";
 for my $pop(@Panels) { # loop over 3 populations
-  my $s = 1;
-  for my $seed(@seeds){
+    
     # data files
     $arg_hash->{locusfile}="$dataprefix/$pop/train_loci.txt";
     $arg_hash->{genotypesfile}="$dataprefix/$pop/train_genotypes.txt";
-    $arg_hash->{seed}=$seed;
     my $testgenotypesfile="$dataprefix/$pop/test_genotypes.txt";
     
     $arg_hash->{arrivalrateprior} = "1.2, 0.05, 1, 0.5";
     $arg_hash->{residualadprior} = "0.25, 1";
-    
+
     # loop over numbers of states
     my @numstates = (2, 4, 6, 8, 10);
     for my $num(@numstates) {
-      $arg_hash->{states} = $num;
-      my $run_name = "$pop"."\_".
-	"states-$arg_hash->{states}"."\_".
-	  "arp-$arg_hash->{arrivalrateprior}"."\_".
-	    "afpp-$arg_hash->{residualadprior}"."\_".
-	      "seed-$s";;
-      $run_name =~ s/ //g;
-      $run_name =~ s/\,/\-/g;
-      print "$run_name\n";
-      
-      # output folders
-      $arg_hash->{resultsdir}="$resultsprefix/$run_name";
-
-#create resultsdir if not exists. Doesn't do any harm but hapmixmap can also do this
-      if(!(-e "$resultsprefix")) {  
- 	 mkpath "$resultsprefix" or die "cannot make directory $resultsprefix"; 
- 	 } 
-      $arg_hash->{finalvaluedir}="$resultsprefix/$run_name"."_fv";
-      
-      # write config files
-      trainandtest($arg_hash, $run_name, $testgenotypesfile);
-    }
-    
-    $arg_hash->{states} = 6; # default
-    # loop over priors
-    my @apriors = ("1.2, 0.05, 1, 0.5", "1.2, 0.05, 2", 
-		   "12, 0.5, 1, 0.5",   "12, 0.5, 2");
-    for my $aprior(@apriors) { # loop over arrival rate priors
-      
-      $arg_hash->{arrivalrateprior}= $aprior;
-      
-      my @rpriors = ("0.25, 1", "2, 8");
-      for my $rprior(@rpriors) { # loop over allelic diversity priors
-	$arg_hash->{residualadprior}=$rprior;
-	
-	my $run_name 
-	  = "$pop"."\_".
+        $arg_hash->{states} = $num;
+	my $run_name = "$pop"."\_".
 	    "states-$arg_hash->{states}"."\_".
-	      "arp-$arg_hash->{arrivalrateprior}"."\_".
-		"afpp-$arg_hash->{residualadprior}"."\_".
-		  "seed-$s";
+	    "arp-$arg_hash->{arrivalrateprior}"."\_".
+	    "afpp-$arg_hash->{residualadprior}";
 	$run_name =~ s/ //g;
 	$run_name =~ s/\,/\-/g;
 	print "$run_name\n";
@@ -151,8 +106,40 @@ for my $pop(@Panels) { # loop over 3 populations
 	
 	# write config files
 	trainandtest($arg_hash, $run_name, $testgenotypesfile);
-      }
     }
-    $s = $s+1;
-  }
+    
+    $arg_hash->{states} = 6; # default
+    # loop over priors
+    my @apriors = ("1.2, 0.05, 1, 0.5", "1.2, 0.05, 2", 
+		   "12, 0.5, 1, 0.5",   "12, 0.5, 2");
+    for my $aprior(@apriors) { # loop over arrival rate priors
+	
+	$arg_hash->{arrivalrateprior}= $aprior;
+	
+	my @rpriors = ("0.25, 1", "2, 8");
+	for my $rprior(@rpriors) { # loop over allelic diversity priors
+	    $arg_hash->{residualadprior}=$rprior;
+	    
+	    my $run_name 
+		= "$pop"."\_".
+		"states-$arg_hash->{states}"."\_".
+		"arp-$arg_hash->{arrivalrateprior}"."\_".
+		"afpp-$arg_hash->{residualadprior}";
+	    $run_name =~ s/ //g;
+	    $run_name =~ s/\,/\-/g;
+	    print "$run_name\n";
+	    
+	    # output folders
+	    $arg_hash->{resultsdir}="$resultsprefix/$run_name";
+	    if(!(-e "$resultsprefix")) { 
+		mkpath "$resultsprefix" or die "cannot make directory $resultsprefix";
+	    }
+
+
+	    $arg_hash->{finalvaluedir}="$resultsprefix/$run_name"."_fv";
+	    
+	    # write config files
+	    trainandtest($arg_hash, $run_name, $testgenotypesfile);
+	}
+    }
 };
