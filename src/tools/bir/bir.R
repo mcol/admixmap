@@ -78,6 +78,36 @@ bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
   return(mean(bir))
 }
 
+read.fastphase <- function(fpfilename, tested.gametes, tested.loci) {
+  ## tested.gametes is a logical vector specifying which gametes are from diploid individuals
+  ## whose missing genotypes are to be imputed
+  ## returns a 3-way array of genotype probs
+  fplines <- scan(file=fpfilename, comment.char=">", sep="", what="character")
+  numloci <- nchar(fplines[1])
+
+  numrows <- length(fplines); 
+  numgametes <- length(tested.gametes) 
+  numsamples <- numrows/numgametes
+
+  testrows <- rep(tested.gametes, numsamples)
+  fplines <- fplines[testrows] # should be of length 2*numtested.indivs*numsamples
+  
+  numtested.indivs <- length(tested.gametes[tested.gametes]) / 2
+  g <- matrix(data=NA, nrow=numtested.indivs, ncol=numloci)
+  for(i in 1:numtested.indivs) {
+    g[i, ] <- as.integer(strsplit(fplines[2*i - 1], split="")[[1]]) +
+      as.integer(strsplit(fplines[2*i],     split="")[[1]]) + 1
+  }
+  g <- g[, tested.loci]
+  numtested.loci <- length(tested.loci[tested.loci])
+  g <- array(g, dim=c(numsamples, numtested.indivs, numtested.loci))
+  ## check that this fills correctly
+  inv.numsamples <- 1 / numsamples
+  gprobs <- inv.numsamples * apply(g, 2:3, table) 
+  return(gprobs)
+}
+
+
 
 #######################################################################################
 
@@ -124,22 +154,18 @@ for(pop in 1:3) {
   truevalues2d <- as.matrix(dget(paste(datadir,
                                      "obs_masked_genotypes.txt", #"mi_cc_observed_dput.txt",
                                      sep="/")))
-  N <- dim(truevalues2d)[1]
+  N <- dim(truevalues2d)[1] # num masked individuals
   locusnames.truevalues <- dimnames(truevalues2d)[[2]]
-  numloci <- dim(truevalues2d)[2]
-  #truevalues <- as.vector(truevalues)
-  #truevalues2d <- integer(N * numloci)
-  #truevalues2d[truevalues=="1,1"] <- 1
-  #truevalues2d[truevalues=="1,2" | truevalues=="2,1"] <- 2
-  #truevalues2d[truevalues=="2,2"] <- 3
-  #truevalues2d <- matrix(data=truevalues2d, nrow=N)
+  numloci <- dim(truevalues2d)[2]  # num masked loci
 
   ## get priors from data directory
   ## read original phased genotypes
   g.all <- read.table(paste(datadir,"phased_5000_genotypes.txt", sep="/"), header=T,
                         colClasses=c("character", rep("integer", numloci)))[, -1]
-  # drop all but masked loci 
-  g.all <- g.all[, dimnames(g.all)[[2]] %in% locusnames.truevalues]
+
+  masked.loci <- dimnames(g.all)[[2]] %in% locusnames.truevalues
+  ## drop all but masked loci 
+  g.all <- g.all[, masked.loci]
   cols.ordered <- match(locusnames.truevalues, dimnames(g.all)[[2]])
   g.all <- g.all[, cols.ordered]
   dimnames(g.all)[[2]] <- locusnames.truevalues
@@ -148,9 +174,12 @@ for(pop in 1:3) {
     print("locusnames mismatch between true values and genotypes table")
   }
   
-  ## drop last 2N gametes (masked indivs)
   num.gametes <- dim(g.all)[1]
-  g.all <- g.all[1:(num.gametes - 2*N), ]
+  masked.gametes <- logical(num.gametes)
+  masked.gametes[1:(num.gametes - 2*N)] <- F
+  masked.gametes[(num.gametes - 2*N + 1): num.gametes] <- T
+  ## drop last 2N gametes (masked indivs)
+  g.all <- g.all[!masked.gametes, ]
 
   ## obtain allele counts as table
   counts2d <- apply(g.all, 2, table)
@@ -159,7 +188,7 @@ for(pop in 1:3) {
     print("monomorphic loci\n")
   }
   
-  ## output impute results
+  ## impute results
   system(paste("find results/ -name impgenotypes.txt | grep",
                hpopnames[pop], "> filenames_impute.txt"))
   # read as table with one col, then select col 1
@@ -177,6 +206,16 @@ for(pop in 1:3) {
   predictiveprobs3d <- array(t(as.matrix(gprobs)), dim=c(3, N, numloci))
   bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
   cat("impute", popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
+  
+  ## fastphase results
+  system(paste("find results/ -name _sampledHgivG.txt | grep",
+               hpopnames[pop], "> filenames_fastphase.txt"))
+  # read as table with one col, then select col 1
+  fpfilename <- read.table(file="filenames_fastphase.txt", header=F, as.is=T)[1, 1]
+  
+  predictiveprobs3d <- read.fastphase(fpfilename, masked.gametes, masked.loci)
+  bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
+  cat("fastphase", popnames[pop], dim(predictiveprobs3d), bir.result, "\n")
   
   ## loop over directories containing hapmixmap results
   for(run in 1:length(filenames)) {
