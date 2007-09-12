@@ -30,6 +30,7 @@ for(pop in 1:3){
   
   ## format raw data for HAPMIXMAP
   data.dir <- paste(paste(workdir, "data/chr22_5kloci/hapmixmap", sep="/"), Panels[pop], sep="/")
+  system(paste("[ ! -d ", data.dir, " ] && mkdir -p ", data.dir, ";", sep=""))
 
   system(paste("FPHD -p=", workdir, "/data/chr", CHR_NUM, "/rawdata/", Panels[pop], "/chr", CHR_NUM,
                " -c=", CHR_NUM,

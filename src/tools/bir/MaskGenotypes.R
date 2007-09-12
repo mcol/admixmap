@@ -164,9 +164,11 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
     }
   }
   if(!is.null(fastphase.haploid.file)){
-    ## write unmasked gametes to haplotype file
-    haploid.out <- t(cbind(all.geno[1:num.unmasked.gametes,1], matrix(apply(unmasked.geno.all.loci[,-1], 1, paste, collapse=" "),
-                                                         nrow=num.unmasked.gametes, byrow=T)-1))
+    ## write unmasked gametes to haplotype file coded as 0, 1
+    haploid.out <- t(cbind(all.geno[1:num.unmasked.gametes, 1],
+                           matrix(apply(unmasked.geno.all.loci[, -1] - 1, 1,
+                                        paste, collapse=" "),
+                                  nrow=num.unmasked.gametes, byrow=T)))
     cat(num.unmasked.gametes, haploid.out, file=fastphase.haploid.file, sep="\n")    
   }
 }
