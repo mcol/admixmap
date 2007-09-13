@@ -17,7 +17,7 @@ my $options =  "-outdp 10 -os 1";
 
 for (my $i=0; $i < 3; ++$i){
     my $datadir = "$dataprefix/@Panels[$i]";
-    my $resultsdir = "results/$which_chr/impute/@Panels[$i]";
+    my $resultsdir = "results/$whichchr/impute/@Panels[$i]";
     if(!(-e "$resultsdir")) {
  	 mkpath "$resultsdir" or die "cannot make directory $resultsdir";
     }

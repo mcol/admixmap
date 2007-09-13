@@ -85,7 +85,7 @@ read.fastphase <- function(fpfilename, tested.gametes, tested.loci) {
   ## tested.gametes is a logical vector specifying which gametes are from diploid individuals
   ## whose missing genotypes are to be imputed
   ## returns a 3-way array of genotype probs
-  fplines <- scan(file=fpfilename, comment.char=">", sep="", what="character")
+  fplines <- scan(file=fpfilename, comment.char=">", sep="", what="character", quiet=T)
   numloci <- nchar(fplines[1])
 
   numrows <- length(fplines); 
@@ -186,9 +186,9 @@ for( pop in popnames){
   ##
   ## fastphase results
   ##  
-  fpfilename <- paste(results, which.chr, fastphase, pop, fastphase_sampledHgivG.txt, sep="/")
+  fpfilename <- paste("results", which.chr, "fastphase", pop, "fastphase_sampledHgivG.txt", sep="/")
 
-  masked.loci <- scan(paste(dataprefix, chr22, hapmixmap, pop, "masked_loci.txt", sep="/"), quiet=T)
+  masked.loci <- scan(paste(dataprefix, "hapmixmap", pop, "masked_loci.txt", sep="/"), quiet=T)
   if(pop == "JPTCHB"){
     masked.gametes <- c(rep(F, 150), rep(T, 30))
   }else{

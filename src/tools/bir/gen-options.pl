@@ -34,8 +34,9 @@ sub trainandtest {
     
     # testing run
     $arg_hash->{testgenotypesfile}="$testgenotypesfile";
-    $optionsfilename = "configfiles/testing_$run_name.txt";
+    $arg_hash->{initialvaluedir}=$arg_hash->{finalvaluedir};
     $arg_hash->{predictgenotypes} = 1;
+    $optionsfilename = "configfiles/testing_$run_name.txt";
     writeOptionsFile($arg_hash, $optionsfilename);
     if($comp_states ==1){
       print TEST_COMP_STATES_LIST "hapmixmap $optionsfilename\n";

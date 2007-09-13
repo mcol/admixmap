@@ -28,7 +28,7 @@ my$dataprefix = "data/$whichchr/fastphase";
 
 for my $pop (@Panels) {
     my $datadir = "$dataprefix/$pop";
-    my $resultsdir = "results/$which_chr/fastphase/$pop";
+    my $resultsdir = "results/$whichchr/fastphase/$pop";
     if(!(-e "$resultsdir")) {
  	 mkpath "$resultsdir" or die "cannot make directory $resultsdir";
  	 }	
