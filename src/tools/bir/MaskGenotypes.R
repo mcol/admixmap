@@ -41,7 +41,8 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   ##determine which loci are now monomorphic in the unmasked individuals
   ## and exclude monomorphic loci from separated tables
   col.sums <- colSums(unmasked.geno)
-  monomorphic.masked.loci.indices <- which((( col.sums == num.unmasked.gametes) | (col.sums == 2*num.unmasked.gametes)), masked.loci)
+  monomorphic.masked.loci.indices <- which((( col.sums == num.unmasked.gametes) |
+                                            (col.sums == 2*num.unmasked.gametes)), masked.loci)
   if(length(monomorphic.masked.loci.indices)>0){
     dimorphic.masked.loci <- masked.loci[-monomorphic.masked.loci.indices]
 
@@ -54,7 +55,8 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   num.dimorphic.masked.loci <- length(dimorphic.masked.loci)
   
   col.sums <- colSums(unmasked.geno.all.loci)
-  monomorphic.loci.indices <- which((( col.sums == num.unmasked.gametes) | (col.sums == 2*num.unmasked.gametes)), all.loci)
+  monomorphic.loci.indices <- which((( col.sums == num.unmasked.gametes) |
+                                     (col.sums == 2*num.unmasked.gametes)), all.loci)
   if(length(monomorphic.loci.indices)>0){
     all.dimorphic.loci <- all.loci[-monomorphic.loci.indices]
 
@@ -74,7 +76,8 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   #########################################
   ## write genotypes for unmasked individuals at all dimorphic loci back to file
   #########################################
-  unmasked.geno.all.loci <- data.frame(ID=all.geno[1:num.unmasked.gametes,1], all.geno[1:num.unmasked.gametes, all.dimorphic.loci])
+  unmasked.geno.all.loci <- data.frame(ID=all.geno[1:num.unmasked.gametes,1],
+                                       all.geno[1:num.unmasked.gametes, all.dimorphic.loci])
   write.table(unmasked.geno.all.loci, file=paste(data.dir, "train_genotypes.txt", sep="/"), row.names=F, col.names=T)
 
   ######################################

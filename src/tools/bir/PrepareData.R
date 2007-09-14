@@ -1,5 +1,4 @@
 
-
 workdir <- getwd()##"/ichec/work/ndlif006b/genepi/hapmap"##usually run from this dir
 Panels <- c("CEU", "YRI", "JPTCHB")
 CHR_NUM <- 22
@@ -41,6 +40,8 @@ for(pop in 1:3){
   
   ## Mask 5k genotypes and write fastphase data
   fastphase.dir <- paste(paste(workdir, "data/chr22_5kloci/fastphase", sep="/"), Panels[pop], sep="/")
+  system(paste("[ ! -d ", fastphase.dir, " ] && mkdir -p ", fastphase.dir, ";", sep=""))
+
   fastphase.diploid.file <- paste(fastphase.dir, "fastphase.inp", sep="/")
   fastphase.haploid.file <- paste(fastphase.dir, "fphaplotypes.inp", sep="/")
 
@@ -48,7 +49,9 @@ for(pop in 1:3){
                 data.dir, 5000, num.gametes[pop], fastphase.diploid.file, fastphase.haploid.file)
 
   ##convert HAPMIXMAP data to IMPUTE format
-  system(paste("hapmix2impute -o=",workdir, "/data/chr22_5kloci/impute/", Panels[pop],  
+  impute.dir <- paste(paste(workdir, "data/chr22_5kloci/impute", sep="/"), Panels[pop], sep="/")
+  system(paste("[ ! -d ", impute.dir, " ] && mkdir -p ", impute.dir, ";", sep=""))
+  system(paste("hapmix2impute -o=", impute.dir,  
                " -g=", data.dir, "/train_genotypes.txt",
                " -t=", data.dir, "/test_genotypes.txt",
                " -l=", workdir, "/data/chr22/rawdata/", Panels[pop], "/chr22_legend.txt",
@@ -78,6 +81,8 @@ for(pop in 1:3){
                 data.dir, num.loci[pop], num.gametes[pop], fastphase.diploid.file, fastphase.haploid.file)
 
   ##convert HAPMIXMAP data to IMPUTE format
+  impute.dir <- paste(paste(workdir, "data/chr22/impute", sep="/"), Panels[pop], sep="/")
+  system(paste("[ ! -d ", impute.dir, " ] && mkdir -p ", impute.dir, ";", sep=""))
   system(paste("hapmix2impute -o=",workdir, "/data/chr22/impute/", Panels[pop],  
                  " -g=", data.dir, "/train_genotypes.txt",
                  " -t=", data.dir, "/test_genotypes.txt",
