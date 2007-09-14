@@ -1,8 +1,9 @@
 #!/usr/bin/perl
 use strict;
 use File::Path;
+use Cwd;
 
-my $dataprefix = "data/chr22_5kloci/fastphase";
+my $dir = getcwd;
 
 my @Panels = ("CEU", "YRI", "JPTCHB");
 my $states = 8; 
@@ -19,7 +20,7 @@ my $states = 8;
 #-o=output prefix
 #-b=haplotype file
 #my $options =  "-T2 -C50 -K$states -M2 -m"; 
-my $options =  "-T20 -C25 -K$states -M2 -s10000"; 
+my $options =  "-T20 -C25 -K$states -M2 -s1000"; 
 
 my $whichchr = "chr22_5kloci";
 #my $whichchr = "chr22";
@@ -31,7 +32,13 @@ for my $pop (@Panels) {
     my $resultsdir = "results/$whichchr/fastphase/$pop";
     if(!(-e "$resultsdir")) {
  	 mkpath "$resultsdir" or die "cannot make directory $resultsdir";
- 	 }	
-    system("fastPHASE $options -b$datadir/fphaplotypes.inp -o$resultsdir/fastphase $datadir/fastphase.inp");
+ 	 }
+    my $command = "fastPHASE $options -b$datadir/fphaplotypes.inp -o$resultsdir/fastphase $datadir/fastphase.inp";
+    open(SCRIPT, "> $datadir/fastphase.sh");
+    print(SCRIPT "cd $dir\n");
+    print(SCRIPT " $command\n");
+	close(SCRIPT);
+    system("qsub -l h_rt=01:00:00 $datadir/fastphase.sh");
 };
+
 
