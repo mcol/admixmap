@@ -19,7 +19,7 @@ my $states = 8;
 #-o=output prefix
 #-b=haplotype file
 #my $options =  "-T2 -C50 -K$states -M2 -m"; 
-my $options =  "-T10 -C50 -K$states -M2 -s1000"; 
+my $options =  "-T20 -C25 -K$states -M2 -s10000"; 
 
 my $whichchr = "chr22_5kloci";
 #my $whichchr = "chr22";
