@@ -129,7 +129,8 @@ for( pop in popnames){
 ## 1: hapmixmap results
   
   ## write pathnames to file
-  system(paste("find results/", which.chr, "hapmixmap/", pop, "/ -name PPGenotypeProbs.txt >filenames.txt"))
+  system(paste("find results/", which.chr, "/hapmixmap/", pop,
+               " -name PPGenotypeProbs.txt > filenames.txt", sep=""))
   filenames <- scan(file="filenames.txt", what="character", quiet=T)
 
   ## set data directory for this population

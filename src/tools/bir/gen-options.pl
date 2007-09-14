@@ -30,7 +30,7 @@ sub trainandtest {
     }else{
       print TRAIN_COMP_PRIORS_LIST "hapmixmap $optionsfilename\n";
     }
-    #system("hapmixmap $optionsfilename");
+    system("hapmixmap $optionsfilename");
     
     # testing run
     $arg_hash->{testgenotypesfile}="$testgenotypesfile";
@@ -43,8 +43,7 @@ sub trainandtest {
     }else{
       print TEST_COMP_PRIORS_LIST "hapmixmap $optionsfilename\n";
     }
-
-    #system("hapmixmap $optionsfilename");
+    system("hapmixmap $optionsfilename");
 };
   
 ###################################################################
@@ -60,7 +59,7 @@ my @Panels=("YRI", "CEU", "JPTCHB");
 my @seeds=(2190, 3367, 5211, 7318);
 
 if(!(-e "configfiles")) { 
-    mkdir "configfiles";
+    mkpath "configfiles";
 }
 
 open(TRAIN_COMP_STATES_LIST, ">compare_states_train_tasks.txt") or die ("could not open task list");
@@ -80,9 +79,9 @@ my $arg_hash = {
 
     #main options
     displaylevel    => 0,
-    samples         => 2500, #$samples,
-    burnin          => 500,  #$burnin,
-    every           => 50,   #$every,
+    samples         => 12, #$samples,
+    burnin          => 2,  #$burnin,
+    every           => 1,   #$every,
     numannealedruns => 0,
     thermo          => 0,
     hapmixmodel     => 1,
@@ -155,6 +154,9 @@ for my $pop(@Panels) { # loop over 3 populations
 	
 	# output folders
 	$arg_hash->{resultsdir}="$resultsprefix/$pop/$run_name";
+        if( !(-e "$arg_hash->{resultsdir}") ) {
+	    mkpath "arg_hash->{resultsdir}"; 
+	};
 	$arg_hash->{finalvaluedir}="$resultsprefix/$pop/$run_name"."_fv";
 	
 	# write config files
