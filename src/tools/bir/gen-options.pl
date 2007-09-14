@@ -17,8 +17,12 @@ sub trainandtest {
     my $arg_hash = $_[0];
     my $run_name = $_[1];
     my $testgenotypesfile = $_[2];
-    my $comp_states = $_[3];#1 if comparing states
+    my $comp_states = $_[3]; #1 if comparing states
     # training run
+    print "training run\n";
+    if(exists $arg_hash->{initialvaluedir}) {
+        delete $arg_hash->{initialvaluedir};
+    }
     $arg_hash->{predictgenotypes} = 0;
     if(exists $arg_hash->{testgenotypesfile}) {
 	delete $arg_hash->{testgenotypesfile};
@@ -26,26 +30,27 @@ sub trainandtest {
     my $optionsfilename = "configfiles/training_$run_name.txt";
     writeOptionsFile($arg_hash, $optionsfilename);
     if($comp_states ==1){
-      print TRAIN_COMP_STATES_LIST "hapmixmap $optionsfilename\n";
+	print TRAIN_COMP_STATES_LIST "hapmixmap $optionsfilename\n";
     }else{
-      print TRAIN_COMP_PRIORS_LIST "hapmixmap $optionsfilename\n";
+	print TRAIN_COMP_PRIORS_LIST "hapmixmap $optionsfilename\n";
     }
     system("hapmixmap $optionsfilename");
     
     # testing run
+    print "testing run\n";
     $arg_hash->{testgenotypesfile}="$testgenotypesfile";
     $arg_hash->{initialvaluedir}=$arg_hash->{finalvaluedir};
     $arg_hash->{predictgenotypes} = 1;
     $optionsfilename = "configfiles/testing_$run_name.txt";
     writeOptionsFile($arg_hash, $optionsfilename);
     if($comp_states ==1){
-      print TEST_COMP_STATES_LIST "hapmixmap $optionsfilename\n";
+	print TEST_COMP_STATES_LIST "hapmixmap $optionsfilename\n";
     }else{
-      print TEST_COMP_PRIORS_LIST "hapmixmap $optionsfilename\n";
+	print TEST_COMP_PRIORS_LIST "hapmixmap $optionsfilename\n";
     }
     system("hapmixmap $optionsfilename");
 };
-  
+
 ###################################################################
 
 ## change these prefixes to run entire chromosome
@@ -59,7 +64,7 @@ my @Panels=("YRI", "CEU", "JPTCHB");
 my @seeds=(2190, 3367, 5211, 7318);
 
 if(!(-e "configfiles")) { 
-    mkpath "configfiles";
+    mkpath "configfiles" or die "cannot make directory configfiles";
 }
 
 open(TRAIN_COMP_STATES_LIST, ">compare_states_train_tasks.txt") or die ("could not open task list");
@@ -100,7 +105,8 @@ my $arg_hash = {
 print "\n";
 for my $pop(@Panels) { # loop over 3 populations
   my $s = 1;
-  for my $seed(@seeds){
+  for my $seed(@seeds[0]){
+  #for my $seed(@seeds){
     # data files
     $arg_hash->{locusfile}="$dataprefix/$pop/train_loci.txt";
     $arg_hash->{genotypesfile}="$dataprefix/$pop/train_genotypes.txt";
@@ -155,7 +161,8 @@ for my $pop(@Panels) { # loop over 3 populations
 	# output folders
 	$arg_hash->{resultsdir}="$resultsprefix/$pop/$run_name";
         if( !(-e "$arg_hash->{resultsdir}") ) {
-	    mkpath "arg_hash->{resultsdir}"; 
+	    mkpath "$arg_hash->{resultsdir}" 
+		or die "cannot make directory $arg_hash->{resultsdir}\n"; 
 	};
 	$arg_hash->{finalvaluedir}="$resultsprefix/$pop/$run_name"."_fv";
 	
