@@ -71,14 +71,12 @@ bir.loci <- function(counts2d, predictiveprobs3d, truevalues2d) {
     return(1)
   } 
 
-  masked.loci <- dimnames(predictiveprobs3d)[[2]]
   bir <- NULL
-  for(locus in masked.loci) {
+  for(locus in 1:dim(counts2d)[2]) { 
     prior <- priorfromcounts(counts2d[, locus])
     bir <- c(bir, bir.locus(prior, predictiveprobs3d[,locus,], truevalues2d[, locus]))
   }
   return(mean(bir))
-  ##return bir
 }
 
 read.fastphase <- function(fpfilename, tested.gametes, tested.loci) {
@@ -187,18 +185,15 @@ for( pop in popnames){
   ##
   ## fastphase results
   ##  
-  fpfilename <- paste("results", which.chr, "fastphase", pop, "fastphase_sampledHgivG.txt", sep="/")
-
+  fpfilename <- paste("results", which.chr, "fastphase", pop, "_sampledHgivG.txt", sep="/")
   masked.loci <- scan(paste(dataprefix, "hapmixmap", pop, "masked_loci.txt", sep="/"), quiet=T)
   if(pop == "JPTCHB"){
     masked.gametes <- c(rep(F, 150), rep(T, 30))
   }else{
     masked.gametes <- c(rep(F, 100), rep(T, 20))
   }
-  ##predictiveprobs3d <- read.fastphase(fpfilename, masked.gametes, masked.loci)
-  ##bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
-  ##cat("fastphase", pop, dim(predictiveprobs3d), bir.result, "\n")
   
-
-  
+  predictiveprobs3d <- read.fastphase(fpfilename, masked.gametes, masked.loci)
+  bir.result <-  bir.loci(counts2d, predictiveprobs3d, truevalues2d)
+  cat("fastphase", pop, dim(predictiveprobs3d), bir.result, "\n")
 }
