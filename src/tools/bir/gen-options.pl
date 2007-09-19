@@ -74,7 +74,7 @@ open(TEST_COMP_PRIORS_LIST, ">compare_priors_test_tasks.txt") or die ("could not
 
 
 my $arg_hash = {
-    deleteoldresults => 0,
+    deleteoldresults => 1,
 
 #model
     states                => 6,
@@ -173,3 +173,8 @@ for my $pop(@Panels) { # loop over 3 populations
     $s = $s+1;
   }
 };
+
+close(TRAIN_COMP_STATES_LIST);
+close(TEST_COMP_STATES_LIST);
+close(TRAIN_COMP_PRIORS_LIST);
+close(TEST_COMP_PRIORS_LIST);

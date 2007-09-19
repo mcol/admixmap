@@ -184,8 +184,9 @@ for( pop in popnames){
 
   ##
   ## fastphase results
-  ##  
-  fpfilename <- paste("results", which.chr, "fastphase", pop, "_sampledHgivG.txt", sep="/")
+  ##
+  tempdir <- "/exports/work/scratch/pmckeigu"
+  fpfilename <- paste(tempdir, which.chr, "fastphase", pop, "_sampledHgivG.txt", sep="/")
   masked.loci <- scan(paste(dataprefix, "hapmixmap", pop, "masked_loci.txt", sep="/"), quiet=T)
   if(pop == "JPTCHB"){
     masked.gametes <- c(rep(F, 150), rep(T, 30))
