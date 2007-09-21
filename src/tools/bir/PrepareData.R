@@ -11,11 +11,6 @@ percent.masked.loci <- 30
 taskfarm.list <- "fastphase_impute_tasks.txt"
 STATES <- 6## this is a pre-emptive since we have to use some of these data to decide on the number of states
 
-## fastPHASE options: K=number of block states, T=number of starts, C=number of EM iterations
-##                    p= print parameter estimates, s=random seed, -M2=fixed mixture props
-fastphase.options <- paste("-T20 -C50 -K", STATES, " -s1000 -p -M2", sep="")
-Ne.values <- c(11418, 17469, 14269)## for IMPUTE
-
 source("MaskGenotypes.R")
 ##set random seed, for consistency
 set.seed(100)
@@ -89,25 +84,5 @@ for(pop in 1:3){
                  " -l=", workdir, "/data/chr22/rawdata/", Panels[pop], "/chr22_legend.txt",
                  " -m=", workdir, "/data/chr22/rawdata/genetic_map_chr22.txt"
                  , sep=""))
-
-  ## write taskfarm list
-
-  cat("fastPHASE ", fastphase.options,
-      " -b", fastphase.haploid.file,
-      " ", fastphase.diploid.file,
-      "\n", file=taskfarm.list, sep="", append=T
-      )
-  
-  impute.data.dir <- paste(workdir, "/data/chr22/impute/", Panels[pop], sep="" )
-  cat("impute -h ", impute.data.dir, "/haplo.txt",
-      " -g ", impute.data.dir, "/geno.txt",
-      " -l ", impute.data.dir, "/legend.txt",
-      " -m ", impute.data.dir, "/map.txt",
-      " -o ", workdir, "/results/impute/CEU_out.txt",
-      " -i ", workdir, "/results/impute/CEU_info.txt",
-      " -Ne ", Ne.values[pop],
-      " -os 2", ## this means output only loci in both genotype file and haplotype file, ie the masked loci
-      "\n", file=taskfarm.list, sep="", append=T) 
-
 
 }
