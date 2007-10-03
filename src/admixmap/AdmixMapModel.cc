@@ -513,7 +513,7 @@ void AdmixMapModel::WriteParamsAsRObjectDimensions(const AdmixOptions& options, 
     
   vector<int> dims;
   dims.push_back(dimnames[0].size());
-  dims.push_back(options.getTotalSamples() - options.getBurnIn());
+  dims.push_back((options.getTotalSamples() - options.getBurnIn()) / options.getSampleEvery());
 
   paramstream.close(dims, dimnames);
 }
