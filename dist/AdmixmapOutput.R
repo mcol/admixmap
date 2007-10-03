@@ -416,9 +416,9 @@ plotlogpvalues <- function(psfilename, minuslog10pvalues, table.every, title, hi
        ylim= c( 0, max(minuslog10pvalues*is.finite(minuslog10pvalues), na.rm=T) ),
        main=title, xlab="Iterations", ylab="-log10(p-value)", type='n')
   ## add lines to plot for all tests with pvalues < 0.01 ie (-log10 pvalues) > 2
-  ind <- rowSums(minuslog10pvalues>2, na.rm=T)
+  ind <- rowSums(minuslog10pvalues>1.3, na.rm=T)
   for(test in 1:ntests) {
-    if( ind[test] > 0)##plot if any avaluation of the pvalue < 0.01
+    if( ind[test] > 0)##plot if any avaluation of the pvalue < 0.05
       lines(table.every*seq(1:evaluations), minuslog10pvalues[test,], type="l")
   }
   ## label lines for which final p<0.01
@@ -477,7 +477,7 @@ QQplot <- function(zscores, title, filename){
     openPlotDevice( paste(resultsdir, filename, sep="/" ))
     ##qq-plot
     point.list <- qqnorm(zscores, main = title)
-    ##add line through the points plotted
+    ##add line y = x with min and max from x values
     lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
     dev.off()
   }
@@ -500,7 +500,8 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
 
   dimnames(minuslog10pvalues) <- list(testnames, NULL)
   minuslog10pvalues[is.nan(minuslog10pvalues)] <- NA
-
+  print(minuslog10pvalues)
+  
   plotlogpvalues(outputfilePlot, minuslog10pvalues,
               10*thinning, "Running computation of p-values for allelic association", F)
 }
@@ -510,7 +511,7 @@ plotHWScoreTest <- function(scorefile, k) {
   scoretest <- read.table(paste(resultsdir,scorefile,sep="/"),header=TRUE, row.names="Locus")
   
   #qq plot of scores
-  QQplot(scoretest[,6], "QQ plot of H-W Test z-scores", paste(resultsdir, "QQPlotHWTest", sep="/" ))
+  QQplot(scoretest[,5], "QQ plot of H-W Test z-scores", "QQPlotHWTest")
   
 }
   
@@ -1107,11 +1108,8 @@ plotExtractedInfoMap <- function(score.table.final, locus.table, info.map.filena
   
   ##plot(map.pos, percent.info, xlab=x.label, ylab="%Info Extracted", main="Extracted Info Map",type='l')  
   dev.off()
-
-  ##QQ plot of zscores
-  QQplot(zscores, "QQ plot of z-scores in Allelic Association Test", qqplot.filename)
-
 }
+
 ###################################################################################
 ## start of script
 ###################################################################################
@@ -1275,6 +1273,12 @@ if(!is.null(user.options$allelicassociationscorefile)
   outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation", sep="/" )
 
   plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, user.options$every)
+
+  ##QQ plot of zscores
+  zscores <- read.table(file=paste(resultsdir, "TestAllelicAssocFinal.txt", sep="/"),
+                        header=T)[, 6]
+  QQplot(zscores, "QQ plot of z-scores in allelic association test", "QQPlotTestAllelicAssociation")
+  
   cat(" done\n", file=outfile, append=T)
 
 ##append columnns with posterior means of arrival rate and allele freq precision to final table if hapmixmodel
