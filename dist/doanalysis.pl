@@ -104,5 +104,4 @@ sub runRScript {
     print "R script completed\n\n";
 }
 
-
-return (1);
+my $returnvalue=1; # last expression evaluated is returned by do command
