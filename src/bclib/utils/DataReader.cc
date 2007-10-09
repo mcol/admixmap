@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <algorithm>
 #include <sstream>
+#include <boost/algorithm/string.hpp>
 
 BEGIN_BCLIB_NAMESPACE
 
@@ -115,12 +116,15 @@ void DataReader::convertMatrix(const std::vector<std::vector<std::string> >& dat
     }
 }
 
-void DataReader::ReadHeader(const char* filename, std::vector<std::string>& labels, bool skipfirstcol){
+void DataReader::ReadHeader(const char* filename, std::vector<std::string>& labels, bool skipfirstcol)
+{
+  using namespace boost;
   std::ifstream file(filename);
   std::string header;
-  if(skipfirstcol)file >> header;//skip first column
-  getline(file, header);
+  if(skipfirstcol) file >> header; //skip first column
+  getline(file, header);  // won't work if newline is ^M
   file.close();
-  StringSplitter::Tokenize(header, labels, " \t\"");
+  trim(header); // remove leading whitespace left after skipping first column
+  StringSplitter::Tokenize(header, labels, " \t");
 }
 END_BCLIB_NAMESPACE

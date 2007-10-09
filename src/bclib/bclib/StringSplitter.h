@@ -35,7 +35,7 @@ public:
   ///   Splits a string into tokens, splitting on any character(s).
   static void Tokenize(const std::string& str,
 		       std::vector<std::string>& tokens,
-		       const std::string& delimiters);
+		       const std::string& separators);
   static void QuickTokenize(const std::string& text, std::vector<std::string>& tokens, const std::string& delim);
 
 private:

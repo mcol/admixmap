@@ -1,6 +1,9 @@
 #include "bclib/StringSplitter.h"
 #include <cctype>
 #include <stdexcept>
+#include <boost/tokenizer.hpp>
+#include <string>
+
 
 BEGIN_BCLIB_NAMESPACE
 
@@ -183,27 +186,24 @@ void StringSplitter::wordComplete()
   result_.push_back(current_);
   current_.clear();
 }
-// can use this version if empty strings are not allowed, and use " as delimiter
+
+// can use this version if multiple separators are not to be merged
+// if multiple separators are to be merged, use the default TokenizerFunction
+// which is char_delimiters_separator<char>
 void StringSplitter::Tokenize(const std::string& str,
 			      std::vector<std::string>& tokens,
-			      const std::string& delimiters = " ")
+			      const std::string& separators = " \t")
 {
-  // Skip delimiters at beginning.
-  std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-    // Find first "non-delimiter".
-  std::string::size_type pos     = str.find_first_of(delimiters, lastPos);
-
-  while (std::string::npos != pos || std::string::npos != lastPos)
-    {
-      if(pos==lastPos)tokens.push_back("");
-      else
-        // Found a token, add it to the vector.
-        tokens.push_back(str.substr(lastPos, pos - lastPos));
-      // Skip delimiters.  Note the "not_of"
-      lastPos = str.find_first_not_of(delimiters, pos);
-      // Find next "non-delimiter"
-      pos = str.find_first_of(delimiters, lastPos);
-    }
+  // default separators are space or tab
+  // multiple separators are not merged
+  // text delimiters may be single quote, double quote or missing
+  using namespace std;
+  using namespace boost;
+  escaped_list_separator<char> sep("\\", separators, "\"\'");
+  tokenizer<escaped_list_separator<char> > tok(str, sep);
+  for (tokenizer<escaped_list_separator<char> >::iterator tok_iter = tok.begin();
+       tok_iter != tok.end(); ++tok_iter) 
+      tokens.push_back(*tok_iter);
 }
 
 /**
@@ -245,8 +245,8 @@ void StringSplitter::Tokenize(const std::string& str,
 //   while (std::string::npos != pos || std::string::npos != lastPos);
 // }
 
-//possible alternative
 
+//possible alternative - this function will not cope with quoted strings 
 void StringSplitter::QuickTokenize(const std::string& text, std::vector<std::string>& tokens, const std::string& delim) {
   tokens.clear();
   std::string::size_type b(text.find_first_not_of(delim));

@@ -105,8 +105,6 @@ void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
     DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), HiddenStateLabels);
   else if(strlen(options->getHistoricalAlleleFreqFilename()))
     DataReader::ReadHeader(options->getHistoricalAlleleFreqFilename(), HiddenStateLabels);
-  
-  //  }
   else{
     //read labels from 'poplabels' option
     bclib::StringSplitter::Tokenize(options->getPopLabelString(), HiddenStateLabels, " ,");
