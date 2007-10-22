@@ -40,6 +40,9 @@ AC_CHECK_CXX_FEATURES
 #check for gsl
 AM_PATH_GSL
 
+#check for boost (optional)
+AC_CHECK_HEADERS([boost.h])
+
 #check if script called with --enable-parallel and if so set parallel flags
 AC_ENABLE_PARALLEL
 

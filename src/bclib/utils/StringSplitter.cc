@@ -1,11 +1,13 @@
 #include "bclib/StringSplitter.h"
 #include <cctype>
 #include <stdexcept>
-#include <boost/tokenizer.hpp>
-#include <string>
-
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 BEGIN_BCLIB_NAMESPACE
+using std::string;
+using std::vector;
 
 //definitions of struct members of StringSplitter
 struct StringSplitter::StringSplitterState
@@ -171,7 +173,7 @@ const Vector_s& StringSplitter::split(const char *p, char delim)
   return result_;
 }
 
-const Vector_s& StringSplitter::split(const std::string& str, char delim)
+const Vector_s& StringSplitter::split(const string& str, char delim)
 {
   return split(str.c_str(), delim);
 }
@@ -187,12 +189,13 @@ void StringSplitter::wordComplete()
   current_.clear();
 }
 
+#ifdef HAVE_BOOST_H
 // can use this version if multiple separators are not to be merged
 // if multiple separators are to be merged, use the default TokenizerFunction
 // which is char_delimiters_separator<char>
-void StringSplitter::Tokenize(const std::string& str,
-			      std::vector<std::string>& tokens,
-			      const std::string& separators = " \t")
+void StringSplitter::Tokenize(const string& str,
+			      vector<string>& tokens,
+			      const string separators, bool, bool)
 {
   // default separators are space or tab
   // multiple separators are not merged
@@ -206,54 +209,77 @@ void StringSplitter::Tokenize(const std::string& str,
       tokens.push_back(*tok_iter);
 }
 
+#else
+
 /**
-   Splits a string into tokens.
-   delimiters is a string of characters on which to split.
-
-   Example: "1, 2, 3, 4" becomes ["1" "2" "3" "4"] if delimiters is ", "
+   Tokenizes a string. ie splits a string into 'tokens', determined by separators, sep.
+   Substrings within quotes are preserved as tokens. If merge=true, consecutive separators 
+   are merged (count as a single separator). Otherwise, two consecutive separators result in a token
+   consisting of an empty string.
+   //TODO: option to ignore quotes - can use QuickTokenize instead for now
 */
-// void StringSplitter::Tokenize(const std::string& str,
-// 			      std::vector<std::string>& tokens,
-// 			      const std::string& delimiters = " ")
-// {
-//   std::string::size_type lastPos = 0;
-//   std::string::size_type pos     = 0;
-//   std::string::size_type paren = 0;
-//   std::string::size_type closeparen = 0;
-//   do    {
-//     // Skip delimiters.  Note the "not_of"
-//     lastPos = str.find_first_not_of(delimiters, pos);
-    
-//     // Find next "non-delimiter"
-//     pos = str.find_first_of(delimiters, lastPos);
-    
-//     paren = str.find_first_of("\"", lastPos);
-//     if(std::string::npos != paren ){
-//       closeparen = str.find_first_of("\"", paren+1);
-//       if(std::string::npos == closeparen) 
-// 	throw std::string("missing closing quotes");
-//       if(paren < pos && pos < closeparen){//skip delimiters within quotes
-// 	//++lastPos;
-// 	pos =closeparen+1;
-//       }
-//     }
-//     if(std::string::npos != pos || std::string::npos != lastPos)
-//       // Found a token, add it to the vector.
-//       tokens.push_back(str.substr(lastPos, pos - lastPos));
-//   }
-  
-//   while (std::string::npos != pos || std::string::npos != lastPos);
-// }
+void StringSplitter::Tokenize(const string& str, vector<string>& tokens, const string sep, bool merge, bool dequote){
 
+  string::size_type pos = 0, pos2 = 0;
+  const string::size_type SIZE = str.size();
+  if(SIZE ==0) return;
 
-//possible alternative - this function will not cope with quoted strings 
-void StringSplitter::QuickTokenize(const std::string& text, std::vector<std::string>& tokens, const std::string& delim) {
+  do{
+    if (sep.find(str[pos],0)!=string::npos){
+      // is separator
+      if(merge){//move to next non-separator
+	pos = pos2 = str.find_first_not_of(sep, pos);
+      }else{//add empty string and move to next character
+	tokens.push_back("");
+	++pos;
+	++pos2;
+      }
+    }else if(str[pos]=='\"'){
+      //is quote - find closing quote
+      pos2 = str.find_first_of("\"", pos+1);
+      if(pos2 == string::npos)
+	throw string("ERROR: mismatched quotes in StringSplitter::Tokenize\n");
+      //add contents of quotes
+      if(dequote)
+	tokens.push_back(str.substr(pos+1, pos2-pos-1));
+      else
+	tokens.push_back(str.substr(pos, pos2+1-pos));
+      if(sep.find(str[pos2+1],0)!=string::npos){//ignore sep character immediately after closing quote
+	if(merge)//move to next non-separator
+	  pos=str.find_first_not_of(sep, pos2+1);
+	else//move to next character after separator
+	  pos=pos2+2;
+      }
+      else//otherwise move to next character after closing quote
+	pos=pos2+1;
+
+    }else{
+      //is other character
+      pos2 = str.find_first_of(sep+"\"", pos);
+      tokens.push_back(str.substr(pos, pos2-pos));
+      if(sep.find(str[pos2],0)!=string::npos){//ignore sep character immediately after closing quote
+	if(merge)
+	  pos=str.find_first_not_of(sep, pos2);
+	else
+	  pos=pos2+1;
+      }
+      else
+	pos=pos2;
+    }
+  }while(pos < SIZE);
+
+}
+
+#endif
+
+void StringSplitter::QuickTokenize(const string& text, vector<string>& tokens, const string delim) {
   tokens.clear();
-  std::string::size_type b(text.find_first_not_of(delim));
-  while (b != std::string::npos) {
-    std::string::size_type e(text.find_first_of(delim, b));
+  string::size_type b(text.find_first_not_of(delim));
+  while (b != string::npos) {
+    string::size_type e(text.find_first_of(delim, b));
     tokens.push_back(text.substr(b, e - b));
     b = text.find_first_not_of(delim, (e<text.size() ? e: text.size()) );
   }
 } 
+
 END_BCLIB_NAMESPACE

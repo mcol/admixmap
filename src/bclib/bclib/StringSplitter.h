@@ -26,17 +26,17 @@ public:
   StringSplitter();
   ~StringSplitter();
   
-  /// = Splitting (see comments for class above).
+  // = Splitting (see comments for class above).
 
-  /// splits a char array into a vector of strings, splitting on whitespace ro supplied delimiter.  
+  /// splits a char array into a vector of strings, splitting on whitespace ro supplied delimiter(s).  
   const Vector_s& split(const char *str, char delim = ' ');
-  /// splits a string into a vector of strings, splitting on whitespace or supplied delmiter. 
+  /// splits a string into a vector of strings, splitting on whitespace or supplied delmiter(s). 
   const Vector_s& split(const std::string& str, char delim = ' ');
   ///   Splits a string into tokens, splitting on any character(s).
   static void Tokenize(const std::string& str,
 		       std::vector<std::string>& tokens,
-		       const std::string& separators);
-  static void QuickTokenize(const std::string& text, std::vector<std::string>& tokens, const std::string& delim);
+		       const std::string delimiters=" \t", bool merge=false, bool dequote=true);
+  static void QuickTokenize(const std::string& text, std::vector<std::string>& tokens, const std::string delim);
 
 private:
     struct StringSplitterState;
