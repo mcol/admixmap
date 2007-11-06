@@ -152,7 +152,7 @@ void HWTest::Output(const char* filename, const Vector_s LocusLabels, bclib::Log
     bclib::DelimitedFileWriter outputfile(filename);
     Log << bclib::Quiet << "Tests for Hardy-Weinberg equilibrium writen to " << filename << "\n";
     //header line
-    outputfile <<"Locus\tScore\tCompleteInfo\tMissingInfo\tObservedInfo\tPercentInfo\tz-score\tp-value" << bclib::newline;
+    outputfile <<"Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tz-score\tp-value" << bclib::newline;
 
     for(int j = 0; j < NumLoci; j++ ){
       //call function in base class
