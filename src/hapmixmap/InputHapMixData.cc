@@ -56,7 +56,7 @@ bool InputHapMixData::CheckData(HapMixOptions *options, bclib::LogWriter &Log){
     Log << bclib::On << s << bclib::Quiet;
     DataOK = false;
   }
-  DataOK = DataOK & checkLocusFile(Log);
+  DataOK = DataOK & checkLocusFile(options, Log);
   
   if( strlen( options->getPriorAlleleFreqFilename() )) {
     DataOK = DataOK & CheckAlleleFreqs(options, Log);

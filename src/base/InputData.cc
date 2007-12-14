@@ -115,11 +115,11 @@ const string& InputData::getUnitOfDistanceAsString()const{
   return GeneticDistanceUnitString[getUnitOfDistance()];
 }
 
-bool InputData::checkLocusFile(LogWriter& Log){
+bool InputData::checkLocusFile(Options *options, LogWriter& Log){
   bool badData = false;
 
   const vector<string>& GenotypesFileHeader = genotypeLoader->getHeader();
-  const float threshold = getLocusDistanceThreshold();
+  const float threshold = getLocusDistanceThreshold(!options->getHapMixModelIndicator());
 
   for (unsigned i = 1; i < locusData_.size(); ++i) {//rows of locusfile
 
@@ -168,27 +168,36 @@ bool InputData::checkLocusFile(LogWriter& Log){
 }
 
 ///determines the distance threshold for a new chromosome
-//100 Morgans or 10 Mb
-float InputData::getLocusDistanceThreshold()const{
-  switch(distanceUnit){
-  case basepairs:{
-    return (1e7);
+//100 Morgans for admixmap
+//10 Mb for hapmixmap
+float InputData::getLocusDistanceThreshold(bool hapmixmodelindicator)const{
+  if(!hapmixmodelindicator) {
+    switch(distanceUnit){
+    case centimorgans:{
+      return(10000.0);
     }
-  case kilobases:{
-    return(10000.0);
+    case Morgans:{
+      return (100.0);
     }
-  case megabases:{
-    return(10.0);
+    default:{
+      return(100.0);
     }
-  case centimorgans:{
-    return(10000.0);
-  }
-  case Morgans:{
-    return (100.0);
-  }
-  default:{
-    return(100.0);
-   }
+    }
+  } else {
+    switch(distanceUnit){
+    case basepairs:{
+      return (1e7);
+    }
+    case kilobases:{
+      return(10000.0);
+    }
+    case megabases:{
+      return(10.0);
+    }
+    default:{
+      return(10000.0);
+    }
+    }
   }
 }
 

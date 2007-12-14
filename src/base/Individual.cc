@@ -242,10 +242,14 @@ double Individual::getLogLikelihood(const Options& options, const double* const 
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
+    //cout << Loci->isXChromosome(j) << " ";
     if(updateHMM){// force update of forward probs 
       UpdateHMMInputs(j, options, theta, rho);
     }
     LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
+    if(isnan(LogLikelihood)) {
+      throw string("HMM returns log-likelihood as nan (not a number)\n");
+    }
   }
   return LogLikelihood; 
 }

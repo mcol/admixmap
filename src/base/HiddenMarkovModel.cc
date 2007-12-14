@@ -384,6 +384,15 @@ void HiddenMarkovModel::UpdateForwardProbsHaploid(){
   sumfactor = 0.0;
   double Sum = 0.0;
   double scaleFactor = 0.0;
+
+  //   for(int t = 0; t < Transitions; ++t) {
+  //     cout << "t " << t << " ";
+  //     for(int j = 0; j < K; ++j) {
+  //       cout << Lambda[t*K + j] << " ";
+  //     }
+  //     cout << "\n";
+  //   }
+  
   for(int j = 0; j < K; ++j){
     alpha[j] = theta[j] * Lambda[j];
   }

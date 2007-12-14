@@ -45,7 +45,7 @@ Genome::~Genome()
 }
 
 ///gets contents of locusfile and creates CompositeLocus array and Chromosome array
-void Genome::Initialise(const InputData* const data_, int populations, bclib::LogWriter &Log){
+void Genome::Initialise(const InputData* const data_, int populations, bool hapmixmodelindicator, bclib::LogWriter &Log){
   const bclib::DataMatrix& locifileData =  data_->getLocusMatrix();//locus file converted to doubles
   const Vector_s& locusLabels = data_->getLocusLabels();
   
@@ -68,7 +68,7 @@ void Genome::Initialise(const InputData* const data_, int populations, bclib::Lo
 
   //determine if distances are given in Morgans or centimorgans
   GeneticDistanceUnit unit = data_->getUnitOfDistance();
-  const float threshold = data_->getLocusDistanceThreshold();//threshold for new chromosome
+  const float threshold = data_->getLocusDistanceThreshold(!hapmixmodelindicator); //threshold for new chromosome
 
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     LocusTable[i].resize(2);

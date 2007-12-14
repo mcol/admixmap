@@ -236,11 +236,14 @@ void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chi
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*NumHiddenStates*NumHiddenStates, PossibleHapPairs[locus],
 				       chibindicator);
       //       if(chibindicator) {
-      //        for( int k = 0; k < NumHiddenStates; ++k ) cout << GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates + k] << " ";
+      ///for( int k = 0; k < NumHiddenStates; ++k ) cout << GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates + k] << " ";
       //       }
     } else {//haploid genotype
       (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j]+jj*NumHiddenStates, PossibleHapPairs[locus],
 					      chibindicator);
+      // cout << "locus " << locus << " " << "chr " << j << " ";
+      // for( int k = 0; k < NumHiddenStates; ++k ) cout << GenotypeProbs[j][jj*NumHiddenStates + k] << " ";
+      //       cout << "\n"; 
     }
   } else {
     if( !isHaploid && (j!=(int)X_posn || SexIsFemale))  //diploid genotype
@@ -369,22 +372,22 @@ double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options& option
   for( unsigned int g = 0; g < NumGametes; g++ ){
     for(int k = 0; k < NumHiddenStates; ++k)
       if(Theta[g*NumHiddenStates + k] > 0.0){
-      b[k] = true; //to skip elements set to zero
-    } else b[k] = false;
+	b[k] = true; //to skip elements set to zero
+      } else b[k] = false;
     bclib::softmax(NumHiddenStates, ThetaBar+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
     //rescale sumsoftmaxtheta back 
     for(int k = 0; k < NumHiddenStates; ++k)
       SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) (options.getTotalSamples() - options.getBurnIn());
   }
   delete[] b;
-
-    for( unsigned int j = 0; j < numChromosomes; j++ ) {
-      UpdateHMMInputs(j, options, ThetaBar, rhobar); 
-      LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
-    }
-    delete[] ThetaBar;
+  
+  for( unsigned int j = 0; j < numChromosomes; j++ ) {
+    UpdateHMMInputs(j, options, ThetaBar, rhobar); 
+    LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
   }
-
+  delete[] ThetaBar;
+  }
+  
   return LogLikelihood;
 }
 
@@ -896,6 +899,8 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options& options,
   Chromosome* C = Loci->getChromosome(j);
 
   C->HMM->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
+  //   if(!SexIsFemale) cout << "chr " << j << " " << X_posn << " ";
+  //   if(!diploid) cout << "haploid GenotypeProbs set for chromosome " << j << "\n";
 
   if(!options.isGlobalRho()){
     //set locus correlation, f, if individual- or gamete-specific rho

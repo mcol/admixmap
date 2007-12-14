@@ -99,7 +99,7 @@ public:
   GeneticDistanceUnit getUnitOfDistance()const;
   ///returns a string representing the unit of distance in locusfile
   const std::string& getUnitOfDistanceAsString()const;
-  float getLocusDistanceThreshold()const;
+  float getLocusDistanceThreshold(bool hapmixmodelindicator)const;
 
 protected:
   /** Extracts population labels from header line of allelefreq file.
@@ -116,7 +116,7 @@ protected:
      \param threshold maximum allowable distance between loci on a chromosome. If a distance exceeds this, the chromosome is broken up and a warning is printed.
      \param check determines whether to check locus labels
   */
-  bool checkLocusFile(bclib::LogWriter& Log);
+  bool checkLocusFile(Options *options, bclib::LogWriter& Log);
   void SetLocusLabels();
 
   ///determine number of composite loci from locusfile

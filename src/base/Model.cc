@@ -28,7 +28,7 @@ Model::~Model(){
 }
 
 void Model::InitialiseGenome(Genome& G, const Options& options, InputData& data, bclib::LogWriter& Log){
-  G.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
+  G.Initialise(&data, options.getPopulations(), options.getHapMixModelIndicator(), Log);//reads locusfile and creates CompositeLocus objects
   //print table of loci for R script to read
   string locustable = options.getResultsDir();
   locustable.append("/LocusTable.txt");

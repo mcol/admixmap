@@ -56,7 +56,7 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
  
   bool badData = false;
   if(options->CheckData())
-    badData = !checkLocusFile(Log);
+    badData = !checkLocusFile(options, Log);
 
   if(badData)
     exit(1);
@@ -81,6 +81,7 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
     //append population labels to covariate labels
     if(!options->getTestForAdmixtureAssociation()){
       for( vector<string>::const_iterator i = HiddenStateLabels.begin()+1; i !=HiddenStateLabels.end(); ++i ){
+	cout << "HiddenStateLabels " << *i << endl;
 	CovariateLabels.push_back("slope." + *i); 
       }
     }

@@ -34,7 +34,8 @@ public:
   Genome(int);
   virtual ~Genome();
 
-  void Initialise(const InputData* const data_, int populations, bclib::LogWriter &Log);
+  void Initialise(const InputData* const data_, int populations, bool hapmixmodelindicator, 
+		  bclib::LogWriter &Log);
 
   const vector<int> GetChrmAndLocus(int) const;
   int getRelativeLocusNumber(int) const;
