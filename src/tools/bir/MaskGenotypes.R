@@ -33,6 +33,7 @@ MaskGenotypes <- function(percent.masked.loci, num.masked.indivs, prefix,
   
   ##unmasked gametes at masked loci
   unmasked.geno <- all.geno[1:num.unmasked.gametes,masked.loci]
+  dput(unmasked.geno, file=paste(data.dir, "unmaskedgeno.txt", sep="/"))
   ##unmasked gametes at all loci
   unmasked.geno.all.loci <- all.geno[1:num.unmasked.gametes, -1]
   

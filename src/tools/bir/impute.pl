@@ -12,7 +12,7 @@ my @Ne      = (11418, 17469, 14269);#from the manual
 
 # -outdp = number of decimal places in output
 # -os 1 means output only untyped loci (those in haplotype file but not in genotype file) 
-my $options =  "-outdp 10 -os 1";
+my $options =  "-outdp 12 -os 1";
 
 
 for (my $i=0; $i < 3; ++$i){

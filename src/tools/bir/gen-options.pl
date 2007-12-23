@@ -1,7 +1,9 @@
 #!/usr/bin/perl
-# script to generate options files for multiple runs of hapmixmap with different prior or different numbers of states
 use strict; 
 use File::Path;
+
+# script to generate options files for multiple runs of hapmixmap with different priors or numbers of states
+# also prepares the <taskname_>tasks.txt files which are read by hapmixmap.pl
 
 sub writeOptionsFile{
     my $hash = $_[0];
@@ -27,6 +29,8 @@ sub trainandtest {
     if(exists $arg_hash->{testgenotypesfile}) {
 	delete $arg_hash->{testgenotypesfile};
     }
+    $arg_hash->{samples}=250;
+    $arg_hash->{burnin}=50;
     my $optionsfilename = "configfiles/training_$run_name.txt";
     writeOptionsFile($arg_hash, $optionsfilename);
     if($comp_states ==1){
@@ -34,10 +38,12 @@ sub trainandtest {
     }else{
 	print TRAIN_COMP_PRIORS_LIST "hapmixmap $optionsfilename\n";
     }
-    system("hapmixmap $optionsfilename");
+    #system("hapmixmap $optionsfilename"); # uncomment for testing the script
     
     # testing run
     print "testing run\n";
+    $arg_hash->{samples}=2500;
+    $arg_hash->{burnin}=500;
     $arg_hash->{testgenotypesfile}="$testgenotypesfile";
     $arg_hash->{initialvaluedir}=$arg_hash->{finalvaluedir};
     $arg_hash->{predictgenotypes} = 1;
@@ -48,7 +54,7 @@ sub trainandtest {
     }else{
 	print TEST_COMP_PRIORS_LIST "hapmixmap $optionsfilename\n";
     }
-    system("hapmixmap $optionsfilename");
+    #system("hapmixmap $optionsfilename"); # uncomment for testing the script
 };
 
 ###################################################################
@@ -61,7 +67,7 @@ my $dataprefix="data/$whichchr/hapmixmap";
 my $resultsprefix="results/$whichchr/hapmixmap"; 
 
 my @Panels=("YRI", "CEU", "JPTCHB");
-my @seeds=(2190, 3367, 5211, 7318);
+my @seeds=(2190, 3367);  # , 5211, 7318);
 
 if(!(-e "configfiles")) { 
     mkpath "configfiles" or die "cannot make directory configfiles";
@@ -84,9 +90,7 @@ my $arg_hash = {
 
     #main options
     displaylevel    => 0,
-    samples         => 12, #$samples,
-    burnin          => 2,  #$burnin,
-    every           => 1,   #$every,
+    every           => 10,   # samples and burnin are set in function trainandtest
     numannealedruns => 0,
     thermo          => 0,
     hapmixmodel     => 1,
@@ -105,8 +109,8 @@ my $arg_hash = {
 print "\n";
 for my $pop(@Panels) { # loop over 3 populations
   my $s = 1;
-  for my $seed(@seeds[0]){
-  #for my $seed(@seeds){
+  #for my $seed(@seeds[0]){
+  for my $seed(@seeds){
     # data files
     $arg_hash->{locusfile}="$dataprefix/$pop/train_loci.txt";
     $arg_hash->{genotypesfile}="$dataprefix/$pop/train_genotypes.txt";
@@ -158,7 +162,7 @@ for my $pop(@Panels) { # loop over 3 populations
 	$run_name =~ s/\,/\-/g;
 	print "$run_name\n";
 	
-	# output folders
+	# make paths for output folders
 	$arg_hash->{resultsdir}="$resultsprefix/$pop/$run_name";
         if( !(-e "$arg_hash->{resultsdir}") ) {
 	    mkpath "$arg_hash->{resultsdir}" 

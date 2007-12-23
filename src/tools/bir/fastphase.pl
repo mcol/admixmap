@@ -8,19 +8,20 @@ my $dir = getcwd;
 my @Panels = ("CEU", "YRI", "JPTCHB");
 my $states = 8; 
 
-# -T=number of random starts
-# -C=number of EM iterations
-# -K=number of states
-# -S=random seed (default is from system time)
-# -s=number of samples of phased haplotypes 
-# -p=print parameter estimates
-#-M2=fixed mixture proportions
-# -m=print estimated probabilities for missing genotypes - causes crash  
-# -H-4 = turn off haplotype inference - causes empty output file 
-#-o=output prefix
-#-b=haplotype file
+# -T number of random starts
+# -C number of EM iterations
+# -K number of states
+# -S random seed (default is from system time)
+# -s sample phased haplotypes 
+# -p print parameter estimates
+# -M2 fixed mixture proportions
+# -m print estimated probabilities for missing genotypes - causes crash  
+# -H-4 turn off haplotype inference - causes empty output file
+# -H<n> for n samples per start 
+# -o output prefix
+# -b haplotype file
 #my $options =  "-T2 -C50 -K$states -M2 -m"; 
-my $options =  "-T20 -C25 -K$states -M2 -s1000"; 
+my $options =  "-T20 -C50 -K$states -M2 -s10000 -H10 -S7001"; 
 
 my $whichchr = "chr22_5kloci";
 #my $whichchr = "chr22";
@@ -40,7 +41,7 @@ for my $pop (@Panels) {
     print(SCRIPT "cd $dir\n");
     print(SCRIPT "$command\n");
     close(SCRIPT);
-    system("qsub -cwd -e fastphase$pop.err -o fastphase$pop.out -N fastph$pop -l h_rt=01:00:00 -V $datadir/fastphase.sh");
+    system("qsub -cwd -e fastphase$pop.err -o fastphase$pop.out -N fastph$pop -l h_rt=00:30:00 -V $datadir/fastphase.sh");
 };
 
 
