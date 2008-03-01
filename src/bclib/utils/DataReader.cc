@@ -5,7 +5,12 @@
 #include <ctype.h>
 #include <algorithm>
 #include <sstream>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#ifdef HAVE_BOOST_H
 #include <boost/algorithm/string.hpp>
+#endif
+#endif
 
 BEGIN_BCLIB_NAMESPACE
 
@@ -119,7 +124,9 @@ void DataReader::convertMatrix(const std::vector<std::vector<std::string> >& dat
 
 void DataReader::ReadHeader(const char* filename, std::vector<std::string>& labels, bool skipfirstcol)
 {
+#ifdef HAVE_BOOST_H
   using namespace boost;
+#endif
   std::ifstream file(filename);
   std::string header;
   if(skipfirstcol) file >> header; //skip first column
@@ -130,7 +137,16 @@ void DataReader::ReadHeader(const char* filename, std::vector<std::string>& labe
   }
   
   file.close();
-  boost::trim(header); // remove leading whitespace left after skipping first column
+
+// remove leading whitespace left after skipping first column
+#ifdef HAVE_BOOST_H
+  boost::trim(header); 
+#else
+  if(skipfirstcol)
+    header.erase(0, header.find_first_not_of(" \t" ));
+#endif
+  //tokenize header, splitting on white space, without merging separators
   StringSplitter::Tokenize(header, labels, " \t");
 }
+
 END_BCLIB_NAMESPACE
