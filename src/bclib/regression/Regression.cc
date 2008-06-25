@@ -14,7 +14,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <vector>
-#include <string>
+#include <string.h>
 
 using std::vector;
 using std::string;

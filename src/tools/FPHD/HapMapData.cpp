@@ -18,6 +18,7 @@
 #include <fstream>
 #include <vector>
 #include <cstdio>//for rename
+#include <cstdlib>
 
 using namespace::std;
 

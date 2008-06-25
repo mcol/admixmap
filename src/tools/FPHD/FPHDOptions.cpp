@@ -12,6 +12,7 @@
 */
 #include "FPHDOptions.h"
 #include <iostream>
+#include <cstdlib>
 
 #define MAXCHROMOSOMES 22//maximum number of chromosomes
 #define PROGNAME "FPHD"

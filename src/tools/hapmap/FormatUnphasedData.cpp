@@ -26,6 +26,8 @@
 #include <sstream>
 #include <map>
 #include <getopt.h>
+#include <cstdlib>
+#include <algorithm>
 
 unsigned NUMIND = 90;
 unsigned NUMVALIDINDS =0;

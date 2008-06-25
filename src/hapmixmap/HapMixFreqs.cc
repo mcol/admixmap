@@ -16,6 +16,7 @@
 #include "bclib/misc.h"
 #include "bclib/Exceptions.h"
 #include <iomanip>
+#include <string.h>
 
 HapMixFreqs::HapMixFreqs(){
   DirichletParams = 0;

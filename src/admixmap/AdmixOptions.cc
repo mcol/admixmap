@@ -15,6 +15,7 @@
 #include "AdmixFilenames.h"
 #include <string.h>
 #include <sstream>
+#include <iterator>
 #include <numeric> // for checkInitAlpha
 
 using namespace std;

@@ -1,5 +1,10 @@
 #include "bclib/StringConvertor.h"
 #include <cctype>
+#include <cstdlib>
+#include <string.h>
+#include <iterator>
+#include <vector>
+#include <algorithm>
 
 using namespace std;
 

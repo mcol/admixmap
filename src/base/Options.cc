@@ -13,7 +13,7 @@
 #include "Options.h"
 #include "bclib/StringConvertor.h"
 #include "bclib/StringSplitter.h"
-#include <string>
+#include <string.h>
 #include <sstream>
 #include "Filenames.h"
 

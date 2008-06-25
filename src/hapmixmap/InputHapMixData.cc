@@ -15,6 +15,7 @@
 #include "bclib/DataReader.h"
 #include "bclib/StringConvertor.h"
 #include <sstream>
+#include <string.h>
 
 InputHapMixData::InputHapMixData(HapMixOptions *options, bclib::LogWriter &Log){
   hGenotypeLoader = new HapMixGenotypeLoader;

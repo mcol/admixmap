@@ -15,6 +15,7 @@
 #include "bclib/Exceptions.h" //for InfinityException
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 
 #define DEBUG 0 //set to 1 for debug info

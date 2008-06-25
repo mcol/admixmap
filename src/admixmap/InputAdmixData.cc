@@ -15,6 +15,7 @@
 #include "AdmixOptions.h"
 #include "bclib/DataReader.h"
 #include <sstream>
+#include <string.h>
 
 using bclib::LogWriter;
 

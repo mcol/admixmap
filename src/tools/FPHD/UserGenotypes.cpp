@@ -20,6 +20,7 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
+#include <string.h>
 
 using namespace std;
 #define REMOTE_POSITION 999999999

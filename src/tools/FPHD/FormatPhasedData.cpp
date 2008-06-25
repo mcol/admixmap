@@ -31,6 +31,7 @@
 #include "HapMapData.h"
 #include "UserGenotypes.h"
 #include "InitialValues.h"
+#include <cstdlib>
 
 ///number of alleles (fixed at 2)
 unsigned NUMALLELES = 2;

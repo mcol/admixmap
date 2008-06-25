@@ -22,6 +22,7 @@
 #include "bclib/GSLExceptions.h" //for catching gsl exceptions
 #include "bclib/Exceptions.h"//for throwing InfiniteGradient to Hamiltonian
 #include "bclib/RObjectWriter.h"
+#include <string.h>
 
 using namespace std;
 using bclib::Rand;

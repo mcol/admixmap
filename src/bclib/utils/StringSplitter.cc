@@ -191,8 +191,8 @@ void StringSplitter::wordComplete()
 
 #ifdef HAVE_BOOST_H
 // can use this version if multiple separators are not to be merged
-// if multiple separators are to be merged, use the default TokenizerFunction
-// which is char_delimiters_separator<char>
+// if multiple separators are to be merged, use the default 
+// TokenizerFunction model which is char_separator<char>
 void StringSplitter::Tokenize(const string& str,
 			      vector<string>& tokens,
 			      const string separators, bool, bool)

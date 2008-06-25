@@ -16,6 +16,7 @@
 #include "bclib/StringSplitter.h"
 #include "bclib/StringConvertor.h"
 #include <string>
+#include <cstdlib>
 
 using namespace::std;
 using namespace::bclib;

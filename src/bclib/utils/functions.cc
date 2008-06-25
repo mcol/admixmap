@@ -10,6 +10,7 @@
  * 
  */
 
+#include<iterator>
 #include "bclib/misc.h"
 #include "bclib/dist.h"
 #include "bclib/linalg.h"

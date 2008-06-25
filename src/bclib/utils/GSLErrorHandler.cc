@@ -1,6 +1,6 @@
 #include "bclib/GSLErrorHandler.h"
 #include "bclib/GSLExceptions.h"
-#include <string>
+#include <string.h>
 #include <sstream>
 
 BEGIN_BCLIB_NAMESPACE

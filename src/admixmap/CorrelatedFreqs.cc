@@ -15,7 +15,7 @@
 #include "InputAdmixData.h"
 #include <iomanip>
 #include "bclib/misc.h"
-
+#include <string.h>
 using bclib::Rand;
 
 CorrelatedFreqs::CorrelatedFreqs(){

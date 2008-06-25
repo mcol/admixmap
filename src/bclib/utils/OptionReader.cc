@@ -14,10 +14,11 @@
 #include "bclib/OptionReader.h"
 #include "bclib/StringConvertor.h"
 #include "bclib/StringSplitter.h"
-#include <string>
+#include <string.h>
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 using namespace std;
 

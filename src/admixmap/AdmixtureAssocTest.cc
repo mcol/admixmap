@@ -15,6 +15,7 @@
 #include <math.h>//for sqrt
 #include <algorithm> //for fill
 #include <iomanip>
+#include <string.h>
 
 using namespace std;
 

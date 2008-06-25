@@ -1,5 +1,6 @@
 #include "bclib/ProbVector.h"
 #include <iostream>
+#include <iterator>
 #include <algorithm>
 #include <numeric>
 #include <cmath>

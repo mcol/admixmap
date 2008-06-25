@@ -1,4 +1,4 @@
-
+#include <string.h>
 #include "bclib/DataReader.h"
 #include "bclib/StringConvertor.h"
 #include <stdexcept>

@@ -2,15 +2,15 @@
 use strict; 
 use File::Path;
 
-my $function_file = "../doanalysis.pl";
+my $function_file = "doanalysis.pl";
 
 require $function_file or die("cannot find doanalysis.pl");
 
 # Change this to the location of the admixmap executable
-my $executable = '../admixmap';
+my $executable = 'admixmap';
 
 # Change this to the location of the R script
-my $rscript = "../AdmixmapOutput.R";
+my $rscript = "AdmixmapOutput.R";
 
 my $arg_hash = {
 #data files
@@ -19,8 +19,8 @@ my $arg_hash = {
     covariatesfile                  => 'data/covariates2std.txt', # age, sex 
     outcomevarfile                  => 'data/outcomevars.txt',
 #main options
-    samples  => 1200,
-    burnin   => 200,
+    samples  => 600,
+    burnin   => 100,
     every    => 5,
     numannealedruns => 0, #200, # 100, 
     displaylevel => 2,
@@ -40,20 +40,20 @@ my $arg_hash = {
 $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'SinglePopResults';
 $arg_hash->{outcomevarcols}       = 2; # skin reflectance
-#&doAnalysis($executable, $rscript, $arg_hash);
+&doAnalysis($executable, $rscript, $arg_hash);
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
-$arg_hash->{samples}   = 6000;
-$arg_hash->{burnin}    = 1000;
+$arg_hash->{samples}   = 600;
+$arg_hash->{burnin}    = 100;
 $arg_hash->{paramfile}                 = 'popadmixparams.txt',
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
-#&doAnalysis($executable, $rscript, $arg_hash);
+&doAnalysis($executable, $rscript, $arg_hash);
 
 # model with reference prior on allele freqs in 3 populations
 $arg_hash->{populations}           = 3;
 $arg_hash->{resultsdir}            = 'ThreePopsResults';  
-#&doAnalysis($executable, $rscript, $arg_hash);
+&doAnalysis($executable, $rscript, $arg_hash);
 
 # model with prior allele freqs 
 delete $arg_hash->{populations};
@@ -80,8 +80,8 @@ delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                = 'FixedAlleleFreqResultsDiabetes';  
 $arg_hash->{affectedsonlytest}   = 1;
 $arg_hash->{fixedallelefreqs}    = 1;
-#$arg_hash->{numannealedruns}    = 100;
-doAnalysis($executable, $rscript, $arg_hash);
+$arg_hash->{numannealedruns}    = 100;
+#doAnalysis($executable, $rscript, $arg_hash);
 
 # model with historic allele freqs and both outcome vars
 delete $arg_hash->{targetindicator};  
@@ -98,5 +98,5 @@ $arg_hash->{etapriorfile}              = "data/etapriors.txt";
 $arg_hash->{dispparamfile}             = "dispersionparams.txt";
 $arg_hash->{fstoutputfile}             = "lociFst.txt";
 $arg_hash->{allelefreqoutputfile}      = "allelefreqs.txt";
-&doAnalysis($executable, $rscript, $arg_hash);
+#&doAnalysis($executable, $rscript, $arg_hash);
 

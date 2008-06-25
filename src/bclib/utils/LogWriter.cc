@@ -12,6 +12,9 @@
 #include "bclib/LogWriter.h"
 #include <iostream>
 #include <iomanip>
+#include <cstdlib>
+#include <list>
+#include <vector>
 #ifdef PARALLEL
 #include <mpi++.h>
 #endif

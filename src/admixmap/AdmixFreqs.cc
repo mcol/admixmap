@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <math.h>
 #include <numeric>
+#include <string.h>
 
 using bclib::Rand;
 

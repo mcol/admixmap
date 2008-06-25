@@ -25,7 +25,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdlib.h>
-#include <string>
+#include <string.h>
 #include <stdexcept>
 
 //#define GETDIMS 1

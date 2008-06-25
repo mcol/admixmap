@@ -13,6 +13,7 @@
 #include <sstream>
 #include <iomanip>
 #include <numeric>
+#include <limits>
 #include "gsl/gsl_cdf.h"
 #include <math.h>
 #include "bclib/linalg.h"

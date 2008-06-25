@@ -3,6 +3,7 @@
 #define PVECTOR_H_
 
 #include "bclib/bclib.h"
+#include <iostream>
 #include <vector>
 
 BEGIN_BCLIB_NAMESPACE

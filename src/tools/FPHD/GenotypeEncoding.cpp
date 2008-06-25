@@ -14,6 +14,7 @@
 
 #include "GenotypeEncoding.h"
 #include <sstream>
+#include <algorithm>
 
 using namespace::std;
 
