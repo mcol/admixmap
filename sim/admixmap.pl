@@ -24,12 +24,12 @@ sub doAnalysis
     print "Results will be written to subdirectory $ENV{'RESULTSDIR'}";
     system($command);
     print "Starting R script to process output\n";
-    system("RCMD BATCH --quiet --no-save --no-restore c:\\cvs\\genepi\\test\\AdmixmapOutput.R \
+    system("R CMD BATCH --quiet --no-save --no-restore ../dist/AdmixmapOutput.R \
             $args->{resultsdir}/Rlog.txt");
     print "R script completed\n\n";
 }
 
-my $executable = 'c:/cvs/genepi/test/admixmap';
+my $executable = 'admixmap';
 
 #########################################################################
 
@@ -48,13 +48,13 @@ my $arg_hash =
     logfile                    => 'logfile.txt',
     paramfile                  => 'param.txt',
     regparamfile               => 'regparam.txt',
-    hwscoretestfile            => 'HardyWeinbergTest.txt',
+    hwtest          => 1,
 };
 
 # model with prior allele freqs
-$arg_hash->{resultsdir}            = 'priorAlleleFreqResults';  
+$arg_hash->{resultsdir}            = 'results';  
 $arg_hash->{indadmixturefile}   = "indivadmixture.txt";
-$arg_hash->{dispersiontestfile}    = "dispersionTest.txt";
-$arg_hash->{affectedsonlyscorefile} = 'affectedsonlyscores.txt';
-$arg_hash->{ancestryassociationscorefile} = 'ancestryassociationscores.txt';
+#$arg_hash->{dispersiontestfile}    = "dispersionTest.txt";
+$arg_hash->{affectedsonlytest} = 1;
+$arg_hash->{ancestryassociationtest} = 1;
 doAnalysis($executable,$arg_hash);

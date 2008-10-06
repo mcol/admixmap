@@ -80,9 +80,10 @@ PolyaLogLOverLoci <- function(eta, mu, counts) {
 numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,
-           123,109,96,59,58,120)  # last value is length of X chr
+           123,109,96,59,58,189)  # last value is length of X chr
 N <- 200
-sex <- 2 - rbinom(N, 1,  0.5)
+## sex coded as 1=male, 2=female
+sex <- rep(1, N) # 2 - rbinom(N, 1,  0.5)
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(2, 6) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
@@ -95,10 +96,13 @@ logistic <- TRUE # logistic or linear
 
 ## assign map distances
 x <- numeric(0)
-chr <- numeric(0)
+chr <- integer(0)
 length <- sum(chr.L)
 chr.labels <- c(as.character(1:22), "X")
 for(chromosome in 1:23) {
+  if(chromosome==23) { # closer spacing on X chr
+    spacing <- 5
+  }
   positions <- seq(0, chr.L[chromosome], spacing)
   x <- c( x, positions) 
   chr <- c(chr, rep(chr.labels[chromosome], length(positions)))
@@ -128,8 +132,8 @@ for(locus in 1:(L+Xchr.L)) {
                                         # freqs allele 1 in each of NumSubPops subpops
   alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
 }
-alleleFreqs[,1] <- 0.8
-alleleFreqs[,2] <- 0.2
+alleleFreqs[,1] <- 1 # 0.8
+alleleFreqs[,2] <- 0 # 0.2
 
 p1 <- alleleFreqs[seq(2, 2*(L+Xchr.L), by=2), 1]
 p2 <- alleleFreqs[seq(2, 2*(L+Xchr.L), by=2), 2]
@@ -200,7 +204,7 @@ id = as.character(seq(1:N))
 
 ## write genotypes
 row.names(genotypes) <- NULL
-genotypes <- data.frame(id, genotypes) #, row.names=NULL)
+genotypes <- data.frame(id, sex, genotypes) #, row.names=NULL)
 write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE, quote=FALSE)
 
 ## write locus file
