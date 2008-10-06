@@ -160,15 +160,15 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
       LikRatio2[locus *K + k] += (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) / 
 	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
     }
-  } else { // haploid - effect of one extra copy from pop k0 is equivalent to two extra copies in diploid case 
+  } else { // haploid - effect of one extra copy from pop k0 is equivalent to two extra copies in diploid case
     double theta;//paternal and maternal admixture proportions
     double Pi[2];//probs of 0,1 copies of Pop k given admixture
     for( unsigned k = 0; k < K; k++ ){
-      theta = Theta[ k+k0 ];
+      theta = Theta[ k+k0 ]; // or should it be just k+k0?
       
       //accumulate score, score variance, and info
       AffectedsScore[locus *K + k] += AProbs[1][k+k0] - theta;
-      AffectedsVarScore[locus * K + k] += AProbs[0][k+k0] * AProbs[1][k+k0]; 
+      AffectedsVarScore[locus * K + k] += AProbs[1][k+k0] * (1 - AProbs[1][k+k0]); 
       AffectedsInfo[locus * K +k]+= theta * (1.0 - theta);
       
       //probs of 0,1 copies of Pop k given admixture

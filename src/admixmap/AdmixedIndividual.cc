@@ -994,6 +994,7 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
       
       //Update affecteds only scores      
       if(IamAffected){
+	// argument diploid is true if (not isHaploid) and (female or not X chr)
 	affectedsOnlyTest.Update(locus, k0, Theta, options.isRandomMatingModel(), 
 				 !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
 
