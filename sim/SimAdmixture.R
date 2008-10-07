@@ -209,7 +209,7 @@ write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE, quo
 
 ## write locus file
 x[is.na(x)] <- NA
-loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),
+loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-(1:2)]),
                    rep(2, L + Xchr.L),  dist, chr, row.names=NULL)
 dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "cM", "chr")
 write.table(loci, file="data/loci.txt", row.names=FALSE, quote=FALSE)
