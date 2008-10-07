@@ -344,8 +344,8 @@ double AdmixedIndividual::getLogLikelihood(const Options& options, const double*
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
   if(NumHiddenStates == 1) LogLikelihood = getLogLikelihoodOnePop();
-  else { 
-    LogLikelihood = Individual::getLogLikelihood(options, theta, rho, updateHMM);
+  else {
+        LogLikelihood = Individual::getLogLikelihood(options, theta, rho, updateHMM);
   }
   return LogLikelihood; // if HMM update not required, can just use stored log-likelihood  
 }
