@@ -57,12 +57,15 @@ void HapMixAllelicAssocTest::Update(const HapMixIndividualCollection* const IC,
     for(unsigned int j = 0; j < numberCompositeLoci; j++ ) {
       // SNPs only
       if (Loci.GetNumberOfStates(j) == 2) {
-	UnorderedProbs = ind->getUnorderedProbs(j); 
-	CopyNumberAssocTest::Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
+	UnorderedProbs = ind->getUnorderedProbs(j);
+	// TODO fix for X chr 
+	//bool argument in call below should be
+	// !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(j) != X_posn))
+	CopyNumberAssocTest::Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, 
+				    true, UnorderedProbs);
       }
     }
   }
-
   this->Accumulate();
 }
 
@@ -146,5 +149,5 @@ void HapMixAllelicAssocTest::PrintAverageInfo(bclib::LogWriter& Log, const Input
 
 void HapMixAllelicAssocTest::Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
 				    const std::vector<std::vector<double> > Probs) {
-  CopyNumberAssocTest::Update(locus, Covariates, phi, YMinusEY, DInvLink, Probs);
+  CopyNumberAssocTest::Update(locus, Covariates, phi, YMinusEY, DInvLink, true, Probs);
 }

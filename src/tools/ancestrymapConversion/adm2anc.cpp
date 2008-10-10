@@ -191,6 +191,10 @@ int main()
     }
     while(c != endline);
     numLoci = numLoci/2 -1;
+    if(numLoci < 1) {
+      cout << "header strings must be enclosed in double quotes" << endl;
+      exit(1);
+    }
     cout << numLoci << " loci in genotypes file" <<endl;
 
     //determine number of individuals if no outcome file
@@ -230,7 +234,7 @@ int main()
     }
 #endif
     cout << "Processing ..." << endl;
-
+    
     int outcomevar;
     string Indiv_ID;
     string **genotypes;
@@ -238,14 +242,14 @@ int main()
     
     //write header lines
     if(doind){
-    indivfile << "Indiv_ID\tGender\tStatus" << endl;
+      indivfile << "Indiv_ID\tGender\tStatus" << endl;
     }
     if(dogeno){
       anc_genotypesfile << "SNP_ID\tIndiv_ID\tVart_allele_cnt" << endl;
     }
     
     if(doind){
-    //discard header of outcomevar file
+      //discard header of outcomevar file
       getline(outcomefile,scrap);
     }
     
@@ -259,38 +263,38 @@ int main()
       //allocate genotypes array
       genotypes = new string *[numInd*numLoci];
       for(int s = 0; s < numInd*numLoci; ++s) genotypes[s] = new string[3];
-
+      
     }
-
- 
+    
+    
     for(int i = 0; i < numInd; ++i){
-    if(dogeno){
-      //read indiv ID
-      genotypesfile >> Indiv_ID;
-    }
-    if(doind){
-      if(!dogeno){
-	//write Indiv and U(nknown) Gender to Indivfile
-	indivfile << "Ind_"<<i+1 <<"\t"<<"U\t";
+      if(dogeno){
+	//read indiv ID
+	genotypesfile >> Indiv_ID;
       }
-      else{
-	//write Indiv and U(nknown) Gender to Indivfile
-	indivfile << dequote(Indiv_ID) <<"\t"<<"U\t";
+      if(doind){
+	if(!dogeno){
+	  //write Indiv and U(nknown) Gender to Indivfile
+	  indivfile << "Ind_"<<i+1 <<"\t"<<"U\t";
+	}
+	else{
+	  //write Indiv and U(nknown) Gender to Indivfile
+	  indivfile << dequote(Indiv_ID) <<"\t"<<"U\t";
+	}
+	//write Status to Indivfile
+	outcomefile >> outcomevar;
+	indivfile << (outcomevar==0?"Control":"Case") <<endl;
       }
-      //write Status to Indivfile
-      outcomefile >> outcomevar;
-      indivfile << (outcomevar==0?"Control":"Case") <<endl;
-    }
-    if(dogeno){
-      //process each line of genotypesfile
-      for(int j = 0; j < numLoci; ++j){
-	genotypesfile >> allele_string;
-	genotypes[numInd*j +i][0] = dequote(LociNames[j+1]);//locus name
-	genotypes[numInd*j +i][1] = dequote(Indiv_ID);      //Indiv name
-	genotypes[numInd*j +i][2] = genotype2allelecount(dequote(allele_string));//variantallelecount
-	//NB: using allele2 as variant allele here
+      if(dogeno){
+	//process each line of genotypesfile
+	for(int j = 0; j < numLoci; ++j){
+	  genotypesfile >> allele_string;
+	  genotypes[numInd*j +i][0] = dequote(LociNames[j+1]);//locus name
+	  genotypes[numInd*j +i][1] = dequote(Indiv_ID);      //Indiv name
+	  genotypes[numInd*j +i][2] = genotype2allelecount(dequote(allele_string));//variantallelecount
+	  //NB: using allele2 as variant allele here
+	}
       }
-    }
     }
     
     if(dogeno){
@@ -310,7 +314,7 @@ int main()
       indivfile.close();
     }
   }
-
+  
   /********************************************************************************
     Convert locusfile and allelefreqfile
   ********************************************************************************/

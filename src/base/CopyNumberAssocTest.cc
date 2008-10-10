@@ -120,7 +120,7 @@ void CopyNumberAssocTest::OutputCopyNumberAssocTest(unsigned j, unsigned k,
 }
 
 void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
-			       const vector<vector<double> > Probs) {
+				 bool diploid, const vector<vector<double> > Probs) {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
   //Notes: 1/phi is dispersion parameter
@@ -148,8 +148,14 @@ void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi
   }
 
   for( unsigned k = 0; k < NumStrata ; k++ ){
+    if(diploid) {
     Xcopy[k] = X[k] = Probs[1][k] + 2.0 * Probs[2][k];//Conditional expectation
     VarA[k] = Probs[1][k]*(1.0 - Probs[1][k]) + 4.0*Probs[2][k]*Probs[0][k];//conditional variances
+    } else {
+      // haploid - effect of one extra copy from pop k is equivalent to two extra copies in diploid case
+      Xcopy[k] = X[k] = 2 * Probs[1][k];//Conditional expectation
+      VarA[k] = 4 * Probs[1][k] * (1.0 - Probs[1][k]);//conditional variances
+    }
   }
   //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
   Xcopy[2*NumStrata-1] = 1;

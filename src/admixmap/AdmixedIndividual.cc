@@ -1004,7 +1004,8 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
       if( options.getTestForLinkageWithAncestry() ){
 	ancestryAssocTest.Update(locus, admixtureCovars, R[0]->getDispersion(), 
 				 Outcome->get(myNumber-1, 0) - R[0]->getExpectedOutcome(myNumber-1), 
-				 R[0]->DerivativeInverseLinkFunction(myNumber-1), AProbs);
+				 R[0]->DerivativeInverseLinkFunction(myNumber-1), 
+				 !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs);
       }
       ++locus;
     }//end within-chromosome loop

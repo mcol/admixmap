@@ -27,8 +27,9 @@ public:
   virtual void Initialise(const char* filename, const int NumPopulations, const int NumLoci);
 
   void Reset();
-  virtual void Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
-	      const std::vector<std::vector<double> > Probs) ;
+  virtual void Update(int locus, const double* Covariates, double phi, double YMinusEY, 
+		      double DInvLink, bool diploid, 
+		      const std::vector<std::vector<double> > Probs) ;
   void UpdateB(double DInvLink, double dispersion, const double* Covariates);
 
   void Accumulate();
