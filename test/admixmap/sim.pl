@@ -13,8 +13,8 @@ my $arg_hash = {
     locusfile                       => 'simdata/loci.txt',
     priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
     # covariatesfile                  => 'data/covariates3.txt',
-    #outcomevarfile                  => 'simdata/outcome.txt',
-    fixedallelefreqs                => 1,
+    outcomevarfile                  => 'simdata/outcome.txt',
+    #fixedallelefreqs                => 1,
 #main options
     displaylevel   => 3, #verbose output
     samples  => 250,
@@ -29,18 +29,18 @@ my $arg_hash = {
     resultsdir               => "simResults",
     logfile                  => 'logfile.txt',
     paramfile                => 'paramfile.txt',
-    #regparamfile             => 'regparam.txt',
+    regparamfile             => 'regparam.txt',
     indadmixturefile         => 'indadmixture.txt',
     #ergodicaveragefile       => 'ergodicaverage.txt',
     allelefreqoutputfile  => 'allelefreqoutputfile.txt',
 
 #optional tests
-    #allelicassociationtest   => 1,
-    #ancestryassociationtest  => 1,
+    allelicassociationtest   => 1,
+    ancestryassociationtest  => 1,
     #affectedsonlytest        => 1,
     #haplotypeassociationtest => 1,
-    #dispersiontest           => 1,
-    #hwtest                   => 1,
+    dispersiontest           => 1,
+    hwtest                   => 1,
     #stratificationtest       => 1,
     residualldtest            => 1
 };

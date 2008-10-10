@@ -72,7 +72,7 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   if( options->getHWTestIndicator())SetMissingGenotypes();
   DeleteGenotypes();
 
-  //allocate genotype probs
+  //allocate genotype probs - these are actually the emission probs given each phased hidden state
   GenotypeProbs = new double*[numChromosomes];
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     if(isHaploid || (!SexIsFemale && Loci->isXChromosome(j))){//haploid on this chromosome
@@ -81,8 +81,20 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
     else{
       GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*NumHiddenStates*NumHiddenStates];
     }
+  }
+  
+  // allocate SumProbs array - the sum over iterations of hidden state copy number probs
+  // should make this conditional on stateprobs option
+  // array of dimension loci x States x 2 
+  SumProbs = new double*[numCompositeLoci*NumHiddenStates*3];
+  for( unsigned int j = 0; j < (unsigned)numCompositeLoci; ++j ){
+    for(unsigned int k=0; k < NumHiddenStates; ++k ) {
+      for(unsigned int a=0; a < 3; ++a ) {
+	SumProbs[j*NumHiddenStates*3 + k*3 + a] = 0;
+      }
+    }
   }  
-
+  
 
   thetahat = 0;
   if(options->getChibIndicator() || options->getIndAdmixModeFilename())
@@ -187,6 +199,7 @@ AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumLocusAncestry_X;
   //this might not work, relies on Loci still being in scope in top level
   //GPArray.dealloc(Loci->GetNumberOfCompositeLoci());
+  delete[] SumProbs;
 }
 
 void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const Options* const options){
@@ -1007,6 +1020,13 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
 				 R[0]->DerivativeInverseLinkFunction(myNumber-1), 
 				 !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs);
       }
+
+      // accumulate hidden state probabilities at given locus
+      for( unsigned k = 0; k < NumHiddenStates ; k++ ){
+	for( unsigned a = 0; a < 3; ++a) {
+	  SumProbs[locus*NumHiddenStates*3 + k*3 + a] += Probs[a][k];
+	}
+      }     
       ++locus;
     }//end within-chromosome loop
   } catch (string msg) {

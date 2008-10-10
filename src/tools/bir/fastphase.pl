@@ -33,15 +33,12 @@ for my $pop (@Panels) {
     my $datadir = "$dataprefix/$pop";
     my $resultsdir = "$mytempdir/$whichchr/fastphase/$pop";
     if(!(-e "$resultsdir")) {
-	mkpath "$resultsdir" or die "cannot make directory $resultsdir\n";
-    }
-    print "Temporary results directory is $resultsdir\n";
-    my $command = "fastPHASE $options -b$datadir/fphaplotypes.inp -o$resultsdir/ $datadir/fastphase.inp";
-    open(SCRIPT, "> $datadir/fastphase.sh");
-    print(SCRIPT "cd $dir\n");
-    print(SCRIPT "$command\n");
-    close(SCRIPT);
-    system("qsub -cwd -e fastphase$pop.err -o fastphase$pop.out -N fastph$pop -l h_rt=00:30:00 -V $datadir/fastphase.sh");
+ 	 mkpath "$resultsdir" or die "cannot make directory $resultsdir";
+ 	 }
+    my $command = "fastPHASE $options -b$datadir/fphaplotypes.inp -o'$TMPDIR'/fastphase$pop $datadir/fastphase.inp";
+    open(SCRIPT, "> $datadir/fastphase.sh"); # shell script in 
+    print(SCRIPT "cd $dir\n"); # set working directory
+    print(SCRIPT " $command\n"); 
+	close(SCRIPT);
+    system("qsub -cwd -e $dir/fastphase$poperr.txt -o $dir/fastphase$popout.txt -l h_rt=01:00:00 -N fastphase$pop $datadir/fastphase.sh");
 };
-
-

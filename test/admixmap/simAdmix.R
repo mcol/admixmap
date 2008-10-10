@@ -159,14 +159,14 @@ distanceFromLast <- function(v.Chr, v.Position) {
 ##  Settings
 ##################
 K <- 2##num populations
-N <- 200##num individuals
+N <- 500##num individuals
 rho <- 6 ## sum-of-intensities on autosomes
 rhoX <- 0.5*rho## sum-of-intensites on X-chr
 spacing <- 40 # 40 cM spacing gives 99 loci
 spacingX <- 30 #30
 beta.admixture <- 2 # regression slope
 beta.dummy <- 1
-model <- 2 # 0 = none, 1 = linear, 2 = logistic, 3 = cox
+model <- 1 # 0 = none, 1 = linear, 2 = logistic, 3 = cox
 popadmixparams <- c(3, 1) # population admixture params for pop1, pop2
 freq.params.pop1 <- c(20, 80)
 S <- 2 # number of alleles at each locus

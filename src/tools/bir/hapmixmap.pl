@@ -24,17 +24,31 @@ my $dataprefix = "data/$whichchr/hapmixmap";
 my $mytempdir = "/exports/work/scratch/pmckeigu";
 my $resultsdir = "";
 
-
-my @taskfiles = ("compare_states_test_tasks.txt",
-		 "compare_priors_test_tasks.txt");
-if($runtype eq "train") {
-    @taskfiles = ("compare_states_train_tasks.txt",
-		  "compare_priors_train_tasks.txt");
+for my $pop (@Panels) {
+    my $datadir = "$dataprefix/$pop";
+    my $resultsdir = "results/$whichchr/hapmixmap/$pop";
+    if(!(-e "$resultsdir")) {
+	mkpath "$resultsdir" or die "cannot make directory $resultsdir";
+    }
+    my $command = "hapmixmap $configfile";
+    open(SCRIPT, "> $datadir/hapmixmap.sh");
+    print(SCRIPT "cd $dir\n");
+    print(SCRIPT " $command\n");
+    close(SCRIPT);
+    system("qsub -cwd -ehapmix$pop.err -l h_rt=00:00:30 -N hapmix$pop -o hapmix$pop.out -V $datadir/hapmixmap.sh");
+    
+#foreach my $taskfile(@taskfiles) {
+#my $taskfile = "compare_priors_train_tasks.txt";
+    my $taskfile = "test_taskfile.txt";
+    
+    my @taskfiles = ("compare_states_test_tasks.txt",
+		     "compare_priors_test_tasks.txt");
+    if($runtype eq "train") {
+	@taskfiles = ("compare_states_train_tasks.txt",
+		      "compare_priors_train_tasks.txt");
+    }
 }
 
-#my $taskfile = "compare_priors_train_tasks.txt";
-#my $taskfile = "test_taskfile.txt";
-                 
 foreach my $taskfile(@taskfiles) {
     open(TASKS, $taskfile) or die ("could not open $taskfile\n");
     
@@ -71,7 +85,7 @@ foreach my $taskfile(@taskfiles) {
 	open(SCRIPT, "> $script") or die "could not open $script\n";  
 	print(SCRIPT "$command\n");
 	close(SCRIPT);
-
+	
 	my $args = "-cwd -e $resultsdir.err -o $resultsdir.out -l h_rt=00:$time:00 -N hapmix -V $script";
 	print "qsub $args\n";
 	#system("cat $script");
