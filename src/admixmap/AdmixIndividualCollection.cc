@@ -531,7 +531,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options& opti
 
 #include "AdmixFilenames.h"
 ///write posterior means of individual admixture params to file
-void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels)const{
+void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels, Genome* Loci)const{
   ofstream meanfile((options.getResultsDir() + "/" + IND_ADMIXTURE_POSTERIOR_MEANS).c_str());
   //set 3 decimal places
   meanfile << std::setfill(' ');
@@ -564,4 +564,26 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
     meanfile << endl;
   }
   meanfile.close();
+    
+  if(options.getLocusAncestryProbsIndicator()) {
+    // write posterior probs locus ancestry to file
+    ofstream locifile((options.getResultsDir() + "/" + LOCUS_ANCESTRY_POSTERIOR_PROBS).c_str());
+    //set 3 decimal places
+    locifile << std::setfill(' ');
+    locifile.setf(std::ios::fixed); 
+    locifile.precision(3);
+    locifile.width(3);
+    locifile << "structure(c(";
+  
+  for( unsigned int i = 0; i < size-1; ++i ){
+    AdmixedChild[i]->WritePosteriorMeansLoci(locifile);
+    locifile << ",\n";
+  }
+  // do not append comma to values for last individual
+  AdmixedChild[size-1]->WritePosteriorMeansLoci(locifile);
+  locifile << "), .Dim=c(" << size << ", " << Loci->GetNumberOfCompositeLoci() << ", " << 
+    options.getPopulations() << ", 3))\n";
+  locifile.close();
+  }
 }
+

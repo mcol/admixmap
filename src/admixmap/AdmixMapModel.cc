@@ -405,7 +405,7 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     }
   }
   else{
-    AdmixedIndividuals->WritePosteriorMeans(options, data.GetHiddenStateLabels());
+    AdmixedIndividuals->WritePosteriorMeans(options, data.GetHiddenStateLabels(), &Loci);
   }
   //FST
 //   if( strlen( options.getHistoricalAlleleFreqFilename()) ){

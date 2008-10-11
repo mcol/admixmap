@@ -110,7 +110,7 @@ int main( int argc , char** argv ){
   cout << "Finished" << endl
        << setfill('*') << setw(80) << "*" <<endl;
 
-  putenv("ADMIXMAPCLEANEXIT=1");
+  putenv((char*)"ADMIXMAPCLEANEXIT=1");
   return 0;
 } //end of main
 

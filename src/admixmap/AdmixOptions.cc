@@ -50,6 +50,7 @@ void AdmixOptions::SetDefaultValues(){
   TestForMisspecifiedAlleleFreqs2 = false;
   ScoreTestIndicator = false; //indicator for any of the score tests in ScoreTests class
   HWTest = false;
+  LocusAncestryProbsIndicator = false; 
 
 //   globalrhoPrior.push_back(3.0);//rhoalpha 
 //   globalrhoPrior.push_back(0.5);//rhobeta
@@ -212,6 +213,11 @@ bool AdmixOptions::getLocusForTestIndicator() const
   return locusForTestIndicator;
 }
 
+bool AdmixOptions::getLocusAncestryProbsIndicator() const
+{
+  return LocusAncestryProbsIndicator;
+}
+
 int AdmixOptions::getLocusForTest() const
 {
   return LocusForTest;
@@ -361,6 +367,7 @@ void AdmixOptions::DefineOptions(){
   addOption("indadmixmodefile", outputfileOption, &IndAdmixModeFilename);
   addOption("testgenotypesfile", nullOption, 0);
   addOption("locusfortest", intOption, &LocusForTest);
+  addOption("locusancestryprobs", intOption, &LocusAncestryProbsIndicator);
   // Other options
   addOption("chib", boolOption, &chibIndicator);//  Marginal likelihood by Chib algo
   addOption("testoneindiv", boolOption, &TestOneIndivIndicator);//  ML for one individual in a collection 

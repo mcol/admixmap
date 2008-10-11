@@ -69,6 +69,7 @@ public:
   int getPopulations() const;
   void setPopulations(int num);
   bool getFixedAlleleFreqs() const;
+  bool getLocusAncestryProbsIndicator() const;
   const string& getPopLabelString()const;
 
   //score test indicators 
@@ -103,6 +104,7 @@ private:
   bool chibIndicator;//calculate marginal likelihood using Chib method
   bool TestOneIndivIndicator;//calculate marginal likelihood for one individual only
   bool PopAdmixPropsAreEqual;
+  bool LocusAncestryProbsIndicator;
 
   bool TestForAdmixtureAssociation;
   bool StratificationTestIndicator;

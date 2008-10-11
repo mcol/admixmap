@@ -83,18 +83,21 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
     }
   }
   
-  // allocate SumProbs array - the sum over iterations of hidden state copy number probs
-  // should make this conditional on stateprobs option
-  // array of dimension loci x States x 2 
-  SumProbs = new double*[numCompositeLoci*NumHiddenStates*3];
-  for( unsigned int j = 0; j < (unsigned)numCompositeLoci; ++j ){
-    for(unsigned int k=0; k < NumHiddenStates; ++k ) {
-      for(unsigned int a=0; a < 3; ++a ) {
-	SumProbs[j*NumHiddenStates*3 + k*3 + a] = 0;
+  if(options->getLocusAncestryProbsIndicator()) {
+    AncestryProbs=true;
+    // allocate SumProbs array - the sum over iterations of hidden state copy number probs
+    // array of dimension loci x States x 3 
+    SumProbs = new double[numCompositeLoci*NumHiddenStates*3];
+    for( unsigned int j = 0; j < (unsigned)numCompositeLoci; ++j ){
+      for(int k = 0; k < NumHiddenStates; ++k ) {
+	for(unsigned int a = 0; a < 3; ++a ) {
+	  SumProbs[j*NumHiddenStates*3 + k*3 + a] = 0;
+	}
       }
-    }
-  }  
-  
+    }  
+  } else {
+    AncestryProbs=false;
+  }
 
   thetahat = 0;
   if(options->getChibIndicator() || options->getIndAdmixModeFilename())
@@ -199,7 +202,9 @@ AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumLocusAncestry_X;
   //this might not work, relies on Loci still being in scope in top level
   //GPArray.dealloc(Loci->GetNumberOfCompositeLoci());
-  delete[] SumProbs;
+  if(AncestryProbs) {
+    delete[] SumProbs;
+  }
 }
 
 void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const Options* const options){
@@ -442,6 +447,18 @@ void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, vector<double>& rho
       SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) samples;
   }
   delete[] b;
+
+ if(AncestryProbs) {
+   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
+   for( unsigned int j = 0; j < (unsigned)numCompositeLoci; ++j ){
+     for(int k=0; k < NumHiddenStates; ++k ) {
+       for(unsigned int a=0; a < 3; ++a ) {
+	 SumProbs[j*NumHiddenStates*3 + k*3 + a] /= (double) samples;
+       }
+     }
+   }  
+   // cout << "sums divided by samples\n";
+ }
 }
 
 void AdmixedIndividual::WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const{
@@ -455,6 +472,16 @@ void AdmixedIndividual::WritePosteriorMeans(ostream& os, unsigned samples, bool 
     copy(rhobar.begin(), rhobar.end(), ostream_iterator<double>(os, "\t"));
 
   delete[] ThetaBar;
+
+}
+
+void AdmixedIndividual::WritePosteriorMeansLoci(ostream& os)const{
+  //getPosteriorMeans(ThetaBar, rhobar, samples);
+  int NumCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  for(int i=0; i < NumCompositeLoci * NumHiddenStates * 3 - 1; ++i) { 
+    os << SumProbs[i] << ",";
+  }
+  os << SumProbs[NumCompositeLoci * NumHiddenStates * 3 - 1]; //last element without following comma
 }
 
 //************** Updating (Public) **********************************************************
@@ -1020,13 +1047,15 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
 				 R[0]->DerivativeInverseLinkFunction(myNumber-1), 
 				 !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs);
       }
-
-      // accumulate hidden state probabilities at given locus
-      for( unsigned k = 0; k < NumHiddenStates ; k++ ){
-	for( unsigned a = 0; a < 3; ++a) {
-	  SumProbs[locus*NumHiddenStates*3 + k*3 + a] += Probs[a][k];
-	}
-      }     
+      
+      if( options.getLocusAncestryProbsIndicator() ) {
+	// accumulate hidden state probabilities at given locus
+	for( int k = 0; k < NumHiddenStates; k++ ){
+	  for( unsigned a = 0; a < 3; ++a) {
+	    SumProbs[locus*NumHiddenStates*3 + k*3 + a] += AProbs[a][k];
+	  }
+	} 
+      }    
       ++locus;
     }//end within-chromosome loop
   } catch (string msg) {

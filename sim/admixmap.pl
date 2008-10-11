@@ -4,7 +4,7 @@ use strict;
 my $function_file = "doanalysis.pl";
 
 # Change this to the location of the admixmap executable
-my $executable = 'admixmap';
+my $executable = '../src/admixmap/admixmap';
 
 # Change this to the location of the R script
 my $rscript = "../dist/AdmixmapOutput.R";
@@ -38,9 +38,9 @@ require $function_file or die("cannot find doanalysis.pl");
 
 my $arg_hash = 
 {
-    samples                    => 250, 
-    burnin                     => 50,
-    every                      => 5,
+    samples                    => 25, 
+    burnin                     => 5,
+    every                      => 1,
     numannealedruns            => 0,
     locusfile                  => 'data/loci.txt',
     genotypesfile              => 'data/genotypes.txt',
@@ -60,6 +60,7 @@ $arg_hash->{indadmixturefile}   = "indivadmixture.txt";
 #$arg_hash->{dispersiontestfile}    = "dispersionTest.txt";
 $arg_hash->{affectedsonlytest} = 1;
 $arg_hash->{ancestryassociationtest} = 1;
+$arg_hash->{locusancestryprobs} = 1;
 
 print "script began: ";
 my $starttime = scalar(localtime());

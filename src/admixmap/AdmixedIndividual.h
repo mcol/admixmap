@@ -29,12 +29,12 @@ class AdmixedIndividual : public Individual
 public:
   AdmixedIndividual(int number, const AdmixOptions* const options, const InputAdmixData* const Data, bool undertest);
   ~AdmixedIndividual();
-
+  
   static void SetStaticMembers(Genome* const pLoci, const Options* const options);
   static void DeleteStaticMembers();
   void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
   void SetMissingGenotypes();
-
+  
   double getSumrho()const;
   const std::vector<double> getRho()const;
   double getLogLikelihood(const Options&, const bool forceUpdate, const bool store);
@@ -57,21 +57,23 @@ public:
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);  
   void resetStepSizeApproximator(int k);
   void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha, double rhoalpha, 
-	    double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
+			double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
   void updateChib(const AdmixOptions& options, const vector<vector<double> > &alpha, double rhoalpha, 
-	    double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
-
+		  double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
+  
   double getLogPosteriorTheta()const;
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
-
+  
   void SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs);
   void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
   void AnnealGenotypeProbs(int j, const double coolness);
   
   void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
+  void WritePosteriorMeansLoci(ostream& os)const;
 private:
-  const bool IAmUnderTest;//true if not in Individual array
+  const bool IAmUnderTest; //true if not in Individual array
+  bool AncestryProbs; // option LocusAncestryProbsIndicator
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
   double *thetahat;
   double loglikhat;///< loglikelihood at posterior mode
@@ -84,7 +86,7 @@ private:
   std::vector< double > rhohat;
   std::vector<double> sumlogrho;
   double** GenotypeProbs;///<array to hold GenotypeProbs
-  
+  double* SumProbs; // array to accumulate sums of unordered hidden state probs
   std::vector<double> logPosterior[3]; // elements 0, 1, 2 are for theta, rho, freqs
   
   //RWM sampler for individual admixture
@@ -111,7 +113,7 @@ private:
 					       const bclib::DataMatrix* const Covariates, const double* beta, 
 					       const double Outcome, const double* const poptheta, const double lambda);
   void UpdateHMMInputs(unsigned int j, const Options& options, 
-			     const double* const theta, const vector<double> rho);
+		       const double* const theta, const vector<double> rho);
   void ProposeTheta(const AdmixOptions& options, const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
   double ProposeThetaWithRandomWalk(const AdmixOptions& options, const vector<vector<double> > &alpha);
@@ -120,16 +122,17 @@ private:
   double LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions& options, 
 			      double rhoalpha, double rhobeta) const;
   double LogPosteriorTheta_Softmax(const AdmixOptions& options, const double* const theta, 
-				    const vector<vector<double> > &alpha)const;
+				   const vector<vector<double> > &alpha)const;
   double LogPosteriorRho_LogBasis(const AdmixOptions& options, const vector<double> rho, 
 				  double rhoalpha, double rhobeta)const;
   
   void UpdateScoreTests(const AdmixOptions& options, const double* admixtureCovars, bclib::DataMatrix *Outcome, 
-			Chromosome* chrm, const vector<bclib::Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
+			Chromosome* chrm, const vector<bclib::Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, 
+			CopyNumberAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options& options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
   void getPosteriorMeans(double* ThetaMean, vector<double>& rhoMean, unsigned samples)const;
-
+  
 };
 
 #endif /* ADMIXED_INDIVIDUAL_H */
