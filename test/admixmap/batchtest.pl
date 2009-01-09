@@ -1,11 +1,216 @@
 #!/usr/bin/perl
 # script to test most ADMIXMAP options and compare results with previous results
- 
-print "OS is ";print $^O;
-$resultsdir = "results";
 
-# Change this to the location of the admixmap executable
-my $executable = './admixmap';
+
+use Getopt::Std;
+
+
+use constant IS_MS		=> $^O eq "MSWin32"			;
+use constant DIR_SEP		=> IS_MS ? "\\" : "/"			;
+use constant DIFF_CMD		=> IS_MS ? "fc" : "diff"		;
+use constant DIFFS_CMD		=> IS_MS ? "fc" : "diff -s"		;
+use constant DEF_RDIR		=> "results"				;
+use constant DEF_EXEC		=> "./admixmap"				;
+use constant DEF_DDIR		=> "../../dist/admixmap/tutorial/data"	;
+use constant PROG		=> ($0 =~ m/.*?([^\/]+)$/)[ 0 ]		;
+use constant ARGS_FN		=> 'perlargs.txt'			;
+use constant TEST_CATTLE	=> 0					;
+
+
+$PROG = PROG; # variable is apparently easier to embed in strings than constant
+
+
+#---------------------------------------------------------------------------
+# Command-line options and usage errors:
+#---------------------------------------------------------------------------
+
+sub usage
+    {
+    print STDERR "\nUsage: $PROG <options>\n\n" .
+		"Options:\n" .
+		"	-h			 [print this message]\n" .
+		"	-x <admixmap-executable> [defaults to " . DEF_EXEC . "]\n" .
+		"	-d <data-dir>		 [defaults to " . DEF_DDIR . "]\n" .
+		"	-r <results-dir>	 [defaults to " . DEF_RDIR . "]\n" .
+		"	-o <output-file>	 [for admixmap's stdout (in <results-dir>)]\n" .
+		"	-E			 [admixmap's stderr is also in <output-file>]\n" .
+		"	-s			 [report results matching the last run (not just differences)]\n" .
+		"	-e			 [prints commands to stdout before executing]\n" .
+		"	-a			 [abort after error]\n" .
+	    "The -o option likely will not work on MS-Windows.\n\n";
+    exit 1
+    }
+
+
+my %args;
+getopts( "hx:r:d:o:Esea", \%args ) or usage;
+
+
+usage if defined $args{"h"};
+
+
+my $executable = defined $args{"x"} ? $args{"x"} : DEF_EXEC;
+my $resultsdir = defined $args{"r"} ? $args{"r"} : DEF_RDIR;
+my $datadir    = defined $args{"d"} ? $args{"d"} : DEF_DDIR;
+my $outfile    = $resultsdir.DIR_SEP.$args{"o"} if defined $args{"o"};
+my $redir_err  = defined $args{"E"};
+my $diff_cmd   = defined $args{"s"} ? DIFFS_CMD : DIFF_CMD;
+my $echo_cmds  = defined $args{"e"};
+my $abort_err  = defined $args{"a"};
+
+print	"\n\n**** BATCH TEST ****\n" .
+	"\tOS: $^O\n" .
+	"\tExecutable: $executable\n" .
+	"\tData directory: $datadir\n" .
+	"\tResults directory: $resultsdir\n";
+print "\tAdmixmap's stdout" . ($redir_err?"/stderr":"") . " will be redirected into $outfile\n" if defined $outfile;
+print "\n";
+
+
+
+#---------------------------------------------------------------------------
+# Execute a command, echoing if necessary.
+#---------------------------------------------------------------------------
+
+sub exec_cmd
+    {
+    my $command = shift( @_ );
+    print PROG . ": execute: $command\n" if $echo_cmds;
+    return system( $command );
+    }
+
+
+
+#---------------------------------------------------------------------------
+# doAnalysis()
+#---------------------------------------------------------------------------
+
+sub doAnalysis
+    {
+    my ( $exec, $args, $run_desc ) = @_;
+
+    print "\n==== Test run: $run_desc\n";
+
+    my $command = $exec . getArguments($args);
+
+    # Goofy way to test if directory exists:
+    if ( opendir $rdir,$resultsdir )
+	{
+	closedir $rdir;
+	}
+    else
+	{
+	print "$PROG: making directory \"$resultsdir\"\n";
+	mkdir $resultsdir or die "$PROG: can't make directory $resultsdir: $!";
+	}
+
+    if ( defined $outfile )
+	{
+	$command = $command . " >>$outfile";
+	$command = $command . " 2>&1" if $redir_err;
+	}
+
+    my $status = exec_cmd( "$command" );
+    if ( $status == -1 )
+	{
+	print STDERR PROG . ": error executing: $command : $!\n";
+	}
+    elsif ( $status != 0 )
+	{
+	print STDERR PROG . ": $command exited with non-zero status: $status\n";
+	}
+
+    die if ( $abort_err && ($status != 0) );
+
+    return ($status == 0);
+    }
+
+
+sub getArguments
+{
+    my $hash = $_[0];
+#    my $arg = '';
+#    foreach my $key (keys %$hash){
+#	$arg .= ' --'. $key .'='. $hash->{$key};
+#    }
+#    return $arg;
+
+    my $filename = $resultsdir . DIR_SEP . ARGS_FN;
+
+    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
+    foreach my $key (keys %$hash){
+      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
+    }
+    close OPTIONFILE;
+    return " ".$filename;
+}
+
+
+
+#-----------------------------------------------------------------------------
+# Execute a diff command
+#-----------------------------------------------------------------------------
+
+sub diff_files
+    {
+    my ( $file1, $file2 ) = @_;
+
+    my $command = $diff_cmd . " $file1 $file2";
+
+    exec_cmd( $command );
+
+    system( "pause" ) if ($^O eq "MSWin32");	# for checking comparisons
+						# (why no pause on non-MS?)
+    }
+
+
+
+#-----------------------------------------------------------------------------
+# SUBROUTINE TO COMPARE ALL FILES IN sourcedir WITH ORIGINALS AND MOVE
+#-----------------------------------------------------------------------------
+
+sub CompareThenMove {
+    my ($sourcedir, $targetdir) = @_;
+    my $prefix = "old_";
+# define commands for different OS's
+    if($^O eq "MSWin32") {$movecmd = "move /y"; $delcmd="rmdir /s /q";}
+    else {$movecmd = "mv -f"; $delcmd="rm -r";}
+    if (-e $targetdir) { # compare with sourcedir
+	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
+	while ( defined (my $file = readdir SOURCE) ) {
+	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt"));     # skip . and .. and logfile
+	    diff_files( "$sourcedir".DIR_SEP."$file", "$targetdir".DIR_SEP."$prefix$file" );
+	    if($^O eq "MSWin32"){system("pause")}  # for checking comparisons
+	} #compare
+	closedir(SOURCE);
+    }
+    else
+	{
+	print "$PROG: **** no prior results with which to compare\n";
+	}
+
+    if (-e $sourcedir) {
+	if (-e $targetdir) {
+	    my $olddir = "$prefix$targetdir";
+	    if (-e $olddir){exec_cmd("$delcmd $prefix$targetdir");} #delete old results directory (necessary for next command)
+	    exec_cmd("$movecmd $targetdir $prefix$targetdir"); #preserve old results by renaming directory
+	    }
+	exec_cmd("$movecmd $sourcedir $targetdir"); #rename results dir
+	mkdir("$sourcedir");                      #we need results dir for next analysis
+	opendir(TARGET, $targetdir) or die "can't open $targetdir folder: $!";
+	while ( defined (my $file = readdir TARGET) ) { #for each results file
+	    next if $file =~ /^\.\.?$/;     # skip . and ..
+	    exec_cmd("$movecmd $targetdir".DIR_SEP."$file $targetdir".DIR_SEP."$prefix$file ");} #prefix with "old_"
+	closedir(TARGET);
+    }
+    else {print STDERR PROG . ": source-directory '$sourcedir' does not exist\n"}
+}
+
+
+
+#---------------------------------------------------------------------------
+# List of test-runs to be performed:
+#---------------------------------------------------------------------------
 
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
@@ -13,13 +218,13 @@ my $executable = './admixmap';
 # keys (left-hand side) are parameter names
 # values (right-hand side) are parameter values
 my $arg_hash = {
-    samples                    => 15, 
+    samples                    => 15,
     burnin                     => 5,
     every                      => 1,
-    locusfile                  => '../dist/admixmap/tutorial/data/loci.txt',
-    genotypesfile              => '../dist/admixmap/tutorial/data/genotypes.txt',
-    outcomevarfile             => '../dist/admixmap/tutorial/data//outcomevars.txt',
-    covariatesfile             => '../dist/admixmap/tutorial/data//covariates3std.txt',
+    locusfile                  => "$datadir/loci.txt",
+    genotypesfile              => "$datadir/genotypes.txt",
+    outcomevarfile             => "$datadir/outcomevars.txt",
+    covariatesfile             => "$datadir/covariates3std.txt",
     displaylevel             => 2,
 
 # output files
@@ -35,27 +240,27 @@ my $arg_hash = {
     allelefreqoutputfile      => 'allelefreqoutput.txt'
 };
 
-# single population, thermodynamic  
+# single population, thermodynamic
 $arg_hash->{thermo} = 1;
 $arg_hash->{numannealedruns} = 4;
 $arg_hash->{populations} = 1;
-if(doAnalysis($executable,$arg_hash, $resultsdir)){
-    &CompareThenMove("results", "results0");
+if(doAnalysis( $executable, $arg_hash, 'single population, thermodynamic' )){
+    &CompareThenMove( $resultsdir, $resultsdir . '0' );
 }
 
-# single population, reference prior on allele freqs, annealing  
+# single population, reference prior on allele freqs, annealing
 $arg_hash->{thermo} = 0;
 $arg_hash->{indadmixhiermodel} = 1;
 $arg_hash->{stratificationtest}  = 1;
-if(doAnalysis($executable,$arg_hash, $resultsdir)){
-  &CompareThenMove("results", "results1");
+if(doAnalysis( $executable, $arg_hash, 'single population, reference prior on allele freqs, annealing' )){
+    &CompareThenMove( $resultsdir, $resultsdir . '1' );
 }
 
-# two populations, reference prior on allele freqs  
+# two populations, reference prior on allele freqs
 $arg_hash->{numannealedruns} = 0;
 $arg_hash->{populations}     = 2;
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "results2");
+if(doAnalysis( $executable, $arg_hash, 'two populations, reference prior on allele freqs' )){
+    &CompareThenMove( $resultsdir, $resultsdir . '2' );
 }
 
 # fixed allele freqs, individual sumintensities
@@ -63,7 +268,7 @@ if(doAnalysis($executable,$arg_hash)){
 delete $arg_hash->{populations};
 delete $arg_hash->{allelefreqoutputfile};
 $arg_hash->{fixedallelefreqs} = 1;
-$arg_hash->{priorallelefreqfile}  = '../dist/admixmap/tutorial/data/priorallelefreqs.txt',
+$arg_hash->{priorallelefreqfile}  = "$datadir/priorallelefreqs.txt",
 $arg_hash->{allelefreqtest}  = 1;
 $arg_hash->{allelefreqtest2} = 1;
 $arg_hash->{ancestryassociationtest} = 1;
@@ -71,8 +276,8 @@ $arg_hash->{affectedsonlytest}       = 1;
 $arg_hash->{globalrho} = 0;
 $arg_hash->{numannealedruns} = 5;
 $arg_hash->{thermo} = 0;
-#if(doAnalysis($executable,$arg_hash)){
-    #&CompareThenMove("results", "results3");
+#if(doAnalysis( $executable, $arg_hash, 'fixed allele freqs, individual sumintensities' )){
+    #&CompareThenMove( $resultsdir, $resultsdir . '3' );
 #}
 
 # prior on allele freqs
@@ -88,21 +293,21 @@ delete $arg_hash->{allelefreqtest2};
 delete $arg_hash->{affectedsonlytest};
 $arg_hash->{dispersiontest}  = 1;
 $arg_hash->{outcomevarcols} = 2; # skin reflectance
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "results4");
+if(doAnalysis($executable,$arg_hash, 'prior on allele freqs')){
+    &CompareThenMove( $resultsdir, $resultsdir . '4' );
 }
 
-# dispersion model for allele freqs 
+# dispersion model for allele freqs
 delete $arg_hash->{priorallelefreqfile};
 delete $arg_hash->{dispersiontestfile};
-$arg_hash->{historicallelefreqfile} = '../dist/admixmap/tutorial/data/priorallelefreqs.txt';
+$arg_hash->{historicallelefreqfile} = "$datadir/priorallelefreqs.txt";
 $arg_hash->{affectedsonlytest}       = 1;
 $arg_hash->{fstoutput} = 1;
 $arg_hash->{dispparamfile} = 'disppar.txt';
 $arg_hash->{randommatingmodel} = 0;
 $arg_hash->{outcomevarcols} = 1; # diabetes
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "results5");
+if(doAnalysis( $executable, $arg_hash, 'dispersion model for allele freqs' )){
+    &CompareThenMove( $resultsdir, $resultsdir . '5' );
 }
 
 # prior on allele freqs, testoneindiv, no regression, thermo
@@ -119,47 +324,53 @@ delete $arg_hash->{outcomevarcols};
 delete $arg_hash->{outcomevarfile};
 delete $arg_hash->{covariatesfile};
 $arg_hash->{testoneindiv} = 1;
-$arg_hash->{priorallelefreqfile}  = '../dist/admixmap/tutorial/data/priorallelefreqs.txt',
+$arg_hash->{priorallelefreqfile}  = "$datadir/priorallelefreqs.txt",
 $arg_hash->{randommatingmodel} = 1;
 $arg_hash->{globalrho} = 0;
 $arg_hash->{testoneindiv} = 1;
 $arg_hash->{numannealedruns} = 100;
 $arg_hash->{thermo} = 1;
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "results6");
+if(doAnalysis($executable,$arg_hash,'prior on allele freqs, testoneindiv, no regression, thermo')){
+    &CompareThenMove( $resultsdir, $resultsdir . '6' );
 }
 
-# autosomal and X chromosome data
-my $arg_hash = {
-    genotypesfile                   => 'Cattledata/ngu_complete2.txt',
-    locusfile                          => 'Cattledata/loci.txt',
-    populations => 2,
-    globalrho => 1,
-    samples  => 25,
-    burnin   => 5,
-    every    => 1,
-    resultsdir               => "$resultsdir",
-    logfile                     => 'log.txt',
-    paramfile               => 'paramfile.txt',
-    indadmixturefile     => 'indadmixture.txt',
-    ergodicaveragefile => 'ergodicaverages.txt',
-    allelefreqoutputfile  => 'allelefreqs.txt',
-    #allelicassociationtest   => 1,
-    #ancestryassociationtest  => 1,
-    #affectedsonlytest        => 1,
-    #haplotypeassociationtest => 1,
-    #stratificationtest       => 1
-};
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "cattleresults");
+
+# For the moment, removed the cattle dataset, as it causes an error in admixmap:
+if ( TEST_CATTLE ) {
+    # autosomal and X chromosome data
+    my $arg_hash = {
+	genotypesfile             => 'Cattledata/ngu_complete2.txt',
+	locusfile                 => 'Cattledata/loci.txt',
+	populations		  => 2,
+	globalrho		  => 1,
+	samples			  => 25,
+	burnin			  => 5,
+	every			  => 1,
+	resultsdir		  => "$resultsdir",
+	logfile                   => 'log.txt',
+	paramfile		  => 'paramfile.txt',
+	indadmixturefile	  => 'indadmixture.txt',
+	ergodicaveragefile	  => 'ergodicaverages.txt',
+	allelefreqoutputfile	  => 'allelefreqs.txt',
+	#allelicassociationtest   => 1,
+	#ancestryassociationtest  => 1,
+	#affectedsonlytest        => 1,
+	#haplotypeassociationtest => 1,
+	#stratificationtest       => 1
+    };
+
+    if(doAnalysis( $executable, $arg_hash, 'autosomal and X chromosome data' )){
+        &CompareThenMove( $resultsdir, "cattleresults");
+    }
 }
+
 
 # Single individual
 my $arg_hash = {
     burnin   => 10,
     samples  => 60,
     every    => 1,
-    numannealedruns => 0, 
+    numannealedruns => 0,
     displaylevel   => 2,
 
     locusfile                    => "IndData/loci.txt",
@@ -174,66 +385,8 @@ my $arg_hash = {
     chib                         => 1,
     indadmixturefile             => "indadmixture.txt"
 };
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "Indresults");
+if(doAnalysis( $executable, $arg_hash, 'Single individual' )){
+    &CompareThenMove( $resultsdir, "Indresults");
 }
 
-
-
-######################################################################################
-sub doAnalysis {
-    my ($prog, $args) = @_;
-    my $command = $prog.getArguments($args);
-    my$ status = system("$command");
-    return status;
-}
-
-sub getArguments
-{
-    my $hash = $_[0];
-#    my $arg = '';
-#    foreach my $key (keys %$hash){
-#	$arg .= ' --'. $key .'='. $hash->{$key};
-#    }
-#    return $arg;
-    my $filename = 'perlargs.txt';
-    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
-    foreach my $key (keys %$hash){
-      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
-    }
-    close OPTIONFILE;
-    return " ".$filename;
-}
-
-#SUBROUTINE TO COMPARE ALL FILES IN sourcedir WITH ORIGINALS AND MOVE
-sub CompareThenMove {
-    my ($sourcedir, $targetdir) = @_;
-    my $prefix = "old_";
-# define commands for different OS's
-    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\";$delcmd="rmdir /s /q";}
-    else {$diffcmd = "diff -s"; $movecmd = "mv -f"; $slash="/";$delcmd="rm -r";}
-    if (-e $targetdir) { # compare with sourcedir
-	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
-	while ( defined (my $file = readdir SOURCE) ) {
-	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt"));     # skip . and .. and logfile
-	    system("$diffcmd $sourcedir$slash$file $targetdir$slash$prefix$file");
-	    if($^O eq "MSWin32"){system("pause")}  # for checking comparisons 
-	} #compare
-	closedir(SOURCE);
-    }
-    if (-e $sourcedir) {
-	if (-e $targetdir) {
-	    my $olddir = "$prefix$targetdir";
-	    if (-e $olddir){system("$delcmd $prefix$targetdir");} #delete old results directory (necessary for next command)
-	    system("$movecmd $targetdir $prefix$targetdir"); #preserve old results by renaming directory
-	    }  
-	system("$movecmd $sourcedir $targetdir"); #rename results dir
-	mkdir("$sourcedir");                      #we need results dir for next analysis
-	opendir(TARGET, $targetdir) or die "can't open $targetdir folder: $!";
-	while ( defined (my $file = readdir TARGET) ) { #for each results file
-	    next if $file =~ /^\.\.?$/;     # skip . and ..
-	    system("$movecmd $targetdir$slash$file $targetdir$slash$prefix$file ");} #prefix with "old_"
-	closedir(TARGET);
-    }
-    else {print "$sourcedir does not exist\n"}
-}
+print "\n";
