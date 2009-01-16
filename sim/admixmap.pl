@@ -1,19 +1,17 @@
-#!/usr/bin/perl -w
-use strict;
+#!/usr/bin/perl
+use strict; 
+use File::Path;
 
-my $function_file = "doanalysis.pl";
-
-# Change this to the location of the admixmap executable
-my $executable = '../src/admixmap/admixmap';
-
-# Change this to the location of the R script
-my $rscript = "../dist/AdmixmapOutput.R";
-
-##the following lines are a botch to make the script work straight out of the repository
-if(!(-f $function_file) && (-f "../$function_file")){
-##try one level up
-    $function_file = "../$function_file";
+sub getArguments
+{
+    my $hash = $_[0];
+    my $arg = '';
+    foreach my $key (keys %$hash){
+	$arg .= ' --'. $key .'='. $hash->{$key};
+    }
+    return $arg;
 }
+
 sub doAnalysis
 {
     my ($prog,$args) = @_;
@@ -26,51 +24,41 @@ sub doAnalysis
     print "Results will be written to subdirectory $ENV{'RESULTSDIR'}";
     system($command);
     print "Starting R script to process output\n";
-    system("R CMD BATCH --quiet --no-save --no-restore ../dist/AdmixmapOutput.R \
-            $args->{resultsdir}/Rlog.txt");
-      print "R script completed\n\n";
+    system("R CMD BATCH --quiet --no-save --no-restore ~/genepi/trunk/dist/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
+    print "R script completed\n\n";
 }
-if(!(-f $rscript) && (-f "../$rscript")){
-##try one level up
-    $rscript = "../$rscript";
-}
-require $function_file or die("cannot find doanalysis.pl");
+
+my $executable = 'admixmap';
+
+#########################################################################
 
 my $arg_hash = 
 {
-    samples                    => 25, 
-    burnin                     => 5,
-    every                      => 1,
+    samples                    => 650, 
+    burnin                     => 150,
+    every                      => 5,
+    thermo                     => 0,
     numannealedruns            => 0,
-    locusfile                  => 'data/loci.txt',
-    genotypesfile              => 'data/genotypes.txt',
-    populations                => 2, 
-    priorallelefreqfile        => 'data/priorallelefreqs.txt',
+    locusfile                  => "data/loci.txt",
+    genotypesfile              => "data/genotypes.txt",
     outcomevarfile             => 'data/outcome.txt',
-    displaylevel               => 3,
-    logfile                    => 'log.txt',
-    paramfile                  => 'param.txt',
-    regparamfile               => 'regparam.txt',
-    hwtest                     => 1,
+    #populations                => 2,
+    displaylevel              => 3,
+    
+# output files
+    logfile                    => 'logfile.txt',
+    allelicassociationscorefile => 'allelicassociationscores.txt'
 };
 
 # model with prior allele freqs
+$arg_hash->{fixedallelefreqs}      = 0;
+$arg_hash->{priorallelefreqfile}   = "data/priorallelefreqs.txt";
 $arg_hash->{resultsdir}            = 'results';  
 $arg_hash->{indadmixturefile}   = "indivadmixture.txt";
-#$arg_hash->{dispersiontestfile}    = "dispersionTest.txt";
+$arg_hash->{dispersiontest}    = 1;
 $arg_hash->{affectedsonlytest} = 1;
 $arg_hash->{ancestryassociationtest} = 1;
-$arg_hash->{locusancestryprobs} = 1;
-
-print "script began: ";
-my $starttime = scalar(localtime());
-print $starttime;
-print "\n";
-
-doAnalysis($executable, $rscript, $arg_hash);
-
-print "script ended: ";
-my $endtime = scalar(localtime());
-print $endtime;
-print "\n";
+$arg_hash->{hwtest} = 1;
+$arg_hash->{residualldtest} = 1;
+doAnalysis($executable,$arg_hash);
 
