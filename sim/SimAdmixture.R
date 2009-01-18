@@ -83,18 +83,18 @@ simulateGenotypes <- function(sex, M1, M2, rho, x, L, Xchr.L, alleleFreqs) {
   return(diploidAlleles)
 }
 
-simulateSibPair <- function(popadmixparams, rho, dist, L, Xchr.L, alleleFreqs) {
+simulateSibPair <- function(sex2, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs) {
   ## simulate sib-pair
   ## simulate founder gametes (parental genotypes)
   ind <- simulateIndividual(1, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
   father.genotypes  <- ind$genotypes
   father.avM <- ind$avM
-  ind <- simulateIndividual(1, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
+  ind <- simulateIndividual(2, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
   mother.genotypes  <- ind$genotypes
   mother.avM <- ind$avM
   ## simulate offspring gametes from founder gametes
-  sib1.genotypes <- simulateOffspringFromParents(2, father.genotypes, mother.genotypes, x, L, Xchr.L)
-  sib2.genotypes <- simulateOffspringFromParents(2, father.genotypes, mother.genotypes, x, L, Xchr.L)
+  sib1.genotypes <- simulateOffspringFromParents(sex2[1], father.genotypes, mother.genotypes, x, L, Xchr.L)
+  sib2.genotypes <- simulateOffspringFromParents(sex2[2], father.genotypes, mother.genotypes, x, L, Xchr.L)
   return(list(sib1=sib1.genotypes, sib2=sib2.genotypes))
 }
 
@@ -204,19 +204,20 @@ ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
 ## simulate sibpairs
 genotypes.sibpair <- matrix(data="0,0", nrow=4*N.sibpairs, ncol=L+Xchr.L)
 for(i in 1:N.sibpairs) {
-  sibpair <- simulateSibPair(popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
+  sex2 <- 1 + rbinom(2, 1, 0.5)
+  sibpair <- simulateSibPair(sex2, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
   genotypes.sibpair[4*i - 1, ] <- sibpair$sib1
   genotypes.sibpair[4*i, ] <- sibpair$sib2
   ped6.sibpair[4*i-1, 3] <- ped6.sibpair[4*i-3, 2] 
   ped6.sibpair[4*i-1, 4] <- ped6.sibpair[4*i-2, 2]
   ped6.sibpair[4*i, 3] <- ped6.sibpair[4*i-3, 2] 
   ped6.sibpair[4*i, 4] <- ped6.sibpair[4*i-2, 2]
+  ped6.sibpair[(4*i-3):(4*i), 5] <- c(1, 2, sex2)  
 }
 
 genotypes <- data.frame(rbind(genotypes.ind, genotypes.sibpair))
 locusnames <- dimnames(genotypes)[[2]]
 
-ped6.sibpair[, 5] <- 2
 ped6.sibpair[, 6] <- 2 ## affected sib-pairs
 
 ped6 <- rbind(ped6.ind, ped6.sibpair)
@@ -231,7 +232,7 @@ mkdirs("data") # returns FALSE if directory already exists
 ## write pedfile format: 
 write.table(ped, file="data/genotypes.ped", sep="\t", quote=FALSE,
             row.names=FALSE, col.names=TRUE)
-## write in standard ADMIXMAP foprmat for unrelated individuals
+## write in standard ADMIXMAP format for unrelated individuals
 write.table(ped[, -c(1, 3:4, 6)], file="data/genotypes.txt", quote=FALSE,
             row.names=FALSE, col.names=TRUE)
             
