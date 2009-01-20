@@ -385,6 +385,7 @@ calculateAndPlotQuantiles <- function(param.samples) {
                              c("Median", "Mean", "Pct2.5", "Pct97.5")))
   outputfile <- paste(resultsdir, "ParameterPosteriorDensities", sep="/" )
   openPlotDevice(outputfile)
+  par(mfrow=c(3, 3), mar=0.1+c(4,4,2,2), oma=c(2,6,2,2))
   for(j in 1:ncol(param.samples)) {
     post.quantiles[j, c(1,3,4)] <- quantile(param.samples[,j], probs = c(0.5, 0.025, 0.975), na.rm = T)
     post.quantiles[j, 2] <- mean(param.samples[,j], na.rm=T) 
@@ -421,15 +422,6 @@ plotlogpvalues <- function(psfilename, minuslog10pvalues, table.every, title, hi
     if( ind[test] > 0)##plot if any avaluation of the pvalue < 0.05
       lines(table.every*seq(1:evaluations), minuslog10pvalues[test,], type="l")
   }
-  ## label lines for which final p<0.01
-#  log10pvalues.final <- minuslog10pvalues[, dim(minuslog10pvalues)[2]]
-#  siglabels <- dimnames(minuslog10pvalues)[[1]][minuslog10pvalues.final > 2 | is.na(minuslog10pvalues.final)]
-#  siglabels.x <- 0.9*table.every*dim(minuslog10pvalues)[2]
-#  siglabels.y <- as.vector(minuslog10pvalues.final[minuslog10pvalues.final > 2])
-#  siglabels.y[is.na(siglabels.y)] <- -1
-#  if(length(siglabels) > 0) {
-#    text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
-#  }
   if(hist){
     ## histogram of p-values
     hist(10^(-minuslog10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
@@ -444,14 +436,15 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
   outputfile <- paste(resultsdir, outfile, sep="/")
   openPlotDevice(outputfile)
   colours <- c("black", "blue", "red", "green")
-  header <- paste("Running computation of p-values for ",outfile,sep="")
-  header <- paste(header," score tests",sep="");
+  header1 <- paste("Running computation for ",outfile,sep="")
   ## set up plot for first population and first locus
-  plot(10*thinning*seq(1:dim(log10pvalues)[3]), log10pvalues[1,1,], type="l", ylim=c(0,5),
-       main=header, 
-       xlab="Iterations", ylab="-log10(p-value)")
-  ## loop over populations and loci to add lines
+  par(oma=c(2,6,4,4))
   for(pop in 1:dim(log10pvalues)[1]) {
+    header <- paste(header1,"population", pop, sep="");
+    plot(10*thinning*seq(1:dim(log10pvalues)[3]), log10pvalues[1,1,], type="l", ylim=c(0,5),
+         main=header, 
+         xlab="Iterations", ylab="-log10(p-value)")
+    ## loop over populations and loci to add lines
     for(locus in 1:dim(log10pvalues)[2]) {
       lines(10*thinning*seq(1:dim(log10pvalues)[3]), log10pvalues[pop, locus, ],
             type="l", col=colours[1 + ((pop-1) %% dim(log10pvalues)[1])])
@@ -461,7 +454,7 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
   ## label loci at which tests are significant
   siglabels.x <- 0.9*10*thinning*dim(log10pvalues)[3] ## x coordinate at which to write labels
   log10pvalues.final <-  log10pvalues[,,dim(log10pvalues)[3]]
-  siglabels.y <- as.vector(log10pvalues.final[log10pvalues.final > 2]) # label only where p < 0.01
+  siglabels.y <- as.vector(log10pvalues.final[log10pvalues.final > 3]) # label only where p < 0.001
   siglabels.y[is.na(siglabels.y)] <- -1
   siglabels <- dimnames(log10pvalues.final)[[2]][log10pvalues.final > 2]
   if(length(siglabels.y) > 0) {
@@ -475,6 +468,7 @@ QQplot <- function(zscores, title, filename){
   if(length(point.list[!is.na(point.list)]) > 0){
     ##open output file
     openPlotDevice( paste(resultsdir, filename, sep="/" ))
+    par(mar=0.1+c(4,4,2,2), oma=c(2,6,4,2))
     ##qq-plot
     point.list <- qqnorm(zscores, main = title)
     ##add line y = x with min and max from x values
@@ -500,7 +494,7 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
 
   dimnames(minuslog10pvalues) <- list(testnames, NULL)
   minuslog10pvalues[is.nan(minuslog10pvalues)] <- NA
-  print(minuslog10pvalues)
+  #print(minuslog10pvalues)
   
   plotlogpvalues(outputfilePlot, minuslog10pvalues,
               10*thinning, "Running computation of p-values for allelic association", F)
@@ -509,7 +503,8 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
 #used to plot output of score test for heterozygosity
 plotHWScoreTest <- function(scorefile, k) {
   scoretest <- read.table(paste(resultsdir,scorefile,sep="/"),header=TRUE, row.names="Locus")
-  
+  write.table(data.frame(loci.compound, scoretest), file=paste(resultsdir, "/TestsHWScoreWithPositions.txt", sep=""),
+              sep="\t", row.names=FALSE, quote=FALSE) 
   #qq plot of scores
   QQplot(scoretest[,5], "QQ plot of H-W Test z-scores", "QQPlotHWTest")
   
@@ -557,8 +552,8 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   zscores <- matrix(scoretest.final[,,7], nrow=dim(scoretest.final)[1], ncol=dim(scoretest.final)[2])
 
   plotScoreMap(loci.compound,zscores, KK, testname) 
-  ## plot (complete) information content
-  info.content <- matrix(scoretest.final[,,2], nrow=dim(scoretest.final)[1], ncol=dim(scoretest.final)[2])
+  ## plot (observed) information content
+  info.content <- matrix(scoretest.final[, , 4], nrow=dim(scoretest.final)[1], ncol=dim(scoretest.final)[2])
   plotInfoMap(loci.compound, info.content, KK, testname)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
@@ -586,19 +581,27 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
     }
   }
   dev.off()
+  ## write tables combined with locus table
+  for(pop in 1:K) {
+    scoresbychr <- data.frame(loci.compound, scoretest.final[pop, , ])
+    write.table(scoresbychr,
+                file=paste(resultsdir, "/", testname, population.labels[pop], ".txt", sep=""),
+                sep="\t", row.names=FALSE, quote=FALSE)
+  }
 }
 
 plotScoreMap <- function(loci.compound, zscores, K, testname){
   outputfile <- paste(resultsdir, testname, sep="/")
   outputfile <- paste(outputfile, "ScoreMap", sep="")
   openPlotDevice(outputfile)
+  par(mfrow=c(K, 3), mar=0.1+c(4,4,2,2), oma=c(2,6,2,2))
   for(chr in chr.labels) {
     for(pop in 1:K) {
       plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
            zscores[pop, loci.compound$Chromosome==chr], 
            type="l", ylim=c(-5,5),
            xlab="Map position (cM) from first locus", ylab="z-score",
-           main=paste("z-scores for chromosome", chr, "- pop", pop)
+           main=paste("z-scores for chr", chr, "-", population.labels[pop])
            )
       lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.975),qnorm(0.975)))
       lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.995),qnorm(0.995)), lty=2)
@@ -631,21 +634,22 @@ plotInfoMap <- function(loci.compound, info.content, K, testname) {
   outputfile <- paste(resultsdir, testname, sep="/")
   outputfile <- paste(outputfile, "InformationContentMap", sep="")
   openPlotDevice(outputfile)
-  for(chr in chr.labels) {
+  par(mfrow=c(K, 3), mar=0.1+c(4,4,2,2), oma=c(2,6,2,2))
+    for(chr in chr.labels) {
     for(pop in 1:K) {
       plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
            info.content[pop, loci.compound$Chromosome==chr], 
-           type="l", ylim=c(-10,100),
-           xlab="Map position (cM) from first locus", ylab="Percent info extracted",
-           main=paste("Map information content for chromosome", chr, "- pop", pop)
+           type="l", ylim=c(0, 100),
+           xlab="Map position (cM from first locus)", ylab="Percent info extracted",
+           main=paste("Map info content for chr", chr, population.labels[pop])
            )
       ## text offset vertically in sequences of 3 for legibility
-      text(loci.compound$MapPosition[loci.compound$Chromosome==chr],
-           info.content[pop, loci.compound$Chromosome==chr] +  
-           1 + 20*(seq(1:length(loci.compound$Chromosome[loci.compound$Chromosome==chr])) %% 3),
-           labels=as.vector(loci.compound[,1][loci.compound$Chromosome==chr]),
-           adj=c(0,0), # pos=3,
-           srt=90, offset=0.5)
+ #     text(loci.compound$MapPosition[loci.compound$Chromosome==chr],
+ #          info.content[pop, loci.compound$Chromosome==chr] +  
+ #          1 + 20*(seq(1:length(loci.compound$Chromosome[loci.compound$Chromosome==chr])) %% 3),
+ #          labels=as.vector(loci.compound[,1][loci.compound$Chromosome==chr]),
+ #          adj=c(0,0), # pos=3,
+ #          srt=90, offset=0.5)
     }
   }
   dev.off()
@@ -657,7 +661,6 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   evaluations <- dim(scoretest)[3]
   ntests <- dim(scoretest)[2]
   locusnames <- scoretest[1,,evaluations]
-
   minuslog10pvalues <- as.numeric(scoretest[2, , ])
 
   ##FinalTable <- read.table(paste(resultsdir, "ResidualLDTestFinal.txt", sep="/"), header=T)
@@ -668,9 +671,9 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   minuslog10pvalues[is.nan(minuslog10pvalues)] <- NA
   minuslog10pvalues <- data.frame(matrix(data=minuslog10pvalues, nrow=ntests, ncol=evaluations))
   dimnames(minuslog10pvalues)[[1]] <- locusnames
-
+  #print(minuslog10pvalues[1:10, 1:2])
   plotlogpvalues(outputfile, minuslog10pvalues, 10*thinning,
-                 "Running computation of p-values for residual allelic association", T)
+                 "Running computation of test for resid LD between adjacent pairs of loci", T)
 }
 
 writeScoreTestInfo <- function(FinalTableFilename, info.threshold, pvalue.threshold, outputfile){
@@ -1186,15 +1189,19 @@ if(!is.null(param.samples) && (dim(param.samples)[2] > 0)) {
   openPlotDevice(paste(resultsdir, "TracePlots", sep="/"))
   nsamples <- dim(param.samples)[1]
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
+  par(mfrow=c(3, 3), mar=0.1+c(4,4,2,2), oma=c(2,6,2,2))
   for(var in 1:ncol(param.samples))
     plot(iters, param.samples[,var], xlab="Iteration", ylab=dimnames(param.samples)[[2]][var], type='l')
   dev.off()
   ##plot cumulative averages from paramfiles
   openPlotDevice(paste(resultsdir, "CumulativeAverages", sep="/"))
   iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
+  par(mfrow=c(3, 3), mar=0.1+c(4,4,2,2), oma=c(2,6,2,2))
   for(var in 1:ncol(param.samples))
-    plot(iters, cumsum(param.samples[,var])/c(1:nsamples), xlab="Iteration", ylab=dimnames(param.samples)[[2]][var], type='l')
+    plot(iters, cumsum(param.samples[,var])/c(1:nsamples), xlab="Iteration",
+         ylab=dimnames(param.samples)[[2]][var], type='l')
   dev.off()
+  par(mfrow=c(1,1))
   
 }
 
@@ -1234,6 +1241,7 @@ if(is.null(user.options$ergodicaveragefile) ) {
 #if(!is.null(options$loglikelihoodfile)){
 energy.table <- read.table(paste(resultsdir, "loglikelihoodfile.txt", sep="/"), header=F, colClasses=c("integer", "numeric"))
 openPlotDevice(paste(resultsdir, "EnergyTracePlot", sep="/"))
+par(oma=c(2,6,2,2))
 plot(energy.table[,1], energy.table[,2], type='l', main="Trace plot of energy (-loglikelihood)", ylab="Energy", xlab="iteration")
 dev.off()
 #}
@@ -1292,7 +1300,7 @@ if(!is.null(user.options$allelicassociationscorefile)
                                                      na.strings="NA", header=T),
                                           ArrivalRate=lambda, ResidualAD=eta)
       write.table(scoretest.final.table, file=paste(resultsdir, "TestAllelicAssocFinal.txt", sep="/"),
-                  row.names=F, col.names=T)
+                  sep="\t", row.names=F, col.names=T)
       cat(" done\n", file=outfile, append=T)
     }
     cat("plotting map of information extracted...", file=outfile, append=T)
@@ -1331,6 +1339,22 @@ if(!is.null(user.options$residualallelicassocscorefile) && file.exists(paste(res
   psfile <- paste(resultsdir, "TestsResidualAllelicAssoc", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$residualallelicassocscorefile, psfile, user.options$every)
   cat(" done\n", file=outfile, append=T)
+  residualLDtests <- read.table(paste(resultsdir, "TestResidualLDFinal.txt", sep="/"), header=TRUE)
+  locus1 <- gsub("/[[:alnum:]]+", "", as.character(residualLDtests[, 1]))
+  residualLDtests <- data.frame(locus1, residualLDtests)                 
+  residualLDtestsmap <- merge(loci.compound, residualLDtests, by=1, all.x=TRUE)
+  residualLDtestsmap <- residualLDtestsmap[match(loci.compound[, 1], residualLDtestsmap[, 1]), ]
+  write.table(residualLDtestsmap, file=paste(resultsdir, "TestsResidualLDWithMapPositions.txt", sep="/"),
+              sep="\t", row.names=FALSE, quote=FALSE)
+}
+
+## add map positions to dispersiontests results
+if(file.exists(paste(resultsdir, "DispersionTest.txt", sep="/"))) {
+  disptests <- read.table(file=paste(resultsdir, "DispersionTest.txt", sep="/"), header=TRUE)
+  disptests <- disptests[-dim(disptests)[1], ]
+  disptests <- data.frame(loci.compound, disptests)
+  write.table(disptests, file=paste(resultsdir, "TestsDispersionWithMapPositions.txt", sep="/"),
+              sep="\t", row.names=FALSE, quote=FALSE)
 }
 
 ## read output of M-H score test
@@ -1373,7 +1397,7 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
 
       write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
                   file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
-                  row.names=FALSE, col.names=TRUE)
+                  sep="\t", row.names=FALSE, col.names=TRUE)
       cat(" done\n", file=outfile, append=T)
     }
 
@@ -1384,10 +1408,10 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
       KLInfo.means <- data.frame(as.vector(loci.compound[,1]), round(KLInfo.means, digits=4))
       dimnames(KLInfo.means)[[2]] <- c("LocusName", "KLInfo")
       write.table(KLInfo.means, file=paste(resultsdir,"LocusKLInfo.txt", sep="/"),
-                  row.names=TRUE, col.names=TRUE)
+                  sep="\t", row.names=TRUE, col.names=TRUE)
       write.table(KLInfo.means[order(KLInfo.means[, 2], decreasing=TRUE), ],
                   file=paste(resultsdir,"LocusKLInfoSorted.txt", sep="/"),
-                  row.names=FALSE, col.names=TRUE)
+                  sep="\t", row.names=FALSE, col.names=TRUE)
       cat(" done\n", file=outfile, append=T)
     }
 
@@ -1415,7 +1439,6 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
   }
 }
 
-  
 if(!is.null(user.options$indadmixturefile) && K >1 && file.exists(paste(resultsdir, user.options$indadmixturefile, sep="/"))) {
   ## read posterior samples of individual admixture
   cat("reading posterior samples of individual params...", file=outfile, append=T)
@@ -1460,3 +1483,4 @@ if(!is.null(user.options$indadmixturefile) && K >1 && file.exists(paste(resultsd
 cat("No indadmixturefile\n", file=outfile, append=T)
 }
 cat("Script completed", file=outfile, append=T)
+
