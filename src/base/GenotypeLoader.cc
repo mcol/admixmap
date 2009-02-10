@@ -9,6 +9,7 @@
  * See the file COPYING for details.
  * 
  */
+#undef USE_GENOTYPE_PARSER
 #include "GenotypeLoader.h"
 #include "bclib/LogWriter.h"
 #include "Genome.h"
@@ -74,7 +75,7 @@ vector<unsigned short> GenotypeLoader::GetGenotype(unsigned locus, int individua
 
 
 ///convert a genotype string to a vector of unsigned ints
-vector<unsigned short> GenotypeLoader::GetGenotype(const string genostring)const{
+vector<unsigned short> GenotypeLoader::GetGenotype(const string & genostring)const{
   vector<unsigned short> g;
  
   //strip quotes from string
@@ -128,6 +129,7 @@ const
 
 	vector<unsigned short> g = GetGenotype(simplelocus, i);
 	if(g.size()==2)
+	  {
 	  if( (g[0] > numalleles) || (g[1] > numalleles))
 	    throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
 			       g[0], g[1], numalleles );
@@ -135,6 +137,7 @@ const
 	    if( (g[0] > numalleles))
 	      throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
 				 g[0], 0, numalleles );
+	  }
 
 	if(isXchrm){
 	  if(g.size()==1){

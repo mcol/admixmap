@@ -3,7 +3,9 @@
  *   GenotypeLoader.h 
  *   class to load and assign genotypes
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
- *  
+ */
+
+/*
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
  * version 2 or later, as published by the Free Software Foundation. 
@@ -16,6 +18,13 @@
 #include <vector>
 #include <string>
 #include "common.h"
+
+
+
+/** \addtogroup base
+ * @{ */
+
+
 
 class Genome;
 namespace bclib{
@@ -47,7 +56,8 @@ public:
   virtual void GetGenotype(int i, const Genome &Loci, 
 		   std::vector<genotype>* genotypes, bool **Missing)const;
 
-  //check genotypes for unobserved alleles
+  ///check genotypes for unobserved alleles
+  /// [DDF: apparently only called from hapmixmap]
   bool CheckForUnobservedAlleles(const bclib::DataMatrix& LocusData, bclib::LogWriter& Log);
 
   ///returns number of individuals
@@ -85,11 +95,17 @@ protected:
   void CheckGenotypes(unsigned long numObserved, unsigned long numhaploid, unsigned long numdiploid, 
 		      unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const std::string& ID)const;
 
-  std::vector<unsigned short> GetGenotype(const std::string genostring)const;
+  std::vector<unsigned short> GetGenotype(const std::string & genostring)const;
   bool determineIfPedFile()const;
   ///looks for sex column 
   void DetermineSexColumn(unsigned NumLociInLocusfile, bclib::LogWriter& Log);
 
-
 };
+
+
+
+/** @} */
+
+
+
 #endif
