@@ -32,7 +32,7 @@ sub usage
 		"	-x <admixmap-executable> [defaults to " . DEF_EXEC . "]\n" .
 		"	-d <data-dir>		 [defaults to " . DEF_DDIR . "]\n" .
 		"	-r <results-dir>	 [defaults to " . DEF_RDIR . "]\n" .
-		"	-o <output-file>	 [for admixmap's stdout (in <results-dir>)]\n" .
+		"	-o <output-file>	 [for admixmap's stdout, will be moved to results-dir]\n" .
 		"	-E			 [admixmap's stderr is also in <output-file>]\n" .
 		"	-s			 [report results matching the last run (not just differences)]\n" .
 		"	-e			 [prints commands to stdout before executing]\n" .
@@ -52,7 +52,7 @@ usage if defined $args{"h"};
 my $executable = defined $args{"x"} ? $args{"x"} : DEF_EXEC;
 my $resultsdir = defined $args{"r"} ? $args{"r"} : DEF_RDIR;
 my $datadir    = defined $args{"d"} ? $args{"d"} : DEF_DDIR;
-my $outfile    = $resultsdir.DIR_SEP.$args{"o"} if defined $args{"o"};
+my $outfile    = $args{"o"} if defined $args{"o"};
 my $redir_err  = defined $args{"E"};
 my $diff_cmd   = defined $args{"s"} ? DIFFS_CMD : DIFF_CMD;
 my $echo_cmds  = defined $args{"e"};
@@ -91,9 +91,7 @@ sub doAnalysis
 
     print "\n==== Test run: $run_desc\n";
 
-    my $command = $exec . getArguments($args);
-
-    # Goofy way to test if directory exists:
+    # One way to test if results directory exists:
     if ( opendir $rdir,$resultsdir )
 	{
 	closedir $rdir;
@@ -103,6 +101,8 @@ sub doAnalysis
 	print "$PROG: making directory \"$resultsdir\"\n";
 	mkdir $resultsdir or die "$PROG: can't make directory $resultsdir: $!";
 	}
+
+    my $command = $exec . getArguments($args);
 
     if ( defined $outfile )
 	{
@@ -119,6 +119,8 @@ sub doAnalysis
 	{
 	print STDERR PROG . ": $command exited with non-zero status: $status\n";
 	}
+
+    exec_cmd( "mv \"$outfile\" \"$resultsdir".DIR_SEP."$outfile\"" ) if ( defined $outfile );
 
     die if ( $abort_err && ($status != 0) );
 
@@ -137,7 +139,7 @@ sub getArguments
 
     my $filename = $resultsdir . DIR_SEP . ARGS_FN;
 
-    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
+    open(OPTIONFILE, ">$filename") or die ("Could not open args file \"$filename\"");
     foreach my $key (keys %$hash){
       print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
@@ -178,7 +180,8 @@ sub CompareThenMove {
     if (-e $targetdir) { # compare with sourcedir
 	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
 	while ( defined (my $file = readdir SOURCE) ) {
-	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt"));     # skip . and .. and logfile
+	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt")); # skip . and .. and logfile
+	    next if ( (defined $outfile) && ($file eq $outfile) );	# Don't compare amm's output
 	    diff_files( "$sourcedir".DIR_SEP."$file", "$targetdir".DIR_SEP."$prefix$file" );
 	    if($^O eq "MSWin32"){system("pause")}  # for checking comparisons
 	} #compare
