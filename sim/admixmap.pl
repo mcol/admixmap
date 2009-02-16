@@ -1,6 +1,36 @@
 #!/usr/bin/perl
 use strict; 
 use File::Path;
+use Getopt::Std;
+
+
+
+#---------------------------------------------------------------------------
+# Command-line options and usage errors:
+#---------------------------------------------------------------------------
+
+my $PROG = ($0 =~ m/.*?([^\/]+)$/)[ 0 ];
+
+sub usage
+    {
+    print STDERR "\nUsage: $PROG [-h] [-p] [-x <admixmap-executable>]\n\n";
+    exit 1
+    }
+
+
+my %args;
+getopts( "x:hp", \%args ) or usage;
+
+usage if defined $args{"h"};
+
+my $executable = defined $args{'x'} ? $args{'x'} : 'admixmap';
+my $usepedfile = defined $args{'p'};
+
+
+
+#---------------------------------------------------------------------------
+# getArguments
+#---------------------------------------------------------------------------
 
 sub getArguments
 {
@@ -12,6 +42,12 @@ sub getArguments
     return $arg;
 }
 
+
+
+#---------------------------------------------------------------------------
+# doAnalysis
+#---------------------------------------------------------------------------
+
 sub doAnalysis
 {
     my ($prog,$args) = @_;
@@ -22,13 +58,14 @@ sub doAnalysis
     mkpath($args->{resultsdir});
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     print "Results will be written to subdirectory $ENV{'RESULTSDIR'}";
+    print ":" . $command . ":";
     system($command);
     print "Starting R script to process output\n";
     system("R CMD BATCH --quiet --no-save --no-restore ~/genepi/trunk/dist/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
     print "R script completed\n\n";
 }
 
-my $executable = 'admixmap';
+
 
 #########################################################################
 
@@ -40,7 +77,7 @@ my $arg_hash =
     thermo                     => 0,
     numannealedruns            => 0,
     locusfile                  => "data/loci.txt",
-    genotypesfile              => "data/genotypes.txt",
+    genotypesfile              => ($usepedfile ? "data/genotypes.ped" : "data/genotypes.txt"),
     outcomevarfile             => 'data/outcome.txt',
     #populations                => 2,
     displaylevel              => 3,
