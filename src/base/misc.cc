@@ -62,7 +62,7 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
       // -p = make recursively and no warning if dir exists
 
       cmd.append(dirpath);
-      system(cmd.c_str());
+      if ( system(cmd.c_str()) ) {;}; // "if" is to suppress compiler warning
       if(!opendir(dirpath.c_str())){
 	cerr << "Unable to create directory. Exiting." << endl;
 	exit(EXIT_FAILURE);
