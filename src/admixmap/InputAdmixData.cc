@@ -3,6 +3,7 @@
  *   InputAdmixData.cc 
  *   class to read ADMIXMAP data
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
+ *   Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -12,16 +13,29 @@
  */
 
 #include "InputAdmixData.h"
-#include "AdmixOptions.h"
+
 #include "bclib/DataReader.h"
-#include <sstream>
-#include <string.h>
+#include "config.h" // USE_GENOTYPE_PARSER
+#include "estr.h"
+
+#include <cstring>  // strlen()
+#include <typeinfo> // typeid
+
+
+#include "AdmixOptions.h"
+
+#if USE_GENOTYPE_PARSER
+    #include "AdmixmapGenotypeConverter.h"
+#endif
 
 using bclib::LogWriter;
 
 InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
   using bclib::DataReader;
-  genotypeLoader = new GenotypeLoader;
+
+  #if ! USE_GENOTYPE_PARSER
+    genotypeLoader = new GenotypeLoader;
+  #endif
 
   Log.setDisplayMode(bclib::Quiet);
   // Read all input files.
@@ -35,23 +49,47 @@ InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
     DataReader::ReadData(options->getReportedAncestryFilename(), reportedAncestryData_, reportedAncestryMatrix_, Log);
     
     Log << "\n";
-    
-  } catch (const exception& e) {
-    cerr << "\nException occured during parsing of input file: \n" << e.what() << endl;
+  }
+
+#if USE_GENOTYPE_PARSER
+  // Catch data-validation errors and re-throw, just so that they are not caught
+  // by the other handlers here:
+  catch ( genepi::DataValidError & e )
+    {
+    #if 0
+	cerr << options->getProgramName() << ": input data validation error: " << e.what() << endl;
+	exit(1);
+    #else
+	throw;
+    #endif
+    }
+#endif
+
+  catch (const exception& e) {
+    cerr << "\nException (" << typeid(e).name() << ") occured during parsing of input file:\n" << e.what() << endl;
     exit(1);
   }
   catch(string s){
-    cerr << "\nException occured during parsing of input file: \n" << s << endl;;
+    cerr << "\nException (strin) occured during parsing of input file:\n" << s << endl;;
     exit(1);
   }
  
   CheckData(options, Log);
 }
 
+
+
+//-----------------------------------------------------------------------------
+// CheckData()
+//-----------------------------------------------------------------------------
+
 void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
+
+#if ! USE_GENOTYPE_PARSER
   NumSimpleLoci = getNumberOfSimpleLoci();
-  NumCompositeLoci = determineNumberOfCompositeLoci();
   distanceUnit = DetermineUnitOfDistance();
+  NumCompositeLoci = determineNumberOfCompositeLoci();
+#endif
 
   Log.setDisplayMode(bclib::Quiet);
  
@@ -93,10 +131,72 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
 
 }
 
+
+
+//-----------------------------------------------------------------------------
+// GetGenotype()
+//-----------------------------------------------------------------------------
+
 void InputAdmixData::GetGenotype(int i, const Genome &Loci, 
-			   std::vector<genotype>* genotypes, bool **Missing)const{
-  genotypeLoader->GetGenotype(i, Loci, genotypes, Missing);
+			   std::vector<genotype>* genotypes, bool **Missing) const {
+  #if USE_GENOTYPE_PARSER
+    convert( (*genotypeLoader)[i-1], Loci, *genotypes, Missing );
+  #else
+    genotypeLoader->GetGenotype(i, Loci, genotypes, Missing);
+  #endif
+
+  #if 0 // ********* DEBUG *********
+
+      fprintf( stderr, "\n===== GENOTYPES[%d] (size: %lu) =====\n\n", i, genotypes->size() );
+      for ( size_t idx1 = 0; idx1 < genotypes->size(); ++idx1 )
+	{
+	const genotype & gt = (*genotypes)[ idx1 ];
+	fprintf( stderr, "  %lu[%lu]: ", idx1, gt.size() );
+	for ( size_t idx2 = 0 ; idx2 < gt.size(); ++idx2 )
+	    #if USE_GENOTYPE_PARSER
+		fprintf( stderr, " %s", gt[idx2].desc().c_str() );
+	    #else
+		{
+		const vector<unsigned short> & x = gt[idx2];
+		if ( x.size() == 0 )
+		    fprintf( stderr, " |" );
+		else if ( x.size() == 1 )
+		    fprintf( stderr, " %hu", x[0] );
+		else if ( x.size() == 2 )
+		    {
+		    if ( x[0] == 0 )
+			fprintf( stderr, " " );
+		    else
+			fprintf( stderr, " %hu", x[0] );
+		    if ( x[1] == 0 )
+			fprintf( stderr, "," );
+		    else
+			fprintf( stderr, ",%hu", x[1] );
+		    }
+		else
+		    fprintf( stderr, " WTF[%lu]", x.size() );
+		}
+	    #endif
+	fprintf( stderr, "\n" );
+	}
+
+      fprintf( stderr, "\n===== MISSING[%d] =====\n\n", i );
+      for ( size_t chrm = 0; chrm < Loci.GetNumberOfChromosomes(); ++chrm )
+	{
+	fprintf( stderr, "  %lu:", chrm );
+	for ( size_t loc = 0 ; loc < Loci.GetSizeOfChromosome(chrm) ; ++loc )
+	    fprintf( stderr, " %s", Missing[chrm][loc] ? "M" : "-" );
+	fprintf( stderr, "\n" );
+	}
+
+  #endif // ********* DEBUG *********
 }
+
+
+
+//-----------------------------------------------------------------------------
+// ReadPopulationLabels()
+//-----------------------------------------------------------------------------
 
 void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
   using bclib::DataReader;
@@ -114,15 +214,13 @@ void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
       HiddenStateLabels.clear();
 
       //set default pop labels
-      for( int j = 0; j < options->getPopulations(); j++ ){
-	stringstream poplabel;
-	poplabel << "Pop" << j+1;
-	HiddenStateLabels.push_back(poplabel.str());
-      }
+      for( int j = 0; j < options->getPopulations(); j++ )
+	HiddenStateLabels.push_back( genepi::estr("Pop") + (j+1) );
     }
   }
 }
  
+
 void InputAdmixData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
   string freqtype = "";
   bool infile = false;//indicates whether either of the three allelefreq files are specified
@@ -130,17 +228,34 @@ void InputAdmixData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
   int Populations = options->getPopulations();
   int NumberOfStates = 0;
 
-  unsigned index = 0;
-  for(unsigned i = 0; i < NumCompositeLoci; ++i){
-    int states = 1;
+  #if USE_GENOTYPE_PARSER
 
-    do{
-      states *= (int)locusMatrix_.get( index, 0 );
-      index++;
+    int nStatesThisCompLoc = 0;
+    for ( SimpleLocusArray::ConstIter slIter = getSimpleLoci().begin() ;
+			slIter != getSimpleLoci().end() ; ++slIter )
+	if ( slIter->isCompositeWithPrevious() )
+	    nStatesThisCompLoc *= slIter->getNumAlleles();
+	else
+	    {
+	    NumberOfStates += nStatesThisCompLoc;
+	    nStatesThisCompLoc = slIter->getNumAlleles();
+	    }
+    NumberOfStates += nStatesThisCompLoc;
+
+  #else // ! USE_GENOTYPE_PARSER:
+
+    unsigned index = 0;
+    for ( unsigned i = 0; i < NumCompositeLoci; ++i ) {
+      int states = 1;
+      do{
+	states *= (int)locusMatrix_.get( index, 0 );
+	index++;
+	}
+	while( index < locusMatrix_.nRows() && !locusMatrix_.isMissing(index, 1) && locusMatrix_.get( index, 1 ) == 0 );
+      NumberOfStates += states;
     }
-    while( index < locusMatrix_.nRows() && !locusMatrix_.isMissing(index, 1) && locusMatrix_.get( index, 1 ) == 0 );
-    NumberOfStates += states;
-  }
+
+  #endif // ! USE_GENOTYPE_PARSER
 
 
   //fixed allele freqs
@@ -148,7 +263,7 @@ void InputAdmixData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     freqtype = "";
     infile = true;
     nrows = alleleFreqData_.size()-1;
-    expectednrows = NumberOfStates-NumCompositeLoci;
+    expectednrows = NumberOfStates-getNumberOfCompositeLoci();
     Populations = alleleFreqData_[0].size() - 1;// -1 for ids in first col
     //getPopLabels(alleleFreqData_[0], Populations, PopulationLabels);
   }
@@ -198,7 +313,7 @@ void InputAdmixData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
 void InputAdmixData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
   if( reportedAncestryMatrix_.nRows() != 2 * genotypeLoader->getNumberOfIndividuals() ){
     Log << "ERROR: " << "ReportedAncestry file has " << reportedAncestryMatrix_.nRows() << " rows\n"
-	<<"Genotypesfile has " << genotypeLoader->getNumberOfIndividuals() << " rows\n";
+	    "Genotypesfile has " << genotypeLoader->getNumberOfIndividuals() << " rows\n";
     exit(1);}
   if( (int)reportedAncestryMatrix_.nCols() != populations ){
     Log << "ERROR: " << "ReportedAncestry file has " << reportedAncestryMatrix_.nCols() << " cols\n"
