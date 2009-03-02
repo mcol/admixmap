@@ -11,6 +11,7 @@
  */
 #include "Individual.h"
 //#include "bclib/Regression.h"
+#include "config.h" // AGGRESSIVE_RANGE_CHECK, USE_GENOTYPE_PARSER
 #include <sstream>
 #include <exception>
 
@@ -33,11 +34,17 @@ Individual::Individual(unsigned number) : myNumber(number){
 // }
 
 void Individual::Initialise(const Options* const options, const InputData* const Data){
-  if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
-  else NumGametes = 1;
+  if( options->isRandomMatingModel() && !isHaploid )
+    NumGametes = 2;
+  else
+    NumGametes = 1;
 
   // Read sex value if present.
-  SexIsFemale = Data->isFemale(myNumber);
+  #if USE_GENOTYPE_PARSER
+    SexIsFemale = Data->isFemale( myNumber - 1 );
+  #else
+    SexIsFemale = Data->isFemale( myNumber );
+  #endif
 
   double L = Loci->GetLengthOfGenome();
   double LX = 0.0;
@@ -126,9 +133,12 @@ void Individual::setGenotypesToMissing(){
 void Individual::DeleteGenotypes(){
   unsigned noCompositeLoci = Loci->GetNumberOfCompositeLoci();
   for(unsigned j = 0; j < noCompositeLoci; ++j){
-    int noLoci = Loci->getNumberOfLoci(j);
-    for(int k = 0; k < noLoci; ++k)
-      genotypes[j][k].clear();
+
+    #if 0 // DDF: this should not be necessary as std::vector::clear() will
+	  // execute the destructors of each of its elements
+	for ( int k = Loci->getNumberOfLoci(j) ; k-- != 0 ; )
+	  genotypes[j][k].clear();
+    #endif
 
     genotypes[j].clear();
   }
@@ -168,7 +178,11 @@ const double* Individual::getAdmixtureProps()const {
   return Theta;
 }
 
-const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)const{
+const std::vector<hapPair > &Individual::getPossibleHapPairs( unsigned int locus ) const {
+  #if AGGRESSIVE_RANGE_CHECK
+    if ( locus >= Loci->GetNumberOfCompositeLoci() )
+	throw std::invalid_argument( "Failed assertion: locus out-of-range" );
+  #endif
   return PossibleHapPairs[locus];
 }
 
@@ -232,14 +246,14 @@ double Individual::getLogLikelihood( const Options& options, const bool forceUpd
       logLikelihood.value = logLikelihood.tempvalue;
       logLikelihood.ready = true;
       logLikelihood.HMMisOK = true; //because forward probs now correspond to current parameter values
-    }                               //and call to UpdateHMM has set this to false
+    }				    //and call to UpdateHMM has set this to false
     return logLikelihood.tempvalue;
   }
 }
 
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
 double Individual::getLogLikelihood(const Options& options, const double* const theta,
-				    const vector<double > rho,  bool updateHMM) {
+				    const vector<double > rho,	bool updateHMM) {
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
     //cout << Loci->isXChromosome(j) << " ";
@@ -312,14 +326,14 @@ void Individual::SampleMissingOutcomes(bclib::DataMatrix *Outcome, const vector<
   int NumOutcomes = Outcome->nCols();
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
-    if( Outcome->isMissing( myNumber-1, k ) ){
+    if( Outcome->isMissing( getIndex(), k ) ){
       if( R[k]->getRegressionType() == Linear)
-	Outcome->set( myNumber-1, k, bclib::Rand::gennor( R[k]->getExpectedOutcome(myNumber-1), 1 / sqrt( R[k]->getlambda() ) ));
+	Outcome->set( getIndex(), k, bclib::Rand::gennor( R[k]->getExpectedOutcome(getIndex()), 1 / sqrt( R[k]->getlambda() ) ));
       else{
-	if( bclib::Rand::myrand() * R[k]->getExpectedOutcome(myNumber-1) < 1 )
-	  Outcome->set( myNumber-1, k, 1);
+	if( bclib::Rand::myrand() * R[k]->getExpectedOutcome(getIndex()) < 1 )
+	  Outcome->set( getIndex(), k, 1);
 	else
-	  Outcome->set( myNumber-1, k, 0);
+	  Outcome->set( getIndex(), k, 0);
       }
     }
   }
