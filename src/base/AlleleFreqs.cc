@@ -296,10 +296,10 @@ void AlleleFreqs::ResetAlleleCounts(unsigned K) {
 }
 
 /**
-   Updates the counts of alleles observed in each state of ancestry.
-   Given a haplotype pair, h, and the ordered ancestry states at a locus.
-   * should use hap pairs stored in Individual object
-   */
+ * Updates the counts of alleles observed in each state of ancestry.
+ * Given a haplotype pair, h, and the ordered ancestry states at a locus.
+ * should use hap pairs stored in Individual object
+ */
 void AlleleFreqs::UpdateAlleleCounts(const int locus, const int h[2], const int ancestry[2], const bool diploid, 
 				     const bool anneal) {
   if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER ) { 
