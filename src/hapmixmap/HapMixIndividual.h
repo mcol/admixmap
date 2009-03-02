@@ -16,6 +16,7 @@
 #include "Individual.h"
 #include "HapMixGenome.hh"
 #include "GPI.h"
+#include "GenotypeIterator.h" // ploidy
 #include <map>
 
 using namespace std;
