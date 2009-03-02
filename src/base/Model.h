@@ -1,7 +1,9 @@
 // *-*-C++-*-*
-/* 
+/**
  *   Model.h
- *   
+ **/
+
+/*
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,6 +15,7 @@
 
 #ifndef MODEL_TOP_H
 #define MODEL_TOP_H 1
+
 
 #include <cstdlib>    /* for exit, strtol */
 #include <cstring>    /* for strcmp, strcpy */
@@ -29,6 +32,10 @@
 #include "ResidualLDTest.h"
 #include "HWTest.h"
 #include "Annealer.h"
+
+
+/** \addtogroup base
+ * @{ */
 
 //prototypes for miscellaneous functions
 void CreateDirectory(const char* dirname, bool DeleteExistingFiles=true);
@@ -100,5 +107,8 @@ protected:
   void Start(Options& options, InputData& data, bclib::LogWriter& Log);
   void Finish(Options& options, InputData& data, bclib::LogWriter& Log);
 };
+
+
+/** @} */
 
 #endif /* MODEL_TOP_H */

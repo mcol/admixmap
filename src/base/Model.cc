@@ -32,7 +32,11 @@ void Model::InitialiseGenome(Genome& G, const Options& options, InputData& data,
   //print table of loci for R script to read
   string locustable = options.getResultsDir();
   locustable.append("/LocusTable.txt");
-  G.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1), data.getUnitOfDistanceAsString());
+  #if USE_GENOTYPE_PARSER
+    G.PrintLocusTable(locustable.c_str(), data.getSimpleLoci() );
+  #else
+    G.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1), data.getUnitOfDistanceAsString());
+  #endif
   locustable.clear();
 }
 

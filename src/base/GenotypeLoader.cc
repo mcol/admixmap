@@ -9,7 +9,7 @@
  * See the file COPYING for details.
  * 
  */
-#undef USE_GENOTYPE_PARSER
+#define USE_GENOTYPE_PARSER 0
 #include "GenotypeLoader.h"
 #include "bclib/LogWriter.h"
 #include "Genome.h"

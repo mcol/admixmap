@@ -1,19 +1,29 @@
 // *-*-C++-*-*
-/** 
- *   GenotypeLoader.h 
- *   class to load and assign genotypes
- *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
+
+/*
+ *  GenotypeLoader.h
+ *  class to load and assign genotypes
  */
 
 /*
+ * Copyright (c) 2007 David O'Donnell and Paul McKeigue
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
  * version 2 or later, as published by the Free Software Foundation. 
  * See the file COPYING for details.
- * 
+ *
  */
+
+
 #ifndef GENOTYPELOADER_H
 #define GENOTYPELOADER_H
+
+
+#if USE_GENOTYPE_PARSER
+    #warning GenotypeLoader is deprecated -- replaced by GenotypeParser
+#endif
+
+
 #include <fstream>
 #include <vector>
 #include <string>
@@ -34,7 +44,9 @@ namespace bclib{
 
 typedef std::vector<std::vector<unsigned short> > genotype;
 
-///class to read genotypes from file and load into Individuals' arrays
+/// @deprecated replaced by GenotypeParser
+///
+/// class to read genotypes from file and load into Individuals' arrays
 class GenotypeLoader{
   
 public:
