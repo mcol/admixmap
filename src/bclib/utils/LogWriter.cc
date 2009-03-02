@@ -77,7 +77,7 @@ LogWriter& LogWriter::operator<<(const int message){
   }
   return *this;
 }
-LogWriter& LogWriter::operator<<(const unsigned message){
+LogWriter& LogWriter::operator<<( unsigned int message ){
   file << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
@@ -91,6 +91,15 @@ LogWriter& LogWriter::operator<<(const long message){
   }
   return *this;
 }
+
+LogWriter& LogWriter::operator<<( unsigned long x ) {
+  file << x;
+  if(toscreen==On || (verbose && toscreen==Quiet)){
+    cout << x;
+  }
+  return *this;
+}
+
 LogWriter& LogWriter::operator<<(const double message){
   file << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){

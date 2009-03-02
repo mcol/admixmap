@@ -2,6 +2,8 @@
 /* 
  *   LogWriter.h
  *   Class for writing to a log file
+ */
+/*
  *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -19,20 +21,34 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 /**
-   enum for three different display modes.
-   set DisplayMode to Off to output only to logfile and not screen
-   Quiet        to logfile and if displaylevel>1 to screen
-   On            to logfile and to screen
-   EXAMPLES:
-   (1) to write to logfile only (logging messages):
-   setDisplayMode(Off); Log<<message;
-   (2) to write to log and screen (important messages):
-   setDisplayMode(On); Log<<message;
-   (3) to write to log and let user determine whether to write to screen (unimportant information)
-   setDisplayMode(Quiet); Log<<message;
-*/
-enum DisplayMode {Off, Quiet, On};
+ * enum for three different display modes.
+ * <BR>
+ * EXAMPLES:
+ *  -# to write to logfile only (logging messages):
+ *	<PRE>
+ *	setDisplayMode(Off); Log<<message;
+ *	</PRE>
+ *  -# to write to log and screen (important messages):
+ *	<PRE>
+ *	setDisplayMode(On); Log<<message;
+ *	</PRE>
+ *  -# to write to log and let user determine whether to write to screen (unimportant information)
+ *	<PRE>
+ *	setDisplayMode(Quiet); Log<<message;
+ *	</PRE>
+ */
+enum DisplayMode
+    {
+    Off	    , ///< output only to logfile and not screen
+    Quiet   , ///< output to logfile and if displaylevel>1 to screen
+    On	      ///< output to logfile and to screen
+    };
 
 ///Class to write to a logfile.
 ///Use insertion operator after setting appropriate display mode.
@@ -50,8 +66,9 @@ public:
   void setDisplayMode(DisplayMode);
 
   LogWriter& operator<<(const int);
-  LogWriter& operator<<(const unsigned);
+  LogWriter& operator<<(unsigned int);
   LogWriter& operator<<(const long);
+  LogWriter& operator<<(unsigned long);
   LogWriter& operator<<(const double);
   LogWriter& operator<<(const std::string);
   LogWriter& operator<<(const char*);
@@ -73,5 +90,9 @@ private:
   int rank;
 
 };
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif 
