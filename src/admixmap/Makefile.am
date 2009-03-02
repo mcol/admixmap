@@ -4,7 +4,8 @@ AM_CPPFLAGS=-I$(BCLIB_PATH)  -I$(BASELIB_PATH)
 
 AM_LDFLAGS=-all-static -L$(top_builddir)/src/bclib
 SUFFIXES=.cc .o
-AM_CXXFLAGS=$(WFLAGS)
+AM_CXXFLAGS=$(WFLAGS) -Wextra
+#AM_CXXFLAGS=$(WFLAGS) -Wextra -DUSE_GENOTYPE_PARSER=$(USE_GENOTYPE_PARSER)
 
 bin_PROGRAMS = admixmap
 admixmap_SOURCES = AdmixFilenames.h \
@@ -28,7 +29,13 @@ AncestryAssocTest.cc AncestryAssocTest.h \
 AdmixtureAssocTest.cc AdmixtureAssocTest.h \
 AllelicAssocTest.cc AllelicAssocTest.h \
 AllelicAssocSubTest.cc AllelicAssocSubTest.h \
-ScoreTests.cc ScoreTests.h 
+ScoreTests.cc ScoreTests.h
+
+if USE_GENOTYPE_PARSER
+  admixmap_SOURCES += \
+    AdmixmapGenotypeConverter.h AdmixmapGenotypeConverter.cc
+endif
+
 
 admixmap_LDADD=$(top_builddir)/$(subdir)/../base/libbase.a -lbcl -lgsl -lgslcblas -lm
 
