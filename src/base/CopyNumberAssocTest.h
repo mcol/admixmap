@@ -2,6 +2,9 @@
 /** 
  *   CopyNumberAssocTest.h 
  *   header file for CopyNumberAssocTest class
+ */
+
+/*
  *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,8 +16,14 @@
 #ifndef COPYNUMBERASSOCTEST_H
 #define COPYNUMBERASSOCTEST_H 1
 
+
 #include "ScoreTestBase.h"
 #include "bclib/RObjectWriter.h"
+
+
+/** \addtogroup base
+ * @{ */
+
 
 /**
    Class originally designed to implement score test for linkage with locus ancestry
@@ -58,6 +67,7 @@ private:
 
 
 
+/** @} */
 
 
 
