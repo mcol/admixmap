@@ -2,6 +2,9 @@
 /* 
  *   Options.h 
  *   header file for Options base class
+ */
+
+/*
  *   Copyright (c) 2006, 2007 David O'Donnell
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -14,9 +17,16 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H 1
 
+
 #include "common.h"
 #include "bclib/LogWriter.h"
 #include "bclib/OptionReader.h"
+
+
+/** \addtogroup base
+ * @{ */
+
+
 
 /// Class to hold program options
 class Options: public bclib::OptionReader
@@ -127,5 +137,9 @@ private:
   Options(const Options&);
   Options& operator=(const Options&);
 };
+
+
+/** @} */
+
 
 #endif /* OPTIONS_H */

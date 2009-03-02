@@ -2,6 +2,9 @@
 /** 
  *   Chromosome.h 
  *   header file for Chromosome class
+ */
+
+/*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,9 +16,15 @@
 #ifndef CHROMOSOME_H
 #define CHROMOSOME_H 1
 
+
 #include <vector>
 #include <string>
 #include "HiddenMarkovModel.h"
+
+
+/** \addtogroup base
+ * @{ */
+
 
 /// Represents a chromosome and holds HMM object
 class Chromosome
@@ -77,5 +86,9 @@ private:
   Chromosome(const Chromosome&);
   Chromosome& operator=(const Chromosome&);
 };
+
+
+/** @} */
+
 
 #endif /* !defined CHROMOSOME_H */

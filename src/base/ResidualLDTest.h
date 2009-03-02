@@ -2,6 +2,9 @@
 /** 
  *   ResidualLDTest.h 
  *   header file for ResidualLDTest class
+ */
+
+/*
  *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,10 +16,16 @@
 #ifndef RESIDUALLDTEST_H
 #define RESIDUALLDTEST_H 1
 
+
 #include <sstream>
 #include "ScoreTestBase.h"
 #include "Options.h"
 #include "bclib/RObjectWriter.h"
+
+
+/** \addtogroup base
+ * @{ */
+
 
 class Chromosome;
 class Genome;
@@ -64,5 +73,8 @@ private:
   void UpdateScoresForResidualAllelicAssociation2(int c, int locus, const double* const AlleleFreqsA, const double* const AlleleFreqsB);
 
 };
+
+
+/** @} */
 
 #endif /* !defined SCORETESTS_H */

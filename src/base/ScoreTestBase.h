@@ -2,6 +2,9 @@
 /* 
  *   ScoreTestBase.h 
  *   Abstract Base Class for score tests
+ */
+
+/*
  *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,10 +16,17 @@
 #ifndef SCORETESTBASE_H
 #define SCORETESTBASE_H 1
 
+
 #include "common.h"
+
 namespace bclib{
   class DelimitedFileWriter;
 }
+
+
+/** \addtogroup base
+ * @{ */
+
 
 /// Abstract Base Class for score tests
 class ScoreTestBase{
@@ -59,4 +69,9 @@ protected:
 //     return "Unable to output scoretest as no updates have been made";
 //   }
 // };
+
+
+/** @} */
+
+
 #endif

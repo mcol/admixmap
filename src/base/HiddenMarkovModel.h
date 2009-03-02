@@ -2,6 +2,9 @@
 /*
  *   HiddenMarkovModel.h 
  *   Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
+ */
+
+/*=============================================================================
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -9,9 +12,17 @@
  * version 2 or later, as published by the Free Software Foundation. 
  * See the file COPYING for details.
  * 
- */
+ *============================================================================*/
+
+
 #ifndef HIDDENMARKOVMODEL_H
 #define HIDDENMARKOVMODEL_H 1
+
+
+
+/** \addtogroup base
+ * @{ */
+
 
 #include <vector>
 #include "bclib/pvector.h"
@@ -87,7 +98,7 @@ protected:
   const int Transitions; //length of chain
   // = # composite Loci, (=L in Chromosome)
 
-  double sumfactor;///< for accumulating log-likelihood
+  double sumfactor; ///< for accumulating log-likelihood
   
   //forward and backward probabilities
   //L x K x K arrays
@@ -140,5 +151,9 @@ private:
   HiddenMarkovModel& operator=(const HiddenMarkovModel&);
 
 };
+
+
+/** @} */
+
 
 #endif /* ! HIDDENMARKOVMODEL_H */

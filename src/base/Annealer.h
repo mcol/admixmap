@@ -1,7 +1,10 @@
 // *-*-C++-*-*
-/* 
+/**
  *   Annealer.h 
- *   Classs to implement simulated annealing and thermodynamic integration
+ *   Class to implement simulated annealing and thermodynamic integration
+ */
+
+/*
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -14,7 +17,14 @@
 #ifndef THERMO_H
 #define THERMO_H 1
 
+
 #include "bclib/LogWriter.h"
+
+
+/** \addtogroup base
+ * @{ */
+
+
 class Annealer{
 
 public:
@@ -42,6 +52,9 @@ private:
 
   std::ofstream annealstream;//for monitoring energy when annealing
 };
+
+
+/** @} */
 
 
 #endif /* THERMO_H */

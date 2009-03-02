@@ -63,8 +63,8 @@ void GenotypeProbOutputter::Output(const char* filename, const vector<string>& L
   vector<vector<double> >::iterator locus_i;
   vector<double>::iterator gt_i;
   
-  unsigned icounter1 = 1; //< Individual counter (1-based)
-  unsigned lcounter1 = 1; //< Locus counter (1-based)
+  unsigned icounter1 = 1; ///< Individual counter (1-based)
+  unsigned lcounter1 = 1; ///< Locus counter (1-based)
   double SumProb = 0.0, UnRoundedMeanProb = 0.0;
 
   for(indiv_i = sumProbs.begin(); indiv_i != sumProbs.end(); ++indiv_i) {

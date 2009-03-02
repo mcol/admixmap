@@ -1,14 +1,17 @@
 // *-*-C++-*-*
-/** 
- *   AlleleFreqs.h 
+/**
+ *   AlleleFreqs.h
  *   header file for AlleleFreqs class
+ */
+
+/*
  *   Copyright (c) 2005 - 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY.
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License,
+ * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
- * 
+ *
  */
 #ifndef ALLELEFREQS_H
 #define ALLELEFREQS_H 1
@@ -28,6 +31,11 @@ namespace bclib{
   class LogWriter;
 }
 
+
+/** \addtogroup base
+ * @{ */
+
+
 /// Class to hold allele/haplotype frequencies and their priors.
 class AlleleFreqs{
 
@@ -35,7 +43,7 @@ public:
   AlleleFreqs();
   virtual ~AlleleFreqs();
 
-  virtual void Initialise(Options* const options, InputData* const data, 
+  virtual void Initialise(Options* const options, InputData* const data,
 			  Genome *pLoci, bclib::LogWriter &Log, bool MAP);
 
   void LoadInitialAlleleFreqs(const char* filename, bclib::LogWriter &Log);
@@ -59,7 +67,7 @@ public:
   const double *GetAlleleFreqs(int locus)const;
   const FreqArray& GetAlleleFreqs()const;
   const int *GetAlleleCounts(int locus)const;
-  
+
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
@@ -98,5 +106,9 @@ protected:
   void AccumulateLocusInfo();
 
 };
+
+
+/** @} */
+
 
 #endif

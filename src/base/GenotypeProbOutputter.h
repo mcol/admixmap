@@ -2,11 +2,17 @@
 #ifndef GPOUTPUTTER_H
 #define GPOUTPUTTER_H
 
+
 #include <fstream>
 #include <iomanip>
 #include "CompositeLocus.h"
 #include "bclib/pvector.h"
 #include "bclib/RObjectWriter.h"
+
+
+/** \addtogroup base
+ * @{ */
+
 
 class GenotypeProbOutputter{
 public:
@@ -34,4 +40,8 @@ private:
 
 
 
-#endif 
+
+/** @} */
+
+
+#endif

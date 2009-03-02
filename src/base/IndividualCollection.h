@@ -1,17 +1,24 @@
 // *-*-C++-*-*
-/** 
+/**
  *   IndividualCollection.h
  *   header file for IndividualCollection class
- *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
- * See the file COPYING for details.
- * 
  */
+
+/*
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY.
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License,
+ * version 2 or later, as published by the Free Software Foundation.
+ * See the file COPYING for details.
+ *
+ */
+
+
 #ifndef INDIVIDUAL_COLLECTION_H
 #define INDIVIDUAL_COLLECTION_H 1
+
+
 
 #include "Genome.h"
 //#include "Chromosome.h"
@@ -21,6 +28,11 @@
 #include <vector>
 #include <string.h>
 #include <string>
+
+
+/** \addtogroup base
+ * @{ */
+
 
 class Regression;
 class Individual;
@@ -73,7 +85,7 @@ public:
   const bclib::DataMatrix& getOutcomeMatrix()const;
 
   double getLogLikelihood(const Options& options, bool forceupdate);
-  double getEnergy(const Options& options, const vector<bclib::Regression*> &R, 
+  double getEnergy(const Options& options, const vector<bclib::Regression*> &R,
 			  const bool & annealed);
 
   virtual void HMMIsBad(bool b);
@@ -96,7 +108,7 @@ protected:
   DataType *OutcomeType;
 
   bclib::DataMatrix *ReportedAncestry;
-  
+
   double SumLogLikelihood;
   double SumDeviance, SumDevianceSq;
   //std::vector< int > _locusfortest;
@@ -105,7 +117,7 @@ private:
   IndividualCollection();
   //double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
   void getLabels(const Vector_s& data, Vector_s& labels);
-  
+
   void LoadCovariates(const InputData*, const Options* const options, bool admixtureAsCovariate);
   void LoadOutcomeVar(const InputData* const);
 
@@ -113,6 +125,8 @@ private:
 
 };
 
+
+/** @} */
+
+
 #endif /* !defined INDIVIDUAL_COLLECTION_H */
-
-

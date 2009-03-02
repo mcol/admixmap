@@ -2,7 +2,14 @@
 #ifndef HAPPAIR_H
 #define HAPPAIR_H
 
+
 #include <ostream>
+
+
+
+/** \addtogroup base
+ * @{ */
+
 
 ///struct to hold a pair of haplotypes, coded as integers
 class hapPair
@@ -27,5 +34,8 @@ class hapPair
 
 }; 
 
+
+
+/** @} */
 
 #endif

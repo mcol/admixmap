@@ -1,7 +1,10 @@
 // *-*-C++-*-*
 /** 
- *   GPI.h 
+ *   \file GPI.h 
  *   (G)enotype(P)robability(I)terator class
+ */
+
+/*
  *   Copyright (c) 2007 David O'Donnell
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -18,8 +21,14 @@
 #include "bclib/ColumnIter.h"
 #include <vector>
 
+
+/** \addtogroup base
+ * @{ */
+
+
 /**
-   Class to provide an interface to GenotypeProbs stored in Individual objects.
+   \brief Class to provide an interface to GenotypeProbs stored in Individual objects.
+
    Holds a pointer to Genotype probs, stored as a FreqArray object, and a pointer to a vector of genotypes (optional).
    The () operator is used to access the required probs via a ColumnIterator object. 
    The row number is offset by the number of columns and the column number is offset by the genotype (if provided).
@@ -64,8 +73,8 @@ public:
 private:
   ColumnIterator C;
   const FreqArray* p;
-  const std::vector<unsigned short>* g;//genotype pointer to indicate columns of the Probs array to use
-                                //using pointer becasue iterators have no null state
+  const std::vector<unsigned short>* g; ///genotype pointer to indicate columns of the Probs array to use
+					///using pointer becasue iterators have no null state
   unsigned offset;
 
   GenotypeProbIterator(const GenotypeProbIterator& );
@@ -74,7 +83,8 @@ private:
 
 
 
+/** @} */
+
+
+
 #endif
-
-
-
