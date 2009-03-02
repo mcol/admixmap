@@ -104,7 +104,7 @@ void CorrelatedFreqs::Initialise(Options* const a_options, InputData* const a_da
   }
 }
 
-void CorrelatedFreqs::PrintPrior(const Vector_s& PopLabels, bclib::LogWriter& Log)const{
+void CorrelatedFreqs::PrintPrior(const Vector_s& /*PopLabels*/, bclib::LogWriter& Log)const{
   Log << "Gamma prior on allele frequency dispersion parameter with mean and variance:\n"
       << psi/tau << "  " << psi/(tau*tau) << "\n";
 
@@ -127,7 +127,7 @@ void CorrelatedFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double 
   } // otherwise eta will be sampled in sampleDirichletParams
 }
 
-void CorrelatedFreqs::InitializeEtaOutputFile(const char* filename, const Vector_s& PopulationLabels, bclib::LogWriter &Log)
+void CorrelatedFreqs::InitializeEtaOutputFile(const char* filename, const Vector_s& /*PopulationLabels*/, bclib::LogWriter &Log)
 {
   Log.setDisplayMode(bclib::On);
   outputstream.open(filename );
@@ -152,7 +152,7 @@ void CorrelatedFreqs::InitializeEtaOutputFile(const char* filename, const Vector
  * Given the number of ancestral populations, sets default values for
  * prior allele freq params.
  */
-void CorrelatedFreqs::SetDefaultPriorParams(int i, double defaultpriorparams){
+void CorrelatedFreqs::SetDefaultPriorParams(int i, double /*defaultpriorparams*/){
   int NumberOfStates = Loci->GetNumberOfStates(i);
 
   PriorParams[i] = new double[NumberOfStates];
