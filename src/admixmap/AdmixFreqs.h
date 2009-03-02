@@ -32,10 +32,10 @@ public:
   virtual void Initialise(Options* const options, InputData* const Data, Genome *pLoci, bclib::LogWriter &Log, bool MAP=false);
   virtual void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
   virtual void PrintPrior(const Vector_s&, bclib::LogWriter& Log)const;
-  virtual void OutputErgodicAvg( int , std::ofstream *)const{};
-  virtual void PrintAcceptanceRates(bclib::LogWriter& Log)const{};
-  virtual void OutputParams(){};
-  virtual void OutputParams(bclib::Delimitedostream& os)const{};
+  virtual void OutputErgodicAvg( int , std::ofstream *)const;
+  virtual void PrintAcceptanceRates(bclib::LogWriter& Log)const;
+  virtual void OutputParams();
+  virtual void OutputParams(bclib::Delimitedostream& os)const;
 
 protected:
   virtual void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
