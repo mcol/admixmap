@@ -1,20 +1,28 @@
 AM_CPPFLAGS = -I$(srcdir)/../bclib
 AM_LDFLAGS= -L$(srcdir)/../bclib
 SUFFIXES=.cc .o
-AM_CXXFLAGS=$(WFLAGS)
+#AM_CXXFLAGS=$(WFLAGS) -Wextra -DAGGRESSIVE_RANGE_CHECK=$(AGGRESSIVE_RANGE_CHECK)
+AM_CXXFLAGS=$(WFLAGS) -Wextra
+
+
+# This was needed in AM_CXXFLAGS when using reinterpret_cast<> for punning
+# parent-IDs (rather than union):
+#-Wstrict-aliasing=0
+
 
 noinst_LIBRARIES = libbase.a
 
-libbase_a_SOURCES = AlleleFreqs.cc AlleleFreqs.h \
+libbase_a_SOURCES = \
+AlleleFreqs.cc AlleleFreqs.h \
 AlleleFreqSampler.cc AlleleFreqSampler.h \
 Annealer.cc Annealer.h \
 Chromosome.cc Chromosome.h \
-common.h \
+common.cc common.h \
 CompositeLocus.cc CompositeLocus.h \
 CopyNumberAssocTest.cc CopyNumberAssocTest.h \
 Filenames.h \
 FreqArrays.h \
-GeneticDistanceUnit.h \
+GeneticDistanceUnit.cc GeneticDistanceUnit.h \
 Genome.cc Genome.h \
 GenotypeIterator.h \
 GenotypeProbOutputter.cc GenotypeProbOutputter.h \
@@ -31,9 +39,28 @@ Model.cc Model.h \
 Options.cc Options.h \
 ResidualLDTest.cc ResidualLDTest.h \
 ScoreTestBase.cc ScoreTestBase.h \
-GenotypeLoader.cc GenotypeLoader.h 
+exceptions.cc exceptions.h \
+estr.cc estr.h \
+Genotype.h Genotype.cc \
+GenotypeIterator.cc
+
+
+if USE_GENOTYPE_PARSER
+  libbase_a_SOURCES += \
+		DataValidError.cc DataValidError.h \
+		GFileLexer.cc GFileLexer.h \
+		SimpleLocus.h SimpleLocus.cc \
+		SimpleLocusArray.h SimpleLocusArray.cc \
+		SimpleLocusParser.h SimpleLocusParser.cc \
+		Organism.h Organism.cc \
+		GenotypeParser.cc GenotypeParser.h \
+		InheritanceVector.h InheritanceVector.cc \
+		Pedigree.h Pedigree.cc PedigreeGenStates.cc
+else
+  libbase_a_SOURCES += \
+		GenotypeLoader.cc GenotypeLoader.h
+endif
+
 
 #.cc.o:
 #	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
-
-
