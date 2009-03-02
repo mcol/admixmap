@@ -1,7 +1,10 @@
 // *-*-C++-*-*
-/** 
- *   AlleleFreqSampler.h 
- *   Class to sample allele/haplotype frequencies at a given composite locus.
+/**
+ * \file AlleleFreqSampler.h
+ * Class to sample allele/haplotype frequencies at a given composite locus.
+ */
+
+/*
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,27 +16,42 @@
 
 #ifndef ALLELEFREQSAMPLER_H
 #define ALLELEFREQSAMPLER_H
-#include "common.h"
+
 #include <math.h>
 #include <stdlib.h>
-#include "bclib/HamiltonianMonteCarlo.h"
-#include "CompositeLocus.h"
+
 #include <algorithm>
+
 #include <gsl/gsl_linalg.h>
+
+#include "bclib/HamiltonianMonteCarlo.h"
+
+#include "common.h"
+#include "CompositeLocus.h"
+
+
+
+/** \addtogroup base
+  @{ */
+
+
 
 class IndividualCollection;
 
 /// Arguments for sampling allele freqs
-typedef struct{
-  unsigned NumPops;// #populations
-  unsigned NumStates;// #alleles/haplotypes
-  unsigned locus;// current locus
-  const IndividualCollection* IP;//pointer to individuals
-  const double* PriorParams;//parameters of Dirichlet prior on allele freqs
-  const int* AlleleCounts;
-  const int* hetCounts;
-  double coolness;
-}AlleleFreqArgs;
+struct AlleleFreqArgs
+  {
+  unsigned			NumPops	    ; ///< #populations
+  unsigned			NumStates   ; ///< #alleles/haplotypes
+  unsigned			locus	    ; ///< current locus
+  const IndividualCollection *	IP	    ; ///< pointer to individuals
+  const double *		PriorParams ; ///< parameters of Dirichlet prior on allele freqs
+  const int *			AlleleCounts;
+  const int *			hetCounts   ;
+  double			coolness    ;
+  };
+
+
 
 ///Class to sample allele/haplotype frequencies at a given composite locus.
 class AlleleFreqSampler{
@@ -50,15 +68,16 @@ public:
   double getAcceptanceRate()const;
 
 private:
+  bool samplerInitialized; ///< Flag to tell us if (NumStates==2)&&(NumPops<=1), i.e. sampler is uninitialized.
   bclib::HamiltonianMonteCarlo Sampler;
   AlleleFreqArgs Args;
   double* params;
   static bool ishapmixmodel;
 
-  static double logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, const unsigned NumPops);
+  static double logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair> & H, const unsigned NumPops);
   static double logPrior(const double* PriorParams, const double* phi, const unsigned NumPops, const unsigned NumStates);
   static double logJacobian(const double* a, const double z, const unsigned H);
-  static void minusLogLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
+  static void minusLogLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > & H,
 					   const unsigned NumStates, double* FirstDeriv);
   static double getEnergy(const double * const phi, const void* const vargs);
   static void gradient(const double * const phi, const void* const vargs, double* g);
@@ -68,4 +87,9 @@ private:
   AlleleFreqSampler(const AlleleFreqSampler&);
   void operator=(const AlleleFreqSampler&);
 };
+
+
+/**@}*/
+
+
 #endif

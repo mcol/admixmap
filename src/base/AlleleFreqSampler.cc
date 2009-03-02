@@ -15,6 +15,10 @@
 #include "bclib/misc.h"
 
 //#define DEBUG 1
+
+#define DISALLOW_INVALID_SAMPLER	0
+
+
 using bclib::eh_log;
 using bclib::softmax;
 using bclib::inv_softmax;
@@ -27,7 +31,8 @@ AlleleFreqSampler::AlleleFreqSampler(){
 }
 
 AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, 
-				     const double* const Prior, bool hapmixmodel = false) {
+				     const double* const Prior, bool hapmixmodel = false) :
+    samplerInitialized( false ) {
   unsigned dim = NumStates*NumPops;
   //initialise Hamiltonian Sampler
   double step0 = 0.02;//initial step size
@@ -44,11 +49,22 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
       numleapfrogsteps = 60;
       Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.95, getEnergySNP, 
 			    gradientSNP);
+      samplerInitialized = true;
     }
+#if DISALLOW_INVALID_SAMPLER
+    //*********************** !!!!WARNING!!!! ************************
+    // If NumStates==2 and NumPops<=1, this leaves some portions of the
+    // hameltonian sampler in an uninitialized state, which are later accessed!
+    //****************************************************************
+    else
+	throw std::runtime_error( "(NumStates==2)&&(NumPops<=1) "
+			"AlleleFreqSampler-HameltonianSampler-uninitialized error" );
+#endif
   } else {
     params = new double[dim];
     Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.95/*target acceptrate*/, 
 			  getEnergy, gradient);
+    samplerInitialized = true;
   }
 }
 
@@ -73,6 +89,7 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi,  IndividualCollection* IC
     inv_softmax(NumStates, phi+k*NumStates, params+k*NumStates);
   }
 
+  if ( ! samplerInitialized ) throw std::runtime_error( "sampler uninitialized" );
   try { // call Sample on transformed variables 
     Sampler.Sample(params, &Args);
   } catch(string s) {
@@ -101,6 +118,7 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts,
     for(unsigned k = 0; k < NumPops; ++k){
       params[k] = log(phi[k*2] / (1.0 - phi[k*2]));
     }
+    if ( ! samplerInitialized ) throw std::runtime_error( "sampler uninitialized" );
     try{
       //call Sample on transformed variables 
       Sampler.Sample(params, &Args);
@@ -204,7 +222,6 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   delete[] phi;
   return energy;
 }
-
 void AlleleFreqSampler::gradient(const double* const params, const void* const vargs, double* g){
   const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
   unsigned States = args->NumStates;
@@ -265,7 +282,7 @@ void AlleleFreqSampler::gradient(const double* const params, const void* const v
 // requires: sampled ancestry pair A, PossibleHapPairs (compatible with genotype) H, 
 // current values of AlleleFreqs at this locus, phi,
 // number of alleles/haplotypes NumStates, number of populations, NumPops
-double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
+double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > &H,
 					const unsigned NumStates){
   unsigned NumPossHapPairs = H.size();
   double sum = 0.0;
@@ -287,7 +304,7 @@ double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], con
 }
 
 ///first derivative of minus log likelihood wrt phi
-void AlleleFreqSampler::minusLogLikelihoodFirstDeriv(const double* phi, const int Anc[2], const std::vector<hapPair > H, 
+void AlleleFreqSampler::minusLogLikelihoodFirstDeriv(const double* phi, const int Anc[2], const std::vector<hapPair > &H,
 						const unsigned NumStates, double* FirstDeriv){
   unsigned NumPossHapPairs = H.size();
   double denom = 0.0;
@@ -404,8 +421,9 @@ void AlleleFreqSampler::gradientSNP(const double* const params, const void* cons
 }
 
 double AlleleFreqSampler::getStepSize()const{
+  if ( ! samplerInitialized ) throw std::runtime_error( "sampler uninitialized" );
   return Sampler.getStepsize();
 }
 double AlleleFreqSampler::getAcceptanceRate()const{
-  return Sampler.getAcceptanceRate();
+  return (samplerInitialized ? Sampler.getAcceptanceRate() : 0.0);
 }
