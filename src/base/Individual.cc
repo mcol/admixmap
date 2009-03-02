@@ -1,16 +1,16 @@
-/** 
- *   Individual.cc 
+/**
+ *   Individual.cc
  *   Class to represent an individual and update individual-level parameters
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY.
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License,
+ * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
- * 
+ *
  */
 #include "Individual.h"
-//#include "bclib/Regression.h" 
+//#include "bclib/Regression.h"
 #include <sstream>
 #include <exception>
 
@@ -35,10 +35,10 @@ Individual::Individual(unsigned number) : myNumber(number){
 void Individual::Initialise(const Options* const options, const InputData* const Data){
   if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
   else NumGametes = 1;
-  
+
   // Read sex value if present.
   SexIsFemale = Data->isFemale(myNumber);
-  
+
   double L = Loci->GetLengthOfGenome();
   double LX = 0.0;
   if(Xdata) LX = Loci->GetLengthOfXchrm();
@@ -49,18 +49,18 @@ void Individual::Initialise(const Options* const options, const InputData* const
     EffectiveL[0] = L;
   }
   EffectiveL[1] = L + 0.5*LX;
-  
+
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
-  
+
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
-  
-  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
+
+  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers
   for (unsigned chrNo = 0; chrNo < numChromosomes; ++chrNo) {
     LocusAncestry[chrNo] = NULL;
   }
   //initialise genotype probs array and array of indicators for genotypes missing at locus
-  
+
   size_t AncestrySize = 0;  // set size of locus ancestry array
   //gametes holds the number of gametes for each chromosome, either 1 or 2
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -75,11 +75,11 @@ void Individual::Initialise(const Options* const options, const InputData* const
     LocusAncestry[j] = new int[ AncestrySize];
     for(unsigned i = 0; i < AncestrySize; ++i) LocusAncestry[j][i] = 0;
   }
-  
+
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
   logLikelihood.HMMisOK = false;
-  
+
 }
 
 //********** Destructor **********
@@ -104,7 +104,7 @@ Individual::~Individual() {
 
 void Individual::SetUniformAdmixtureProps() {
   size_t K = NumHiddenStates;
-  for( unsigned g = 0; g < NumGametes; ++g ) { 
+  for( unsigned g = 0; g < NumGametes; ++g ) {
     for(size_t k = 0; k < K; ++k)
       Theta[g*K+k] = 1.0 / K;
   }
@@ -176,7 +176,7 @@ const int* Individual::getSampledHapPair(int locus)const{
   return sampledHapPairs[locus].haps;
 }
 
-/** 
+/**
     Get the locus ancestry by the absolute locus index,ingoring the chromosome.
  */
 void Individual::GetLocusAncestry(int locus, int Ancestry[2])const{
@@ -219,7 +219,7 @@ bool Individual::isHaploidIndividual()const{
   return isHaploid;
 }
 //****************** Log-Likelihoods **********************
-// public function: 
+// public function:
 // calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
 // store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
 double Individual::getLogLikelihood( const Options& options, const bool forceUpdate, const bool store) {
@@ -228,22 +228,22 @@ double Individual::getLogLikelihood( const Options& options, const bool forceUpd
     return logLikelihood.value;
   else{
     logLikelihood.tempvalue = getLogLikelihood(options, Theta, _rho, (forceUpdate || !logLikelihood.HMMisOK));
-    if(store) {  
-      logLikelihood.value = logLikelihood.tempvalue; 
+    if(store) {
+      logLikelihood.value = logLikelihood.tempvalue;
       logLikelihood.ready = true;
-      logLikelihood.HMMisOK = true; //because forward probs now correspond to current parameter values 
+      logLikelihood.HMMisOK = true; //because forward probs now correspond to current parameter values
     }                               //and call to UpdateHMM has set this to false
-    return logLikelihood.tempvalue;   
+    return logLikelihood.tempvalue;
   }
 }
 
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
-double Individual::getLogLikelihood(const Options& options, const double* const theta, 
+double Individual::getLogLikelihood(const Options& options, const double* const theta,
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
     //cout << Loci->isXChromosome(j) << " ";
-    if(updateHMM){// force update of forward probs 
+    if(updateHMM){// force update of forward probs
       UpdateHMMInputs(j, options, theta, rho);
     }
     LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
@@ -251,20 +251,20 @@ double Individual::getLogLikelihood(const Options& options, const double* const 
       throw string("HMM returns log-likelihood as nan (not a number)\n");
     }
   }
-  return LogLikelihood; 
+  return LogLikelihood;
 }
 
 void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Metropolis proposal is accepted
-    logLikelihood.value = logLikelihood.tempvalue; 
+    logLikelihood.value = logLikelihood.tempvalue;
     logLikelihood.ready = true;
-    if(setHMMAsOK) logLikelihood.HMMisOK = true; 
-}                               
+    if(setHMMAsOK) logLikelihood.HMMisOK = true;
+}
 
 double Individual::getLogLikelihoodAtPosteriorMeans(const Options& options) {
-  // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
+  // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
-    UpdateHMMInputs(j, options, Theta, _rho); 
+    UpdateHMMInputs(j, options, Theta, _rho);
     LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
   }
   return LogLikelihood;
@@ -274,12 +274,12 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const Options& options) {
 void Individual::SampleHiddenStates(const Options& options){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome *C = Loci->getChromosome(j);
-    // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
+    // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted
     //Update Forward/Backward probs in HMM
     if( !logLikelihood.HMMisOK ) {
       UpdateHMMInputs(j, options, Theta, _rho);
     }
-    // sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
+    // sampling locus ancestry can use current values of forward probability vectors alpha in HMM
     C->HMM->SampleHiddenStates(LocusAncestry[j], (!isHaploid && (!Loci->isXChromosome(j) || SexIsFemale)));
   } //end chromosome loop
   logLikelihood.HMMisOK = true;
@@ -289,12 +289,12 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
   if( !skipMissingGenotypes || !GenotypesMissing[j][jj]) {
     int anc[2];//to store ancestry states
     GetLocusAncestry(j,jj,anc);
-    if(PossibleHapPairs[locus].size() > 1 && !annealthermo) { 
+    if(PossibleHapPairs[locus].size() > 1 && !annealthermo) {
       // no need to sample if only one possible hap pair or if annealing for thermo integration
       (*Loci)(locus)->SampleHapPair(&(sampledHapPairs[locus]), PossibleHapPairs[locus], anc);
     }
     // now update allelecounts in AlleleFreqs using sampled hap pair
-    // UpdateAlleleCounts does nothing if annealthermo and > 2 alleles 
+    // UpdateAlleleCounts does nothing if annealthermo and > 2 alleles
     if(UpdateCounts && !GenotypesMissing[j][jj])
       A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), annealthermo);
   }
