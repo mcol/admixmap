@@ -5,6 +5,10 @@ AC_INIT([genepi],[src])
 #put auxiliary files here
 AC_CONFIG_AUX_DIR(config)
 
+## DDF: added this to eliminate warning from 'autoreconf' regarding libtool:
+#put additional local autoconf macros here
+AC_CONFIG_MACRO_DIR([src/m4])
+
 #Compute the canonical target-system type variable, target
 AC_CANONICAL_TARGET
 
@@ -16,6 +20,32 @@ AC_MSG_NOTICE([
 
 Configuring $PACKAGE_STRING for $target
 ])
+
+
+dnl --enable-old-parser which is used to set or clear USE_GENOTYPE_PARSER
+AC_ARG_ENABLE(old-parser,
+	[  --enable-old-parser     don't use the new GFileLexer/SimpleLocusParser/GenotypeParser
+			  classes to parse input files (required for pedfiles)])
+AM_CONDITIONAL(USE_GENOTYPE_PARSER,test "$enable_old_parser" != yes)
+if test "$enable_old_parser" = yes; then
+    dnl AC_SUBST(USE_GENOTYPE_PARSER,0)
+    AC_DEFINE([USE_GENOTYPE_PARSER],[0],[switch which input-file parser to use])
+else
+    dnl AC_SUBST(USE_GENOTYPE_PARSER,1)
+    AC_DEFINE([USE_GENOTYPE_PARSER],[1],[switch which input-file parser to use])
+fi
+
+
+dnl --disable-range-check which is used to set or clear AGGRESSIVE_RANGE_CHECK
+AC_ARG_ENABLE(range-check,
+	[  --disable-range-check   turn off internal range-checking of array indices
+			  this is only necessary for extreme optimization])
+if test "$enable_range_check" = no; then
+    AC_DEFINE([AGGRESSIVE_RANGE_CHECK],[0],[switch on/off array index range checking])
+else
+    AC_DEFINE([AGGRESSIVE_RANGE_CHECK],[1],[switch on/off array index range checking])
+fi
+
 
 # C++ compilers
 #AC_PROG_CXX
@@ -46,7 +76,7 @@ AC_CHECK_HEADERS([boost.h])
 #check if script called with --enable-parallel and if so set parallel flags
 AC_ENABLE_PARALLEL
 
-# Check if the script was called with --enable-optimize, 
+# Check if the script was called with --enable-optimize,
 # --enable-debug or --enable-profile, and if so modify the compilation flags.
 dnl TODO: should not allow debug and optimize together
 AC_CXX_ENABLE_OPTIMIZE
@@ -60,7 +90,7 @@ AC_PROG_DOXYGEN
 AM_DISABLE_SHARED
 #invoke libtool - must be *after* enable checks
 AC_PROG_LIBTOOL
-#AC_PROG_RANLIB
+LT_INIT
 
 ## write definitions of compiler, flags etc in config.h
 AC_DEFINE_UNQUOTED([_compiler_name],["$CXX"],[C++ compiler name])
@@ -77,25 +107,27 @@ AC_CONFIG_FILES([Makefile
 	   src/hapmixmap/Makefile
 	   src/base/Makefile
 	   src/bclib/Makefile
-           src/bclib/bclib/Makefile
+	   src/bclib/bclib/Makefile
 	   src/bclib/regression/Makefile
 	   src/bclib/samplers/Makefile
 	   src/bclib/utils/Makefile
-           src/bclib/examples/Makefile
-           src/bclib/doxygen/Makefile
+	   src/bclib/examples/Makefile
+	   src/bclib/doxygen/Makefile
+	   src/bclib/doxygen/Doxyfile
 	   src/scripts/Makefile
-           src/scripts/genepi-config
+	   src/scripts/genepi-config
 	   src/tools/Makefile
-           src/tools/hapmap/Makefile
-           src/tools/FPHD/Makefile
-           src/tools/hapmix2impute/Makefile
-           src/tools/ancestrymapConversion/Makefile
-         src/tools/bir/Makefile
+	   src/tools/hapmap/Makefile
+	   src/tools/FPHD/Makefile
+	   src/tools/hapmix2impute/Makefile
+	   src/tools/ancestrymapConversion/Makefile
+	   src/tools/bir/Makefile
 	   src/doxygen/Makefile
 	   src/doxygen/Doxyfile
 	   test/Makefile
 	   test/admixmap/Makefile
-           test/hapmixmap/Makefile
+	   test/admixmap/pedigree-tester/Makefile
+	   test/hapmixmap/Makefile
 	   dist/Makefile
 	   dist/admixmap/Makefile
 	   dist/admixmap/tutorial/Makefile
@@ -111,4 +143,3 @@ AC_ENV
 
 #print compilation info
 AC_INFO
-
