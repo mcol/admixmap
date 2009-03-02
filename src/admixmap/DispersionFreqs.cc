@@ -163,7 +163,7 @@ void DispersionFreqs::Initialise(Options* const a_options, InputData* const a_da
   
 }
 
-void DispersionFreqs::LoadAlleleFreqs(Options* const a_options, InputData* const a_data, bclib::LogWriter &Log)
+void DispersionFreqs::LoadAlleleFreqs(Options* const a_options, InputData* const a_data, bclib::LogWriter &/*Log*/)
 {
   AdmixOptions const* options = (AdmixOptions*)a_options;
   InputAdmixData const* data = (InputAdmixData*)a_data;
