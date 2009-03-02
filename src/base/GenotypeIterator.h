@@ -2,46 +2,80 @@
 #ifndef GENOTYPE_ITERATOR_H
 #define GENOTYPE_ITERATOR_H
 
-enum ploidy {haploid, diploid};
 
-class GenotypeIterator{
+#include "config.h" // USE_GENOTYPE_PARSER
+#if USE_GENOTYPE_PARSER
+    // Included just for GType definition:
+    #include "GFileLexer.h"
+#else
+    #include <vector>
+#endif
+
+
+/** \addtogroup base
+ * @{ */
+
+
+enum ploidy { haploid, diploid };
+
+
+/// This is not an iterator class in the standard sense of the word, but rather
+/// a sort of abstract "array adapter" into a genome (of varying type)
+/// object that can be <I>used</I> to iterate via the "subscripts" to
+/// operator(), j and g.
+class GenotypeIterator {
  public:
-  virtual ~GenotypeIterator(){};
+  virtual ~GenotypeIterator() {}
   //virtual std::vector<unsigned short>::const_iterator operator[](unsigned j)const = 0;
-  virtual unsigned short operator()(unsigned j, unsigned g)const = 0;
-  virtual unsigned short get(unsigned j, unsigned g)const = 0;
-  bool isDiploid()const{return isdiploid;};
+  virtual unsigned short operator()(unsigned j, unsigned g) const = 0;
+  unsigned short get(unsigned j, unsigned g) const { return operator()(j,g); }
+  bool isDiploid() const { return isdiploid; }
+
+  GenotypeIterator( bool _isdiploid ) : isdiploid( _isdiploid ) {}
+  GenotypeIterator() {}
 
 protected:
   bool isdiploid;
-
 };
 
-class AdmixGenotypeIterator : public GenotypeIterator{
- public:
-  AdmixGenotypeIterator(  const std::vector<std::vector<unsigned short> >::const_iterator in, ploidy p){
-    isdiploid = (p == diploid);
-    it = in;
-  }
-  AdmixGenotypeIterator(  const std::vector<std::vector<unsigned short> >& in, ploidy p){
-    isdiploid = (p == diploid);
-    it = in.begin();
-  }
-  unsigned short operator()(unsigned j, unsigned g)const{
-    if(g !=0 && g!= 1)throw ("Bad call to GenotypeOperator::operator()");
-    return  ( *(it+j) )[g];
-  }
-  unsigned short get(unsigned j, unsigned g)const{
-    return this->operator()(j,g);
-  }
-  //  std::vector<unsigned short>::const_iterator operator[](unsigned j)const{
-  //  return (it+j)->begin();
-  //}
- private:
-  std::vector<std::vector<unsigned short> >::const_iterator it;
-  AdmixGenotypeIterator();
 
-};
+// For admixmap: one of two varieties, depending on whether we use old-style or
+// new-style input-file parser:
+#if USE_GENOTYPE_PARSER
+    class AdmixGenotypeIterator : public GenotypeIterator {
+     private:
+      const std::vector<genepi::Genotype> & v;
+     public:
+      AdmixGenotypeIterator(  const std::vector<genepi::Genotype>& in, ploidy p) :
+	GenotypeIterator( p == diploid ) ,
+	v		( in	       ) {}
+      unsigned short operator() (unsigned j, unsigned g) const;
+      const genepi::Genotype & operator[] ( size_t j ) const { return v[ j ]; }
+    };
+#else
+    class AdmixGenotypeIterator : public GenotypeIterator {
+     public:
+      AdmixGenotypeIterator(  const std::vector<std::vector<unsigned short> >::const_iterator in, ploidy p){
+	isdiploid = (p == diploid);
+	it = in;
+      }
+      AdmixGenotypeIterator(  const std::vector<std::vector<unsigned short> >& in, ploidy p){
+	isdiploid = (p == diploid);
+	it = in.begin();
+      }
+      unsigned short operator()(unsigned j, unsigned g)const{
+	if(g !=0 && g!= 1)throw ("Bad call to GenotypeOperator::operator()");
+	return  ( *(it+j) )[g];
+      }
+      //  std::vector<unsigned short>::const_iterator operator[](unsigned j)const{
+      //  return (it+j)->begin();
+      //}
+     private:
+      std::vector<std::vector<unsigned short> >::const_iterator it;
+      AdmixGenotypeIterator();
+    };
+#endif
+
 
 class HapMixGenotypeIterator : public GenotypeIterator{
 
@@ -79,12 +113,13 @@ class HapMixGenotypeIterator : public GenotypeIterator{
     }
     return a;
   }
-  unsigned short get(unsigned j, unsigned g)const{
-    return this->operator()(j,g);
-  }
  private:
   std::vector<unsigned short>::const_iterator it;
   HapMixGenotypeIterator();
 };
+
+
+/** @} */
+
 
 #endif
