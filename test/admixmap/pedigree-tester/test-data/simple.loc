@@ -1,0 +1,7 @@
+#-------------------------------------------------------------------------
+# Simple dataset for testing generation of founder-haplotype /
+# inheritance-vector states
+#-------------------------------------------------------------------------
+
+Locus NumAlleles cM chr
+X1	2	 NA  1

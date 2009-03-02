@@ -1,0 +1,7 @@
+
+# Fictitious loci used to process the example pedigree file
+
+LocusName   NumberOfAlleles DistanceFromLast	# Chromosome
+
+loc1		2		75
+loc2		2		75
