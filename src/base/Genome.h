@@ -2,6 +2,9 @@
 /** 
  *   Genome.h
  *   header file for Genome class (formerly known as GeneticArray)
+ */
+
+/*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -22,12 +25,31 @@
 #include <vector>
 #include "GeneticDistanceUnit.h"
 #include "InputData.h"
+#include "config.h"	// AGGRESSIVE_RANGE_CHECK
 
 namespace bclib{
   class LogWriter;
 }
+
+
+
+/** \addtogroup base
+ * @{ */
+
+
 ///Container class for Chromosome and CompositeLocus objects.
 class Genome{
+
+protected:
+  void throwErr( const std::string & msg ) const;
+  void checkCIdx( unsigned int cIdx ) const
+    {
+    #if AGGRESSIVE_RANGE_CHECK
+	if ( cIdx >= NumberOfChromosomes )
+	    throwErr( "chromosome range" );
+    #endif
+    }
+
 public:
 
   Genome();
@@ -46,8 +68,11 @@ public:
   bool isX_data()const;
 
   CompositeLocus* operator()(int) const;
-
   const CompositeLocus* GetLocus(int)const;
+
+  CompositeLocus &	 operator[]( unsigned int locusIdx );
+  const CompositeLocus & operator[]( unsigned int locusIdx ) const
+	    { return const_cast<Genome*>( this )->operator[]( locusIdx ); }
 
   void SetLabels(const std::vector<std::string> &labels, const std::vector<double> &distances);
 
@@ -73,8 +98,14 @@ public:
   void GetChromosomes(int);
   const Chromosome* const* getChromosomes()const;
   Chromosome *getChromosome(unsigned);
+  const Chromosome & getChromosomeRef( unsigned cIdx ) const { checkCIdx(cIdx); return *C[cIdx]; }
+  Chromosome &	     getChromosomeRef( unsigned cIdx )	     { checkCIdx(cIdx); return *C[cIdx]; }
 
-  void PrintLocusTable(const char* filename, const std::vector<double>& Distances, const std::string& unitString)const;
+  #if USE_GENOTYPE_PARSER
+    void PrintLocusTable( const char * filename, const SimpleLocusArray & simpleLoci ) const;
+  #else
+    void PrintLocusTable(const char* filename, const std::vector<double>& Distances, const std::string& unitString)const;
+  #endif
 
   unsigned GetChrNumOfLocus(unsigned locus); 
   int GetNumberOfStates()const;
@@ -106,7 +137,7 @@ private:
   /** Index of chromosomes and loci.
    *
    * LocusTable[i][0] is the chromosome
-   * LucusTable[i][1] is the locus index
+   * LocusTable[i][1] is the locus index
    */
   std::vector<std::vector<int> > LocusTable;
   std::vector<std::string> ChrmLabels;
@@ -121,5 +152,9 @@ private:
   Genome& operator=(const Genome&);
  
 };
+
+
+/** @} */
+
 
 #endif /* !GENETIC_ARRAY_H */
