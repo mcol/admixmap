@@ -82,6 +82,7 @@ AdmixIndividualCollection::~AdmixIndividualCollection() {
 
   delete[] TestInd;
   delete indadmixoutput;
+  delete[] SumLogTheta;
 }
 
 
@@ -104,7 +105,7 @@ void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Ge
     _locusfortest = Loci.GetChrmAndLocus( options.getLocusForTest() );
   
   // allocate array of sufficient statistics for update of population admixture parameters
-  SumLogTheta = new double[ options.getPopulations()];
+  SumLogTheta = new double[ options.getPopulations() ];
   
   //allocate array of sufficient statistics for update of locus-specific sumintensities
 
@@ -492,7 +493,7 @@ double* AdmixIndividualCollection::getSumEnergySq()const{
     return SumEnergySq;
 }
 double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *> &R, Genome* Loci,
-							     bclib::LogWriter &Log, const vector<double>& SumLogRho, unsigned,  AlleleFreqs* A){
+							     bclib::LogWriter &Log, const vector<double>& SumLogRho, unsigned,  AlleleFreqs* /*A*/){
   //SumRho = ergodic sum of global sumintensities
   int iterations = options.getTotalSamples()-options.getBurnIn();
   
