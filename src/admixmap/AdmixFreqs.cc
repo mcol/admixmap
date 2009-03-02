@@ -65,10 +65,18 @@ void AdmixFreqs::Initialise(Options* const a_options, InputData* const a_data,
 void AdmixFreqs::PrintPrior(const Vector_s& , bclib::LogWriter& )const{
 }
 
-void AdmixFreqs::LoadAlleleFreqs(Options* const a_options, InputData* const a_data, bclib::LogWriter &Log)
+
+void AdmixFreqs::OutputErgodicAvg( int , std::ofstream *) const		{}
+void AdmixFreqs::PrintAcceptanceRates(bclib::LogWriter& /*Log*/)const	{}
+void AdmixFreqs::OutputParams()						{}
+void AdmixFreqs::OutputParams(bclib::Delimitedostream& /*os*/)const	{}
+
+
+void AdmixFreqs::LoadAlleleFreqs(Options* const a_options, InputData* const a_data, bclib::LogWriter &/*Log*/)
 {
-  AdmixOptions const* options = (AdmixOptions*)a_options;
-  InputAdmixData const* data = (InputAdmixData*)a_data;
+  // DDF: This is _very_ bad, we need to eliminate it by defining virtual methods!
+  const AdmixOptions &	 dopts = dynamic_cast<AdmixOptions   &>( *a_options );
+  const InputAdmixData & ddata = dynamic_cast<InputAdmixData &>( *a_data    );
 
   int newrow;
   int row = 0;
@@ -79,20 +87,20 @@ void AdmixFreqs::LoadAlleleFreqs(Options* const a_options, InputData* const a_da
   bool file = false;//flag to indicate if priors have been supplied in a file
 
   //old format allelefreqfile
-  if( strlen( options->getAlleleFreqFilename() ) ){
-    temporary = &(data->getAlleleFreqData());
+  if( strlen( dopts.getAlleleFreqFilename() ) ){
+    temporary = &(ddata.getAlleleFreqData());
 
     offset = 1;
     oldformat = true;
     file = true;
   }
-  else if( strlen( options->getPriorAlleleFreqFilename() ) ){
+  else if( strlen( dopts.getPriorAlleleFreqFilename() ) ){
     offset = 0;
     oldformat = false;
     file = true;
 
     //Prior on DispersionFreqs
-    temporary = &(data->getPriorAlleleFreqData());
+    temporary = &(ddata.getPriorAlleleFreqData());
   }
 
   if(RandomAlleleFreqs){
