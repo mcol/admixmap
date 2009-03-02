@@ -134,7 +134,7 @@ int main( int argc , char** argv ){
   cout << "Finished" << endl
        << "-------------------------------------------------------" << endl;
 
-  putenv("HAPMIXMAPCLEANEXIT=1");
+  setenv( "HAPMIXMAPCLEANEXIT", "1", true );
   return 0;
 } //end of main
 
