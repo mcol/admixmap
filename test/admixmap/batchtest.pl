@@ -34,6 +34,7 @@ sub usage
 		"	-r <results-dir>	 [defaults to " . DEF_RDIR . "]\n" .
 		"	-o <output-file>	 [for admixmap's stdout, will be moved to results-dir]\n" .
 		"	-E			 [admixmap's stderr is also in <output-file>]\n" .
+		"	-C			 [compare admixmap's output against past runs\n" .
 		"	-s			 [report results matching the last run (not just differences)]\n" .
 		"	-e			 [prints commands to stdout before executing]\n" .
 		"	-a			 [abort after error]\n" .
@@ -43,7 +44,7 @@ sub usage
 
 
 my %args;
-getopts( "hx:r:d:o:Esea", \%args ) or usage;
+getopts( "hx:r:d:o:ECsea", \%args ) or usage;
 
 
 usage if defined $args{"h"};
@@ -54,6 +55,7 @@ my $resultsdir = defined $args{"r"} ? $args{"r"} : DEF_RDIR;
 my $datadir    = defined $args{"d"} ? $args{"d"} : DEF_DDIR;
 my $outfile    = $args{"o"} if defined $args{"o"};
 my $redir_err  = defined $args{"E"};
+my $cmp_out    = defined $args{"C"};
 my $diff_cmd   = defined $args{"s"} ? DIFFS_CMD : DIFF_CMD;
 my $echo_cmds  = defined $args{"e"};
 my $abort_err  = defined $args{"a"};
@@ -180,8 +182,8 @@ sub CompareThenMove {
     if (-e $targetdir) { # compare with sourcedir
 	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
 	while ( defined (my $file = readdir SOURCE) ) {
-	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt")); # skip . and .. and logfile
-	    next if ( (defined $outfile) && ($file eq $outfile) );	# Don't compare amm's output
+	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt"));		   # skip . and .. and logfile
+	    next if ( (defined $outfile) && (! $cmp_out) && ($file eq $outfile) ); # Don't compare amm's output
 	    diff_files( "$sourcedir".DIR_SEP."$file", "$targetdir".DIR_SEP."$prefix$file" );
 	    if($^O eq "MSWin32"){system("pause")}  # for checking comparisons
 	} #compare
