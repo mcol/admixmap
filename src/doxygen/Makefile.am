@@ -4,13 +4,14 @@
 
 #docdir = $(datadir)/doc/$(PACKAGE)-$(VERSION)/doxygen
 
-DISTCLEANFILES = Doxyfile doxygen-warning 
+DISTCLEANFILES = Doxyfile doxygen-warning
+
 
 if DOXYGEN_DOC
 
 
-html/index.html: Doxyfile
-	@DOXYGEN@ 
+html/index.html: Doxyfile mainpage.dox
+	@DOXYGEN@
 
 # Document Targets
 html: html/index.html
@@ -61,15 +62,19 @@ doc-dist: doc
 # Clean hooks
 clean-local:
 	@if test -f $(PACKAGE).pdf; then \
+		echo "$(RM) -f $(PACKAGE).pdf"; \
 		$(RM) -f $(PACKAGE).pdf; \
 	fi
 	@if test -f $(PACKAGE).ps; then \
+		echo "$(RM) -f $(PACKAGE).ps"; \
 		$(RM) -f $(PACKAGE).ps; \
 	fi
 	@if test -d html; then \
+		echo "$(RM) -rf html"; \
 		$(RM) -rf html; \
 	fi
 	@if test -d latex; then \
+		echo "$(RM) -rf latex"; \
 		$(RM) -rf latex; \
 	fi
 

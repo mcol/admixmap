@@ -1,0 +1,38 @@
+/*! \mainpage Genepi Software Source-Code Documentation
+ *
+ * More documentation can be found at <A HREF="http://homepages.ed.ac.uk/pmckeigu/software.html">the main web-site.</A>
+ *
+ * \section packages Packages
+ *
+ * There are four essential modules (packages/libraries/programs), the source to
+ * each of which is in the subdirectory of <CODE>src/</CODE> that bears its
+ * name:
+ *  - \ref bclib "BCLIB"
+ *    This is a general-purpose library of C++ objects for Bayesian computation:
+ *    it is stand-alone and can be used independently.
+ *  - \ref base "Base"
+ *    This is a library containing those objects that are common to both the
+ *    admixmap and hapmixmap programs.
+ *  - <B>ADMIXMAP</B>
+ *    A program to model admixture using marker genotype data
+ *  - <B>HAPMIXMAP</B>
+ *    A program to model HapMap haplotypes in genetic association studies using tag SNP genotypes
+ *
+ */
+
+
+/*!
+ * \defgroup bclib BCLIB - a collection of C++ objects for Bayesian computation
+ *
+ * See also http://homepages.ed.ac.uk/pmckeigu/bclib
+ *
+ */
+
+
+/*!
+ * \defgroup base Base - classes common to both admixmap and hapmixmap
+ *
+ * <B>This library contains those objects that are common to both the
+ * admixmap and hapmixmap programs.</B>
+ *
+ */
