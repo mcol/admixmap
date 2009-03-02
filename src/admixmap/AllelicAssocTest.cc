@@ -144,7 +144,7 @@ void AllelicAssocTest::Reset(){
 }
 
 void AllelicAssocTest::Update( const Individual* const ind, double YMinusEY, double phi, 
-			       double DInvLink, bool missingOutcome)
+			       double DInvLink, bool /*missingOutcome*/)
 {
   int locus = 0;
 
