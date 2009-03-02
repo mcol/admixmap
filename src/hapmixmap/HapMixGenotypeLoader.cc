@@ -220,6 +220,7 @@ void HapMixGenotypeLoader::GetTestGenotype(int i, const Genome &Loci, vector<gen
 	  }
 	else g.assign(2,0);//set genotypes at untyped loci 0
 	if(g.size()==2)
+	  { // Braces added to suppress compiler warning
 	  if( (g[0] > numalleles) || (g[1] > numalleles))
 	    throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
 			       g[0], g[1], numalleles );
@@ -227,6 +228,8 @@ void HapMixGenotypeLoader::GetTestGenotype(int i, const Genome &Loci, vector<gen
 	    if( (g[0] > numalleles))
 	      throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
 				 g[0], 0, numalleles );
+	  }
+
 
 	if(isXchrm){
 	  if(g.size()==1)++numhaploidX;
