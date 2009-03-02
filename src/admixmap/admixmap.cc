@@ -1,7 +1,9 @@
 /** 
  *   ADMIXMAP
- *   admixmap.cc 
- *   Top-level source file
+ *   \file admixmap.cc
+ *   Top-level source file, containing the main() program for admixmap
+ */
+/*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -11,10 +13,14 @@
  * 
  */
 #include "AdmixMapModel.h"
+#include "config.h" // USE_GENOTYPE_PARSER
+#if USE_GENOTYPE_PARSER
+    #include "DataValidError.h"
+#endif
 #include <fstream>
 
-#define ADMIXMAP_VERSION 3
-#define SUBVERSION 8.2578
+#define ADMIXMAP_VERSION "3"
+#define SUBVERSION	 "8.2578"
 
 using namespace std;
 
@@ -93,6 +99,19 @@ int main( int argc , char** argv ){
     Log.ProcessingTime();
 
   }
+
+#if USE_GENOTYPE_PARSER
+  // Catch data-validation errors and format nicely:
+  catch ( genepi::DataValidError & e )
+    {
+    // options->getProgramName()
+    cerr << '\n' << argv[0] << ": ***** input data validation error *****"
+	<< (genepi::DataValidError::getEmacsStyleFmt() ? "\n  " : " ")
+	<< e.what() << "\n\n";
+    return 1;
+    }
+#endif
+
   catch (const string& msg) {//catch any stray error messages thrown upwards
     ThrowException(msg, Log);
   }
