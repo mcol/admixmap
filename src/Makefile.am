@@ -1,8 +1,15 @@
-if PARALLEL
-SUBDIRS = bclib base hapmixmap scripts doxygen
-else
-SUBDIRS = bclib base admixmap hapmixmap tools scripts doxygen
+
+SUBDIRS = bclib base
+
+if ! PARALLEL
+  SUBDIRS += admixmap
 endif
+
+if ! USE_GENOTYPE_PARSER
+  SUBDIRS += hapmixmap
+endif
+
+SUBDIRS += tools scripts doxygen
 
 ACLOCAL_AMFLAGS = 
 #use -Wno-syntax if Automake >= v1.10 to suppress "underquoted" warnings
