@@ -12,6 +12,8 @@
 
 #include "Haplotype.h"
 
+#include "GenotypeIterator.h" // Used forward reference in header
+
 Haplotype::Haplotype(){
   base = NULL;
   NumberOfLoci = 0;
@@ -123,20 +125,21 @@ Haploid functions for setting PossibleHaplotypePairs
 */
 
 void Haplotype::setPossibleHaplotypes(const GenotypeIterator* G, vector<hapPair> &PossibleHapPairs){
-  //setBaseForHapCode();
-  int numMissingLoci = 0;
-  int numPermsMissing = 1;
-  vector<bool> isMissing(NumberOfLoci);
-  vector<int> HapAlleles = vector<int>(NumberOfLoci);
-  vector<int> HapAllelesNoMissing = vector<int>(NumberOfLoci);
 
-  for( int i = 0; i < NumberOfLoci; i++ ) {
-    isMissing[i] = false;
-    HapAlleles[i] = G->get(i, 0);
-    if( (G->get(i,0) == 0)   ) { // missing genotype
-      isMissing[i] = true;
-      numMissingLoci ++;
-      numPermsMissing *= NumberOfAlleles[i];
+  //setBaseForHapCode();
+
+  int numMissingLoci  = 0;
+  int numPermsMissing = 1;
+  vector<bool>	isMissing	    ( NumberOfLoci );
+  vector<int>	HapAlleles	    ( NumberOfLoci );
+  vector<int>	HapAllelesNoMissing ( NumberOfLoci );
+
+  for ( int i = 0; i < NumberOfLoci; i++ ) {
+    unsigned short val = G->get(i, 0);
+    HapAlleles[i] = val;
+    if ( isMissing[i] = (val == 0) ) { // missing genotype
+	numMissingLoci ++;
+	numPermsMissing *= NumberOfAlleles[i];
     }
   }
 
@@ -156,7 +159,7 @@ void Haplotype::setPossibleHaplotypes(int numMissingLoci, int numPermsMissing, c
   }
 
   hapPair hpair;
-  hpair.haps[1] = -1;//using -1 to denote *haplotype* rather than happair (must be nagative as alleles are counted from 0)
+  hpair.haps[1] = -1;//using -1 to denote *haplotype* rather than happair (must be negative as alleles are counted from 0)
 
   if( numMissingLoci == 0 ) {
     hpair.haps[0] = codeHapAllelesAsInt(&(HapAlleles[0]));
