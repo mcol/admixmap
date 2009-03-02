@@ -2,6 +2,9 @@
 /** 
  *   CompositeLocus.h 
  *   header file for CompositeLocus class
+ */
+
+/*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -14,12 +17,18 @@
 #ifndef COMPOSITE_LOCUS_H
 #define COMPOSITE_LOCUS_H 1
 
+
 #include "common.h"
 #include "HapPair.h"
 #include "Haplotype.h"
 #include "bclib/pvector.h"
 
-///   Class to represent a composite locus
+
+/** \addtogroup base
+ * @{ */
+
+
+/// Class to represent a composite locus
 class CompositeLocus
 {
 
@@ -33,7 +42,7 @@ public:
   void SetLabel( int, std::string );
   void SetNumberOfLoci( int );
   void SetNumberOfAllelesOfLocus( int, int );
-  void AddLocus( int, std::string );
+  void AddLocus( int, const std::string & label = string() );
   void SetHapPairProbs();
   void InitialiseHapPairProbs(const double* const allelefreqs, bool AllHaploid);
   void InitialiseHapPairProbsMAP();
@@ -79,17 +88,17 @@ protected:
   int NumberOfStates;
   static int Populations;
   static int PopulationsSquared;
-  static int PopulationsSquared_x_3; //< Caching a value for efficiency
-  double *HapPairProbs; //< haplotype pair probabilities calculated using AlleleProbs
+  static int PopulationsSquared_x_3; ///< Caching a value for efficiency
+  double *HapPairProbs; ///< haplotype pair probabilities calculated using AlleleProbs
 
 private:
   int NumberOfLoci;
   /// Squared number of populations, stored for efficiency reasons.
   std::vector<int> NumberOfAlleles;
-  const double *AlleleProbs;//< pointer to allele frequencies held in AlleleFreqs
-  const double *AlleleProbsMAP;//< pointer to AlleleFreqsMAP held in AlleleFreqs
-  double *SumAlleleProbs;//< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
-  double *HapPairProbsMAP; //< hap pair probs calculated using AlleleProbsMAP
+  const double *AlleleProbs; ///< pointer to allele frequencies held in AlleleFreqs
+  const double *AlleleProbsMAP; ///< pointer to AlleleFreqsMAP held in AlleleFreqs
+  double *SumAlleleProbs; ///< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
+  double *HapPairProbsMAP; ///< hap pair probs calculated using AlleleProbsMAP
   std::vector<std::string> Label;
   int *base;
   static bool RandomAlleleFreqs;
@@ -114,48 +123,9 @@ double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const 
 
 typedef std::vector<hapPair>::const_iterator happairiter;
 
-inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, 
-					     bool chibindicator) const {
-  int Ksq = Populations*Populations;
-  double *q = Probs;
-  const double *p;
-  if(!chibindicator || !RandomAlleleFreqs) 
-    p = HapPairProbs;
-  else 
-    p = HapPairProbsMAP;
 
-  happairiter end = HapPairs.end();
-  for(int k0 = 0; k0 < Ksq; ++k0) {
-    *q = 0.0;
-    happairiter h = HapPairs.begin();
-    for( ; h != end ; ++h) {
-      *q += *(p + (h->haps[0] * NumberOfStates + h->haps[1]) * Ksq);
 
-    }
-    p++;
-    q++;
-  }
-}
-
-inline void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
-  double *q = Probs;
-  const double *p;
-  if(!chibindicator || !RandomAlleleFreqs) 
-    p = AlleleProbs;
-  else 
-    p = AlleleProbsMAP;
-
-  happairiter end = HapPairs.end();
-  for(int k = 0; k < Populations; ++k) {
-    *q = 0.0;
-    happairiter h = HapPairs.begin();
-    for( ; h != end ; ++h) {
-//Probs[k] += p[k*NumberOfStates + (h->haps[0] )];
-	*q += p[k*NumberOfStates + (h->haps[0] )];
-    }
-    q++;
-  }
-}
+/**@}*/
 
 
 

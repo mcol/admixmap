@@ -1,6 +1,8 @@
 /** 
  *   CompositeLocus.cc 
  *   Class to represent a composite locus
+ */
+/*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -77,7 +79,7 @@ void CompositeLocus::SetRandomAlleleFreqs(bool b){
  *
  * alleles - the number of alleles in the simple locus to be added
  */
-void CompositeLocus::AddLocus( int alleles, string label = "")
+void CompositeLocus::AddLocus( int alleles, const string & label )
 { 
   NumberOfAlleles.push_back(alleles);
   ++NumberOfLoci;
@@ -350,8 +352,9 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Po
 			     PossibleHapPairs[j].haps[1] * Populations * Populations +
 			     ancestry[0] * Populations  + ancestry[1]];
   }
+
   //no need to renormalize for SampleFromDiscrete
-  int h = bclib::Rand::SampleFromDiscrete(Probs, PossibleHapPairs.size());
+  const int h = bclib::Rand::SampleFromDiscrete(Probs, PossibleHapPairs.size());
   delete[] Probs;
 
   hap->haps[0] = PossibleHapPairs[h].haps[0];
@@ -499,15 +502,47 @@ int CompositeLocus::GetMergedHaplotype( int i )const
 }
 
 
+/// DDF: not used by hapmixmap
+void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, 
+					     bool chibindicator) const {
+  int Ksq = Populations*Populations;
+  double *q = Probs;
+  const double *p;
+  if(!chibindicator || !RandomAlleleFreqs) 
+    p = HapPairProbs;
+  else 
+    p = HapPairProbsMAP;
+
+  happairiter end = HapPairs.end();
+  for(int k0 = 0; k0 < Ksq; ++k0) {
+    *q = 0.0;
+    happairiter h = HapPairs.begin();
+    for( ; h != end ; ++h) {
+      *q += *(p + (h->haps[0] * NumberOfStates + h->haps[1]) * Ksq);
+
+    }
+    p++;
+    q++;
+  }
+}
 
 
+void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
+  double *q = Probs;
+  const double *p;
+  if(!chibindicator || !RandomAlleleFreqs) 
+    p = AlleleProbs;
+  else 
+    p = AlleleProbsMAP;
 
-
-
-
-
-
-
-
-
-
+  happairiter end = HapPairs.end();
+  for(int k = 0; k < Populations; ++k) {
+    *q = 0.0;
+    happairiter h = HapPairs.begin();
+    for( ; h != end ; ++h) {
+//Probs[k] += p[k*NumberOfStates + (h->haps[0] )];
+	*q += p[k*NumberOfStates + (h->haps[0] )];
+    }
+    q++;
+  }
+}
