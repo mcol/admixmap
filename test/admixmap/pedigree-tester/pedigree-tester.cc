@@ -132,15 +132,15 @@ static void runTest( const char * locusFileName, const char * pedFileName )
     vector<Pedigree> peds;
     Pedigree::generatePedigrees( pedFileArray, peds );
 
-    size_t minNMembers = INT_MAX;
-    size_t maxNMembers = 0;
-    size_t totNMembers = 0;
+    size_t minNMembers	= INT_MAX;
+    size_t maxNMembers	= 0;
+    size_t totNMembers	= 0;
     size_t minNFounders = INT_MAX;
     size_t maxNFounders = 0;
     size_t totNFounders = 0;
-    size_t minNSibs = INT_MAX;
-    size_t maxNSibs = 0;
-    size_t totNSibs = 0;
+    size_t minNSibs	= INT_MAX;
+    size_t maxNSibs	= 0;
+    size_t totNSibs	= 0;
 
     for	 ( vector<Pedigree>::const_iterator iter = peds.begin(); iter != peds.end(); ++iter )
 	{
