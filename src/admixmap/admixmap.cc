@@ -20,7 +20,9 @@
 #include <fstream>
 
 #define ADMIXMAP_VERSION "3"
-#define SUBVERSION	 "8.2578"
+#define SUBVERSION	 "8."
+
+extern const char SVN_VERSION [];
 
 using namespace std;
 
@@ -137,7 +139,7 @@ void PrintCopyrightNotice(bclib::LogWriter& Log){
   Log.setDisplayMode(bclib::On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
-      << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << "." << SUBVERSION << ") **\n"
+      << "            ** ADMIXMAP (v" ADMIXMAP_VERSION "." SUBVERSION << SVN_VERSION << ") **\n"
       << "-------------------------------------------------------\n";
   Log.setDisplayMode(bclib::Quiet);
   cout << "Copyright(c) 2002-2007 " << endl

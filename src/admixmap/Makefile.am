@@ -2,10 +2,11 @@ BCLIB_PATH=$(srcdir)/../bclib
 BASELIB_PATH=$(srcdir)/../base
 AM_CPPFLAGS=-I$(BCLIB_PATH)  -I$(BASELIB_PATH)
 
-AM_LDFLAGS=-all-static -L$(top_builddir)/src/bclib
+CLEANFILES=svn_version.cc
+
+AM_LDFLAGS=-all-static -L$(top_builddir)/src/bclib -L$(top_builddir)/src/base
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS) -Wextra
-#AM_CXXFLAGS=$(WFLAGS) -Wextra -DUSE_GENOTYPE_PARSER=$(USE_GENOTYPE_PARSER)
 
 bin_PROGRAMS = admixmap
 admixmap_SOURCES = AdmixFilenames.h \
@@ -37,10 +38,18 @@ if USE_GENOTYPE_PARSER
 endif
 
 
-admixmap_LDADD=$(top_builddir)/$(subdir)/../base/libbase.a -lbcl -lgsl -lgslcblas -lm
+admixmap_LDADD=svn_version.o
+admixmap_DEPENDENCIES=svn_version.o
 
-admixmap_DEPENDENCIES = $(top_builddir)/$(subdir)/../base/libbase.a
+admixmap_LDADD+=-lbase -lbcl -lgsl -lgslcblas -lm
+
+admixmap_DEPENDENCIES += $(top_builddir)/$(subdir)/../base/libbase.a
 
 #.cc.o:
 #	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
 
+
+
+svn_version.o: $(admixmap_SOURCES) Makefile.am
+	svnversion .. | sed 's/^/extern const char SVN_VERSION [] = "/;s/$$/";/' > svn_version.cc
+	$(CXX) $(CXXFLAGS) -c svn_version.cc
