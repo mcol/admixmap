@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <string>
 #include <cctype>	// toupper()
+#include <cstring>	// strcasecmp()
 
 
 #include "GenotypeParser.h"
@@ -39,20 +40,35 @@ using namespace std;
 using namespace genepi;
 
 
+static bool iv_binary = true; // Print IVs in traditional binary format
+
+// Generate all hidden states ahead of time in a vector versus generating and
+// printing on-the-fly:
+static bool st_in_vector = false;
+
+
 
 //-----------------------------------------------------------------------------
 // Print an InheritanceVector to an ostream
 //-----------------------------------------------------------------------------
 
 inline static char si2char( const InheritanceVector::SegInd & si )
-	{
-	return (si == InheritanceVector::SI_PATERNAL) ? 'p' : 'm';
-	}
+    {
+    return (si == InheritanceVector::SI_PATERNAL) ? 'p' : 'm';
+    }
+
+inline static char si2digit( const InheritanceVector::SegInd & si )
+    {
+    return (si == InheritanceVector::SI_PATERNAL) ? '1' : '0';
+    }
 
 inline static ostream & operator<<( ostream & os, const InheritanceVector::Bits & b )
-	{
+    {
+    if ( iv_binary )
+	return os << si2digit(b.paternal()) << ',' << si2digit(b.maternal());
+    else
 	return os << char(toupper(si2char(b.paternal()))) << si2char(b.maternal());
-	}
+    }
 
 ostream & operator<<( ostream & os, const InheritanceVector & iv )
     {
@@ -103,6 +119,9 @@ ostream & operator<<( ostream & os, const State & st )
 
 //-----------------------------------------------------------------------------
 // prState()
+//
+// Print a "state" to stdout: this is a Pedigree::StateReceiver, used only when
+// --in-vector is *not* specified.
 //-----------------------------------------------------------------------------
 
 static void prState( const Pedigree &	       ped	       ,
@@ -196,26 +215,38 @@ static void runTest( const char * locusFileName, const char * pedFileName )
 
     for	 ( vector<Pedigree>::const_iterator iter = peds.begin(); iter != peds.end(); ++iter )
 	{
+
 	const Pedigree & ped = *iter;
+
 	cout << "\n\nGenerating space of hidden states for pedigree \""
 		<< ped.getId() << "\" (" << ped.getNMembers() << " members, "
 		<< ped.getNFounders() << " founders, "
 		<< ped.getNSibs() << " sibs)...\n\n";
 
-	#if 0
+
+	// Two different ways to accomplish the same thing: generate the full
+	// list in a std::vector then print; or print each state on-the-fly as
+	// it is generated.
+	if ( st_in_vector )
+	    {
 	    ped.genPossibleStatesInt();
-	    for ( size_t sLocIdx = 0 ; sLocIdx < sLocArray.size() ; ++sLocIdx )
+	    for ( SLocIdxType sLocIdx = 0 ; sLocIdx < sLocArray.size() ; ++sLocIdx )
 		{
 		const std::vector<State> & states = ped.getConsistentStates( sLocIdx );
+
 		cout << "  Simple-locus \"" << sLocArray[ sLocIdx ].getName()
 			<< "\" " << states.size() << " states:\n";
-		for ( std::vector<State>::const_iterator stIt = states.begin(); stIt != states.end(); ++stIt )
+
+		std::vector<State>::const_iterator stIt;
+		for ( stIt = states.begin(); stIt != states.end(); ++stIt )
 		    cout << "    " << *stIt << '\n';
+
 		cout << '\n';
 		}
-	#else
+	    }
+	else
 	    ped.genPossibleStates( prState );
-	#endif
+
 	}
 
     }
@@ -229,16 +260,42 @@ static void runTest( const char * locusFileName, const char * pedFileName )
 int main( int argc, const char * const argv [] )
     {
 
-    if ( argc != 3 )
+    const char * const * argPtr = argv + 1;
+    --argc;
+
+
+    // Check for --char-iv option, which prints inheritance vectors in a
+    // non-standard format:
+    if ( (argc != 0) && (strcasecmp(*argPtr,"--char-av") == 0) )
 	{
-	cerr << "\nUsage: " << argv[0] << " <locus-filename> <pedigree-filename>\n\n";
+	--argc;
+	++argPtr;
+	iv_binary = false;
+	}
+
+
+    // Check for --in-vector option, which accumulates the states in a vector
+    // first, then prints them out.
+    if ( (argc != 0) && (strcasecmp(*argPtr,"--in-vector") == 0) )
+	{
+	--argc;
+	++argPtr;
+	st_in_vector = true;
+	}
+
+
+    if ( argc != 2 )
+	{
+	cerr << "\nUsage: " << argv[0] << " [--char-iv] [--in-vector] <locus-filename> <pedigree-filename>\n"
+	    "\t--char-iv prints inheritance vectors in a non-standard format.\n"
+	    "\t--in-vector accumulates all of the states in a vector first, then prints them out.\n\n";
 	return 1;
 	}
 
 
     try
 	{
-	runTest( argv[1], argv[2] );
+	runTest( argPtr[0], argPtr[1] );
 	}
     catch ( exception & err )
 	{
