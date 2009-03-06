@@ -90,7 +90,7 @@ void SimpleLocusParser::parse()
 	    if ( tok.isToken() )
 		{
 		if ( col == MAX_COLS )
-		    throwError( estr("too many columns in header line (max") + MAX_COLS + ')' );
+		    throwError( estr("too many columns in header line (max ") + MAX_COLS + ')' );
 		headers[ col ] = tok.asString();
 		}
 	    else
