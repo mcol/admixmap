@@ -1,4 +1,4 @@
-//=============================================================================
+g//=============================================================================
 //
 // Copyright (C) 2009  David D. Favro  gpl-copyright@meta-dynamic.com
 //
@@ -80,7 +80,7 @@ ostream & operator<<( ostream & os, const InheritanceVector & iv )
 	{
 	const size_t limit = iv.getNMembers() - 1;
 	for ( size_t sib = iv.getNFounders() ; sib < limit ; ++sib )
-	    os << iv.getMember(sib) << ',';
+	    os << iv.getMember(sib) << ';';
 	os << iv.getMember(limit) << ')';
 	}
 
