@@ -113,7 +113,7 @@ void SimpleLocusParser::parse()
 
 
 	//------------------------------------------------------------------
-	// Prepare a "buffer" Individual object, to read each row into before
+	// Prepare a "buffer" SimpleLocus object, to read each row into before
 	// inserting in the vector.
 	//------------------------------------------------------------------
 
