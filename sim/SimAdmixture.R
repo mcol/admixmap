@@ -158,8 +158,13 @@ for(locus in 1:(L+Xchr.L)) {
                                         # freqs allele 1 in each of NumSubPops subpops
   alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
 }
-alleleFreqs[,1] <- 0.8
-alleleFreqs[,2] <- 0.2
+
+## set allele freqs as required for testing purposes
+## use 0, 1, and 1, 0 to make all markers informative
+## use 0.5, 0.5 and 0.5, 0.5 to make all markers uninformative
+
+alleleFreqs[,1] <- c(0.8, 0.2)
+alleleFreqs[,2] <- c(0.2, 0.8)
 
 ##############################################################
 popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
