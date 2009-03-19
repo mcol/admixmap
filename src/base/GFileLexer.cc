@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -27,6 +27,7 @@
 
 
 #include <cctype>   // isblank(), isdigit()
+#include <iostream> // cerr (for warn())
 
 #include "estr.h"
 
@@ -143,19 +144,28 @@ estr GFileLexer::Token::asString() const
 
 
 //-----------------------------------------------------------------------------
+//
 //  Token::asFloat()
+//
 /// Supposed to support strings-as-floats ("1.2"), but currently does not.
+///
+//
 //-----------------------------------------------------------------------------
 
-double GFileLexer::Token::asFloat() const
+double GFileLexer::Token::asFloat( const char * fieldName ) const
     {
     if ( isType( T_FLOAT ) )
 	return floatVal;
     else if ( isType( T_INTEGER ) )
 	return intVal;
     else
-	throw logic_error( estr("Can't covert token-type ") + getTypeName() +
-			    " to floating-point" );
+	{
+	estr msg( "Can't convert " );
+	if ( fieldName != 0 )
+	    msg << fieldName << " from type ";
+	msg << getTypeName() << " to floating-point";
+	throw logic_error( msg );
+	}
     }
 
 
@@ -262,6 +272,18 @@ void GFileLexer::assert_type( TokenType t, const Token & tok, const char * field
 
 
 //-----------------------------------------------------------------------------
+// warn() [protected]
+//-----------------------------------------------------------------------------
+
+void GFileLexer::warn( const string & msg ) const
+    {
+    std::cerr << getFileName() << ':' << getLineNum() << ": warning: " << msg << '\n';
+    ++nWarnings;
+    }
+
+
+
+//-----------------------------------------------------------------------------
 // checkForComments() [protected]
 /// ch, passed in by reference, is a freshly getchar()d character; we check here
 /// for a comment character, and if found, skip until the end-of-line, in which
@@ -294,10 +316,22 @@ void GFileLexer::checkForComments( char & ch )
 
 char GFileLexer::parseOneInt( char ch, long & val, bool & endOfToken, int & nDigs )
     {
-    gp_assert( isdigit(ch) );
+    long accum;
+    int  aNDigs;
 
-    long accum	= dval( ch );
-    int  aNDigs = 1;
+    const bool isNegative = (ch == '-');
+    if ( isNegative )
+	{
+	accum = 0;
+	aNDigs = 0;
+	}
+    else
+	{
+	gp_assert( isdigit(ch) );
+	accum = dval( ch );
+	aNDigs = 1;
+	}
+
 
     while ( isdigit( ch = getchar() ) )
 	{
@@ -313,7 +347,7 @@ char GFileLexer::parseOneInt( char ch, long & val, bool & endOfToken, int & nDig
     if ( ch == '\n' )
 	pushback( ch );
 
-    val = accum;
+    val = isNegative ? -accum : accum;
     nDigs = aNDigs;
 
     return ch;
@@ -323,7 +357,9 @@ char GFileLexer::parseOneInt( char ch, long & val, bool & endOfToken, int & nDig
 
 //-----------------------------------------------------------------------------
 //  parseFinalInt() [protected]
-/// Lex an integer which
+//
+/// Lex an integer which cannot be part of a larger token (must be terminated by
+/// whitespace, EOL, EOF, etc.)
 //-----------------------------------------------------------------------------
 
 long GFileLexer::parseFinalInt( char ch )
@@ -435,6 +471,10 @@ void GFileLexer::doParseFloat( long intPart, Token & tok )
 
     if ( ! endOfToken )
 	throwError( string("invalid character '") + ch + "' in floating-point" );
+
+    // This is the result of something like: 21.-03
+    if ( decPart < 0 )
+	throwError( "invalid character '-' after decimal point" );
 
     tok.type = T_FLOAT;
     tok.floatVal = double(intPart) + (double(decPart) / long_pow10( nDecDigs ));
@@ -557,6 +597,7 @@ GFileLexer::Token GFileLexer::lexToken()
 	else if ( ch == gtypeDelim  ) doParseGType( GType::MISSING_VAL, rv );
 	else if ( ch == '.'	    ) doParseFloat( 0, rv );
 	else if ( isdigit( ch )	    ) doParseInt( ch, rv );
+	else if ( ch == '-'	    ) doParseInt( ch, rv );
 	else			      doParseStr( ch, rv );
 
 	}
@@ -637,7 +678,7 @@ long GFileLexer::lexInteger( const char * fieldName )
 // lexFloat()
 //-----------------------------------------------------------------------------
 
-double GFileLexer::lexFloat()
+double GFileLexer::lexFloat( const char * fieldName )
     {
     const Token & tok = lexToken();
 
@@ -645,7 +686,7 @@ double GFileLexer::lexFloat()
     if ( tok.isType( T_INTEGER ) )
 	return tok.intVal;
 
-    assert_type( T_FLOAT, tok );
+    assert_type( T_FLOAT, tok, fieldName );
     return tok.floatVal;
     }
 
@@ -725,6 +766,7 @@ GFileLexer::GFileLexer( const char * fn ) :
 	fileName	( fn	) ,
 	istr		( fn	) ,
 	lineNum		( 1	) ,
+	nWarnings	( 0	) ,
 	gtypeDelim	( ','	)   // Default delimiter
     {
     if ( istr.bad() || (! istr.is_open()) )

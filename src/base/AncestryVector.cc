@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro
+// Copyright (C) 2009  David D. Favro  gpl-copyright@meta-dynamic.com
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -19,15 +19,16 @@
 //=============================================================================
 
 //=============================================================================
-/// \file DataValidError.cc
+/// \file AncestryVector.cc
+/// Implementation of the AncestryVector class
 //=============================================================================
 
-#include "DataValidError.h"
-
-#include "estr.h"
+#include "AncestryVector.h"
 
 
-using namespace std;
+#if AV_OSTREAM
+    #include <iostream>
+#endif
 
 
 
@@ -36,58 +37,72 @@ namespace genepi { // ----
 
 
 //-----------------------------------------------------------------------------
-// Class (static) variables:
+// to_ulong()
 //-----------------------------------------------------------------------------
 
-bool DataValidError::emacsStyleFmt = true;
-
-
-
-//-----------------------------------------------------------------------------
-// Constructor
-//-----------------------------------------------------------------------------
-
-DataValidError::DataValidError( const string & msg, const string & fn, int ln ) :
-	message	 ( msg ) ,
-	fileName ( fn  ) ,
-	lineNum	 ( ln  )
+unsigned long AncestryVector::to_ulong() const
     {
-    }
+    unsigned long rv = 0;
 
+    if ( K == 2 )	// Optimized version for K==2:
+	for ( size_t idx = size() ; idx-- != 0 ; )
+	    rv = (rv << 1) + at(idx);
 
+    else if ( K == 3 )	// Optimized version for K==3:
+	for ( size_t idx = size() ; idx-- != 0 ; )
+	    rv = (rv << 1) + rv + at(idx);
 
-//-----------------------------------------------------------------------------
-// Destructor
-//-----------------------------------------------------------------------------
-
-DataValidError::~DataValidError() throw()
-    {
-    }
-
-
-
-//-----------------------------------------------------------------------------
-// what() [virtual, overridden from std::exception]
-//-----------------------------------------------------------------------------
-
-const char * DataValidError::what() const throw()
-    {
-    // Yuck!  But what else can one do?
-    const int NBUFS = 3;
-    static estr bufs[ NBUFS ];
-    static int bufN = 0;
-
-    estr & rv = bufs[ bufN ];
-    if ( ++bufN == NBUFS )
-	bufN = 0;
-
-    if ( emacsStyleFmt )
-	(rv = fileName) << ':' << lineNum << ": " << message;
     else
-	(rv = message) << " at " << fileName << ':' << lineNum;
+	for ( size_t idx = size() ; idx-- != 0 ; )
+	    rv = (rv * K) + at(idx);
 
-    return rv.c_str();
+
+    // We need to cache the limit here:
+    //gp_assert_lt( rv, K^F );
+
+
+    return rv;
     }
+
+
+
+//-----------------------------------------------------------------------------
+// Print an AncestryVector to an ostream
+//-----------------------------------------------------------------------------
+
+#if AV_OSTREAM
+
+    static AVOutputStyle style = AV_NUMERIC;
+
+    void setAVOutputStyle( AVOutputStyle nv )
+	{
+	style = nv;
+	}
+
+    inline static std::ostream & output( std::ostream & os, PopIdx pop )
+	{
+	#if 0
+	    if ( style == AV_NUMERIC )
+		return os << popVect[pop];
+	    else
+	#endif
+		return os << size_t(pop);
+	}
+
+    std::ostream & operator<<( std::ostream & os, const AncestryVector & av )
+	{
+	gp_assert( av.size() != 0 );
+
+	os << "AV(";
+	const size_t limit = av.size() - 1;
+	for ( size_t idx = 0 ; idx < limit ; ++idx )
+	    output( os, av.at(idx) ) << ',';
+	os << av.at(limit) << ')';
+
+	return os;
+	}
+
+#endif // AV_OSTREAM
 
 
 

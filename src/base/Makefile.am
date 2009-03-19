@@ -55,7 +55,11 @@ if USE_GENOTYPE_PARSER
 		Organism.h Organism.cc \
 		GenotypeParser.cc GenotypeParser.h \
 		InheritanceVector.h InheritanceVector.cc \
-		Pedigree.h Pedigree.cc PedigreeGenStates.cc
+		Pedigree.h Pedigree.cc PedigreeGenStates.cc \
+		AncestryVector.cc AncestryVector.h \
+		HiddenStateSpace.h HiddenStateSpace.cc \
+		AlleleArray.h AlleleArray.cc \
+		AlleleFreqParser.h AlleleFreqParser.cc
 else
   libbase_a_SOURCES += \
 		GenotypeLoader.cc GenotypeLoader.h

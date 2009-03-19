@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -29,16 +29,15 @@
 ///  <TR>
 ///	<TD><B>NOTE *1*</B></TD>
 ///	<TD>
-///	The copy-constructors and assignment-operators of State and Pedigree
-///	only exist for the purposes of inserting in and/or moving around in a
-///	container; they are public but should not be used to make multiple
-///	copies of an object because they are <B>extremely</B> dangerous: we
-///	presume that the right-hand-side is about to be destroyed; rather than
-///	reference-count or allocate-and-copy, the left-hand-side "takes
-///	ownership" of the dynamically-allocated objects, and we therefore remove
-///	the RHS's references, so that it does not destroy (i.e.
-///	<CODE>delete[]</CODE>) them when it is destroyed.
-///	</TD>
+///	The copy-constructors and assignment-operators of AlleleArray and
+///	Pedigree only exist for the purposes of inserting in and/or moving
+///	around in a container; they are public but should not be used to make
+///	multiple copies of an object because they are <B>extremely</B>
+///	dangerous: we presume that the right-hand-side is about to be destroyed;
+///	rather than reference-count or allocate-and-copy, the left-hand-side
+///	"takes ownership" of the dynamically-allocated objects, and we therefore
+///	remove the RHS's references, so that it does not destroy (i.e.
+///	<CODE>delete[]</CODE>) them when it is destroyed.  </TD>
 ///  </TR>
 ///
 /// </TABLE>
@@ -49,18 +48,13 @@
 
 #include <cstring>	// memcpy()
 
-#include "InheritanceVector.h"
 #include "SimpleLocus.h"
 #include "SimpleLocusParser.h"
+#include "InheritanceVector.h"
+#include "HiddenStateSpace.h"
 
 
-#define USE_QSORT	1
-#define DEBUG_GH_COMP	0
-
-
-#if DEBUG_GH_COMP // ****** DEBUG: ******
-    #include <iostream>
-#endif
+#define USE_QSORT	1 ///< Whether to use ::qsort() or std::sort() for sorting arrays
 
 
 // We really must find a way to auto-box with STL:
@@ -96,67 +90,6 @@ using namespace std;
 
 
 namespace genepi { // ----
-
-
-
-State::State( const State & rhs ) :
-	iv( rhs.iv )
-    {
-    #if 0 // See NOTE *1*
-	founderHaps = new Haplotype[ iv.getPedigree().getNFounders() ];
-
-	// See NOTE *3* in Genotype.h regarding safety of memcpy():
-	memcpy( founderHaps, rhs.founderHaps, iv.getPedigree().getNFounders() * sizeof(*founderHaps) );
-    #else
-	// !!!WARNING!!! -- see NOTE *1*
-	founderHaps = rhs.founderHaps;
-	const_cast<State&>(rhs).founderHaps = 0;
-    #endif
-    }
-
-
-State::State( const InheritanceVector & _iv, const Haplotype * _founderHaps ) :
-	iv( _iv )
-    {
-    founderHaps = new Haplotype[ iv.getNFounders() ];
-
-    // See NOTE *3* in Genotype.h regarding safety of memcpy():
-    memcpy( founderHaps, _founderHaps, getIV().getNFounders() * sizeof(*founderHaps) );
-    }
-
-
-State::~State()
-    {
-    delete[] founderHaps;
-    }
-
-
-State & State::operator=( const State & rhs )
-    {
-    iv = rhs.iv;
-
-    #if 0 // See NOTE *1*
-	delete[] founderHaps;
-	founderHaps = new Haplotype[ iv.getPedigree().getNFounders() ];
-
-	// See NOTE *3* in Genotype.h regarding safety of memcpy():
-	memcpy( founderHaps, rhs.founderHaps, iv.getPedigree().getNFounders() * sizeof(*founderHaps) );
-    #else
-	// !!!WARNING!!! -- see NOTE *1*
-	founderHaps = rhs.founderHaps;
-	const_cast<State&>(rhs).founderHaps = 0;
-    #endif
-
-    return *this;
-    }
-
-
-
-void State::throwRange( size_t fIdx ) const
-    {
-    throw std::runtime_error( estr("Founder-index ") + fIdx +
-		" out of range (" + getIV().getNFounders() + ')' );
-    }
 
 
 
@@ -229,7 +162,7 @@ Pedigree::Pedigree( const OrganismArray & pool,
 	id		( (*firstM)->getFamId()	   ) ,
 	nMembers	( endM - firstM		   ) ,
 	sortedMembers	( new Member* [ nMembers ] ) ,
-	consistentStates( new vector<State>[ pool.getNSimpleLoci() ] )
+	stateProbs	( 0			   )
     {
     // Initialize the array of pointers-to-members, while simultaneously
     // counting the number of founders and traversing the parent-tree to compute
@@ -323,26 +256,26 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	nMembers	( rhs.nMembers		) ,
 	nFounders	( rhs.nFounders		) ,
 	sortedMembers	( rhs.sortedMembers	) ,
-	consistentStates( rhs.consistentStates	)
+	stateProbs	( rhs.stateProbs	)
     {
     // !!!WARNING!!! -- see NOTE *1*
-    const_cast<Pedigree&>(rhs).sortedMembers	= 0;
-    const_cast<Pedigree&>(rhs).consistentStates = 0;
+    const_cast<Pedigree&>(rhs).sortedMembers = 0;
+    const_cast<Pedigree&>(rhs).stateProbs    = 0;
     }
 
 Pedigree & Pedigree::operator=( const Pedigree & rhs )
     {
     gp_assert( &memberPool == &rhs.memberPool );
 
-    id		     = rhs.id		    ;
-    nMembers	     = rhs.nMembers	    ;
-    nFounders	     = rhs.nFounders	    ;
-    sortedMembers    = rhs.sortedMembers    ;
-    consistentStates = rhs.consistentStates ;
+    id		  = rhs.id	      ;
+    nMembers	  = rhs.nMembers      ;
+    nFounders	  = rhs.nFounders     ;
+    sortedMembers = rhs.sortedMembers ;
+    stateProbs	  = rhs.stateProbs    ;
 
     // !!!WARNING!!! -- see NOTE *1*
-    const_cast<Pedigree&>(rhs).sortedMembers	= 0;
-    const_cast<Pedigree&>(rhs).consistentStates = 0;
+    const_cast<Pedigree&>(rhs).sortedMembers = 0;
+    const_cast<Pedigree&>(rhs).stateProbs    = 0;
 
     return *this;
     }
@@ -356,7 +289,7 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
 Pedigree::~Pedigree()
     {
     delete[] sortedMembers;
-    delete[] consistentStates;
+    delete[] stateProbs;
     }
 
 

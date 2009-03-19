@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -31,19 +31,17 @@
 
 #include "config.h" // AGGRESSIVE_RANGE_CHECK
 
-// Needed for emission probability computation:
-#include "OrganismArray.h"
 #include "Genotype.h"
+#include "OrganismArray.h"
 #include "SimpleLocusArray.h"
-#include "InheritanceVector.h"
+
+#include "AlleleArray.h" // AlleleProbTable, AlleleProbVect (for emission probabilities)
+
+#include <vector>
 
 
 
 namespace genepi { // ----
-
-
-
-class Pedigree;
 
 
 
@@ -52,54 +50,11 @@ class Pedigree;
 
 
 
-//-----------------------------------------------------------------------------
-//
-/// This describes a complete inheritance state (at a given SimpleLocus) of a
-/// Pedigree.
-///
-/// It consists of a pair of:
-///	- An InheritanceVector for the Pedigree, and
-///	- The founder Haplotype state, i.e. a set of phased {Haplotype}s, one for
-///	  each founder in the Pedigree.
-///
-/// Perhaps this should be renamed to SomethingState
-///
-/// @warning
-/// <SPAN STYLE="font-weight: bold; color: red;">IMPORTANT!</SPAN>: see
-/// <A HREF="Pedigree_8cc.html#note-1"><B>NOTE *1*</B> in Pedigree.cc</A> regarding
-/// copy constructors and assignment operators.
-//
-//-----------------------------------------------------------------------------
+// Needed for emission probability computation:
+class AncestryVector;
+class InheritanceVector;
+class HiddenStateSpace;
 
-class State
-    {
-    private:
-	InheritanceVector iv	      ;
-	Haplotype *	  founderHaps ;
-
-    protected:
-	// size_t should be Pedigree::FounderIdx
-	void throwRange( size_t fIdx ) const __attribute__((noreturn));
-
-    public:
-
-	State( const State & rhs );
-	/// Do not use: <A HREF="Pedigree_8cc.html#note-1"><B>NOTE *1*</B> in Pedigree.cc</A>
-	State( const InheritanceVector & _iv, const Haplotype * _founderHaps );
-	~State();
-
-	/// Do not use: <A HREF="Pedigree_8cc.html#note-1"><B>NOTE *1*</B> in Pedigree.cc</A>
-	State & operator=( const State & rhs );
-
-	#if IV_KEEP_PED_REF
-	    const Pedigree &	  getPedigree() const { return iv.getPedigree(); }
-	#endif
-	const InheritanceVector & getIV	     () const { return iv; }
-
-
-	// size_t should be Pedigree::FounderIdx
-	const Haplotype & getFounderHap( size_t fIdx ) const; // Inlined below
-    };
 
 
 
@@ -167,19 +122,20 @@ class State
 class Pedigree
     {
     public:
-	typedef Organism		Member	   ;
-	typedef Member * const *	Iterator   ;
-	typedef FamIdType		IdType	   ;
-	typedef std::vector<Haplotype>	PossHapSet ;
-	typedef size_t			MemberIdx  ;
-	typedef size_t			FounderIdx ;
-	typedef size_t			SibIdx	   ;
+	typedef Organism	 Member	    ;
+	typedef Member * const * Iterator   ;
+	typedef FamIdType	 IdType	    ; ///< Shorthand for FamIdType
+	typedef size_t		 MemberIdx  ; ///< Index into sorted-organism-array for any member
+	typedef size_t		 FounderIdx ; ///< Index into sorted-organism-array for founders
+	typedef size_t		 SibIdx	    ; ///< Index into sorted-organism-array for non-founders
 
 	// This is one way to receive the generated "states":
 	typedef void (*StateReceiver)(	const Pedigree &	  ped		  ,
 					size_t			  sLocIdx	  ,
+					const AncestryVector &	  av		  ,
 					const InheritanceVector & iv		  ,
-					const Haplotype *	  founderHapState );
+					const Haplotype *	  founderHapState ,
+					double			  emProb	  );
 
 
     private:
@@ -190,23 +146,28 @@ class Pedigree
 	size_t	   nFounders	 ;
 	Member * * sortedMembers ;
 
-	/// Indexed on simple-locus-index; this contains, for each simple-locus,
-	/// a list of all State's (founder-haplotype-state and
-	/// inheritance-vector) that are consistent with the observed data.
-	/// Need to rename this?
-	std::vector<State> * consistentStates;
+	/// Array of hidden-state-spaces, one for each locus.  This belongs in a
+	/// subclass.  We use a pointer-to-array rather than std::vector to
+	/// avoid including the full class definition here.
+	mutable HiddenStateSpace * stateProbs;
 
 
-	void recurseSib(   size_t		sLocIdx		,
+	void recurseSib(   SLocIdxType		sLocIdx		,
 			   Haplotype *		memberHapState	,
+			   const AncestryVector&ancestry	,
 			   InheritanceVector &	iv		,
 			   MemberIdx		memDepth	,
+			   double		emProbTerm	,
 			   StateReceiver	receiver	) const;
 
-	void recurseFounder(	size_t		sLocIdx		,
-				Haplotype *	memberHapState  ,
-				MemberIdx	memDepth	,
-				StateReceiver	receiver	) const;
+	void recurseFounder(	SLocIdxType		sLocIdx		,
+				PopIdx			K		,
+				const AlleleProbTable & alProbTab	,
+				Haplotype *		memberHapState	,
+				AncestryVector&		ancestry	,
+				MemberIdx		memDepth	,
+				double			probProdSoFar	,
+				StateReceiver		receiver	) const;
 
 
     protected:
@@ -227,8 +188,10 @@ class Pedigree
 	static void accumStateInArray(
 			const Pedigree &	  ped		  ,
 			size_t			  sLocIdx	  ,
+			const AncestryVector &	  av		  ,
 			const InheritanceVector & iv		  ,
-			const Haplotype *	  founderHapState );
+			const Haplotype *	  founderHapState ,
+			double			  emProb	  );
 
 
     public:
@@ -263,6 +226,8 @@ class Pedigree
 	Iterator getEndMember	 () const { return (sortedMembers+nMembers); }	// Docs below; cache ptr?
 	Iterator getFirstFounder () const { return sortedMembers; }		// Docs below
 	Iterator getEndFounder	 () const { return (sortedMembers+nFounders); } // Docs below; cache ptr?
+	Iterator getFirstNonFndr () const { return (sortedMembers+nFounders); }	// Docs below
+	Iterator getEndNonFndr	 () const { return (sortedMembers+nMembers ); } // Docs below; cache ptr?
 
 	size_t getNMembers () const { return nMembers ; }		///< Number of members
 	size_t getNFounders() const { return nFounders; }		///< Number of founders
@@ -299,33 +264,28 @@ class Pedigree
 	// in the PedigreeGenStates.cc
 	//---------------------------------------------------------------
 
-	/// Self-contained vector of states, can be filled using genPossibleStates()
-	const std::vector<State> & getConsistentStates( size_t sLocIdx ) const;
-
-
 	// Documentation in source file:
-	void genPossibleStates( StateReceiver receiver, size_t sLocIdx ) const;
-	void genPossibleStates( StateReceiver receiver ) const;
+	void genPossibleStates( StateReceiver receiver, PopIdx K, const AlleleProbTable & alProbTab, SLocIdxType sLocIdx ) const;
+	void genPossibleStates( StateReceiver receiver, PopIdx K, const AlleleProbVect & alProbVect ) const;
 
 
-	/// Same as genPossibleStates(), but accumulates the possible states in
-	/// a set of self-contained vectors (one for each simple-locus) that can
-	/// be returned by getConsistentStates().
-	void genPossibleStatesInt() const { genPossibleStates(&Pedigree::accumStateInArray); }
+	/// Same as genPossibleStates(), but accumulates the hidden states'
+	/// emission probabilities in an internal structure that can be
+	/// retrieved by getStateProbs().
+	void genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alProbVect ) const;
 
+
+	/// Self-contained structure of states' probabilities, must be created
+	/// using genPossibleStatesInternal() prior to calling.
+	const HiddenStateSpace & getStateProbs( SLocIdxType sLocIdx ) const;
+
+
+	// These are not guaranteed to produce any output if ostream support is
+	// not compiled into Pedigree, InheritanceVector, AncestryVector, etc.:
+	static void dbgRecursion( bool nv ); ///< Request that recursion debugging information output to cout
+	static void dbgEmission ( bool nv ); ///< Request that emission-probability debugging output to cout
     };
 
-
-
-inline const Haplotype & State::getFounderHap( size_t fIdx ) const
-    {
-    #if AGGRESSIVE_RANGE_CHECK
-	if ( fIdx >= getIV().getNFounders() )
-	    throwRange( fIdx );
-    #endif
-
-    return founderHaps[ fIdx ];
-    }
 
 
 /** @} */
@@ -348,6 +308,16 @@ inline const Haplotype & State::getFounderHap( size_t fIdx ) const
  *
  *\fn Pedigree::Iterator Pedigree::getEndFounder() const
  *	Returns an Iterator pointing to the "last founder plus one" (see getFirstFounder()).
+ *	This is equivalent to getFirstNonFndr()
+ *
+ *\fn Pedigree::Iterator Pedigree::getFirstNonFndr() const
+ *	Returns an Iterator pointing to first non-founder;
+ *	use getEndNonFndr() to test for end-of-range.
+ *	This is equivalent to getEndFounder()
+ *
+ *\fn Pedigree::Iterator Pedigree::getEndNonFndr() const
+ *	Returns an Iterator pointing to the "last non-founder plus one" (see getFirstNonFndr()).
+ *	This is equivalent to getEndMember()
  *
  */
 

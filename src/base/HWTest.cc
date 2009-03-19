@@ -75,45 +75,49 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
   int slocus = 0; // incremented with loop over composite loci 
   int complocus = 0;  // absolute comp locus number
   int Ancestry0, Ancestry1;
-  Individual *ind = 0;
   double **Prob0 = 0, **Prob1 = 0;
 
   Reset();
 
   for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr){ //loop over chromosomes
     for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j){ //loop over comp loci on chromosome
-      unsigned NumSimpleLociWithinCL = Loci->getNumberOfLoci(complocus);
-      int* alleles0 = new int[NumSimpleLociWithinCL];
-      int* alleles1 = new int[NumSimpleLociWithinCL];
+      const CompositeLocus & cLoc = (*Loci)[ complocus ];
+      const unsigned int NumSimpleLociWithinCL = cLoc.GetNumberOfLoci();
+      int alleles0[ NumSimpleLociWithinCL ];
+      int alleles1[ NumSimpleLociWithinCL ];
       //allocate arrays to hold marginal alleleprobs; could be done in function but easier to control here.      
       Prob0 = new double*[NumSimpleLociWithinCL];
       Prob1 = new double*[NumSimpleLociWithinCL];
       for(unsigned int jj = 0; jj < NumSimpleLociWithinCL; ++jj){
-	Prob0[jj] = new double[ (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj)];
-	Prob1[jj] = new double[ (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj)];
+	Prob0[jj] = new double[ cLoc.GetNumberOfAllelesOfLocus(jj) ];
+	Prob1[jj] = new double[ cLoc.GetNumberOfAllelesOfLocus(jj) ];
       }
       
       for(int i = 0; i < IC->getSize(); ++i) { // loop over individuals to get locus ancestry
-	ind = IC->getIndividual(i);
-	//bool diploid = !ind->isFemale() && Loci->isXLocus(complocus);
-	bool diploid = !(ind->isHaploidatLocus(complocus));
+	const Individual & ind = *(IC->getIndividual(i));
+	//bool diploid = !ind.isFemale() && Loci->isXLocus(complocus);
+	bool diploid = !(ind.isHaploidatLocus(complocus));
 	if(diploid){//skip Xloci in males
-	  Ancestry0 = ind->GetLocusAncestry( (int)chr, 0, j);
-	  Ancestry1 = ind->GetLocusAncestry( (int)chr, 1, j);
-	  const int* happair = ind->getSampledHapPair(complocus);
-	  (*Loci)(complocus)->HaplotypeSetter.decodeIntAsHapAlleles(happair[0], alleles0);
-	  (*Loci)(complocus)->HaplotypeSetter.decodeIntAsHapAlleles(happair[1], alleles1);
+	  Ancestry0 = ind.GetLocusAncestry( (int)chr, 0, j);
+	  Ancestry1 = ind.GetLocusAncestry( (int)chr, 1, j);
+	  const int* happair = ind.getSampledHapPair(complocus);
+
+	  cLoc.HaplotypeSetter.decodeIntAsHapAlleles(happair[0], alleles0);
+
+	  cLoc.HaplotypeSetter.decodeIntAsHapAlleles(happair[0], alleles0);
+	  cLoc.HaplotypeSetter.decodeIntAsHapAlleles(happair[1], alleles1);
 	  //retrieve marginal alleleprobs for composite locus complocus, given current ancestry states on each gamete of ind
-	  (*Loci)(complocus)->getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
-	  (*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);
+	  cLoc.getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
+	  cLoc.getLocusAlleleProbs(Prob1, Ancestry1);
+
 	  locus = slocus;
 	  
 	  for(unsigned int jj = 0; jj < NumSimpleLociWithinCL; ++jj){       //loop over simple loci within comp locus
-	    if( !ind->simpleGenotypeIsMissing(locus)){ //non-missing genotype, assumes second gamete missing if first is
+	    if( !ind.simpleGenotypeIsMissing(locus)){ //non-missing genotype, assumes second gamete missing if first is
 	      h = alleles0[jj] != alleles1[jj];
 	      H = 1.0;
 	      //compute prob of heterozygosity by subtracting from 1 the prob of homozygosity, ie sum of diagonal products	    
-	      for(int a = 0; a < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
+	      for(int a = 0; a < cLoc.GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
 		H -= Prob0[jj][a] * Prob1[jj][a];
 	      }
 	      //accumulate score over individuals
@@ -127,15 +131,12 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 	    } 
 	    ++locus;
 	  } // ends loop over simple loci within compound locus
-	  ind = 0;
 	}
       } // ends loop over individuals 
 
       //reset pointers for next compound locus	
       bclib::free_matrix(Prob0, NumSimpleLociWithinCL);
       bclib::free_matrix(Prob1, NumSimpleLociWithinCL);
-      delete[] alleles0;
-      delete[] alleles1;
       slocus += NumSimpleLociWithinCL;
       ++complocus;
     }//end loop over compound loci

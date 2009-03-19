@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -47,6 +47,10 @@ namespace genepi { // ----
 
 
 
+typedef size_t SLocIdxType;
+
+
+
 //-----------------------------------------------------------------------------
 //
 /// Container for the SimpleLocus records.  Also holds some summary and
@@ -90,10 +94,10 @@ class SimpleLocusArray : private std::vector<SimpleLocus> // see NOTE *1*
 
     protected:
 
-	void throwRange( size_t idx ) const __attribute__((noreturn));
+	void throwRange( SLocIdxType idx ) const __attribute__((noreturn));
 
 	/// Range-check index
-	void rc( size_t idx ) const
+	void rc( SLocIdxType idx ) const
 	    {
 	    #if AGGRESSIVE_RANGE_CHECK
 		if ( idx >= size() )
@@ -112,14 +116,22 @@ class SimpleLocusArray : private std::vector<SimpleLocus> // see NOTE *1*
 	// Vector-style access (see NOTE *1*):
 	//-------------------------------------------------------------------
 
-	SimpleLocus &	    operator[]( size_t idx )	   { rc(idx); return SUPER::operator[](idx); }
-	const SimpleLocus & operator[]( size_t idx ) const { rc(idx); return SUPER::operator[](idx); }
-	size_t		    size()		     const { return SUPER::size(); }
+	SimpleLocus &	    operator[]( SLocIdxType idx )	{ rc(idx); return SUPER::operator[](idx); }
+	const SimpleLocus & operator[]( SLocIdxType idx ) const { rc(idx); return SUPER::operator[](idx); }
+	const SimpleLocus & atUnsafe  ( SLocIdxType idx ) const {	   return SUPER::operator[](idx); }
+	SLocIdxType	    size()			  const { return SUPER::size(); }
+
+	const SimpleLocus & last() const { rc(0); return SUPER::back(); }
 
 	Iter	  begin()	{ return SUPER::begin(); }
 	Iter	  end  ()	{ return SUPER::end  (); }
 	ConstIter begin() const { return SUPER::begin(); }
 	ConstIter end  () const { return SUPER::end  (); }
+
+
+	/// Locate the index of a locus in the array, based on its name.  Throws
+	/// an exception if not found.
+	SLocIdxType findIndexOf( const std::string & locus ) const;
 
 
 	SimpleLocusArray();

@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -64,13 +64,15 @@ Organism::SexType GenotypeParser::sexFromInt( long s )
 
 
 //-----------------------------------------------------------------------------
+//
 // traverse() [static helper function]
 //
-//-----------------------------------------------------------------------------
-
 /// Recursive descent on the call-stack to traverse the pedigree graph in both
 /// the parents and children directions, accumulating the complete connected
 /// subgraph, which should contain the entire pedigree
+//
+//-----------------------------------------------------------------------------
+
 static void traverse( const Organism & org, std::set<const Organism *> & connected )
     {
     // This needs more work: we should definitely not have cycles if we just
@@ -389,7 +391,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	while ( skipToToken() )
 	    {
 
-	    row.lineNum = curLineNum();
+	    row.lineNum = getLineNum();
 
 	    if ( isPedFile() )
 		{
@@ -425,9 +427,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		// duplicates are found:
 		const Organism * const dup = findByIdIfExists( row.famId, row.orgId );
 		if ( dup != 0 )
-		    std::cerr << getFileName() << ':' << curLineNum() << ": warning: organism-ID "
-			    << row.famId << " is duplicated on line " << dup->getLineNum() << std::endl;
-
+		    warn( estr("organism-ID ") << row.famId << " is duplicated on line " << dup->getLineNum() );
 
 		if ( hasSexColumn() )
 		    row.sex = sexFromInt( lexInteger( "sex" ) );

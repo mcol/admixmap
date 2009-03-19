@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -63,13 +63,14 @@ class SimpleLocusParser : public GFileLexer
 	//---------------------------------------------------------------
 	// Constructors/destructor:
 	//---------------------------------------------------------------
+
 	/// Constructs the object, but doesn't yet open the file (use parse() )
 	SimpleLocusParser( const char * fileName, SimpleLocusArray & output );
 
 	/// Opens the file, parses the data, closes the file
 	void parse();
 
-	/// Static method to construct the parser object and parse the file.
+	/// Static convenience method to construct the parser object and parse the file.
 	static void parse( const char * fileName, SimpleLocusArray & output )
 	    { SimpleLocusParser( fileName, output ) . parse(); }
     };

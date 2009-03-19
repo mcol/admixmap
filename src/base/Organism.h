@@ -45,9 +45,9 @@ namespace genepi { // ----
 class GenotypeParser;
 
 
-typedef unsigned int OrgIdType	 ;
-typedef std::string  FamIdType	 ;
-typedef size_t	     SLocIdxType ;
+typedef unsigned int OrgIdType ;
+typedef std::string  FamIdType ;
+typedef size_t	     PopIdx    ;
 
 
 

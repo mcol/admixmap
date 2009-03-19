@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -20,11 +20,18 @@
 
 //=============================================================================
 /// \file InheritanceVector.cc
+/// Implementation of the InheritanceVector class
 //=============================================================================
 
 #include "InheritanceVector.h"
 
 #include "Pedigree.h"
+
+
+
+#if IV_OSTREAM
+    #include <iostream>
+#endif
 
 
 
@@ -42,6 +49,58 @@ namespace genepi { // ----
 	}
 
 #endif
+
+
+
+//-----------------------------------------------------------------------------
+// Print an InheritanceVector to an ostream
+//-----------------------------------------------------------------------------
+
+#if IV_OSTREAM
+
+    static IVOutputStyle style = IV_BINARY;
+
+    void setIVOutputStyle( IVOutputStyle nv )
+	{
+	style = nv;
+	}
+
+    inline static char si2char( const InheritanceVector::SegInd & si )
+	{
+	return (si == InheritanceVector::SI_PATERNAL) ? 'p' : 'm';
+	}
+
+    inline static char si2digit( const InheritanceVector::SegInd & si )
+	{
+	return (si == InheritanceVector::SI_PATERNAL) ? '0' : '1';
+	}
+
+    inline static std::ostream & operator<<( std::ostream & os, const InheritanceVector::Bits & b )
+	{
+	if ( style == IV_BINARY )
+	    return os << si2digit(b.paternal()) << ',' << si2digit(b.maternal());
+	else
+	    return os << char(toupper(si2char(b.paternal()))) << si2char(b.maternal());
+	}
+
+    std::ostream & operator<<( std::ostream & os, const InheritanceVector & iv )
+	{
+	os << "IV(";
+
+	if ( iv.getNSibs() == 0 )
+	    os << "-no-sibs-)";
+	else
+	    {
+	    const size_t limit = iv.getNMembers() - 1;
+	    for ( size_t sib = iv.getNFounders() ; sib < limit ; ++sib )
+		os << iv.getMember(sib) << ';';
+	    os << iv.getMember(limit) << ')';
+	    }
+
+	return os;
+	}
+
+#endif // IV_OSTREAM
 
 
 

@@ -2,7 +2,7 @@
  *   InputData.cc
  *   Class to read and check all input data files
  *   Copyright (c) 2005 - 2007 David O'Donnell and Paul McKeigue
- *   Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+ *   Copyright (C) 2009  David D. Favro
  *
  * This program is free software distributed WITHOUT ANY WARRANTY.
  * You can redistribute it and/or modify it under the terms of the GNU General Public License,
@@ -74,10 +74,12 @@ void InputData::ReadData(Options *options, LogWriter &Log){
 	genotypeLoader = new GenotypeParser( options->getGenotypesFilename(), simpleLoci );
 
       #else
+
         DataReader::ReadData(options->getLocusFilename(), locusData_, Log);   //locusfile
         //convert to DataMatrix, dropping header and first col and use only 2 cols
         DataReader::convertMatrix(locusData_, locusMatrix_, 1, 1,2);
         genotypeLoader->Read(options->getGenotypesFilename(), locusData_.size() - 1, Log);
+
       #endif
 
       DataReader::ReadData(options->getCovariatesFilename(), covariatesData_, covariatesMatrix_,Log);	  //covariates file
@@ -474,11 +476,6 @@ const Matrix_s& InputData::getCovariatesData() const
 const Matrix_s& InputData::getOutcomeVarData() const
 {
   return outcomeVarData_;
-}
-
-const Matrix_s& InputData::getPriorAlleleFreqData() const
-{
-  return priorAlleleFreqData_;
 }
 
 

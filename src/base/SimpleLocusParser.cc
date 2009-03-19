@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -20,6 +20,7 @@
 
 //=============================================================================
 /// \file SimpleLocusParser.cc
+/// Implementation of SimpleLocusParser class
 //=============================================================================
 
 #include "SimpleLocusParser.h"
@@ -139,14 +140,16 @@ void SimpleLocusParser::parse()
 
 	    // Column 3: distance to this locus from previous locus
 	    #if 0 // This would be way too simple:
-		row.distance = lexFloat();
+		row.distance = lexFloat( "distance" );
 	    #else
 		{ // Begin scope
 		const Token & tok = lexToken();
+		if ( ! tok.isToken() )
+		    throwError( "too few fields (no distance)" );
 		if ( tok.isType(T_STRING) && (tok.getStrVal() == "NA") )
 		    row.makeUnlinkedToPrevious();
 		else
-		    row.distance = tok.asFloat();
+		    row.distance = tok.asFloat( "distance" );
 		} // End scope
 	    #endif
 
@@ -218,6 +221,7 @@ void SimpleLocusParser::parse()
 
     #if STATUS_TO_COUT
 	std::cout << loci.size() << " simple-loci.\n";
+	    //; " << loci.getNComposite() << " composite loci.\n";
     #endif
 
     }

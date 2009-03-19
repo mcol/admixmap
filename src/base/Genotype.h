@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -44,6 +44,9 @@ namespace genepi { // ----
 /** \addtogroup base
  * @{ */
 
+
+
+class Haplotype; // Forward reference
 
 
 //---------------------------------------------------------------------
@@ -106,13 +109,7 @@ class Genotype
 
 	/// Are the potential and observed genotypes consistent?
 	// ---- How to deal with haploid? ----
-	bool consistent( const Genotype & hap ) const
-	    { return ( // Perhaps this can be rewritten as a shorter boolean expression?
-			(val1 == MISSING_VAL) ||
-			((val1 == hap.val1) && (val2 == hap.val2)) ||
-			((val2 == hap.val1) && (val1 == hap.val2)) ||
-			((val1 == hap.val1) && (val2 == MISSING_VAL))
-		     ); }
+	bool consistent( const Haplotype & hap ) const;
 
 	/// Create a human-readable representation of the value
 	estr desc() const;
@@ -180,6 +177,28 @@ class Haplotype : public Genotype
 	AlleleType paternal() const { return getVal1(); } ///< Shorthand
 	AlleleType maternal() const { return getVal2(); } ///< Shorthand
     };
+
+
+
+inline bool Genotype::consistent( const Haplotype & hap ) const
+    {
+#if 0
+    printf( "Consistent: (%hu,%hu) & (%hu,%hu) = %s\n",
+	    val1, val2, hap.val1, hap.val2,
+	    (
+			(val1 == MISSING_VAL) ||
+			((val1 == hap.val1) && (val2 == hap.val2)) ||
+			((val2 == hap.val1) && (val1 == hap.val2)) ||
+			((val1 == hap.val1) && (val2 == MISSING_VAL))
+	    ) ? "true" : "false" );
+#endif
+    return ( // Perhaps this can be rewritten as a shorter boolean expression?
+			(val1 == MISSING_VAL) ||
+			((val1 == hap.val1) && (val2 == hap.val2)) ||
+			((val2 == hap.val1) && (val1 == hap.val2)) ||
+			((val1 == hap.val1) && (val2 == MISSING_VAL))
+	    );
+    }
 
 
 

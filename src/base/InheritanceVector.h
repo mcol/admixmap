@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -33,9 +33,18 @@
 #include "exceptions.h"
 
 
+#define IV_OSTREAM		1 /// Should we compile ostream support for IVs?
+
 #define IV_KEEP_PED_REF		0
 #define IV_PEDIGREE_FORWARD	1
-#define IV_MAX_BITS		128 // 64 max non-founders
+//#define IV_MAX_BITS		128 /// 64 max non-founders
+#define IV_MAX_BITS		32  /// 16 max non-founders
+
+
+
+#if IV_OSTREAM
+    #include <iosfwd>
+#endif
 
 
 
@@ -140,6 +149,7 @@ class InheritanceVector
 
 	std::bitset<IV_MAX_BITS> bits;
 
+
     public:
 
 	#if IV_KEEP_PED_REF
@@ -239,6 +249,11 @@ class InheritanceVector
 	  SegInd maternal( const Pedigree::Member & organism ) const
 			{ return getMember(organism).maternal(); }
 	#endif
+
+
+	// Access as unsigned long: use with caution:
+	unsigned long to_ulong() const { return bits.to_ulong(); }
+	void set_ulong( unsigned long nv ) { bits = nv; }
     };
 
 
@@ -253,6 +268,16 @@ class InheritanceVector
 	}
 
 #endif
+
+
+
+#if IV_OSTREAM
+    enum IVOutputStyle { IV_BINARY , IV_ALPHA };
+    void setIVOutputStyle( IVOutputStyle );
+    /// Useful for debugging: output an IV to an ostream
+    std::ostream & operator<<( std::ostream & os, const InheritanceVector & iv );
+#endif // IV_OSTREAM
+
 
 
 

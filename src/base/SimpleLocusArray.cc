@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -62,6 +62,25 @@ SimpleLocusArray::SimpleLocusArray() :
 
 SimpleLocusArray::~SimpleLocusArray()
     {
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// Locate locus-index based on name.
+//
+/// For small sets of loci, this is implemented as a linear search; for larger
+/// sets we should implement a more efficient algorithm such as a hash-table or
+/// sorted-index.
+//-----------------------------------------------------------------------------
+
+SLocIdxType SimpleLocusArray::findIndexOf( const std::string & locus ) const
+    {
+    for ( SLocIdxType idx = size() ; idx-- != 0 ; )
+	if ( atUnsafe(idx).getName() == locus )
+	    return idx;
+
+    throw std::runtime_error( estr("Unknown locus \"") + locus + '"' );
     }
 
 

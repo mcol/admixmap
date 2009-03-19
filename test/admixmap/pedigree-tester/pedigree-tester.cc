@@ -28,64 +28,25 @@
 #include <string>
 #include <cctype>	// toupper()
 #include <cstring>	// strcasecmp()
+#include <cstdlib>	// exit()
 
 
+#include "AlleleArray.h"
+#include "AlleleFreqParser.h"
 #include "GenotypeParser.h"
-#include "SimpleLocusParser.h"
-#include "SimpleLocusArray.h"
+#include "HiddenStateSpace.h"
+#include "InheritanceVector.h"
 #include "Pedigree.h"
+#include "SimpleLocusArray.h"
+#include "SimpleLocusParser.h"
 
 
 using namespace std;
 using namespace genepi;
 
 
-static bool iv_binary = true; // Print IVs in traditional binary format
 
-// Generate all hidden states ahead of time in a vector versus generating and
-// printing on-the-fly:
-static bool st_in_vector = false;
-
-
-
-//-----------------------------------------------------------------------------
-// Print an InheritanceVector to an ostream
-//-----------------------------------------------------------------------------
-
-inline static char si2char( const InheritanceVector::SegInd & si )
-    {
-    return (si == InheritanceVector::SI_PATERNAL) ? 'p' : 'm';
-    }
-
-inline static char si2digit( const InheritanceVector::SegInd & si )
-    {
-    return (si == InheritanceVector::SI_PATERNAL) ? '1' : '0';
-    }
-
-inline static ostream & operator<<( ostream & os, const InheritanceVector::Bits & b )
-    {
-    if ( iv_binary )
-	return os << si2digit(b.paternal()) << ',' << si2digit(b.maternal());
-    else
-	return os << char(toupper(si2char(b.paternal()))) << si2char(b.maternal());
-    }
-
-ostream & operator<<( ostream & os, const InheritanceVector & iv )
-    {
-    os << "IV(";
-
-    if ( iv.getNSibs() == 0 )
-	os << "-no-sibs-)";
-    else
-	{
-	const size_t limit = iv.getNMembers() - 1;
-	for ( size_t sib = iv.getNFounders() ; sib < limit ; ++sib )
-	    os << iv.getMember(sib) << ';';
-	os << iv.getMember(limit) << ')';
-	}
-
-    return os;
-    }
+static bool print_afreqs = false;
 
 
 
@@ -101,49 +62,15 @@ ostream & operator<<( ostream & os, const Haplotype & hap )
 
 
 //-----------------------------------------------------------------------------
-// Print a "State" to an ostream
-//-----------------------------------------------------------------------------
-
-ostream & operator<<( ostream & os, const State & st )
-    {
-    os << st.getIV() << " {";
-
-    const size_t limit = st.getIV().getNFounders() - 1;
-    for ( size_t fIdx = 0 ; fIdx < limit ; ++fIdx )
-	os << st.getFounderHap(fIdx) << ';';
-
-    return os << st.getFounderHap(limit) << '}';
-    }
-
-
-
-//-----------------------------------------------------------------------------
-// prState()
-//
-// Print a "state" to stdout: this is a Pedigree::StateReceiver, used only when
-// --in-vector is *not* specified.
-//-----------------------------------------------------------------------------
-
-static void prState( const Pedigree &	       ped	       ,
-		     size_t		       sLocIdx	       ,
-		     const InheritanceVector & iv	       ,
-		     const Haplotype *	       founderHapState )
-    {
-    cout << ped.getSLoci()[sLocIdx].getName() << ' ' << State(iv,founderHapState) << '\n';
-    }
-
-
-
-//-----------------------------------------------------------------------------
 // runTest()
 //-----------------------------------------------------------------------------
 
-static void runTest( const char * locusFileName, const char * pedFileName )
+static void runTest( const char * locusFileName, const char * pedFileName, const char * afFileName )
     {
-    SimpleLocusArray sLocArray;
-    SimpleLocusParser::parse( locusFileName, sLocArray );
+    SimpleLocusArray loci;
+    SimpleLocusParser::parse( locusFileName, loci );
 
-    GenotypeParser pedFileArray( pedFileName, sLocArray );
+    GenotypeParser pedFileArray( pedFileName, loci );
 
     if ( pedFileArray.getNumOrganisms() == 0 )
 	throw std::runtime_error( string("No organisms in ") + pedFileName );
@@ -205,12 +132,26 @@ static void runTest( const char * locusFileName, const char * pedFileName )
 	"  largest number of sibs:      " << setw(3) << maxNSibs	<< "\n"
 	"  average number of sibs:      " << setw(6)
 						     << avgNSibs	<< "\n"
-	;
+	"\n";
 
 
 
     //--------------------------------------------------------------
-    // Generate and print the founder-haplotype-states/IVs:
+    // Read in the allele-frequency file:
+    //--------------------------------------------------------------
+
+    AlleleProbVect afVect;
+    vector<string> populations;
+
+    AlleleFreqParser::parse( afFileName, loci, populations, afVect );
+
+    if ( print_afreqs )
+	for ( SLocIdxType sLocIdx = 0 ; sLocIdx < loci.size() ; ++sLocIdx )
+	    afVect[sLocIdx].print( std::cout << '\n', populations );
+
+
+    //--------------------------------------------------------------
+    // Generate and print the emission probabilities founder-haplotype-states/IVs:
     //--------------------------------------------------------------
 
     for	 ( vector<Pedigree>::const_iterator iter = peds.begin(); iter != peds.end(); ++iter )
@@ -221,34 +162,60 @@ static void runTest( const char * locusFileName, const char * pedFileName )
 	cout << "\n\nGenerating space of hidden states for pedigree \""
 		<< ped.getId() << "\" (" << ped.getNMembers() << " members, "
 		<< ped.getNFounders() << " founders, "
-		<< ped.getNSibs() << " sibs)...\n\n";
+		<< ped.getNSibs() << " non-founders)...\n\n"
+
+		"  For this pedigree, AVs are listed in founder organism order:";
+	for ( Pedigree::Iterator it = ped.getFirstFounder() ; it != ped.getEndFounder() ; ++it )
+	    cout << ' ' << (*it)->getOrgId();
+	cout << "\n"
+		"  IVs are listed in non-founder organism order:";
+	for ( Pedigree::Iterator it = ped.getFirstNonFndr() ; it != ped.getEndNonFndr() ; ++it )
+	    cout << ' ' << (*it)->getOrgId();
+	cout << '\n';
 
 
-	// Two different ways to accomplish the same thing: generate the full
-	// list in a std::vector then print; or print each state on-the-fly as
-	// it is generated.
-	if ( st_in_vector )
-	    {
-	    ped.genPossibleStatesInt();
-	    for ( SLocIdxType sLocIdx = 0 ; sLocIdx < sLocArray.size() ; ++sLocIdx )
+	ped.genPossibleStatesInternal( populations.size(), afVect );
+
+
+	for ( SLocIdxType sLocIdx = 0 ; sLocIdx < loci.size() ; ++sLocIdx )
+            {
+	    const HiddenStateSpace & space = ped.getStateProbs( sLocIdx );
+
+            cout << "\nSimple-locus \"" << loci[ sLocIdx ].getName() << "\":\n";
+
+	    size_t n_states = 0;
+
+	    for ( HiddenStateSpace::Iterator it(space); it; ++it )
 		{
-		const std::vector<State> & states = ped.getConsistentStates( sLocIdx );
-
-		cout << "  Simple-locus \"" << sLocArray[ sLocIdx ].getName()
-			<< "\" " << states.size() << " states:\n";
-
-		std::vector<State>::const_iterator stIt;
-		for ( stIt = states.begin(); stIt != states.end(); ++stIt )
-		    cout << "    " << *stIt << '\n';
-
-		cout << '\n';
+		++n_states;
+                const HiddenStateSpace::Iterator::State & st = *it;
+                cout << "  " << st.av << ' ' << st.iv << ' ' << st.emProb << '\n';
 		}
-	    }
-	else
-	    ped.genPossibleStates( prState );
+
+            cout << "\n  (" << n_states << " states).\n\n";
+            }
 
 	}
 
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// usage()
+//-----------------------------------------------------------------------------
+
+static void usage( const char * prog ) __attribute__((noreturn));
+static void usage( const char * prog )
+    {
+    cerr << "\nUsage: " << prog << " [options] <locus-filename> <pedigree-filename> <allele-freq-filename>\n"
+	"\tOptions:\n"
+	"\t--print-afreqs makes a print-out of the allele frequencies before generating probabilities.\n"
+	"\t--char-iv prints inheritance vectors in a non-standard format.\n"
+	"\t--debug-emission prints debugging information about emission-probability calculations to stdout.\n"
+	"\t--debug-recursion prints debugging information about pedigree-graph recursion to stdout.\n"
+	"\n";
+    exit(1);
     }
 
 
@@ -264,38 +231,65 @@ int main( int argc, const char * const argv [] )
     --argc;
 
 
-    // Check for --char-iv option, which prints inheritance vectors in a
-    // non-standard format:
-    if ( (argc != 0) && (strcasecmp(*argPtr,"--char-av") == 0) )
+    while ( (argc != 0) && (**argPtr == '-') )
 	{
-	--argc;
-	++argPtr;
-	iv_binary = false;
+
+	const char * const option = *argPtr;
+
+
+	// --char-iv option: prints inheritance vectors in a non-standard format
+	if ( strcasecmp(option,"--char-iv") == 0 )
+	    {
+	    --argc;
+	    ++argPtr;
+	    setIVOutputStyle( IV_ALPHA );
+	    continue;
+	    }
+
+
+	// --print-afreqs option: prints the allele frequencies
+	if ( strcasecmp(option,"--print-afreqs") == 0 )
+	    {
+	    --argc;
+	    ++argPtr;
+	    print_afreqs = true;
+	    continue;
+	    }
+
+
+	if ( strcasecmp(option,"--debug-recursion") == 0 )
+	    {
+	    --argc;
+	    ++argPtr;
+	    Pedigree::dbgRecursion( true );
+	    continue;
+	    }
+
+	if ( strcasecmp(option,"--debug-emission") == 0 )
+	    {
+	    --argc;
+	    ++argPtr;
+	    Pedigree::dbgEmission( true );
+	    continue;
+	    }
+
+
+	cerr << argv[0] << ": unknown option " << option << '\n';
+	usage( argv[0] );
+
 	}
 
 
-    // Check for --in-vector option, which accumulates the states in a vector
-    // first, then prints them out.
-    if ( (argc != 0) && (strcasecmp(*argPtr,"--in-vector") == 0) )
+    if ( argc != 3 )
 	{
-	--argc;
-	++argPtr;
-	st_in_vector = true;
-	}
-
-
-    if ( argc != 2 )
-	{
-	cerr << "\nUsage: " << argv[0] << " [--char-iv] [--in-vector] <locus-filename> <pedigree-filename>\n"
-	    "\t--char-iv prints inheritance vectors in a non-standard format.\n"
-	    "\t--in-vector accumulates all of the states in a vector first, then prints them out.\n\n";
-	return 1;
+	cerr << argv[0] << ": wrong number of arguments; require 3 file-names.\n";
+	usage( argv[0] );
 	}
 
 
     try
 	{
-	runTest( argPtr[0], argPtr[1] );
+	runTest( argPtr[0], argPtr[1], argPtr[2] );
 	}
     catch ( exception & err )
 	{

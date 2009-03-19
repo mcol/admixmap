@@ -44,7 +44,7 @@ namespace bclib{
 
 typedef std::vector<std::vector<unsigned short> > genotype;
 
-/// @deprecated replaced by GenotypeParser
+/// @deprecated Replaced by genepi::GenotypeParser
 ///
 /// class to read genotypes from file and load into Individuals' arrays
 class GenotypeLoader{

@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -189,7 +189,9 @@ class GFileLexer
 		GType		getGTypeVal () const { assert_type( T_GTYPE   ); return gtypeVal; }
 
 		/// Is this a semantically significant token (i.e. <I>not</I>
-		/// the "separator" end-of-line or end-of-file tokens).
+		/// the "separator" end-of-line or end-of-file tokens).  So,
+		/// this effectively queries if there is another token on the
+		/// line.
 		bool isToken() const { return (type != T_EOL) && (type != T_EOF); }
 
 		/// Create a string representation of the token.  This is not
@@ -203,7 +205,9 @@ class GFileLexer
 		/// Value as a floating-point.  All of the following will produce 1.0d:
 		/// 1 1.0 "1" "1.0"
 		/// Except that the strings are not yet implemented.
-		double asFloat() const;
+		/// @parm fieldName the name of the field (for formatting error messages),
+		///	    or 0 if unknown
+		double asFloat( const char * fieldName = 0 ) const;
 	    };
 
 
@@ -214,6 +218,7 @@ class GFileLexer
 	const char *	 fileName	;
 	std::ifstream	 istr		;
 	int		 lineNum	;
+	mutable int	 nWarnings	;
 	std::list<char>  pb_cstack	;
 	std::list<Token> pb_tstack	;
 	char		 gtypeDelim	;
@@ -228,7 +233,8 @@ class GFileLexer
     protected:
 
 	//---------------------------------------------------------------------
-	// Methods used by the token-parsing methods:
+	// Methods used by the token-parsing methods, or by the parsing methods
+	// of derived parser classes.
 	//---------------------------------------------------------------------
 
 	void setVals( Genotype & gt, long nv1, long nv2 ) const;
@@ -256,6 +262,9 @@ class GFileLexer
 	void throwError( const string & msg ) const throw(ParseError) GP_NO_RETURN;
 	void assert_type( TokenType t, const Token & tok, const char * fieldName = 0 ) const throw(ParseError);
 
+	/// Issue a warning message and increase the number of warnings
+	void warn( const string & msg ) const;
+
 
     public:
 
@@ -272,8 +281,9 @@ class GFileLexer
 
 
 
-	int	     curLineNum () const { return lineNum ; }
-	const char * getFileName() const { return fileName; }
+	int	     getLineNum	 () const { return lineNum   ; }
+	int	     getNWarnings() const { return nWarnings ; }
+	const char * getFileName () const { return fileName  ; }
 
 
 
@@ -292,23 +302,27 @@ class GFileLexer
 	/// Lex the next token of arbitrary type and return it: this is the main
 	/// lexing method which all others call.  Any pushed-back tokens will be
 	/// returned prior to lexing new ones.
-	Token  lexToken();
-	void   pushback( const Token & tok );
+	Token lexToken();
+	void  pushback( const Token & tok );
 
 	/// Skips past blank lines and comments to the next "real" token.
 	/// Returns true if token is found, false if EOF before token.
-	bool   skipToToken();
+	bool skipToToken();
 
-	string lexString  (); ///< Accepts an integer, which will be interpreted as a string
+	string lexString(); ///< Will also accept an integer, which will be interpreted as a string
 
-	/// Throws an exception if the token is not an integer
-	long   lexInteger ( const char * fieldName = 0 );
+	/// Throws an exception if the next token is not an integer.
+	long lexInteger ( const char * fieldName = 0 );
 
-	double	 lexFloat (); ///< Throws an exception if the next token is not a floating-point
+	///< Throws an exception if the next token is not a floating-point or integer.
+	double	 lexFloat ( const char * fieldName = 0 );
 	Genotype lexGType (); ///< Throws an exception if the next token is not a genotype
 
-	void   lexLine	     ( std::vector<Token > & tokens  );
-	void   lexLineStrings( std::vector<string> & strings );
+	/// Lex a whole line at a time into a @a vector of @a tokens.  If any
+	/// of the tokens on that line have already been lexed, only the
+	/// remaining ones are lexed into @ tokens.
+	void lexLine	   ( std::vector<Token > & tokens  );
+	void lexLineStrings( std::vector<string> & strings ); ///< Like lexLine() but interpret as strings
     };
 
 
