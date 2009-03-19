@@ -1,0 +1,1 @@
+../../../../dist/admixmap/tutorial/data/priorallelefreqs.txt
