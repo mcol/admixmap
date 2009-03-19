@@ -203,7 +203,7 @@ void InputAdmixData::ReadPopulationLabels(AdmixOptions *options){
   //  if(strlen(options->getAlleleFreqFilename()) || strlen(options->getPriorAlleleFreqFilename()) || strlen(options->getHistoricalAlleleFreqFilename())){
   if(strlen(options->getAlleleFreqFilename()))
     DataReader::ReadHeader(options->getAlleleFreqFilename(), HiddenStateLabels);
-  else if(strlen(options->getPriorAlleleFreqFilename()))
+  else if ( strlen(options->getPriorAlleleFreqFilename()) != 0 )
     DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), HiddenStateLabels);
   else if(strlen(options->getHistoricalAlleleFreqFilename()))
     DataReader::ReadHeader(options->getHistoricalAlleleFreqFilename(), HiddenStateLabels);
@@ -282,10 +282,10 @@ void InputAdmixData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
   if( strlen( options->getPriorAlleleFreqFilename() )) {
     freqtype = "prior";
     infile = true;
-    nrows = priorAlleleFreqData_.size();
+    nrows = getPriorAlleleFreqData().size();
     expectednrows = NumberOfStates+1;
-    Populations = priorAlleleFreqData_[0].size() - 1;
-    //getPopLabels(priorAlleleFreqData_[0], Populations, PopulationLabels);
+    Populations = getPriorAlleleFreqData()[0].size() - 1;
+    //getPopLabels(getPriorAlleleFreqData()[0], Populations, PopulationLabels);
   }
   if(infile){
     if(nrows != expectednrows){
@@ -380,5 +380,3 @@ void InputAdmixData::Delete(){
   etaPriorMatrix_.clear();
   reportedAncestryMatrix_.clear();
 }
-
-
