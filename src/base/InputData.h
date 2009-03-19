@@ -96,7 +96,7 @@ public:
   ///return contents of outcomevarfile
   const Matrix_s& getOutcomeVarData()	const;
   ///return contents of priorallelefreqfile
-  const Matrix_s& getPriorAlleleFreqData() const;
+  const Matrix_s& getPriorAlleleFreqData() const { return priorAlleleFreqData_; }
 
   /*
    *  Getters to retrieve data (converted to DataMatrix).
@@ -184,20 +184,24 @@ protected:
   void ReadData(Options *options, bclib::LogWriter &log);
 
   #if ! USE_GENOTYPE_PARSER
-  Matrix_s locusData_;
+    Matrix_s locusData_;
   #endif
   Matrix_s covariatesData_;
   Matrix_s outcomeVarData_;
   Matrix_s coxOutcomeVarData_;
-  Matrix_s priorAlleleFreqData_;
+  private:
+    Matrix_s priorAlleleFreqData_;
+  protected:
 
   #if ! USE_GENOTYPE_PARSER
-  bclib::DataMatrix locusMatrix_;
+    bclib::DataMatrix locusMatrix_;
   #endif
   bclib::DataMatrix covariatesMatrix_;
   bclib::DataMatrix outcomeVarMatrix_;
   bclib::DataMatrix coxOutcomeVarMatrix_;
-  bclib::DataMatrix priorAlleleFreqMatrix_;
+  private:
+    bclib::DataMatrix priorAlleleFreqMatrix_;
+  protected:
 
   GenotypeLoader * genotypeLoader;
   #if ! USE_GENOTYPE_PARSER
