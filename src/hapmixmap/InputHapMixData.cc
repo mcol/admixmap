@@ -150,13 +150,13 @@ bool InputHapMixData::CheckAlleleFreqs(HapMixOptions *options, bclib::LogWriter 
   //     NumberOfStates += states;
   //   }
   
-  if(priorAlleleFreqData_.size() != NumberOfStates+1){
+  if(getPriorAlleleFreqData().size() != NumberOfStates+1){
     Log << "Incorrect number of rows in priorallelefreqfile.\n" 
-	<< "Expecting " << (int)NumberOfStates+1 << " rows, but there are " <<(int) priorAlleleFreqData_.size() << " rows.\n";
+	<< "Expecting " << (int)NumberOfStates+1 << " rows, but there are " <<(int) getPriorAlleleFreqData().size() << " rows.\n";
     return false;
   }
   //set number of block states as the number of columns in priorallelefreqfile -1
-  options->setPopulations(priorAlleleFreqData_[0].size() - 1);
+  options->setPopulations(getPriorAlleleFreqData()[0].size() - 1);
 
   //if all is ok return true
   return true;
