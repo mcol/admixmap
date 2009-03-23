@@ -196,12 +196,13 @@ for(i in 1:N.ind) {
   ind <- simulateIndividual(sex.ind[i], popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
   genotypes.ind[i, ]  <- ind$genotypes
   avM[i] <- ind$avM
-}
-## simulate outcome
-if(logistic) { # logistic regression with approx equal numbers of cases and controls
-  outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
-} else { # linear regression
-  outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
+  
+  ## simulate outcome
+  if(logistic) { # logistic regression with approx equal numbers of cases and controls
+    outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
+  } else { # linear regression
+    outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
+  }
 }
 ped6.ind[1:N.ind, 5] <- sex.ind
 ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
