@@ -146,7 +146,11 @@ private:
     std::vector<std::string> ChrmLabels;
   #endif
 
-  void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations, const SimpleLocusArray & sLoci );
+  #if USE_GENOTYPE_PARSER
+    void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations, const SimpleLocusArray & sLoci );
+  #else
+    void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations );
+  #endif
   void PrintSizes(bclib::LogWriter &Log, const std::string& distanceUnit)const;
 
 

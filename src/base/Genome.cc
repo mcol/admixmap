@@ -176,7 +176,11 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
   cstart.push_back(NumberOfCompositeLoci);//add extra element for next line to work
   for(unsigned c = 0; c < NumberOfChromosomes; ++c) SizesOfChromosomes[c] = cstart[c+1] - cstart[c];
   //create Chromosome objects
-  InitialiseChromosomes(cstart, populations, simpleLoci);
+  #if USE_GENOTYPE_PARSER
+    InitialiseChromosomes(cstart, populations, simpleLoci);
+  #else
+    InitialiseChromosomes(cstart, populations);
+  #endif
 
   //print length of genome, num loci, num chromosomes
   PrintSizes(Log, data_->getUnitOfDistanceAsString());
@@ -185,14 +189,22 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 ///Creates an array of pointers to Chromosome objects and sets their labels.
 ///Also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
 ///LengthOfXChrm 
-void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int populations, const SimpleLocusArray & sLoci ){
+#if USE_GENOTYPE_PARSER
+  void Genome::InitialiseChromosomes(const std::vector<unsigned> cstart, int populations, const SimpleLocusArray & sLoci )
+    {
+#else
+  void Genome::InitialiseChromosomes(const std::vector<unsigned> cstart, int populations ){
+#endif
   C = new Chromosome*[NumberOfChromosomes]; 
   //C is an array of chromosome pointers
 
   for(unsigned i = 0; i < NumberOfChromosomes; i++){//loop over chromsomes
 
     const size_t cStLocIdx = cstart[i];
-    const SimpleLocus & startLocus = sLoci.at( cStLocIdx );
+
+    #if USE_GENOTYPE_PARSER
+	const SimpleLocus & startLocus = sLoci.at( cStLocIdx );
+    #endif
 
     const size_t size = cstart[i+1] - cStLocIdx; //number of loci on chromosome i
 
