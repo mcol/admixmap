@@ -41,14 +41,18 @@
 using namespace std;
 
 
-///< Should we consider male with diploid genotype-data on X chromosome fatal error?
+/// Should we consider male with diploid genotype-data on X chromosome fatal error?
 #define MALE_DIPLOID_X_FATAL	 0
 
 /// Should male with diploid genotype-data on X chromosome issue warning if the
 /// two gametes' alleles are the same?
 #define MALE_DIPLOID_X_WARN_SAME 0
 
+/// Should an individual with no genotypes be a fatal error?
 #define NO_GENOTYPES_FATAL	 0
+
+
+/// Not sure why we would, but we could count the number of loci on the X chromosome
 #define COUNT_X_LOCI		 0
 
 
