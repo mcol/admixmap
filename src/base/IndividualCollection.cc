@@ -50,12 +50,6 @@ int IndividualCollection::getNumDiploidIndividuals()const{
 IndividualCollection::~IndividualCollection() {
   //cout << "\n Deleting individual objects\n" << flush;
   //  AdmixedIndividual::DeleteStaticMembers();
-  for(unsigned int i = 0; i < size; i++){
-    delete _child[i];
-  }
-
-//  delete[] _child;
-
   delete[] OutcomeType;
   delete[] ReportedAncestry;
 }
@@ -305,5 +299,3 @@ double IndividualCollection::getEnergy(const Options& options, const vector<bcli
   Energy = -(LogLikHMM + LogLikRegression);
   return Energy;
 } 
-
-

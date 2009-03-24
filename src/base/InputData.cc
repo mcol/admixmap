@@ -166,9 +166,10 @@ GeneticDistanceUnit InputData::getUnitOfDistance()const{
 bool InputData::checkLocusFile(Options *options, LogWriter& Log){
   bool badData = false;
 
-  const float threshold = getLocusDistanceThreshold(!options->getHapMixModelIndicator());
-
-  #if ! USE_GENOTYPE_PARSER
+  #if USE_GENOTYPE_PARSER
+    if ( options == 0 ) {;} // Suppress compiler warning
+  #else
+    const float threshold = getLocusDistanceThreshold(!options->getHapMixModelIndicator());
     const vector<string>& GenotypesFileHeader = genotypeLoader->getHeader();
   #endif
 
@@ -178,76 +179,55 @@ bool InputData::checkLocusFile(Options *options, LogWriter& Log){
     {
 
     #if USE_GENOTYPE_PARSER
-	const SimpleLocus & sLoc = simpleLoci[ sLocIdx ];
-	const float    distance  = sLoc.getDistance();
-	const string & locusName = sLoc.getName();
-	const int      nAlleles  = sLoc.getNumAlleles();
+	const SimpleLocus & sLoc      = simpleLoci[ sLocIdx ];
+	const string &	    locusName = sLoc.getName();
+	const string &	    header    = genotypeLoader->getGTypeHeader( sLocIdx );
     #else
 	const float    distance  = locusMatrix_.get(sLocIdx,1);
 	const string & locusName = StringConvertor::dequote(locusData_[sLocIdx+1][0]);
 	const int      nAlleles  = locusMatrix_.get(sLocIdx,0);
+	const string & header	 = StringConvertor::dequote(GenotypesFileHeader[sLocIdx + 1 + genotypeLoader->getSexColumn()]);
+
+	//check number of alleles is >1
+	if ( nAlleles < 2 ) {
+	  Log << On << "ERROR on line " << (sLocIdx+1) << " of locusfile: number of alleles must be >1.\n";
+	  badData = true;
+	}
+
+	//check distances are not negative
+	if( distance < 0.0){
+	  badData = true;
+	  Log << On << "Error: distance on line "<< (sLocIdx+1) <<" of locusfile is negative.\n";
+	}
+
+	//check distances are not too large
+	if(distance >= threshold) {
+	 //badData = true;
+	 if ( distance != 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome
+	   Log << On << "Warning: distance of " << distance << ' ' <<
+		   getUnitOfDistanceAsString() << " at locus " << (sLocIdx+1) << '\n';
+	   locusMatrix_.isMissing(sLocIdx,1, true);//missing value for distance denotes new chromosome
+	}
+
+	// Check loci names are unique
+	for (size_t j = 0; j < sLocIdx; ++j) {
+	    if ( locusName == locusData_[j][0] ) {
+	    badData = true;
+	    Log << On << "Error in locusfile. Two different loci have the same name: "
+		<< locusName << "\n";
+	  }
+	}
+
     #endif
 
-    //check number of alleles is >1
-    if ( nAlleles < 2 ) {
-      Log << On << "ERROR on line " << (sLocIdx+1) << " of locusfile: number of alleles must be >1.\n";
-      badData = true;
-    }
-
-    //check distances are not negative
-    if( distance < 0.0){
-      badData = true;
-      Log << On << "Error: distance on line "<< (sLocIdx+1) <<" of locusfile is negative.\n";
-    }
-
-    //check distances are not too large
-    #if USE_GENOTYPE_PARSER
-     if ( sLoc.isLinkedToPrevious() && (distance >= threshold) ) {
-    #else
-     if(distance >= threshold) {
-    #endif
-      //badData = true;
-      if ( distance != 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome
-	Log << On << "Warning: distance of " << distance << ' ' <<
-		getUnitOfDistanceAsString() << " at locus " << (sLocIdx+1) << '\n';
-      #if USE_GENOTYPE_PARSER
-	#if START_CHROMOSOME_INDICATOR
-	    sLoc.makeStartsNewChromosome();
-	#else
-	    throw std::runtime_error( "distance over threshold on locus " + sLoc.getName() );
-	#endif
-      #else
-	locusMatrix_.isMissing(sLocIdx,1, true);//missing value for distance denotes new chromosome
-      #endif
-    }
-
-    // Check loci names are unique
-    for (size_t j = 0; j < sLocIdx; ++j) {
-      #if USE_GENOTYPE_PARSER
-	if ( locusName == simpleLoci[j].getName() ) {
-      #else
-	if ( locusName == locusData_[j][0] ) {
-      #endif
-	badData = true;
-	Log << On << "Error in locusfile. Two different loci have the same name: "
-	    << locusName << "\n";
-      }
-    }
 
     // Compare loci names in locus file and genotypes file.
-    #if USE_GENOTYPE_PARSER
-      // GenotypeParser uses 0-based indexing of locus (genotype) columns:
-      const string & header = genotypeLoader->getGTypeHeader( sLocIdx );
-    #else
-      const string & header = StringConvertor::dequote(GenotypesFileHeader[sLocIdx + 1 + genotypeLoader->getSexColumn()]);
-    #endif
-
-      if ( locusName != header ) {
+    if ( locusName != header ) {
 	Log << On << "ERROR: locus names differ in locus file and genotypes file at index "
 	    << sLocIdx << "\n"
 	    "Locus names causing an error are: " << locusName << " and "
 	    << header << '\n';
-      return false;
+	return false;
     }
 
   }//end loop over loci
@@ -256,39 +236,42 @@ bool InputData::checkLocusFile(Options *options, LogWriter& Log){
 }
 
 
-///determines the distance threshold for a new chromosome
-//100 Morgans for admixmap
-//10 Mb for hapmixmap
-float InputData::getLocusDistanceThreshold(bool hapmixmodelindicator)const{
-  if(!hapmixmodelindicator) {
-    switch ( getUnitOfDistance() ) {
-    case centimorgans:{
-      return(10000.0);
+#if ! USE_GENOTYPE_PARSER
+    ///determines the distance threshold for a new chromosome
+    //100 Morgans for admixmap
+    //10 Mb for hapmixmap
+    float InputData::getLocusDistanceThreshold(bool hapmixmodelindicator)const{
+      if(!hapmixmodelindicator) {
+	switch ( getUnitOfDistance() ) {
+	case centimorgans:{
+	  return(10000.0);
+	}
+	case Morgans:{
+	  return (100.0);
+	}
+	default:{
+	  return(100.0);
+	}
+	}
+      } else {
+	switch ( getUnitOfDistance() ) {
+	case basepairs:{
+	  return (1e7);
+	}
+	case kilobases:{
+	  return(10000.0);
+	}
+	case megabases:{
+	  return(10.0);
+	}
+	default:{
+	  return(10000.0);
+	}
+	}
+      }
     }
-    case Morgans:{
-      return (100.0);
-    }
-    default:{
-      return(100.0);
-    }
-    }
-  } else {
-    switch ( getUnitOfDistance() ) {
-    case basepairs:{
-      return (1e7);
-    }
-    case kilobases:{
-      return(10000.0);
-    }
-    case megabases:{
-      return(10.0);
-    }
-    default:{
-      return(10000.0);
-    }
-    }
-  }
-}
+#endif
+
 
 void InputData::SetLocusLabels(){
   #if USE_GENOTYPE_PARSER

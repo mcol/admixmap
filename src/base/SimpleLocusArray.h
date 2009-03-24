@@ -54,8 +54,8 @@ typedef size_t SLocIdxType;
 //-----------------------------------------------------------------------------
 //
 /// Container for the SimpleLocus records.  Also holds some summary and
-/// aggregate information such as the number of composite loci and the genetic
-/// distance unit.
+/// aggregate information such as the number of composite loci, number of
+/// chromosomes, and the genetic distance unit.
 ///
 /// <A name="note-1"></A>
 /// <TABLE STYLE="border: groove 3pt aqua;">
@@ -88,8 +88,9 @@ class SimpleLocusArray : private std::vector<SimpleLocus> // see NOTE *1*
 
     private:
 
-	GeneticDistanceUnit gdu	       ;
-	size_t		    nComposite ; ///< number of composite loci
+	GeneticDistanceUnit gdu		;
+	size_t		    nComposite	; ///< number of composite loci
+	size_t		    nChromosomes; ///< number of chromosomes
 
 
     protected:
@@ -108,8 +109,10 @@ class SimpleLocusArray : private std::vector<SimpleLocus> // see NOTE *1*
 
     public:
 
-	GeneticDistanceUnit getGDU	  () const { return gdu	      ; }
-	size_t		    getNComposite () const { return nComposite; } ///< number of composite loci
+	GeneticDistanceUnit getGDU() const { return gdu; }
+
+	size_t getNComposite   () const { return nComposite  ; } ///< number of composite loci
+	size_t getNChromosomes () const { return nChromosomes; } ///< number of chromosomes
 
 
 	//-------------------------------------------------------------------
@@ -120,6 +123,12 @@ class SimpleLocusArray : private std::vector<SimpleLocus> // see NOTE *1*
 	const SimpleLocus & operator[]( SLocIdxType idx ) const { rc(idx); return SUPER::operator[](idx); }
 	const SimpleLocus & atUnsafe  ( SLocIdxType idx ) const {	   return SUPER::operator[](idx); }
 	SLocIdxType	    size()			  const { return SUPER::size(); }
+
+	/// Convenience method, in case someone is used to calling STL's
+	/// range-checked at() (be aware that this overrides a (privately)
+	/// inherited non-virtual method).
+	const SimpleLocus & at( SLocIdxType idx ) const { return operator[](idx); }
+
 
 	const SimpleLocus & last() const { rc(0); return SUPER::back(); }
 

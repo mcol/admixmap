@@ -233,7 +233,7 @@ Pedigree::Pedigree( const OrganismArray & pool,
     // Sanity checking:
     gp_assert( nFounders != 0 );
     gp_assert_le( nFounders, nMembers );
-    gp_assert_le( getNSibs(), InheritanceVector::MAX_ORGANISMS );
+    gp_assert_le( getNNonFndrs(), InheritanceVector::MAX_ORGANISMS );
     gp_assert( sortedMembers[0]->isFounder() );
     gp_assert( getEndFounder()[-1]->isFounder() );
 

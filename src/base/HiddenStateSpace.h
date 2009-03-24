@@ -55,7 +55,7 @@ namespace genepi { // ----
 /// (ancestry-vector,inheritance-vector) tuple to the emission-probability
 /// "slot" for that state.  It is implemented here as a simple array containing
 /// one element for every possible combination of inheritance-vector and
-/// ancestry-vector, the size of which is (2^M)*(K^F), i.e. will grow
+/// ancestry-vector, the size of which is \f$2^M \cdot K^F\f$, i.e. will grow
 /// exponentially with respect to the size of the pedigree but with very fast
 /// access times.  This could be replaced by a "sparse" implementation more
 /// appropriate for larger pedigrees for which many IVs do not qualify.
@@ -70,6 +70,8 @@ class HiddenStateSpace
     {
     public:
 	typedef float ProbType;
+	typedef size_t AncestryIdxType;
+	typedef size_t InheritanceIdxType;
 
     private:
 

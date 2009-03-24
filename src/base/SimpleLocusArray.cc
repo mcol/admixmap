@@ -49,8 +49,9 @@ void SimpleLocusArray::throwRange( size_t idx ) const
 //-----------------------------------------------------------------------------
 
 SimpleLocusArray::SimpleLocusArray() :
-	gdu	   ( Morgans ) ,
-	nComposite ( 0	     )
+	gdu	     ( Morgans	) ,
+	nComposite   ( 0	) ,
+	nChromosomes ( 0	)
     {
     }
 

@@ -58,6 +58,12 @@ SimpleLocusParser::SimpleLocusParser( const char * fileName, SimpleLocusArray & 
 
 //-----------------------------------------------------------------------------
 // parse()
+//
+/// If the file contains the optional chromosome labels, they are used.  If not,
+/// they will be assigned default labels (numbered sequentially starting with
+/// 1).  Explicitely-labeled and default-labeled chromosomes (i.e. all loci in
+/// the file) may @b not be mixed in the same locus-file.
+//
 //-----------------------------------------------------------------------------
 
 void SimpleLocusParser::parse()
@@ -66,6 +72,10 @@ void SimpleLocusParser::parse()
     #if STATUS_TO_COUT
 	std::cout << "Loading " << getFileName() << "... ";
     #endif
+
+
+    int chromLabelCtr = 0; // Only used for default chromosome labeling
+    bool explicit_chrom_labels = false; // Initialize to suppress compiler warning
 
 
     // Set up a try-block so that we can catch exceptions that aren't
@@ -129,31 +139,50 @@ void SimpleLocusParser::parse()
 	while ( skipToToken() )
 	    {
 
-	    // Column 1: locus name
+
+	    // --- Column 1: locus name ---
 	    row.name = lexString();
 
-	    // Column 2: number of alleles
+
+	    // --- Column 2: number of alleles ---
 	    const long nAlleles = lexInteger();
-	    if ( nAlleles < 1 )
-		throwError( "number of alleles is less than 1" );
+	    if ( nAlleles < 2 )
+		throwError( "number of alleles is less than 2" );
 	    row.numAlleles = nAlleles;
 
-	    // Column 3: distance to this locus from previous locus
-	    #if 0 // This would be way too simple:
-		row.distance = lexFloat( "distance" );
-	    #else
-		{ // Begin scope
-		const Token & tok = lexToken();
-		if ( ! tok.isToken() )
-		    throwError( "too few fields (no distance)" );
-		if ( tok.isType(T_STRING) && (tok.getStrVal() == "NA") )
-		    row.makeUnlinkedToPrevious();
-		else
-		    row.distance = tok.asFloat( "distance" );
-		} // End scope
-	    #endif
 
-	    // Column 4 (optional): chromosome label:
+	    // --- Column 3: distance to this locus from previous locus ---
+	    { // Begin scope
+	    const Token & tok = lexToken();
+	    if ( ! tok.isToken() )
+		throwError( "too few fields (no distance)" );
+	    if ( tok.isType(T_STRING) && (tok.getStrVal() == "NA") )
+		{
+		row.makeUnlinkedToPrevious();
+		row.distance.makeNewChromosome(); // Contradictory?
+		}
+	    else
+		{
+		const double dist = tok.asFloat( "distance" );
+
+		if ( dist < 0.0 )
+		    throwError( "distance from previous locus is negative" );
+
+		row.distance.set( loci.getGDU(), dist );
+
+		if ( (! row.distance.isUnlinked()) && row.distance.exceedsThreshold() )
+		    {
+		    if ( dist != 100.0 ) // Backwards-compatibility: no warning
+			warn( estr("distance of ") + dist + ' ' +
+			    gduAsString(loci.getGDU()) + " at locus " + row.name +
+			    " exceeds threshold; starts new chromosome." );
+		    row.distance.makeNewChromosome();
+		    }
+		}
+	    } // End scope
+
+
+	    // --- Column 4 (optional): chromosome label: ---
 	    const Token tok = lexToken();
 	    if ( ! tok.isToken() ) // EOL or EOF reached
 		row.chromNum = -1; // The no-chromosome-label code
@@ -172,20 +201,27 @@ void SimpleLocusParser::parse()
 		}
 
 
-	    if ( loci.empty() )
+	    // --- A few more validation checks ---
+	    if ( loci.empty() )		// First locus in file:
 		{
 		if ( row.isCompositeWithPrevious() )
-		    throwError( "first locus in file is composite with previous" );
+		    throwError( "first locus in file is composite with previous?!?!" );
 		++loci.nComposite;
+
+		if ( ! row.startsNewChromosome() )
+		    throwError( "first locus in file doesn't start a new chromosome?!?!" );
+		++loci.nChromosomes;
+
+		explicit_chrom_labels = row.hasChrom();
 		}
-	    else
+	    else			// Not the first locus in file:
 		{
 
 		// Check for duplicate locus-name:
 		for ( SimpleLocusArray::Iter iter = loci.begin() ; iter != loci.end() ; ++iter )
 		    if ( iter->name.equalsCaseInsens( row.name ) )
 			throwError( estr("Locus name ") + row.name +
-				    " occurs multiple times in locus-file" );
+				" occurs multiple times in the locus-file" );
 
 		// Check for composite locus:
 		if ( row.isCompositeWithPrevious() )
@@ -197,13 +233,27 @@ void SimpleLocusParser::parse()
 		    }
 		else
 		    ++loci.nComposite;
+
+		if ( row.startsNewChromosome() )
+		    ++loci.nChromosomes;
 		}
 
+	    if ( row.hasChrom() != explicit_chrom_labels )
+		throwError( "mixed explicit/default-numbered chromosome labels in the same locus-file" );
 
-	    // Add the newly-parsed row to the container of simple loci.
+	    // Assign default chromosome numbering if necessary:
+	    if ( ! row.hasChrom() )
+		{
+		if ( row.startsNewChromosome() )
+		    ++chromLabelCtr;
+		row.chromNum = chromLabelCtr;
+		}
+
+	    // --- Add the newly-parsed row to the container of simple loci. ---
 	    loci.push_back( row );
 
 	    }
+
 	}
 
     // Catch and rethrow DataValidError's just so that we can isolate other exceptions below:
@@ -220,8 +270,9 @@ void SimpleLocusParser::parse()
 	}
 
     #if STATUS_TO_COUT
-	std::cout << loci.size() << " simple-loci.\n";
-	    //; " << loci.getNComposite() << " composite loci.\n";
+	std::cout << loci.size() << " simple-loci; "
+	    << loci.getNComposite() << " composite loci; "
+	    << loci.getNChromosomes() << " chromosomes.\n";
     #endif
 
     }

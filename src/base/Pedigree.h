@@ -77,18 +77,18 @@ class HiddenStateSpace;
 ///	<TD>
 ///	We implement an ordering of the Organism within the Pedigree for
 ///	iteration such that no member of a family will be visited prior to both
-///	of its parents being visited.  This ordering could be achieved by
-///	assigning each non-founder (or even founders too) a "depth" which will
-///	be the <I>largest</I> number of steps required to traverse the
-///	parent-tree starting at that node.  It is similar to "generation",
-///	except that all founders of a given pedigree have the same depth of 0
-///	(despite the fact that some may be of a different generation than
-///	others), and a given individual's depth is then the <I>maximum</I>
-///	path-length to a founder.  Another way to say this is that every sib's
-///	depth is the maximum of its two parents' depths, plus 1.  Thus, all
-///	founders have depth 0; a child both of whose parents are founders has
-///	depth 1; and a child one of whose parents is a founder and the other of
-///	whom is the child of two founders has depth 2.
+///	of its parents being visited.  This ordering is achieved by assigning
+///	each non-founder (or even founders too) a "depth" which will be the
+///	<I>largest</I> number of steps required to traverse the parent-tree
+///	starting at that node.  It is similar to "generation", except that all
+///	founders of a given pedigree have the same depth of 0 (despite the fact
+///	that some may be of a different generation than others), and a given
+///	individual's depth is then the <I>maximum</I> path-length to a founder.
+///	Another way to say this is that every sib's depth is the maximum of its
+///	two parents' depths, plus 1.  Thus, all founders have depth 0; a child
+///	both of whose parents are founders has depth 1; and a child one of whose
+///	parents is a founder and the other of whom is the child of two founders
+///	has depth 2.
 ///	<P>All of the iterative and array-style access to the container is via
 ///	this ordering.
 ///	<P>This ordering by "generational depth" has several desirable
@@ -231,10 +231,10 @@ class Pedigree
 
 	size_t getNMembers () const { return nMembers ; }		///< Number of members
 	size_t getNFounders() const { return nFounders; }		///< Number of founders
-	size_t getNSibs	   () const { return (nMembers - nFounders); }	///< Number of non-founders
+	size_t getNNonFndrs() const { return (nMembers - nFounders); }	///< Number of non-founders
 
 
-	/// Array-style access: @a mIdx must be between 0 and getNMembers().
+	/// Array-style access: @a mIdx must be between 0 and getNMembers()-1.
 	const Member & memberAt( MemberIdx mIdx ) const
 	    {
 	    #if AGGRESSIVE_RANGE_CHECK
@@ -246,7 +246,7 @@ class Pedigree
 	    }
 
 
-	/// Array-style access: @a fIdx must be between 0 and getNFounders().
+	/// Array-style access: @a fIdx must be between 0 and getNFounders()-1.
 	const Member & founderAt( FounderIdx fIdx ) const
 	    {
 	    #if AGGRESSIVE_RANGE_CHECK

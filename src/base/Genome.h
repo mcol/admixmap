@@ -52,8 +52,8 @@ protected:
 
 public:
 
-  Genome();
-  Genome(int);
+    Genome();
+//  Genome(int); ///< Unimplemented?  What is the int?
   virtual ~Genome();
 
   void Initialise(const InputData* const data_, int populations, bool hapmixmodelindicator, 
@@ -134,15 +134,19 @@ protected:
   void SetupChromosome(Chromosome* C, bool isX, unsigned cstart, const string& label);
 
 private:
+
   /** Index of chromosomes and loci.
    *
    * LocusTable[i][0] is the chromosome
    * LocusTable[i][1] is the locus index
    */
   std::vector<std::vector<int> > LocusTable;
-  std::vector<std::string> ChrmLabels;
 
-  void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations);
+  #if ! USE_GENOTYPE_PARSER
+    std::vector<std::string> ChrmLabels;
+  #endif
+
+  void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations, const SimpleLocusArray & sLoci );
   void PrintSizes(bclib::LogWriter &Log, const std::string& distanceUnit)const;
 
 

@@ -7,8 +7,15 @@
  * @{ */
 
 
-// Changes to the enum here should be matched in the implementation file
-//!enum for distance units
+//-----------------------------------------------------------------------------
+//
+// NB: Changes to the enum values here must be matched by similar changes in the
+// implementation file!
+//
+/// Enumeration for genetic distance units.  @sa { GeneticDistance }
+//
+//-----------------------------------------------------------------------------
+
 enum GeneticDistanceUnit {basepairs, kilobases, megabases, centimorgans, Morgans,
 			  N_GDUS }; ///< This must remain the last tag
 

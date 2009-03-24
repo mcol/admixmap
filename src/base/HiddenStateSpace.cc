@@ -26,6 +26,8 @@
 #pragma implementation
 #include "HiddenStateSpace.h"
 
+#include <cmath> // exp()
+
 
 
 namespace genepi { // ----
@@ -63,11 +65,11 @@ static inline size_t k_pow_f( PopIdx K , const Pedigree & ped )
 //-----------------------------------------------------------------------------
 
 HiddenStateSpace::HiddenStateSpace( const Pedigree & _ped, PopIdx _K ) :
-	ped   ( &_ped			 ) ,
-	K     ( _K			 ) ,
-	N_IVs ( 1 << (_ped.getNSibs()<<1)) , // 2^M = 2^(n-non-founders*2)
-	N_AVs ( k_pow_f( _K, _ped )	 ) , // K^F
-	probs ( new ProbType [ aSize() ] )
+	ped   ( &_ped			     ) ,
+	K     ( _K			     ) ,
+	N_IVs ( 1 << (_ped.getNNonFndrs()<<1)) , // 2^M = 2^(n-non-founders*2)
+	N_AVs ( k_pow_f( _K, _ped )	     ) , // K^F
+	probs ( new ProbType [ aSize() ]     )
     {
     }
 
@@ -80,11 +82,11 @@ HiddenStateSpace::HiddenStateSpace() :
 
 void HiddenStateSpace::init( const Pedigree & _ped, PopIdx _K )
     {
-    ped   = &_ped                     ;
-    K     = _K                        ;
-    N_IVs = 1 << (_ped.getNSibs()<<1) ; // 2^M = 2^(n-non-founders*2)
-    N_AVs = k_pow_f( _K, _ped )       ; // K^F
-    probs = new ProbType [ aSize() ]  ;
+    ped	  = &_ped			  ;
+    K	  = _K				  ;
+    N_IVs = 1 << (_ped.getNNonFndrs()<<1) ; // 2^M = 2^(n-non-founders*2)
+    N_AVs = k_pow_f( _K, _ped )		  ; // K^F
+    probs = new ProbType [ aSize() ]	  ;
     }
 
 
@@ -112,9 +114,9 @@ void HiddenStateSpace::resetEmProbsToZero()
 
 
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 // Iterator:
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 
 HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp ) :

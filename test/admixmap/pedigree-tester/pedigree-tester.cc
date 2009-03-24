@@ -104,11 +104,11 @@ static void runTest( const char * locusFileName, const char * pedFileName, const
 	    maxNFounders = ped.getNFounders();
 	totNFounders += ped.getNFounders();
 
-	if ( ped.getNSibs() < minNSibs )
-	    minNSibs = ped.getNSibs();
-	if ( ped.getNSibs() > maxNSibs )
-	    maxNSibs = ped.getNSibs();
-	totNSibs += ped.getNSibs();
+	if ( ped.getNNonFndrs() < minNSibs )
+	    minNSibs = ped.getNNonFndrs();
+	if ( ped.getNNonFndrs() > maxNSibs )
+	    maxNSibs = ped.getNNonFndrs();
+	totNSibs += ped.getNNonFndrs();
 	}
 
     gp_assert( totNMembers == pedFileArray.getNumOrganisms() );
@@ -162,7 +162,7 @@ static void runTest( const char * locusFileName, const char * pedFileName, const
 	cout << "\n\nGenerating space of hidden states for pedigree \""
 		<< ped.getId() << "\" (" << ped.getNMembers() << " members, "
 		<< ped.getNFounders() << " founders, "
-		<< ped.getNSibs() << " non-founders)...\n\n"
+		<< ped.getNNonFndrs() << " non-founders)...\n\n"
 
 		"  For this pedigree, AVs are listed in founder organism order:";
 	for ( Pedigree::Iterator it = ped.getFirstFounder() ; it != ped.getEndFounder() ; ++it )

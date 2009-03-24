@@ -20,6 +20,7 @@
 
 //=============================================================================
 /// \file SimpleLocus.h
+/// Definition of SimpleLocus class.
 //=============================================================================
 
 #ifndef __base_SimpleLocus_h
@@ -28,8 +29,11 @@
 
 
 #include "estr.h"
+#include "GeneticDistance.h"
 
-#define START_CHROMOSOME_INDICATOR 0
+
+
+#define START_CHROMOSOME_INDICATOR 1
 
 
 
@@ -46,37 +50,39 @@ class SimpleLocus
     {
     friend class SimpleLocusParser;
 
+    public:
+	typedef GeneticDistance GDist; ///< Convenience, shorter
+
     private:
 	estr	name	   ;
 	size_t	numAlleles ;
-	double	distance   ;
+	GDist	distance   ; ///< Distance to the preceding locus
 	int	chromNum   ;
 	bool	inComposite;
-
-	static const double UNLINKED_DIST  = 1.31484755040568800000e+16;
-	static const double NEW_CHROM_DIST = 1.41484755040568800000e+16;
 
     public:
 	const std::string & getName	  () const { return name	; }
 	size_t		    getNumAlleles () const { return numAlleles	; }
-	double		    getDistance	  () const { return distance	; }
-	bool		    hasChrom	  () const { return (chromNum>=0); }
+	const GDist &	    getDistance	  () const { return distance	; } ///< Distance to preceding locus
 	int		    getChromNum	  () const { return chromNum	; }
+	bool		    isXChrom	  () const { return (chromNum==-2); } // Yuck
+	std::string	    getChromLabel () const { return isXChrom() ? "X" : estr(chromNum); }
+	bool		    hasChrom	  () const { return (chromNum==-2) || (chromNum>=0); }
 
 	bool isInComposite() const { return inComposite; }
 	void makeInComposite() { inComposite = true; }
 
 	// "Unlinked To Previous" was formerly known as "isMissing"
-	bool isUnlinkedToPrevious() const { return (distance == UNLINKED_DIST); }
-	bool isLinkedToPrevious  () const { return (distance != UNLINKED_DIST); }
-	void makeUnlinkedToPrevious() { distance = UNLINKED_DIST; }
+	bool isUnlinkedToPrevious() const { return distance.isUnlinked(); }
+	bool isLinkedToPrevious  () const { return ! distance.isUnlinked(); }
+	void makeUnlinkedToPrevious() { distance.makeUnlinked(); }
 
-	bool isCompositeWithPrevious() const { return isLinkedToPrevious() && (distance == 0.0); }
-	void makeCompositeWithPrevious() { distance = 0.0; }
+	bool isCompositeWithPrevious() const { return distance.isComposite(); }
+	void makeCompositeWithPrevious() { distance.makeComposite(); }
 
 	#if START_CHROMOSOME_INDICATOR
-	    bool startsNewChromosome() const { return (distance==NEW_CHROM_DIST); }
-	    void makeStartsNewChromosome() { distance = NEW_CHROM_DIST; }
+	    bool startsNewChromosome() const { return distance.isNewChromosome(); }
+	    void makeStartsNewChromosome() { distance.makeNewChromosome(); }
 	#endif
     };
 

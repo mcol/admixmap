@@ -53,9 +53,9 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   Data->GetGenotype(number, *Loci, &genotypes, GenotypesMissing);
 
   #if USE_GENOTYPE_PARSER
-    isHaploid = genotypes[0][0].isHaploid();	//note: assumes at least one autosome before X-chr
+    isHaploid = genotypes.at(0).at(0).isHaploid(); //note: assumes at least one autosome before X-chr
   #else
-    isHaploid = (genotypes[0][0].size() == 1);	//note: assumes at least one autosome before X-chr
+    isHaploid = (genotypes[0][0].size() == 1);	   //note: assumes at least one autosome before X-chr
   #endif
 
   Individual::Initialise(options, Data); 

@@ -39,6 +39,10 @@ void Genome::throwErr( const std::string & msg ) const
 
 
 
+//-----------------------------------------------------------------------------
+// Constructor
+//-----------------------------------------------------------------------------
+
 Genome::Genome()
 {
   NumberOfCompositeLoci = 0;
@@ -92,31 +96,32 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
   LocusTable.resize(NumberOfCompositeLoci);
   X_data = false;
 
-  //determine if distances are given in Morgans or centimorgans
-  GeneticDistanceUnit unit = data_->getUnitOfDistance();
-  const float threshold = data_->getLocusDistanceThreshold(!hapmixmodelindicator); //threshold for new chromosome
+  #if ! USE_GENOTYPE_PARSER
+    //determine if distances are given in Morgans or centimorgans
+    GeneticDistanceUnit unit = data_->getUnitOfDistance();
+    const float threshold = data_->getLocusDistanceThreshold(!hapmixmodelindicator); //threshold for new chromosome
+  #else
+    if ( hapmixmodelindicator ) {;} // Suppress compiler warning
+  #endif
 
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     LocusTable[i].resize(2);
     
     //retrieve first row of this comp locus from locusfile
     #if USE_GENOTYPE_PARSER
-      const SimpleLocus & sLoc = simpleLoci[ row ];
-      if ( sLoc.hasChrom() )
-	ChrmLabels.push_back( estr(sLoc.getChromNum()) );
-      Distances[ i ] = sLoc.getDistance();
+      const SimpleLocus & sLoc = simpleLoci[row];
+      Distances[ i ] = sLoc.getDistance().inMorgans();
     #else
       const Vector_s& m = data_->getLocusData()[row+1];//+1 because LocusData has a header, LocusMatrix doesn't
       //get chromosome labels from col 4 of locusfile, if there is one   
       if (m.size() == 4) ChrmLabels.push_back(bclib::StringConvertor::dequote(m[3]));
       Distances[ i ] = locifileData.get( row, 1 );
+      if(unit == centimorgans)Distances[i] /= 100.0;//convert to Morgans
+      //      SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
     #endif
 
-    if(unit == centimorgans)Distances[i] /= 100.0;//convert to Morgans
-    //      SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
-
     #if USE_GENOTYPE_PARSER
-     if ( sLoc.isUnlinkedToPrevious() || (sLoc.getDistance() >= threshold) ) {
+     if ( sLoc.startsNewChromosome() ) {
     #else
      if(locifileData.isMissing(row, 1) || locifileData.get(row, 1)>= threshold){
     #endif
@@ -164,11 +169,14 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
   }//end comp loci loop
 
   NumberOfChromosomes = cnum +1;
+  #if USE_GENOTYPE_PARSER
+    gp_assert_eq( NumberOfChromosomes, simpleLoci.getNChromosomes() );
+  #endif
   SizesOfChromosomes = new unsigned int[NumberOfChromosomes];//array to store lengths of the chromosomes
   cstart.push_back(NumberOfCompositeLoci);//add extra element for next line to work
   for(unsigned c = 0; c < NumberOfChromosomes; ++c) SizesOfChromosomes[c] = cstart[c+1] - cstart[c];
   //create Chromosome objects
-  InitialiseChromosomes(cstart, populations);
+  InitialiseChromosomes(cstart, populations, simpleLoci);
 
   //print length of genome, num loci, num chromosomes
   PrintSizes(Log, data_->getUnitOfDistanceAsString());
@@ -177,47 +185,61 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 ///Creates an array of pointers to Chromosome objects and sets their labels.
 ///Also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
 ///LengthOfXChrm 
-void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int populations){
+void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int populations, const SimpleLocusArray & sLoci ){
   C = new Chromosome*[NumberOfChromosomes]; 
   //C is an array of chromosome pointers
 
   for(unsigned i = 0; i < NumberOfChromosomes; i++){//loop over chromsomes
-    int size = cstart[i+1] - cstart[i];//number of loci on chromosome i
 
-    //set chromosome label
-    string label;
-    //default (if none supplied), numbered in sequence from 1
-    if( ChrmLabels.size() == 0 ){
-      stringstream labelstr;
-      labelstr << "\"" << i+1 << "\"";
-      label = labelstr.str();
-    }
-    else
-      label = ChrmLabels[cstart[i]];
-    //determine if X Chromosome
-    bool isX = false;
-    string s1("X"), s2("x");
-    isX = ( (label == s1) || (label == s2) );
+    const size_t cStLocIdx = cstart[i];
+    const SimpleLocus & startLocus = sLoci.at( cStLocIdx );
+
+    const size_t size = cstart[i+1] - cStLocIdx; //number of loci on chromosome i
+
+    #if USE_GENOTYPE_PARSER
+	const bool     isX   = startLocus.isXChrom();
+	const string & label = startLocus.getChromLabel();
+    #else
+
+	//set chromosome label
+	string label;
+	//default (if none supplied), numbered in sequence from 1
+	if( ChrmLabels.size() == 0 ){
+	  stringstream labelstr;
+	  labelstr << "\"" << i+1 << "\"";
+	  label = labelstr.str();
+	}
+	else
+	  label = ChrmLabels.at( cStLocIdx );
+
+	//determine if X Chromosome
+	bool isX = false;
+	string s1("X"), s2("x");
+	isX = ( (label == s1) || (label == s2) );
+
+
+    #endif
+
     if(isX){
       X_data = true;
-      XChromosomeIndex = cstart[i];//index of first locus on X chromosome
+      XChromosomeIndex = cStLocIdx;//index of first locus on X chromosome
     }
 
-    CreateChromosome(i, size, isX, cstart[i], populations);
+    CreateChromosome(i, size, isX, cStLocIdx, populations);
     C[i]->SetLabel(label);
-    
-    for(int j = 0; j < size; j++){//loop over loci on chromosome
-      C[i]->SetDistance(j,GetDistance(cstart[i]+j));
+
+    for( size_t j = 0; j < size; j++){//loop over loci on chromosome
+      C[i]->SetDistance(j,GetDistance(cStLocIdx+j));
       
       if( j != 0 ){
 	if( !isX ){
-	  LengthOfGenome += GetDistance(cstart[i]+j);
-	  //              cout << i << " " << j << " " << GetDistance(cstart[i]+j) << endl;
+	  LengthOfGenome += GetDistance(cStLocIdx+j);
+	  //              cout << i << " " << j << " " << GetDistance(cStLocIdx+j) << endl;
 	  //NB length of genome does not include X chromosome
 	}
 	//case of X chromosome
 	else{
-	  LengthOfXchrm += GetDistance(cstart[i]+j);
+	  LengthOfXchrm += GetDistance(cStLocIdx+j);
 	}
       }
     }
@@ -471,7 +493,7 @@ void Genome::SetLocusCorrelation(double rho){
 	    for ( unsigned j = 1; j < SizesOfChromosomes[c]; ++j )
 		{
 		// Increment map position by distance of first locus in complocus:
-		mapPosition += sLoci[simple_locus].getDistance();
+		mapPosition += sLoci[simple_locus].getDistance().inCentimorgans();
 		non_gcc::print( os, LocusArray[locus], label, mapPosition );
 		simple_locus += LocusArray[locus].GetNumberOfLoci();
 		++locus;

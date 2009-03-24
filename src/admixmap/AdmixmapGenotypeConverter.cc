@@ -41,9 +41,15 @@
 using namespace std;
 
 
-#define MALE_DIPLOID_X_FATAL	0
-#define NO_GENOTYPES_FATAL	0
-#define COUNT_X_LOCI		0
+///< Should we consider male with diploid genotype-data on X chromosome fatal error?
+#define MALE_DIPLOID_X_FATAL	 0
+
+/// Should male with diploid genotype-data on X chromosome issue warning if the
+/// two gametes' alleles are the same?
+#define MALE_DIPLOID_X_WARN_SAME 0
+
+#define NO_GENOTYPES_FATAL	 0
+#define COUNT_X_LOCI		 0
 
 
 // If WAIT_DONT_THROW is turned on, when we encounter an error, just print a
@@ -220,8 +226,11 @@ void convert( const Organism &		org	  ,
 		#if MALE_DIPLOID_X_FATAL
 		    thrGenErr( ind, msg, haveErr );
 		#else
-		    cerr << org.inLineDesc() << ": WARNING: individual " << org.idDesc() <<
-			": " << msg << ": forcing to haploid\n";
+		    #if ! MALE_DIPLOID_X_WARN_SAME
+		      if ( g.getVal1() != g.getVal2() )
+		    #endif
+			cerr << org.inLineDesc() << ": WARNING: individual " << org.idDesc() <<
+			    ": " << msg << ": forcing to haploid\n";
 		    g.forceHaploid();
 		#endif
 	      }

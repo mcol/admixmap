@@ -52,6 +52,9 @@ HapMixIndividualCollection
 
 HapMixIndividualCollection::~HapMixIndividualCollection(){
   delete[] ConcordanceCounts;
+  for(unsigned int i = 0; i < size; i++)
+    delete _child[i];
+  delete[] _child;
 }
 const HapMixIndividual* HapMixIndividualCollection::getHapMixIndividual(int num)const{
   if (num < (int)size){

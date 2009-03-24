@@ -45,7 +45,7 @@ namespace genepi { // ----
 	    nFounders( p.getNFounders() ) ,
 	    nMembers ( p.getNMembers () )
 	{
-	gp_assert_le( p.getNSibs(), MAX_ORGANISMS );
+	gp_assert_le( p.getNNonFndrs(), MAX_ORGANISMS );
 	}
 
 #endif

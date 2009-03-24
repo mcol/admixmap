@@ -49,6 +49,7 @@ if USE_GENOTYPE_PARSER
   libbase_a_SOURCES += \
 		DataValidError.cc DataValidError.h \
 		GFileLexer.cc GFileLexer.h \
+		GeneticDistance.h GeneticDistance.cc \
 		SimpleLocus.h SimpleLocus.cc \
 		SimpleLocusArray.h SimpleLocusArray.cc \
 		SimpleLocusParser.h SimpleLocusParser.cc \

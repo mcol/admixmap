@@ -98,7 +98,9 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
 }
 
 void ThrowException(const string& msg, bclib::LogWriter & Log){
-  Log << bclib::On << "\n" << msg << "\n Exiting...\n";
+  Log << bclib::On << "\n"
+	"UNCAUGHT EXCEPTION: " << msg << "\n"
+	"Exiting...\n";
   Log.ProcessingTime();
   exit(1);
 }
