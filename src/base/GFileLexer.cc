@@ -243,7 +243,7 @@ void GFileLexer::pushback( char ch )
 void GFileLexer::throwError( const string & msg ) const
 	throw( ParseError )
     {
-    throw ParseError( msg, fileName, lineNum );
+    throw ParseError( msg, fileName, getLastTokenLine() );
     }
 
 
@@ -277,7 +277,7 @@ void GFileLexer::assert_type( TokenType t, const Token & tok, const char * field
 
 void GFileLexer::warn( const string & msg ) const
     {
-    std::cerr << getFileName() << ':' << getLineNum() << ": warning: " << msg << '\n';
+    std::cerr << getFileName() << ':' << getLastTokenLine() << ": warning: " << msg << '\n';
     ++nWarnings;
     }
 
@@ -591,6 +591,7 @@ GFileLexer::Token GFileLexer::lexToken()
 	// Skip comments:
 	checkForComments( ch );
 
+	rv.lineNum = getCurLineNum();
 
 	if	( ch == '\n'	    ) rv.type = T_EOL;
 	else if ( ch == EOF_MARKER  ) rv.type = T_EOF;
@@ -601,6 +602,8 @@ GFileLexer::Token GFileLexer::lexToken()
 	else			      doParseStr( ch, rv );
 
 	}
+
+    lastTokenLine = rv.getLineNum();
 
     return rv;
     }
@@ -613,6 +616,11 @@ GFileLexer::Token GFileLexer::lexToken()
 
 void GFileLexer::pushback( const Token & tok )
     {
+    // It's not clear that this is desirable; perhaps better to just leave
+    // lastTokenLine alone:
+    if ( ! pb_tstack.empty() )
+	lastTokenLine = pb_tstack.back().getLineNum();
+
     pb_tstack.push_back( tok );
     }
 
@@ -766,6 +774,7 @@ GFileLexer::GFileLexer( const char * fn ) :
 	fileName	( fn	) ,
 	istr		( fn	) ,
 	lineNum		( 1	) ,
+	lastTokenLine	( 0	) ,
 	nWarnings	( 0	) ,
 	gtypeDelim	( ','	)   // Default delimiter
     {

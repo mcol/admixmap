@@ -158,17 +158,19 @@ class GFileLexer
 	/// union of the possible values (which can only be externally accessed
 	/// via type-safe methods, of course).
 	//---------------------------------------------------------------------
+
 	class Token
 	    {
 	    friend class GFileLexer;
 	    private:
 		TokenType  type	    ;
+		int	   lineNum  ; ///< Line number on which this token was parsed
 		string	   strVal   ;
 		union
 		    {
 		    long   intVal   ;
 		    double floatVal ;
-		    GType  gtypeVal ; // See NOTE *3* in Genotype.h
+		    GType  gtypeVal ; ///< See NOTE *3* in Genotype.h
 		    };
 
 		/// Throw an exception indicating an unexpected token-type
@@ -208,6 +210,12 @@ class GFileLexer
 		/// @parm fieldName the name of the field (for formatting error messages),
 		///	    or 0 if unknown
 		double asFloat( const char * fieldName = 0 ) const;
+
+
+		/// Line number at which this token was parsed.
+		/// @sa GFileLexer::getLastTokenLine(), GFileLexer::getCurLineNum()
+		int getLineNum() const { return lineNum; }
+
 	    };
 
 
@@ -218,6 +226,7 @@ class GFileLexer
 	const char *	 fileName	;
 	std::ifstream	 istr		;
 	int		 lineNum	;
+	int		 lastTokenLine	; ///< the line # on which the last token was parsed
 	mutable int	 nWarnings	;
 	std::list<char>  pb_cstack	;
 	std::list<Token> pb_tstack	;
@@ -281,9 +290,24 @@ class GFileLexer
 
 
 
-	int	     getLineNum	 () const { return lineNum   ; }
 	int	     getNWarnings() const { return nWarnings ; }
 	const char * getFileName () const { return fileName  ; }
+
+	/// Line number at which the input stream currently is.
+	/// @sa getLastTokenLine(), Token::getLineNum()
+	int getCurLineNum() const { return lineNum; }
+
+	/// Line number on which the last returned token was parsed.
+	///
+	/// More precisely, line number of the last token returned from
+	/// lexToken(), which might have been from the pushback stack; it's not
+	/// clear what's the most appropiate line-number to return after a pushback
+	/// of a token but before another call to lexToken(); for the moment, we
+	/// will attempt to back up to the previous token's line, but may return
+	/// the pushbacked token's line instead.
+	/// @sa
+	///	getCurLineNum(), Token::getLineNum(), pushback(const Token &)
+	int getLastTokenLine() const { gp_assert(lastTokenLine != 0); return lastTokenLine; }
 
 
 
@@ -301,9 +325,15 @@ class GFileLexer
 
 	/// Lex the next token of arbitrary type and return it: this is the main
 	/// lexing method which all others call.  Any pushed-back tokens will be
-	/// returned prior to lexing new ones.
+	/// returned prior to lexing new ones.  @sa pushback(const Token &)
 	Token lexToken();
-	void  pushback( const Token & tok );
+
+	/// Push back the Token @a tok onto the pushback stack.  The next call
+	/// to the lexToken() will return this token rather than parsing a new
+	/// one from the input stream.  Normally, @a tok should have been
+	/// previously returned by lexToken().
+	/// @sa lexToken(), getLastTokenLine()
+	void pushback( const Token & tok );
 
 	/// Skips past blank lines and comments to the next "real" token.
 	/// Returns true if token is found, false if EOF before token.

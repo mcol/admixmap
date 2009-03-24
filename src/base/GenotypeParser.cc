@@ -135,7 +135,8 @@ void GenotypeParser::buildAndCheckPedGraphs()
 	const Organism * const dup = findByIdIfExists( org.famId, org.orgId );
 	if ( dup != 0 )
 	    org.throwError( estr("ID \"") + org.idDesc() +
-			    "\" is duplicated on line #" + dup->getLineNum() );
+			    "\" is duplicated on line numbers " + org.getLineNum()
+			    + " and " + dup->getLineNum() );
 
 	insert_pmap( org );
 	}
@@ -391,7 +392,11 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	while ( skipToToken() )
 	    {
 
-	    row.lineNum = getLineNum();
+	    // This relies on skipToToken() leaving lastTokenLine as the last
+	    // _parsed_ token's line, even though it's been pushbacked.  This
+	    // would be clearer if we had a getLastToken() so that skipToToken()
+	    // wouldn't need to pushback.
+	    row.lineNum = getLastTokenLine();
 
 	    if ( isPedFile() )
 		{
@@ -427,7 +432,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		// duplicates are found:
 		const Organism * const dup = findByIdIfExists( row.famId, row.orgId );
 		if ( dup != 0 )
-		    warn( estr("organism-ID ") << row.famId << " is duplicated on line " << dup->getLineNum() );
+		    warn( estr("organism-ID ") << row.famId << " is duplicated on line #" << dup->getLineNum() );
 
 		if ( hasSexColumn() )
 		    row.sex = sexFromInt( lexInteger( "sex" ) );
