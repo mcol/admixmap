@@ -120,7 +120,7 @@ int main( int argc , char** argv ){
   catch (const char* msg) {//in case error messages thrown as char arrays instead of strings
     ThrowException(string(msg), Log);
   }
-  catch (exception& e){
+  catch (const exception& e){
     ThrowException(e.what(), Log);
   }
 
