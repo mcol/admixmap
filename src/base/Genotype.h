@@ -50,10 +50,10 @@ class Haplotype; // Forward reference
 
 
 //---------------------------------------------------------------------
-/// Class to hold a "genotype", two unphased alleles.  This should
-/// perhaps be moved out of this class into its own header.  Since the
-/// pair of integers are unordered, we will assure that val2 is missing
-/// before val1 is.
+/// Class to hold a "genotype", two unphased alleles.
+///
+/// Since the pair of integers are unordered, we will assure that val2 is
+/// missing before val1 is.
 //---------------------------------------------------------------------
 
 class Genotype
