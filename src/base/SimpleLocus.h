@@ -67,7 +67,7 @@ class SimpleLocus
 	int		    getChromNum	  () const { return chromNum	; }
 	bool		    isXChrom	  () const { return (chromNum==-2); } // Yuck
 	std::string	    getChromLabel () const { return isXChrom() ? "X" : estr(chromNum); }
-	bool		    hasChrom	  () const { return (chromNum==-2) || (chromNum>=0); }
+	bool		    hasChromLabel () const { return (chromNum==-2) || (chromNum>=0); }
 
 	bool isInComposite() const { return inComposite; }
 	void makeInComposite() { inComposite = true; }

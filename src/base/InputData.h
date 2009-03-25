@@ -161,7 +161,9 @@ protected:
      \param threshold maximum allowable distance between loci on a chromosome. If a distance exceeds this, the chromosome is broken up and a warning is printed.
      \param check determines whether to check locus labels
   */
-  bool checkLocusFile(Options *options, bclib::LogWriter& Log);
+  #if ! USE_GENOTYPE_PARSER
+    bool checkLocusFile(Options *options, bclib::LogWriter& Log);
+  #endif
   void SetLocusLabels();
 
   /// Determine number of composite loci from locusfile, but mysteriously don't

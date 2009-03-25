@@ -212,7 +212,7 @@ void SimpleLocusParser::parse()
 		    throwError( "first locus in file doesn't start a new chromosome?!?!" );
 		++loci.nChromosomes;
 
-		explicit_chrom_labels = row.hasChrom();
+		explicit_chrom_labels = row.hasChromLabel();
 		}
 	    else			// Not the first locus in file:
 		{
@@ -238,11 +238,11 @@ void SimpleLocusParser::parse()
 		    ++loci.nChromosomes;
 		}
 
-	    if ( row.hasChrom() != explicit_chrom_labels )
+	    if ( row.hasChromLabel() != explicit_chrom_labels )
 		throwError( "mixed explicit/default-numbered chromosome labels in the same locus-file" );
 
 	    // Assign default chromosome numbering if necessary:
-	    if ( ! row.hasChrom() )
+	    if ( ! row.hasChromLabel() )
 		{
 		if ( row.startsNewChromosome() )
 		    ++chromLabelCtr;
@@ -272,7 +272,10 @@ void SimpleLocusParser::parse()
     #if STATUS_TO_COUT
 	std::cout << loci.size() << " simple-loci; "
 	    << loci.getNComposite() << " composite loci; "
-	    << loci.getNChromosomes() << " chromosomes.\n";
+	    << loci.getNChromosomes() << " chromosomes.";
+	if ( getNWarnings() != 0 )
+	    std::cout << "  " << getNWarnings() << " warnings.";
+	std::cout << '\n';
     #endif
 
     }

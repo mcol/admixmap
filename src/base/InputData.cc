@@ -73,6 +73,12 @@ void InputData::ReadData(Options *options, LogWriter &Log){
 	SimpleLocusParser::parse( options->getLocusFilename(), simpleLoci );
 	genotypeLoader = new GenotypeParser( options->getGenotypesFilename(), simpleLoci );
 
+	if ( options->CheckData() && (genotypeLoader->getNWarnings() != 0) )
+	    {
+	    std::cerr << "Warnings treated as errors: aborting execution.\n";
+	    exit(1);
+	    }
+
       #else
 
         DataReader::ReadData(options->getLocusFilename(), locusData_, Log);   //locusfile
@@ -163,26 +169,18 @@ GeneticDistanceUnit InputData::getUnitOfDistance()const{
   #endif
 }
 
-bool InputData::checkLocusFile(Options *options, LogWriter& Log){
-  bool badData = false;
 
-  #if USE_GENOTYPE_PARSER
-    if ( options == 0 ) {;} // Suppress compiler warning
-  #else
+#if ! USE_GENOTYPE_PARSER
+  bool InputData::checkLocusFile(Options *options, LogWriter& Log){
+    bool badData = false;
+
     const float threshold = getLocusDistanceThreshold(!options->getHapMixModelIndicator());
     const vector<string>& GenotypesFileHeader = genotypeLoader->getHeader();
-  #endif
 
-  // Loop through the rows of the locusfile:
-  const size_t nSLoc = getNumberOfSimpleLoci();
-  for ( unsigned sLocIdx = 0; sLocIdx < nSLoc; ++sLocIdx )
-    {
-
-    #if USE_GENOTYPE_PARSER
-	const SimpleLocus & sLoc      = simpleLoci[ sLocIdx ];
-	const string &	    locusName = sLoc.getName();
-	const string &	    header    = genotypeLoader->getGTypeHeader( sLocIdx );
-    #else
+    // Loop through the rows of the locusfile:
+    const size_t nSLoc = getNumberOfSimpleLoci();
+    for ( unsigned sLocIdx = 0; sLocIdx < nSLoc; ++sLocIdx )
+	{
 	const float    distance  = locusMatrix_.get(sLocIdx,1);
 	const string & locusName = StringConvertor::dequote(locusData_[sLocIdx+1][0]);
 	const int      nAlleles  = locusMatrix_.get(sLocIdx,0);
@@ -218,22 +216,20 @@ bool InputData::checkLocusFile(Options *options, LogWriter& Log){
 	  }
 	}
 
-    #endif
+	// Compare loci names in locus file and genotypes file.
+	if ( locusName != header ) {
+	    Log << On << "ERROR: locus names differ in locus file and genotypes file at index "
+		<< sLocIdx << "\n"
+		"Locus names causing an error are: " << locusName << " and "
+		<< header << '\n';
+	    return false;
+	}
 
-
-    // Compare loci names in locus file and genotypes file.
-    if ( locusName != header ) {
-	Log << On << "ERROR: locus names differ in locus file and genotypes file at index "
-	    << sLocIdx << "\n"
-	    "Locus names causing an error are: " << locusName << " and "
-	    << header << '\n';
-	return false;
-    }
-
-  }//end loop over loci
+    } //end loop over loci
 
   return !badData;
-}
+  }
+#endif // ! USE_GENOTYPE_PARSER
 
 
 #if ! USE_GENOTYPE_PARSER

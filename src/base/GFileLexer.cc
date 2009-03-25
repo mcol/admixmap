@@ -704,12 +704,12 @@ double GFileLexer::lexFloat( const char * fieldName )
 // lexGType()
 //-----------------------------------------------------------------------------
 
-Genotype GFileLexer::lexGType()
+Genotype GFileLexer::lexGType( const char * fieldName )
     {
     Token tok = lexToken();
 
 
-    // Special-cast: single integer is a haploid:
+    // Special-case: single integer is a haploid:
     #if SUPPORT_SINGLE_HAPLOID
 	if ( tok.isType( T_INTEGER ) )
 	    {
@@ -724,9 +724,9 @@ Genotype GFileLexer::lexGType()
 	if ( tok.isType( T_STRING ) )
 	    {
 	    if ( (tok.strVal.size() == 3) &&
-		 isdigit(tok.strVal[0]) &&
-		 (tok.strVal[1] == gtypeDelim) &&
-		 isdigit(tok.strVal[2]) )
+		    isdigit(tok.strVal[0]) &&
+		    (tok.strVal[1] == gtypeDelim) &&
+		    isdigit(tok.strVal[2]) )
 		{
 		tok.type = T_GTYPE;
 		setVals( tok.gtypeVal, tok.strVal[0] - '0', tok.strVal[2] - '0' );
@@ -735,7 +735,7 @@ Genotype GFileLexer::lexGType()
     #endif
 
 
-    assert_type( T_GTYPE, tok );
+    assert_type( T_GTYPE, tok, fieldName );
     return tok.gtypeVal;
     }
 

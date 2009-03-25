@@ -85,20 +85,22 @@ InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
 
 void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
 
-#if ! USE_GENOTYPE_PARSER
-  NumSimpleLoci = getNumberOfSimpleLoci();
-  distanceUnit = DetermineUnitOfDistance();
-  NumCompositeLoci = determineNumberOfCompositeLoci();
-#endif
+  #if ! USE_GENOTYPE_PARSER
+    NumSimpleLoci = getNumberOfSimpleLoci();
+    distanceUnit = DetermineUnitOfDistance();
+    NumCompositeLoci = determineNumberOfCompositeLoci();
+  #endif
 
   Log.setDisplayMode(bclib::Quiet);
- 
-  bool badData = false;
-  if(options->CheckData())
-    badData = !checkLocusFile(options, Log);
 
-  if(badData)
-    exit(1);
+  #if ! USE_GENOTYPE_PARSER
+      bool badData = false;
+      if(options->CheckData())
+	badData = !checkLocusFile(options, Log);
+
+      if(badData)
+	exit(1);
+  #endif
 
   SetLocusLabels();
 

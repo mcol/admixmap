@@ -344,9 +344,13 @@ class GFileLexer
 	/// Throws an exception if the next token is not an integer.
 	long lexInteger ( const char * fieldName = 0 );
 
-	///< Throws an exception if the next token is not a floating-point or integer.
-	double	 lexFloat ( const char * fieldName = 0 );
-	Genotype lexGType (); ///< Throws an exception if the next token is not a genotype
+	/// Throws an exception if the next token is not a floating-point or integer.
+	double lexFloat ( const char * fieldName = 0 );
+
+	/// Throws exception if next token is not a genotype.
+	Genotype lexGType ( const char * fieldName = 0 );
+	/// Convenience version of lexGType(const char *)
+	Genotype lexGType ( const std::string & fieldName ) { return lexGType( fieldName.c_str() ); }
 
 	/// Lex a whole line at a time into a @a vector of @a tokens.  If any
 	/// of the tokens on that line have already been lexed, only the

@@ -66,7 +66,6 @@ class GenotypeParser : public GFileLexer
 
     public:
 
-	typedef std::vector<string>	 HeaderType   ;
 	typedef std::vector<Organism>	 RowsType     ;
 	typedef RowsType::iterator	 RowIter      ;
 	typedef RowsType::const_iterator ConstRowIter ;
@@ -82,7 +81,6 @@ class GenotypeParser : public GFileLexer
 	int	   gtypeOffset	 ; ///< Column index of first genotype
 	bool	   hasSexFlag	 ;
 	bool	   isPedFileFlag ;
-	HeaderType headers	 ;
 	RowsType   rows		 ;
 
 	/// A multi-valued map from family-ID to the members of that family.  In
@@ -104,10 +102,6 @@ class GenotypeParser : public GFileLexer
 	    { pmap.insert( std::multimap<FamIdType,Organism*>::value_type( org.getFamId(), &org ) ); }
 
     public:
-	const HeaderType & getHeaders() const { return headers; }
-	string		   getHeader( int colIdx ) const { return headers.at(colIdx); }
-	string		   getGTypeHeader( SLocIdxType sLocIdx ) const
-				{ return headers.at( gtypeOffset + sLocIdx ); }
 
 	// File-format queries:
 	bool hasSexColumn () const { return hasSexFlag    ; }

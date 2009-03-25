@@ -287,7 +287,8 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	GFileLexer ( fileName ) ,
 	simpleLoci ( sLoci    )
     {
-    Token t;
+    Token		t;
+    std::vector<string> headers;
 
 
     #if STATUS_TO_COUT
@@ -353,6 +354,20 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	else
 	    throwError( estr("incorrect number of columns (") + nCols +
 			    ") for number of loci (" + nLoci + ')' );
+
+
+
+	//------------------------------------------------------------------
+	// Verify that the genotype columns' headers correspond to the
+	// locus-names as read in from the locus file:
+	//------------------------------------------------------------------
+
+	for ( size_t idx = 0 ; idx < nLoci ; ++idx )
+	    if ( headers[ idx + gtypeOffset ] != simpleLoci[ idx ].getName() )
+		warn( estr("genotype column #") + (idx+gtypeOffset) + "'s header ("
+			+ headers[ idx + gtypeOffset ] + ") does not match the "
+			"corresponding locus name (" + simpleLoci[ idx ].getName() +
+			')' );
 
 
 
@@ -441,10 +456,28 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		}
 
 
-	    // Perhaps we should format a nicer error message here, in case
-	    // there are insufficient fields on the line:
 	    for ( size_t i = 0 ; i < nLoci ; ++i )
-		row.gtypes[i] = lexGType();
+		{
+		const SimpleLocus & sLoc = simpleLoci[ i ];
+		const size_t nAlleles = sLoc.getNumAlleles();
+
+		// Perhaps we should format a nicer error message here should
+		// there be insufficient fields on the line:
+		row.gtypes[i] = lexGType( sLoc.getName().c_str() );
+
+		// Alleles are numbered from 1, so we use strict inequality comparison:
+		if ( row.gtypes[i].getVal1(0) > nAlleles )
+		    throwError( estr("genotype-data for organism ") + row.idDesc() +
+			    " in locus " + sLoc.getName() + " first allele value is " +
+			    row.gtypes[i].getVal1() + " which exceeds maximum value of "
+			    + nAlleles );
+
+		if ( row.gtypes[i].getVal2(0) > nAlleles )
+		    throwError( estr("genotype-data for organism ") + row.idDesc() +
+			    " in locus " + sLoc.getName() + " second allele value is " +
+			    row.gtypes[i].getVal2() + " which exceeds maximum value of "
+			    + nAlleles );
+		}
 
 
 	    // That should be the last data on the line:
@@ -475,7 +508,10 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 
 
     #if STATUS_TO_COUT
-	std::cout << "... " << rows.size() << " organisms.\n";
+	std::cout << "... " << rows.size() << " organisms.";
+	if ( getNWarnings() != 0 )
+	    std::cout << "  " << getNWarnings() << " warnings.";
+	std::cout << '\n';
     #endif
 
     #if ! TREAT_GFILES_AS_PEDFILES

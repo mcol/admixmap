@@ -85,25 +85,6 @@ static void thrGenErr( const Organism & org, const string & details, bool & have
     }
 
 
-/// Write an error message to stderr when a genotype has an invalid allele number
-/// Doesn't actually throw anything and has to use cerr as logfile is not available yet
-static void throwGenotypeError(
-		const Organism & org	    ,
-		int		 locus	    ,
-		const string &	 label	    ,
-		const Genotype & gtype	    ,
-		int		 numalleles ,
-		bool &		 haveErr    )
-    {
-    estr details( "at locus ");
-    details << locus << " (" << label << ")"
-	    " has genotype " << gtype.desc() << "\n"
-	    "Number of allelic states at locus = " << numalleles;
-
-    thrGenErr( org, details, haveErr );
-    }
-
-
 
 //-----------------------------------------------------------------------------
 /// Validate the genotype input file for some obvious errors
@@ -166,7 +147,7 @@ void convert( const Organism &		org	  ,
 	      vector<GenotypeArray> &	genotypes ,
 	      bool**			missing	  ) {
 
-    unsigned int simpleLocus  = 0; // Simple locus counter
+    SLocIdxType	 sLocIdx      = 0; // Simple locus counter
     unsigned int compLocusIdx = 0;
     Count numHaploid	= 0;
     Count numDiploid	= 0;
@@ -206,14 +187,7 @@ void convert( const Organism &		org	  ,
 
 	for ( int locus = 0; locus < numLoci; locus++ ) {
 
-	  const int numAlleles = compLocus.GetNumberOfAllelesOfLocus( locus );
-
-	  const GenotypeParser::GType & g = org.getGType( simpleLocus );
-
-	  if ( (! g.isMissing2()) && (g.getVal1() > numAlleles) )
-	      throwGenotypeError( org, simpleLocus, compLocus.GetLabel(0), g, numAlleles, haveErr );
-	  if ( g.isDiploid() && (! g.isMissing1()) && (g.getVal2() > numAlleles) )
-	      throwGenotypeError( org, simpleLocus, compLocus.GetLabel(0), g, numAlleles, haveErr );
+	  const GenotypeParser::GType & g = org.getGType( sLocIdx );
 
 	  if ( isXchrm ) {
 	    if ( g.isHaploid() ) {
@@ -224,8 +198,8 @@ void convert( const Organism &		org	  ,
 		// NOTE: allowing this for backward compatibility, for now
 		// instead remove second element
 		estr msg("at locus-position ");
-		msg << simpleLocus << " ("
-		    << org.getInFile().getGTypeHeader( simpleLocus )
+		msg << sLocIdx << " ("
+		    << org.getInFile().getSLoci()[sLocIdx].getName()
 		    << "): male has diploid X-chromosome genotype";
 		#if MALE_DIPLOID_X_FATAL
 		    thrGenErr( ind, msg, haveErr );
@@ -246,7 +220,7 @@ void convert( const Organism &		org	  ,
 		++numHaploid;
 	    else ++numDiploid;
 	  }
-	  simpleLocus++;
+	  sLocIdx++;
 	  G.push_back(g);
 
 	  // If even a single simple-locus is not missing, the whole
