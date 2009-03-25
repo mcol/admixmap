@@ -60,7 +60,11 @@ class HiddenStateSpace;
 
 //-----------------------------------------------------------------------------
 //
-/// Pedigree class.
+//  PEDIGREE CLASS
+//
+/// A class to represent a pedigree as read in from the pedigree file; the
+/// list of the Organisms in the pedigree, as well as aggregate and probability
+/// information about the pedigree.
 ///
 /// Need more documentation here.
 ///
@@ -74,7 +78,7 @@ class HiddenStateSpace;
 ///
 ///  <TR>
 ///	<TD><B>NOTE *2*</B></TD>
-///	<TD>
+///	<TD STYLE="padding-top: 6pt; padding-bottom: 0pt;">
 ///	We implement an ordering of the Organism within the Pedigree for
 ///	iteration such that no member of a family will be visited prior to both
 ///	of its parents being visited.  This ordering is achieved by assigning
