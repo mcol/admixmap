@@ -42,13 +42,16 @@ namespace genepi { // ----
 
 //-----------------------------------------------------------------------------
 //
-/// GeneticDistance class, capable of representing genetic distance in either
-/// base-pair (basepair, kilobase, megabase) or Morgan (morgan, centimorgan)
-/// units and, within each distance-type, capable of automatically converting
-/// between them.  @sa { GeneticDistanceUnit GeneticDistanceUnit.h }
+// GeneticDistance
+/// Class capable of representing distance on the genome in either base-pair
+/// (basepair, kilobase, megabase) or Morgan (morgan, centimorgan) units and,
+/// within each distance-type, capable of automatically converting between
+/// units.
 ///
-/// Currently is allowing conversions between base-pairs and Morgans: should
-/// this be forbidden?  @see { MB_PER_CM }
+/// @sa GeneticDistanceUnit GeneticDistanceUnit.h
+///
+/// Currently is allowing conversions between base-pairs and Morgans (see
+/// MB_PER_MGN): should this be forbidden?
 //
 //-----------------------------------------------------------------------------
 
