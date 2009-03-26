@@ -27,7 +27,7 @@
 #include "GenotypeParser.h"
 
 
-#define TREAT_GFILES_AS_PEDFILES 1 ///< Should we build Pedigree objects for Genotype files?
+#define TREAT_GFILES_AS_PEDFILES 1 ///< Should we build Pedigree objects for non-ped genotype files?
 #define STATUS_TO_COUT		 1
 
 
@@ -472,7 +472,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 			    row.gtypes[i].getVal1() + " which exceeds maximum value of "
 			    + nAlleles );
 
-		if ( row.gtypes[i].getVal2(0) > nAlleles )
+		if ( row.gtypes[i].isDiploid() && (row.gtypes[i].getVal2(0) > nAlleles) )
 		    throwError( estr("genotype-data for organism ") + row.idDesc() +
 			    " in locus " + sLoc.getName() + " second allele value is " +
 			    row.gtypes[i].getVal2() + " which exceeds maximum value of "
@@ -505,6 +505,10 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	{
 	throwError( err.what() );
 	}
+
+
+    if ( rows.size() == 0 )
+	throwError( "No organisms in genotype/pedigree file" );
 
 
     #if STATUS_TO_COUT
