@@ -49,7 +49,7 @@ fi
 
 # C++ compilers
 #AC_PROG_CXX
-AC_PROG_CXX([icpc icc pathCC g++ pgCC])
+AC_PROG_CXX([icpc icc pathCC g++ pgCC openCC])
 AC_LANG(C++)
 
 #preset optimisation and debug flags
@@ -57,7 +57,7 @@ AC_CXX_FLAGS_PRESET
 dnl TODO: architecture-specific optimisations
 
 # C compiler - because we are using gsl
-AC_PROG_CC
+AC_PROG_CC([gcc opencc])
 
 #check C++ features
 AC_CONFIG_HEADERS(config.h)
