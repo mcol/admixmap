@@ -175,6 +175,9 @@ class Pedigree
 
 
     protected:
+
+	/// The constructor is protected; use generatePedigrees() to create the
+	/// Pedigree objects.
 	Pedigree( const OrganismArray &	      pool   ,
 		  OrganismArray::ConstPedIter firstM ,
 		  OrganismArray::ConstPedIter endM   );
@@ -205,8 +208,11 @@ class Pedigree
 	~Pedigree();
 
 	//---------------------------------------------------------------
-	/// Create Pedigree's from raw genotype data (pedfile)
-	/// The Pedigree objects are created in @a rv (output parameter)
+	/// Create a vector of Pedigree objects from the raw genotype data (as
+	/// read in from a pedfile by GenotypeParser).
+	///
+	/// This is effectively the public "constructor" for Pedigree objects.
+	/// The Pedigree objects are created in @a rv (output parameter).
 	//---------------------------------------------------------------
 	static void generatePedigrees( const OrganismArray &   organisms ,
 				       std::vector<Pedigree> & rv	 );
@@ -236,6 +242,8 @@ class Pedigree
 	size_t getNMembers () const { return nMembers ; }		///< Number of members
 	size_t getNFounders() const { return nFounders; }		///< Number of founders
 	size_t getNNonFndrs() const { return (nMembers - nFounders); }	///< Number of non-founders
+
+	size_t getNFounderGametes() const { return (nFounders << 1); }	///< Number of founder gametes
 
 
 	/// Array-style access: @a mIdx must be between 0 and getNMembers()-1.
@@ -280,7 +288,8 @@ class Pedigree
 
 
 	/// Self-contained structure of states' probabilities, must be created
-	/// using genPossibleStatesInternal() prior to calling.
+	/// using genPossibleStatesInternal() prior to calling.  This should be
+	/// in a separate class.
 	const HiddenStateSpace & getStateProbs( SLocIdxType sLocIdx ) const;
 
 

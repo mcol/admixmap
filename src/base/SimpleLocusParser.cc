@@ -256,7 +256,7 @@ void SimpleLocusParser::parse()
 
 	}
 
-    // Catch and rethrow DataValidError's just so that we can isolate other exceptions below:
+    // Catch and rethrow DataValidError's just so that we can isolate all other exceptions below
     catch ( DataValidError & err )
 	{
 	throw;
@@ -268,6 +268,11 @@ void SimpleLocusParser::parse()
 	{
 	throwError( err.what() );
 	}
+
+
+    if ( loci.size() == 0 )
+	throwError( "No loci in locus-file" );
+
 
     #if STATUS_TO_COUT
 	std::cout << loci.size() << " simple-loci; "

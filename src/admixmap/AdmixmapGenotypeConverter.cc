@@ -46,7 +46,7 @@ using namespace std;
 
 /// Should male with diploid genotype-data on X chromosome issue warning if the
 /// two gametes' alleles are the same?
-#define MALE_DIPLOID_X_WARN_SAME 0
+#define MALE_DIPLOID_X_WARN_HOMO 0
 
 /// Should an individual with no genotypes be a fatal error?
 #define NO_GENOTYPES_FATAL	 0
@@ -197,15 +197,17 @@ void convert( const Organism &		org	  ,
 	      if ( ! org.isFemale() ) { // males cannot have diploid X genotypes
 		// NOTE: allowing this for backward compatibility, for now
 		// instead remove second element
-		estr msg("at locus-position ");
+		const bool heterozygous = g.hasTwoVals() && (g.getVal1() != g.getVal2());
+		estr msg("at locus #");
 		msg << sLocIdx << " ("
 		    << org.getInFile().getSLoci()[sLocIdx].getName()
-		    << "): male has diploid X-chromosome genotype";
+		    << "): male has diploid " << (heterozygous ? "heterozygous " : "")
+		    << "X-chromosome genotype " << g.desc();
 		#if MALE_DIPLOID_X_FATAL
 		    thrGenErr( ind, msg, haveErr );
 		#else
-		    #if ! MALE_DIPLOID_X_WARN_SAME
-		      if ( g.getVal1() != g.getVal2() )
+		    #if ! MALE_DIPLOID_X_WARN_HOMO
+		      if ( heterozygous )
 		    #endif
 			cerr << org.inLineDesc() << ": WARNING: individual " << org.idDesc() <<
 			    ": " << msg << ": forcing to haploid\n";

@@ -24,10 +24,20 @@ unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
 int Individual::NumHiddenStates;
 
+
 //******** Constructors **********
-Individual::Individual(unsigned number) : myNumber(number){
-  missingGenotypes = 0;//allocated later, if needed
-}
+
+Individual::Individual(unsigned number) :
+	myNumber	 ( number ) ,
+	PossibleHapPairs ( 0      ) ,
+	GenotypesMissing ( 0      ) ,
+	missingGenotypes ( 0      ) , // allocated later, if needed
+	LocusAncestry    ( 0      )
+    {
+    }
+
+
+
 // Individual::Individual(int number, const Options* const options, const InputData* const Data) {
 //   missingGenotypes = 0;//allocated later, if needed
 //   Initialise(number, options, Data);
