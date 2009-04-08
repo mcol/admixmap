@@ -546,6 +546,7 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   scoretest.final.table <- as.matrix(read.table(paste(resultsdir,final.filename ,sep="/"), header=T, colClasses=c("character", "character", rep("numeric", 8)))[,-c(1:2)])
   ##reformat as 3-way array: population, locus, statistic
   scoretest.final <- array(scoretest.final.table, dim=c(KK, L, 8), dimnames=list(poplabels, locusnames, dimnames(scoretest.final.table)[[2]]))
+  #cat(dim(scoretest.final))
   rm(scoretest.final.table)
   
   ##plot z-scores across genome
@@ -582,7 +583,9 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   }
   dev.off()
   ## write tables combined with locus table
-  for(pop in 1:K) {
+  Kpops <- K
+  if(Kpops==2) Kpops <- 1
+  for(pop in 1:Kpops) {
     scoresbychr <- data.frame(loci.compound, scoretest.final[pop, , ])
     write.table(scoresbychr,
                 file=paste(resultsdir, "/", testname, population.labels[pop], ".txt", sep=""),
