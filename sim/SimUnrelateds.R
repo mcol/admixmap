@@ -78,7 +78,9 @@ simulateGenotypes <- function(sex, M1, M2, rho, x, L, Xchr.L, alleleFreqs) {
   paternalGamete <- simulateHaploidAlleles(M1,rho, x, L+Xchr.L, alleleFreqs)
   diploidAlleles <- paste(paternalGamete, maternalGamete, sep=",")
   if(Xchr.L > 0 & sex==1) { ## haploid at X chr loci - code as homozygous for maternal allele
-    diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("([12]),([12])", "\\1,\\1", diploidAlleles[(L+1):(L+Xchr.L)])
+    diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("([12]),([12])", "\\2,\\2", diploidAlleles[(L+1):(L+Xchr.L)])
+    ## or code as haploid with maternal gamete only
+    ## diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("([12]),([12])", "\\2", diploidAlleles[(L+1):(L+Xchr.L)])
   }
   return(diploidAlleles)
 }
@@ -149,7 +151,7 @@ eta <- 5 # allele freq dispersion parameter #10 is upper limit with 200 obs and 
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(2, 6) # population admixture params for pop1, pop2
 
-## simulate allele freqs
+## simulate allelefreqs
 mu <- numeric(L+Xchr.L) # ancestral freqs allele 1
 alleleFreqs <- matrix(data=NA, nrow=2*(L+Xchr.L), ncol=NumSubPops)
 for(locus in 1:(L+Xchr.L)) {
@@ -163,8 +165,8 @@ for(locus in 1:(L+Xchr.L)) {
 ## use 0, 1, and 1, 0 to make all markers informative
 ## use 0.5, 0.5 and 0.5, 0.5 to make all markers uninformative
 
-alleleFreqs[,1] <- c(0.8, 0.2)
-alleleFreqs[,2] <- c(0.2, 0.8)
+alleleFreqs[,1] <- c(1, 0)
+alleleFreqs[,2] <- c(0, 1)
 
 ##############################################################
 popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
@@ -172,7 +174,7 @@ beta <- 2 # regression slope for effect of admixture
 alpha <- -beta*popM 
 logistic <- TRUE # logistic or linear
 
-N.ind <- 200
+N.ind <- 100
 N.sibpairs <- 0
 
 ####################################################################
@@ -187,7 +189,8 @@ ped6.sibpair[, 1] <- N.ind + rep(1:N.sibpairs, each=4) # 4 members of each pedig
 ped6.sibpair[, 2] <- seq((N.ind+1):N)
 
 ## simulate unrelated individuals
-sex.ind <- 2 - rbinom(N.ind, 1,  0.5)
+## all female
+sex.ind <- rep(2, N.ind) # 2 - rbinom(N.ind, 1,  0.5)
 ## simulate genotypes 
 genotypes.ind <- matrix(data="0,0", nrow=N.ind, ncol=L+Xchr.L)
 outcome.ind <- integer(N.ind)
@@ -227,8 +230,9 @@ if(N.sibpairs > 0) {
   genotypes <- data.frame(genotypes.ind)
 }
 
-locusnames <- dimnames(genotypes)[[2]]
-
+locusnames <- paste("c", chr, seq(1:(L+Xchr.L)), sep=".")
+dimnames(genotypes)[[2]] <- locusnames
+         
 ped6.sibpair[, 6] <- 2 ## affected sib-pairs
 
 ped6 <- rbind(ped6.ind, ped6.sibpair)
@@ -277,7 +281,6 @@ for(locus in 1:(L+Xchr.L)) {
 
 priorallelefreqs <- as.data.frame(0.5+array(as.vector(aperm(alleleCounts, c(3,1,2))),
                                             dim=c((L+Xchr.L)*2,2)))
-locusnames <- paste("X", seq(1:(L+Xchr.L)), sep="")
 priorallelefreqs <- data.frame(locusnames, priorallelefreqs)
 write.table(priorallelefreqs, file="data/priorallelefreqs.txt", row.names=FALSE, sep="\t",
             quote=FALSE)
