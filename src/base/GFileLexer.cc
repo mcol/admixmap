@@ -205,6 +205,21 @@ char GFileLexer::getchar()
 	{
 	if ( ! istr.get( rv ) )
 	    rv = EOF_MARKER;
+	else
+	    {
+	    // Get a new character from the input stream, translating CR-LF into
+	    // a single LF:
+	    if ( rv == '\r' )
+		{
+		if ( ! istr.get( rv ) )
+		    rv = EOF_MARKER;
+		if ( rv != '\n' )
+		    {
+		    pushback( rv );
+		    rv = '\r';
+		    }
+		}
+	    }
 	}
     else
 	{
@@ -780,7 +795,7 @@ GFileLexer::GFileLexer( const char * fn ) :
     {
     if ( istr.bad() || (! istr.is_open()) )
 	{
-	string msg( "construct ifstream(\"" );
+	string msg( "opening file(\"" );
 	msg += fn;
 	msg += "\")";
 	throwSysErr( msg.c_str() );

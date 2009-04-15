@@ -181,14 +181,15 @@ void GenotypeParser::buildAndCheckPedGraphs()
 
 	    if ( ! father->sexKnown() )
 		{
-		std::cerr << row.inLineDesc() << ": WARNING: father at " << father->inLineDesc()
-			<< " sex was previously unknown: marking as male";
+		std::cerr << row.inLineDesc() << ' ' << row.idDesc()
+		    << ": WARNING: father at "
+		    << father->inLineDesc() << ' ' << father->idDesc()
+		    << " sex was previously unknown: marking as male.\n";
 		row.father->sex = Organism::SEX_MALE;
 		}
 	    else if ( father->isFemale() )
-		row.throwError( estr("father of ") + row.idDesc() +
-			    " (" + father->getOrgId() +
-			    ") at " + father->inLineDesc() + " is female" );
+		row.throwError( row.idDesc() + "'s father (org:" + father->getOrgId()
+				+ ") at " + father->inLineDesc() + " is female." );
 	    }
 
 	if ( row.getMotherId() == MISSING_PARENT_ID )
@@ -207,15 +208,18 @@ void GenotypeParser::buildAndCheckPedGraphs()
 
 	    if ( ! mother->sexKnown() )
 		{
-		std::cerr << row.inLineDesc() << ": WARNING: mother at " << mother->inLineDesc()
-		    << " sex was previously unknown: marking as female";
+		std::cerr << row.inLineDesc() << ' ' << row.idDesc()
+		    << ": WARNING: mother at "
+		    << mother->inLineDesc() << ' ' << mother->idDesc()
+		    << " sex was previously unknown: marking as female.\n";
 		row.mother->sex = Organism::SEX_FEMALE;
 		}
 	    else if ( mother->isMale() )
-		row.throwError( row.idDesc() + "'s mother " + mother->getOrgId()
-				+ " at " + mother->inLineDesc() + " is male" );
+		row.throwError( row.idDesc() + "'s mother (org:" + mother->getOrgId()
+				+ ") at " + mother->inLineDesc() + " is male." );
 	    }
 	}
+
 
 
     //------------------------------------------------------------------
