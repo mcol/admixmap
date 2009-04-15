@@ -1050,9 +1050,14 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
       //Update affecteds only scores      
       if(IamAffected){
 	// argument diploid is true if (not isHaploid) and (female or not X chr)
-	affectedsOnlyTest.Update(locus, k0, Theta, options.isRandomMatingModel(), 
-				 !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
-
+        // if random mating model and X chr in male, should pass Theta+NumHiddenStates (maternal gamete admixture) as Theta
+	if(options.isRandomMatingModel() && !SexIsFemale && (Loci->GetChrNumOfLocus(locus) == X_posn)) {
+ 	  affectedsOnlyTest.Update(locus, k0, Theta+NumHiddenStates, options.isRandomMatingModel(), 
+				   !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
+	} else { // just pass Theta
+	  affectedsOnlyTest.Update(locus, k0, Theta, options.isRandomMatingModel(), 
+				   !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
+	}
       }
       
       //update ancestry score tests

@@ -131,16 +131,21 @@ void AffectedsOnlyTest::OutputAffectedsOnlyTest(bclib::DelimitedFileWriter& outf
 void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const Theta, 
 			       bool RandomMatingModel, bool diploid, 
 			       const vector<vector<double> > AProbs){
+  // k0 should be passed as 1 if K==1 
   // values of ancestry risk ratio at which likelihood ratio is evaluated
   double r1 = 0.5;
   double r2 = 2.0;//hard-coding these for now, can make them vary later
   if( diploid ) { // diploid case
     double theta[2];//paternal and maternal admixture proportions
     double Pi[3];//probs of 0,1,2 copies of Pop k given admixture
-    for( unsigned k = 0; k < K; k++ ){
+    for( unsigned k = 0; k < K; k++ ){ //if K==1, only k=0 will be evaluated
       theta[0] = Theta[ k+k0 ];
       if( RandomMatingModel )
-	theta[1] = Theta[ K + k+k0 ];
+	if( K==1 ) {  // we want theta[1] to be set to Theta[3]
+	  theta[1] = Theta[ 2 + k+k0 ];
+	} else {
+	  theta[1] = Theta[ K + k+k0 ];
+	}
       else
 	theta[1] = theta[0];
       
@@ -161,10 +166,11 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
 	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
     }
   } else { // haploid - effect of one extra copy from pop k0 is equivalent to two extra copies in diploid case
-    double theta;//paternal and maternal admixture proportions
+    double theta;//gamete admixture proportions
+    // should call with maternal admixture proportions if random mating and X chr in male
     double Pi[2];//probs of 0,1 copies of Pop k given admixture
     for( unsigned k = 0; k < K; k++ ){
-      theta = Theta[ k+k0 ]; // or should it be just k+k0?
+      theta = Theta[ k+k0 ]; 
       
       //accumulate score, score variance, and info
       AffectedsScore[locus *K + k] += AProbs[1][k+k0] - theta;
