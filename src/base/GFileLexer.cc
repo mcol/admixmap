@@ -20,6 +20,7 @@
 
 //=============================================================================
 /// \file GFileLexer.cc
+/// Implementation of the GFileLexer class.
 //=============================================================================
 
 
@@ -33,9 +34,16 @@
 
 
 #define SUPPORT_QUOTED_GENOTYPE		1
+#define SUPPORT_QUOTED_INTEGER		1
 #define SUPPORT_SINGLE_HAPLOID		1
 #define ACCEPT_INT_AS_STRING		1
 #define ALLOW_EXPLICIT_MISSING_VALS	1
+
+
+#if SUPPORT_QUOTED_INTEGER
+    #include <cstdlib>	// strtol()
+    #include <cerrno>
+#endif
 
 
 static const char ESCAPE_CHAR	= '\\'	;
@@ -691,6 +699,40 @@ string GFileLexer::lexString()
 long GFileLexer::lexInteger( const char * fieldName )
     {
     const Token & tok = lexToken();
+
+    // Inexplicably, we allow this:
+    #if SUPPORT_QUOTED_INTEGER
+	if ( tok.isType( T_STRING ) )
+	    {
+	    char * endPtr;
+	    errno = 0;
+	    const char * tPtr = tok.strVal.c_str();
+
+	    // Skip leading whitespace:
+	    while ( isspace(*tPtr) )
+		++tPtr;
+
+	    const long val = strtol( tok.strVal.c_str(), &endPtr, 10 );
+	    if ( errno == ERANGE )
+		{
+		if ( val == LONG_MAX )
+		    throwError( tok.strVal + ": integer overflow (too large)" );
+		if ( val == LONG_MIN )
+		    throwError( tok.strVal + ": integer underflow (too large negative)" );
+		gp_assert( false ); // WTF, undocumented here
+		}
+	    gp_assert_eq( errno, 0 );
+
+	    // Skip trailing whitespace:
+	    while ( (endPtr != 0) && isspace(*endPtr) )
+		++endPtr;
+
+	    if ( (endPtr != 0) &&    // no digits at all
+		 (*endPtr == '\0') ) // had trailing non-digits
+		return val;
+	    }
+    #endif
+
     assert_type( T_INTEGER, tok, fieldName );
     return tok.intVal;
     }
