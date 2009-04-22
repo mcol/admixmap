@@ -4,6 +4,10 @@ SUFFIXES=.cc .o
 #AM_CXXFLAGS=$(WFLAGS) -Wextra -DAGGRESSIVE_RANGE_CHECK=$(AGGRESSIVE_RANGE_CHECK)
 AM_CXXFLAGS=$(WFLAGS) -Wextra
 
+if USE_OPENMP
+    AM_CXXFLAGS+=-fopenmp
+endif
+
 
 # This was needed in AM_CXXFLAGS when using reinterpret_cast<> for punning
 # parent-IDs (rather than union):

@@ -3,7 +3,8 @@ AC_DEFUN([AC_ENABLE_PARALLEL],
 [
 AC_MSG_CHECKING([whether to build the parallel version])
 AC_ARG_ENABLE(parallel, 
-AS_HELP_STRING([--enable-parallel],[build the parallel version]),
+AS_HELP_STRING([--enable-parallel],[Build the parallel (distributed-memory/OpenMPI) version.
+Contrast with --enable-openmp which adds shared-memory parallelism.]),
 [if test "$enableval" = yes; then
 	AC_MSG_RESULT([yes])
 	enable_parallel="yes"

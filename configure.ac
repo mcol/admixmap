@@ -22,7 +22,7 @@ Configuring $PACKAGE_STRING for $target
 ])
 
 
-dnl --enable-old-parser which is used to set or clear USE_GENOTYPE_PARSER
+# --enable-old-parser which is used to set or clear USE_GENOTYPE_PARSER
 AC_ARG_ENABLE(old-parser,
 	[  --enable-old-parser     don't use the new GFileLexer/SimpleLocusParser/GenotypeParser
 			  classes to parse input files (required for pedfiles)])
@@ -36,7 +36,7 @@ else
 fi
 
 
-dnl --disable-range-check which is used to set or clear AGGRESSIVE_RANGE_CHECK
+# --disable-range-check which is used to set or clear AGGRESSIVE_RANGE_CHECK
 AC_ARG_ENABLE(range-check,
 	[  --disable-range-check   turn off internal range-checking of array indices
 			  this is only necessary for extreme optimization])
@@ -75,6 +75,14 @@ AC_CHECK_HEADERS([boost.h])
 
 #check if script called with --enable-parallel and if so set parallel flags
 AC_ENABLE_PARALLEL
+
+# --enable-openmp
+AC_ARG_ENABLE(openmp,
+AS_HELP_STRING([--enable-openmp],[Use OpenMP to parallelize computations across
+multiple shared-memory processors.  Contrast with --enable-parallel which uses
+OpenMPI to parallelize across multiple distributed-memory nodes.]))
+AM_CONDITIONAL(USE_OPENMP,test "$enable_openmp" = yes)
+
 
 # Check if the script was called with --enable-optimize,
 # --enable-debug or --enable-profile, and if so modify the compilation flags.
