@@ -79,8 +79,6 @@ private:
   double loglikhat;///< loglikelihood at posterior mode
   double *SumSoftmaxTheta;
   double *ThetaProposal;// proposal admixture proportions
-  static double* ThetaThetaPrime;///< for diploid HMM updates
-  static double* ThetaThetaInv;///< for diploid HMM updates
   int *SumLocusAncestry, *SumLocusAncestry_X;
   std::vector<unsigned> SumNumArrivals;
   std::vector< double > rhohat;

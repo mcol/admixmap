@@ -27,9 +27,6 @@
 
 using bclib::Rand;
 
-double* AdmixedIndividual::ThetaThetaPrime = 0;
-double* AdmixedIndividual::ThetaThetaInv = 0;
-//TODO: delete these arrays at program exit
 
 //******** Constructors **********
 // AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
@@ -224,12 +221,8 @@ AdmixedIndividual::~AdmixedIndividual() {
 
 void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const Options* const options){
   Individual::SetStaticMembers(pLoci, options);
-
-  ThetaThetaPrime = new double[NumHiddenStates * NumHiddenStates];
-  //if()
-  // TODO: allocate only if required ie if either of the 2 ancestry tests 
-    ThetaThetaInv = new double[NumHiddenStates * NumHiddenStates];
 }
+
 // draw initial values for admixture proportions theta from Dirichlet prior 
 void AdmixedIndividual::drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha) {
   size_t K = NumHiddenStates;
