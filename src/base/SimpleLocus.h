@@ -40,7 +40,6 @@
 namespace genepi { // ----
 
 
-
 /** \addtogroup base
  * @{ */
 
@@ -84,12 +83,13 @@ class SimpleLocus
 	    bool startsNewChromosome() const { return distance.isNewChromosome(); }
 	    void makeStartsNewChromosome() { distance.makeNewChromosome(); }
 	#endif
+
+	std::string getDesc() const { return name + '(' + getChromLabel() + ')'; }
     };
 
 
 
 } // ---- end namespace genepi
-
 
 
 /** @} */
