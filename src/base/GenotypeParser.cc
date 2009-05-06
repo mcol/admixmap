@@ -340,7 +340,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 
 	    // Report an error if have data for X chromosomes and no sex supplied:
 	    for ( SimpleLocusArray::ConstIter it = simpleLoci.begin(); it != simpleLoci.end(); ++it )
-		if ( it.isXChrom() )
+		if ( it->isXChrom() )
 		    {
 		    warn( "no-sex file-format yet locus-file contains loci for X chromosome." );
 		    break;
