@@ -500,6 +500,11 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		}
 
 
+	    if ( hasSexColumn() && (row.sex == Organism::SEX_UNKNOWN) && row.isGenotyped() )
+		warn( estr("sex is missing for ") + row.idDesc()
+			+ " yet locus-file contains loci for X chromosome." );
+
+
 	    // That should be the last data on the line:
 	    if ( ! lexToken().isType( T_EOL ) )
 		throwError( "spurious garbage at end of line (i.e. too many fields)" );
