@@ -39,6 +39,10 @@ namespace genepi { // ----
 
 
 
+const size_t InheritanceVector::MAX_ORGANISMS;
+
+
+
 #if (! IV_KEEP_PED_REF) && IV_PEDIGREE_FORWARD
 
     InheritanceVector::InheritanceVector( const Pedigree & p ) :
@@ -87,8 +91,8 @@ namespace genepi { // ----
 	{
 	os << "IV(";
 
-	if ( iv.getNSibs() == 0 )
-	    os << "-no-sibs-)";
+	if ( iv.getNNonFndrs() == 0 )
+	    os << "-no-child-)";
 	else
 	    {
 	    const size_t limit = iv.getNMembers() - 1;

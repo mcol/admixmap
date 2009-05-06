@@ -27,7 +27,6 @@
 #define __base_InheritanceVector_h
 
 
-
 #include <bitset>
 
 #include "exceptions.h"
@@ -120,7 +119,9 @@ class InheritanceVector
 		SegInd mBit : 8;
 
 	    protected:
-		Bits( unsigned int x ) : pBit( (x & 1) != 0 ), mBit( (x & 2) != 0 ) {}
+		Bits( unsigned int x ) :
+			pBit( SegInd((x & 1) != 0) ) ,
+			mBit( SegInd((x & 2) != 0) ) {}
 
 	    public:
 		Bits( SegInd p, SegInd m ) : pBit(p), mBit(m) {}
@@ -161,7 +162,7 @@ class InheritanceVector
 	    size_t getNMembers () const { return nMembers ; }
 	#endif
 
-	size_t getNSibs() const { return (getNMembers() - getNFounders()); }
+	size_t getNNonFndrs() const { return (getNMembers() - getNFounders()); }
 
 	#if IV_KEEP_PED_REF
 	    InheritanceVector( const Pedigree & p ) :
@@ -185,7 +186,7 @@ class InheritanceVector
 		    nMembers ( rhs.nMembers  ) ,
 		    bits     ( rhs.bits	     )
 		{
-		gp_assert_lt( getNSibs(), MAX_ORGANISMS );
+		gp_assert_lt( getNNonFndrs(), MAX_ORGANISMS );
 		}
 
 	    InheritanceVector & operator=( const InheritanceVector & rhs )
@@ -252,6 +253,7 @@ class InheritanceVector
 
 
 	// Access as unsigned long: use with caution:
+	size_t n_meiosis() const { return (getNNonFndrs() << 1); }
 	unsigned long to_ulong() const { return bits.to_ulong(); }
 	void set_ulong( unsigned long nv ) { bits = nv; }
     };
@@ -264,7 +266,7 @@ class InheritanceVector
 	    nFounders( p.getNFounders() ) ,
 	    nMembers ( p.getNMembers () )
 	{
-	gp_assert_le( p.getNSibs(), MAX_ORGANISMS );
+	gp_assert_le( p.getNNonFndrs(), MAX_ORGANISMS );
 	}
 
 #endif
