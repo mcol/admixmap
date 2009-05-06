@@ -61,6 +61,7 @@ Organism::Organism( const Organism & rhs ) :
 	orgId	( rhs.orgId	) ,
 	sex	( rhs.sex	) ,
 	outcome ( rhs.outcome	) ,
+	gtypedFlg(rhs.gtypedFlg ) ,
 	father	( rhs.father	) ,
 	mother	( rhs.mother	) ,
 	depth	( rhs.depth	) ,
@@ -68,11 +69,16 @@ Organism::Organism( const Organism & rhs ) :
     {
     const SLocIdxType nLoci = inFile.getNSimpleLoci();
     gp_assert( nLoci != 0 );
-    gtypes = new Genotype[ nLoci ];
 
-    // NB: This will not be safe if Genotype ever has a constructor (see NOTE *3*
-    // in Genotype.h)
-    memcpy( gtypes, rhs.gtypes, nLoci * sizeof(*gtypes) );
+    if ( rhs.isGenotyped() )
+	{
+	gtypes = new Genotype[ nLoci ];
+	// NB: This will not be safe if Genotype ever has a constructor (see
+	// NOTE *3* in GFileLexer.h)
+	memcpy( gtypes, rhs.gtypes, nLoci * sizeof(*gtypes) );
+	}
+    else
+	gtypes = 0;
     }
 
 
@@ -92,13 +98,14 @@ Organism::~Organism()
 
 Organism & Organism::operator=( const Organism & rhs )
     {
-    famId   = rhs.famId	  ;
-    orgId   = rhs.orgId	  ;
-    father  = rhs.father  ;
-    mother  = rhs.mother  ;
-    depth   = rhs.depth   ;
-    sex     = rhs.sex     ;
-    outcome = rhs.outcome ;
+    famId	= rhs.famId	;
+    orgId	= rhs.orgId	;
+    father	= rhs.father	;
+    mother	= rhs.mother	;
+    depth	= rhs.depth	;
+    sex		= rhs.sex	;
+    outcome	= rhs.outcome	;
+    gtypedFlg	= rhs.gtypedFlg ;
 
     // We can't copy a reference, so we assert that they already refer to the
     // same object.  This violates encapsulation and effectively requires that
@@ -108,11 +115,15 @@ Organism & Organism::operator=( const Organism & rhs )
     const SLocIdxType nLoci = inFile.getNSimpleLoci();
     gp_assert( nLoci != 0 );
 
-    gtypes = new Genotype[ nLoci ];
-
-    // NB: This will not be safe if Genotype ever has a constructor (see NOTE
-    // *3* in GFileLexer.h)
-    memcpy( gtypes, rhs.gtypes, nLoci * sizeof(*gtypes) );
+    if ( rhs.isGenotyped() )
+	{
+	gtypes = new Genotype[ nLoci ];
+	// NB: This will not be safe if Genotype ever has a constructor (see
+	// NOTE *3* in GFileLexer.h)
+	memcpy( gtypes, rhs.gtypes, nLoci * sizeof(*gtypes) );
+	}
+    else
+	gtypes = 0;
 
     return *this;
     }
@@ -141,7 +152,7 @@ const Genotype & Organism::getGType( SLocIdxType sLocIdx ) const
 	throw std::invalid_argument( estr("Genotype index ") + sLocIdx +
 			" exceeds number of loci (" + getNSimpleLoci() + ')' );
 
-    return gtypes[ sLocIdx ];
+    return isGenotyped() ? gtypes[ sLocIdx ] : Genotype::missingGType();
     }
 
 

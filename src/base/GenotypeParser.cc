@@ -90,7 +90,8 @@ static void traverse( const Organism & org, std::set<const Organism *> & connect
     connected.insert( &org );
 
 
-    // Traverse the children (depth-first), inserting into the connected set:
+    // Recursively traverse the children (depth-first), inserting each into the
+    // connected set if not already there:
     const Organism::ChConstIter limit = org.childrenEnd();
     for ( Organism::ChConstIter iter = org.childrenBegin() ; iter != limit ; ++iter )
 	traverse( **iter, connected );
@@ -336,6 +337,14 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	    #if STATUS_TO_COUT
 		std::cout << "format: no-sex genotype file";
 	    #endif
+
+	    // Report an error if have data for X chromosomes and no sex supplied:
+	    for ( SimpleLocusArray::ConstIter it = simpleLoci.begin(); it != simpleLoci.end(); ++it )
+		if ( it.isXChrom() )
+		    {
+		    warn( "no-sex file-format yet locus-file contains loci for X chromosome." );
+		    break;
+		    }
 	    }
 	else if ( nCols == (nLoci + 2) )
 	    {
@@ -367,7 +376,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	//------------------------------------------------------------------
 
 	for ( size_t idx = 0 ; idx < nLoci ; ++idx )
-	    if ( headers[ idx + gtypeOffset ] != simpleLoci[ idx ].getName() )
+	    if ( ! equalsCaseInsens( headers[ idx + gtypeOffset ], simpleLoci[ idx ].getName() ) )
 		warn( estr("genotype column #") + (idx+gtypeOffset) + "'s header ("
 			+ headers[ idx + gtypeOffset ] + ") does not match the "
 			"corresponding locus name (" + simpleLoci[ idx ].getName() +
@@ -420,8 +429,8 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	    if ( isPedFile() )
 		{
 		// Maybe just pass in the headers from the header-line as field names:
-		row.famId = lexString();
-		row.orgId = lexInteger( "pedigree-member-ID" );
+		row.famId = lexString(); // "pedigree-ID"
+		row.orgId = lexInteger( "organism-ID" );
 
 		// For the first pass (reading in the file), we store the father/mother
 		// IDs in the place of the pointers (punning); a second pass
@@ -438,7 +447,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 
 		row.sex = sexFromInt( lexInteger( "sex" ) );
 
-		row.outcome = lexInteger();
+		row.outcome = lexInteger( "affected-status" );
 		}
 	    else
 		{
@@ -451,7 +460,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		// duplicates are found:
 		const Organism * const dup = findByIdIfExists( row.famId, row.orgId );
 		if ( dup != 0 )
-		    warn( estr("organism-ID ") << row.famId << " is duplicated on line #" << dup->getLineNum() );
+		    warn( estr("organism-ID ") + row.famId + " is duplicated on line #" + dup->getLineNum() );
 
 		if ( hasSexColumn() )
 		    row.sex = sexFromInt( lexInteger( "sex" ) );
@@ -460,27 +469,34 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		}
 
 
+	    row.gtypedFlg = false;
+
 	    for ( size_t i = 0 ; i < nLoci ; ++i )
 		{
 		const SimpleLocus & sLoc = simpleLoci[ i ];
 		const size_t nAlleles = sLoc.getNumAlleles();
 
+		Genotype & gtype = row.gtypes[i];
+
 		// Perhaps we should format a nicer error message here should
 		// there be insufficient fields on the line:
-		row.gtypes[i] = lexGType( sLoc.getName().c_str() );
+		gtype = lexGType( sLoc.getName().c_str() );
 
 		// Alleles are numbered from 1, so we use strict inequality comparison:
-		if ( row.gtypes[i].getVal1(0) > nAlleles )
+		if ( gtype.getVal1(0) > nAlleles )
 		    throwError( estr("genotype-data for organism ") + row.idDesc() +
 			    " in locus " + sLoc.getName() + " first allele value is " +
-			    row.gtypes[i].getVal1() + " which exceeds maximum value of "
+			    gtype.getVal1() + " which exceeds maximum value of "
 			    + nAlleles );
 
-		if ( row.gtypes[i].isDiploid() && (row.gtypes[i].getVal2(0) > nAlleles) )
+		if ( gtype.isDiploid() && (gtype.getVal2(0) > nAlleles) )
 		    throwError( estr("genotype-data for organism ") + row.idDesc() +
 			    " in locus " + sLoc.getName() + " second allele value is " +
-			    row.gtypes[i].getVal2() + " which exceeds maximum value of "
+			    gtype.getVal2() + " which exceeds maximum value of "
 			    + nAlleles );
+
+		if ( ! gtype.isMissing2() )
+		    row.gtypedFlg = true;
 		}
 
 

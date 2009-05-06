@@ -55,7 +55,7 @@ typedef size_t	     PopIdx    ;
 //
 /// Class to hold an organism (that is, one row in a genotype or pedigree input file).
 ///
-/// Organisms read in from a pedigree file contain a family ID (getFamId()) and
+/// Organisms which were read in from a pedigree file contain a family ID (getFamId()) and
 /// an organism ID; the pair uniquely identifies an individual in the file,
 /// i.e. the organism ID is only unique within the pedigree.
 ///
@@ -85,7 +85,7 @@ typedef size_t	     PopIdx    ;
 ///	that it avoids the need to replicate the father and mother pointers in
 ///	the pedigree's external data structure (ordered list), but we still can
 ///	easily follow a parent-pointer and then find the resulting index in the
-///	sorted-list, as well as any "parallel" arrays that share the same
+///	sorted-list, as well as any "parallel arrays" that share the same
 ///	indexing.
 ///	</TD>
 ///  </TR>
@@ -128,14 +128,16 @@ class Organism
     private:
 
 	/// Input file row number, for formatting error messages
-	int lineNum;
+	int	   lineNum  ;
 
-	FamIdType	 famId	 ;
-	OrgIdType	 orgId	 ;
+	FamIdType  famId    ;
+	OrgIdType  orgId    ;
 
-	SexType		 sex	 ;
-	int		 outcome ;
-	Genotype *	 gtypes	 ;
+	SexType	   sex	    ;
+	int	   outcome  ;
+	Genotype * gtypes   ;
+	bool	   gtypedFlg;
+
 
 	// If we allow alphanumeric organism-IDs, and store as
 	// std::string's (POD type), we cannot put them in a union with
@@ -219,6 +221,12 @@ class Organism
 	ChConstIter childrenBegin() const { return children.begin(); }
 	ChConstIter childrenEnd	 () const { return children.end	 (); }
 
+
+	/// Are all of the genotypes missing or do we have data for this
+	/// individual: this can be inferred from the genotype data, or cached
+	/// for the organism.
+	bool isGenotyped() const { return gtypedFlg; }
+	bool isMissing() const { return ! isGenotyped(); }
 
 	const GenotypeParser & getInFile() const { return inFile; }
 

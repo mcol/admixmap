@@ -114,13 +114,19 @@ class Genotype
 	/// Create a human-readable representation of the value
 	estr desc() const;
 
-	/// This somewhat ugly hack was created especially for the
+	/// These somewhat ugly hacks were created especially for the
 	/// male-has-diploid-X-chromosome backwards-compatability hack
 	/// in AdmixmapGenotypeConverter.cc
 	void forceHaploid() const
 	    {
 	    const_cast<Genotype*>(this)->val2 = HAPLOID_VAL;
 	    }
+	void forceMissing() const
+	    {
+	    const_cast<Genotype*>(this)->val1 = MISSING_VAL;
+	    const_cast<Genotype*>(this)->val2 = MISSING_VAL;
+	    }
+
 
 	void setVals( AlleleType a1, AlleleType a2 )
 	    {
@@ -142,6 +148,9 @@ class Genotype
 	    Genotype() {}
 	    Genotype( AlleleType a1, AlleleType a2 ) : val1(a1), val2(a2) {}
 	#endif
+
+	/// Get a reference to a single static missing genotype object.
+	static const Genotype & missingGType();
 
     } __attribute__ ((packed));
 

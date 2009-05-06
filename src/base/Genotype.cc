@@ -32,6 +32,15 @@ namespace genepi { // ----
 
 
 //-----------------------------------------------------------------------------
+// Static data members:
+//-----------------------------------------------------------------------------
+
+const Genotype::AlleleType Genotype::HAPLOID_VAL;
+const Genotype::AlleleType Genotype::MISSING_VAL;
+
+
+
+//-----------------------------------------------------------------------------
 // desc()
 //-----------------------------------------------------------------------------
 
@@ -52,6 +61,19 @@ estr Genotype::desc() const
 	    rv += val2;
 	}
 
+    return rv;
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// missingGType() [static]
+//-----------------------------------------------------------------------------
+
+const Genotype & Genotype::missingGType()
+    {
+    static Genotype rv;
+    rv.forceMissing(); // No constructor, this sucks!
     return rv;
     }
 
