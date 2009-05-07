@@ -387,31 +387,31 @@ double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options& option
     vector<double> rhobar;
 
     //getPosteriorMeans(ThetaBar, rhobar, options->getTotalSamples() - options->getBurnIn());
-  unsigned size = NumHiddenStates * NumGametes;
-  for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (double) (options.getTotalSamples() - options.getBurnIn());
+    unsigned size = NumHiddenStates * NumGametes;
+    for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (double) (options.getTotalSamples() - options.getBurnIn());
 
-  for(unsigned i = 0; i < sumlogrho.size(); ++i)
-    rhobar.push_back( exp(sumlogrho[i]/(double)(options.getTotalSamples() - options.getBurnIn())) );
+    for(unsigned i = 0; i < sumlogrho.size(); ++i)
+      rhobar.push_back( exp(sumlogrho[i]/(double)(options.getTotalSamples() - options.getBurnIn())) );
 
-  //apply softmax transformation to obtain thetabar
-  bool* b = new bool[NumHiddenStates];
-  for( unsigned int g = 0; g < NumGametes; g++ ){
-    for(int k = 0; k < NumHiddenStates; ++k)
-      if(Theta[g*NumHiddenStates + k] > 0.0){
-	b[k] = true; //to skip elements set to zero
-      } else b[k] = false;
-    bclib::softmax(NumHiddenStates, ThetaBar+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
-    //rescale sumsoftmaxtheta back
-    for(int k = 0; k < NumHiddenStates; ++k)
-      SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) (options.getTotalSamples() - options.getBurnIn());
-  }
-  delete[] b;
+    //apply softmax transformation to obtain thetabar
+    bool* b = new bool[NumHiddenStates];
+    for( unsigned int g = 0; g < NumGametes; g++ ){
+      for(int k = 0; k < NumHiddenStates; ++k)
+	if(Theta[g*NumHiddenStates + k] > 0.0){
+	  b[k] = true; //to skip elements set to zero
+	} else b[k] = false;
+      bclib::softmax(NumHiddenStates, ThetaBar+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
+      //rescale sumsoftmaxtheta back
+      for(int k = 0; k < NumHiddenStates; ++k)
+	SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) (options.getTotalSamples() - options.getBurnIn());
+    }
+    delete[] b;
 
-  for( unsigned int j = 0; j < numChromosomes; j++ ) {
-    UpdateHMMInputs(j, options, ThetaBar, rhobar);
-    LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
-  }
-  delete[] ThetaBar;
+    for( unsigned int j = 0; j < numChromosomes; j++ ) {
+      UpdateHMMInputs(j, options, ThetaBar, rhobar);
+      LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
+    }
+    delete[] ThetaBar;
   }
 
   return LogLikelihood;
@@ -419,15 +419,13 @@ double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options& option
 
 double AdmixedIndividual::getLogLikelihoodOnePop(){ //convenient for a single population as no arguments required
   double LogLikelihood = 0.0;
-  double *Prob;
-  Prob = new double[1];//one pop so 1x1 array
+  double Prob; //one pop so 1x1 array
   for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ) {// loop over composite loci
     if(!GenotypeIsMissing(j)){
-      (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), false);
-      LogLikelihood += log( Prob[0] );
+      (*Loci)(j)->GetGenotypeProbs(&Prob,getPossibleHapPairs(j), false);
+      LogLikelihood += log( Prob );
     }
   }
-  delete[] Prob;
   return LogLikelihood;
 }
 
