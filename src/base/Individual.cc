@@ -73,9 +73,7 @@ void Individual::Initialise(const Options* const options, const InputData* const
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
 
   LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers
-  for (unsigned chrNo = 0; chrNo < numChromosomes; ++chrNo) {
-    LocusAncestry[chrNo] = NULL;
-  }
+
   //initialise genotype probs array and array of indicators for genotypes missing at locus
 
   size_t AncestrySize = 0;  // set size of locus ancestry array
@@ -89,8 +87,10 @@ void Individual::Initialise(const Options* const options, const InputData* const
       AncestrySize = 2 * Loci->GetSizeOfChromosome(j) ;
       gametes.push_back(2);
     }
-    LocusAncestry[j] = new int[ AncestrySize];
-    for(unsigned i = 0; i < AncestrySize; ++i) LocusAncestry[j][i] = 0;
+
+    LocusAncestry[j] = new int[ AncestrySize ];
+    for ( unsigned i = 0; i < AncestrySize; ++i )
+	LocusAncestry[j][i] = 0;
   }
 
   logLikelihood.value = 0.0;
@@ -214,7 +214,7 @@ void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const{
   if(isHaploid || ((unsigned)chrm == X_posn && !SexIsFemale))
     Ancestry[1] = Ancestry[0];
   else
-    Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
+    Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm] + locus];
 }
 
 ///returns value of LocusAncestry at a locus for a particular gamete
