@@ -29,6 +29,9 @@
 #include <cmath> // exp()
 
 
+#define DEBUG_DENSITY	0
+
+
 
 namespace genepi { // ----
 
@@ -40,7 +43,7 @@ namespace genepi { // ----
 
 static inline size_t k_pow_f( PopIdx K , const Pedigree & ped )
     {
-    size_t F = ped.getNFounders() << 1;
+    size_t F = ped.getNFounderGametes();
 
     size_t rv;
 
@@ -65,11 +68,11 @@ static inline size_t k_pow_f( PopIdx K , const Pedigree & ped )
 //-----------------------------------------------------------------------------
 
 HiddenStateSpace::HiddenStateSpace( const Pedigree & _ped, PopIdx _K ) :
-	ped   ( &_ped			     ) ,
-	K     ( _K			     ) ,
-	N_IVs ( 1 << (_ped.getNNonFndrs()<<1)) , // 2^M = 2^(n-non-founders*2)
-	N_AVs ( k_pow_f( _K, _ped )	     ) , // K^F
-	probs ( new ProbType [ aSize() ]     )
+	ped   ( &_ped			 ) ,
+	K     ( _K			 ) ,
+	N_IVs ( 1U << _ped.getNMeiosis() ) , // 2^M
+	N_AVs ( k_pow_f( _K, _ped )	 ) , // K^F
+	probs ( new ProbType [ aSize() ] )
     {
     }
 
@@ -82,11 +85,16 @@ HiddenStateSpace::HiddenStateSpace() :
 
 void HiddenStateSpace::init( const Pedigree & _ped, PopIdx _K )
     {
-    ped	  = &_ped			  ;
-    K	  = _K				  ;
-    N_IVs = 1 << (_ped.getNNonFndrs()<<1) ; // 2^M = 2^(n-non-founders*2)
-    N_AVs = k_pow_f( _K, _ped )		  ; // K^F
-    probs = new ProbType [ aSize() ]	  ;
+    ped	  = &_ped		     ;
+    K	  = _K			     ;
+    N_IVs = 1U << _ped.getNMeiosis() ; // 2^M
+    N_AVs = k_pow_f( _K, _ped )	     ; // K^F
+    probs = new ProbType [ aSize() ] ;
+    #if DEBUG_DENSITY
+	if ( aSize() > 70000 )
+	    fprintf( stderr, "Allocate(%s): %lu = %lu\n", _ped.getId().c_str(),
+		aSize(), aSize()*sizeof(ProbType) );
+    #endif
     }
 
 
@@ -192,12 +200,39 @@ bool HiddenStateSpace::Iterator::advance()
 
 
 
-HiddenStateSpace::Iterator::State HiddenStateSpace::Iterator::getState() const
+HiddenStateSpace::State HiddenStateSpace::Iterator::getState() const
     {
     gp_assert( ! finished );
 
     const State rv = { av, iv, space.probs[idx] };
     return rv;
+    }
+
+
+
+HiddenStateSpace::State HiddenStateSpace::stateAtIdx( StateIdxType idx ) const
+    {
+    const size_t iv_idx = idx % N_IVs;
+    const size_t av_idx = idx / N_IVs;
+    State rv = { AncestryVector(getPed(),K), InheritanceVector(getPed()), probs[idx] };
+    gp_assert( rv.av.size() != 0 );
+    rv.av.set_ulong( av_idx );
+    gp_assert( rv.av.size() != 0 );
+    rv.iv.set_ulong( iv_idx );
+    return rv;
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// Compatibility methods for "old" (individual-based) HMM:
+//-----------------------------------------------------------------------------
+
+void HiddenStateSpace::lambdaAsArrayOfDouble( double * lambda ) const
+    {
+    StateIdxType limit = getNStates();
+    for ( StateIdxType idx = 0 ; idx < limit ; ++idx )
+	lambda[ idx ] = probs[ idx ];
     }
 
 

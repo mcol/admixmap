@@ -20,9 +20,9 @@
 
 //=============================================================================
 /// \file PedigreeGenStates.cc
-/// Implementation of the generation of founder-haplotype-set +
-/// inheritance-vector states portion of the Pedigree class.  See also
-/// Pedigree.cc.
+/// Implementation of the portion of the Pedigree class to generate the
+/// hidden-state-space and emission-probabilities (HiddenStateSpace and
+/// HiddenStateSpace::State).  See also Pedigree.cc.
 //=============================================================================
 
 
@@ -40,6 +40,7 @@
 // dbgEmission():
 #define DEBUG_EMISSION_PROBS	1
 #define DEBUG_RECURSION		1
+
 
 
 #if DEBUG_EMISSION_PROBS || DEBUG_RECURSION
@@ -104,8 +105,8 @@ const HiddenStateSpace & Pedigree::getStateProbs( SLocIdxType sLocIdx ) const
 		    " call genPossibleStatesInternal() first; pedigree ID: ") + getId() );
 
 	if ( sLocIdx >= getSLoci().size() )
-	    throw std::runtime_error( estr("Simple-locus-index ") + sLocIdx +
-			" out of range (" + getSLoci().size() );
+	    throw runtime_error( estr("Simple-locus-index ") + sLocIdx +
+			" out of range (" + getSLoci().size() + " max)" );
 
     #endif
 
@@ -115,13 +116,44 @@ const HiddenStateSpace & Pedigree::getStateProbs( SLocIdxType sLocIdx ) const
 
 
 //-----------------------------------------------------------------------------
+// releaseStateProbs()
+//-----------------------------------------------------------------------------
+
+void Pedigree::releaseStateProbs() const
+    {
+    delete[] stateProbs;
+    stateProbs = 0;
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// mendelErrAt() [private]
+//-----------------------------------------------------------------------------
+
+bool & Pedigree::mendelErrAt( SLocIdxType t ) const
+    {
+    if ( mendelErrsByLocus == 0 )
+	{
+	mendelErrsByLocus = new bool[ getNSLoci() ];
+	for ( SLocIdxType idx = getNSLoci() ; idx-- != 0 ; )
+	    mendelErrsByLocus[ idx ] = false;
+	}
+
+    return mendelErrsByLocus[ t ];
+    }
+
+
+
+//-----------------------------------------------------------------------------
 //
 // accumStateInArray() [static, protected]
 //
-/// This is just here to receive qualifying states and store them in an array
-/// (we pass a pointer-to-method into the recursive iterator/checker).  If we
-/// want to hard-code the store-in-array action, this can go away (as well as
-/// the receiver method passed into the iterator/checker).
+/// This is just here to receive qualifying states (we pass a pointer-to-method
+/// into the recursive iterator/checker), store them in an array, and accumulate
+/// the emission probabilities.  If we want to hard-code the store-in-array
+/// action, this can go away (as well as the receiver method passed into the
+/// iterator/checker).
 //
 //-----------------------------------------------------------------------------
 
@@ -133,7 +165,7 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 				  double		    emProb	    )
     {
     // stateProbs is mutable, so we don't need to const_cast<> here:
-    ped.stateProbs[sLocIdx].getProb( av, iv ) = emProb;
+    ped.stateProbs[sLocIdx].getEProb( av, iv ) += emProb;
 
     #if DEBUG_EMISSION_PROBS
 	if ( dEmission )
@@ -143,7 +175,7 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 		<< ' ';
 	    output_hs( std::cout, founderHapState, ped, true )
 		<< " is " << emProb
-		<< " total so far: " << ped.getStateProbs(sLocIdx).getProb(av,iv)
+		<< " total so far: " << ped.getStateProbs(sLocIdx).getEProb(av,iv)
 		<< '\n';
 	    }
     #else
@@ -225,6 +257,12 @@ void Pedigree::recurseSib( SLocIdxType		sLocIdx		,
     // Generate every possible (all 4) segregation-indicator combinations for
     // this node, check them against the observed data, and recurse each that is
     // consistent.
+
+    //***************************************************************************
+    //*** What about haploid genotypes here???  Only need one loop, but must
+    //*** modify the IV to know about haploid organism-loci to reserve only one
+    //*** bit.  This will also affect Pedigree::getNMeiosis().
+    //***************************************************************************
 
     // These two odd-looking for-loops each iterate over the two possible
     // segregation-indicators:
@@ -466,7 +504,7 @@ void Pedigree::genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alPro
 	{
 	const size_t nLoc = getSLoci().size();
 
-	// We want this, but ISO C++ forbids it, goodness knows why:
+	// We want this, but ISO C++ forbids it:
 	//stateProbs = new HiddenStateSpace[ nLoc ]( *this, K );
 
 	// So, instead we have this:
@@ -479,6 +517,20 @@ void Pedigree::genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alPro
 	stateProbs[ sLocIdx ] . resetEmProbsToZero();
 
     genPossibleStates( &Pedigree::accumStateInArray, K, alProbVect );
+
+
+    //------------------------------------------------------------------
+    // Check for Mendelian inconsistencies:
+    //------------------------------------------------------------------
+    for ( size_t sLocIdx = 0 ; sLocIdx < getSLoci().size() ; ++sLocIdx )
+	if ( (mendelErrAt(sLocIdx) = HiddenStateSpace::Iterator(stateProbs[sLocIdx]).isFinished()) )
+	    {
+	    cout << estr("Apparent Mendelian inconsistency in pedigree ") +
+		getId() + " at locus #" + sLocIdx + " (" +
+		getSLoci()[sLocIdx].getDesc() + ")\n";
+	    ++nMendelErrs;
+	    }
+
     }
 
 

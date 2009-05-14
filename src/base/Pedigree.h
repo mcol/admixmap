@@ -27,9 +27,10 @@
 #define __base_Pedigree_h
 
 
-#include <cstddef>  // size_t
-
 #include "config.h" // AGGRESSIVE_RANGE_CHECK
+
+
+#include <cstddef>  // size_t
 
 #include "Genotype.h"
 #include "OrganismArray.h"
@@ -42,8 +43,6 @@
 
 
 namespace genepi { // ----
-
-
 
 /** \addtogroup base
  * @{ */
@@ -62,9 +61,9 @@ class HiddenStateSpace;
 //
 //  PEDIGREE CLASS
 //
-/// A class to represent a pedigree as read in from the pedigree file; the
-/// list of the Organisms in the pedigree, as well as aggregate and probability
-/// information about the pedigree.
+/// A class to represent a pedigree as read in from the pedigree file; the list
+/// of the @ref Organism "Organisms" in the pedigree, as well as aggregate and
+/// probability information about the pedigree.
 ///
 /// Need more documentation here.
 ///
@@ -113,9 +112,10 @@ class HiddenStateSpace;
 ///  <TR>
 ///	<TD><B>NOTE *3*</B></TD>
 ///	<TD>
-///	The Pedigree does not "own" the Organism s within it (i.e. will not
-///	delete them when it is deleted).  They remain controlled by the
-///	OrganismArray, a reference to which the Pedigree keeps.
+///	The Pedigree does not "own" the @link Organism Organisms @endlink within
+///	it (i.e. will not delete them when it is deleted).  They remain
+///	controlled by the OrganismArray, a reference to which the Pedigree
+///	keeps.
 ///	</TD>
 ///  </TR>
 ///
@@ -150,9 +150,15 @@ class Pedigree
 	size_t	   nFounders	 ;
 	Member * * sortedMembers ;
 
+	// Mendelian error detection and tracking:
+	mutable int    nMendelErrs;
+	mutable bool * mendelErrsByLocus; ///< Array, indexed on SLocIdxType
+	bool & mendelErrAt( SLocIdxType t ) const;
+
+
 	/// Array of hidden-state-spaces, one for each locus.  This belongs in a
-	/// subclass.  We use a pointer-to-array rather than std::vector to
-	/// avoid including the full class definition here.
+	/// subclass.  We use a pointer-to-array (indexed on locus-index) rather
+	/// than std::vector to avoid including the full class definition here.
 	mutable HiddenStateSpace * stateProbs;
 
 
@@ -168,7 +174,7 @@ class Pedigree
 				PopIdx			K		,
 				const AlleleProbTable & alProbTab	,
 				Haplotype *		memberHapState	,
-				AncestryVector&		ancestry	,
+				AncestryVector &	ancestry	,
 				MemberIdx		memDepth	,
 				double			probProdSoFar	,
 				StateReceiver		receiver	) const;
@@ -225,6 +231,7 @@ class Pedigree
 	/// Return the pool (pedfile) from which members are drawn
 	const OrganismArray &	 getMemberPool() const { return memberPool; }
 	const SimpleLocusArray & getSLoci     () const { return memberPool.getSLoci(); } ///< Convenience
+	SLocIdxType		 getNSLoci    () const { return getSLoci().size()    ; } ///< Convenience
 	const IdType &		 getId	      () const { return id; }
 	///< The "family ID" from the pedfile.  Every Organism in this Pedigree
 	///< returns the same value of Organism::getFamId() (which is also returned
@@ -243,7 +250,9 @@ class Pedigree
 	size_t getNFounders() const { return nFounders; }		///< Number of founders
 	size_t getNNonFndrs() const { return (nMembers - nFounders); }	///< Number of non-founders
 
-	size_t getNFounderGametes() const { return (nFounders << 1); }	///< Number of founder gametes
+	size_t getNFounderGametes() const { return (nFounders << 1   ); } ///< Number of founder gametes
+	size_t getNMeiosis	 () const { return (getNNonFndrs()<<1); } ///< Number of meiosis
+							///< NB: see haploid note in recurseSib().
 
 
 	/// Array-style access: @a mIdx must be between 0 and getNMembers()-1.
@@ -272,6 +281,15 @@ class Pedigree
 
 
 	//---------------------------------------------------------------
+	// Mendelian error access:
+	//---------------------------------------------------------------
+
+	int  getNMendelErrs() const { return nMendelErrs; }
+	bool haveMendelErrAt( SLocIdxType t ) const;
+
+
+
+	//---------------------------------------------------------------
 	// Generation of emission probabilities: these methods are implemented
 	// in the PedigreeGenStates.cc
 	//---------------------------------------------------------------
@@ -288,9 +306,14 @@ class Pedigree
 
 
 	/// Self-contained structure of states' probabilities, must be created
-	/// using genPossibleStatesInternal() prior to calling.  This should be
+	/// using genPossibleStatesInternal() prior to calling.  This could be
 	/// in a separate class.
 	const HiddenStateSpace & getStateProbs( SLocIdxType sLocIdx ) const;
+
+	/// Release any memory consumed by generating the states.
+	/// genPossibleStatesInternal() must then be re-called before
+	/// getStateProbs() can be called.
+	void releaseStateProbs() const;
 
 
 	// These are not guaranteed to produce any output if ostream support is

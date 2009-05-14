@@ -142,18 +142,26 @@ static int depthCompare( Pedigree::Member * const * lhs_ptr, Pedigree::Member * 
     Pedigree::Member * const lhs = *lhs_ptr;
     Pedigree::Member * const rhs = *rhs_ptr;
 
+    int rv = lhs->getDepth() - rhs->getDepth();
+
+    // Tiebreaker: organisms with genotyped data will be higher in the list:
+    if ( rv == 0 )
+	rv = int(rhs->isGenotyped()) - int(lhs->isGenotyped());
+
     #if 0 // ****** DEBUG: ******
 	if ( lhs->getFamId() == "10" )
-	    fprintf( stderr, " compare: %p(%d) vs. %p(%d): %d\n", lhs, lhs->getDepth(),
-				rhs, rhs->getDepth(), (lhs->getDepth() - rhs->getDepth()) );
+	    fprintf( stderr, " compare: %p(%d-%s) vs. %p(%d-%s): %d\n",
+		lhs, lhs->getDepth(), lhs->isGenotyped() ? "gtype" : "missing",
+		rhs, rhs->getDepth(), rhs->isGenotyped() ? "gtype" : "missing", rv );
     #endif
-    return (lhs->getDepth() - rhs->getDepth());
+
+    return rv;
     }
 
 
 
 //-----------------------------------------------------------------------------
-// Constructor [protected; use generatePedigrees()]
+// Constructor [protected]
 //-----------------------------------------------------------------------------
 
 Pedigree::Pedigree( const OrganismArray & pool,
@@ -162,6 +170,8 @@ Pedigree::Pedigree( const OrganismArray & pool,
 	id		( (*firstM)->getFamId()	   ) ,
 	nMembers	( endM - firstM		   ) ,
 	sortedMembers	( new Member* [ nMembers ] ) ,
+	nMendelErrs	( 0			   ) ,
+	mendelErrsByLocus( 0			   ) ,
 	stateProbs	( 0			   )
     {
     // Initialize the array of pointers-to-members, while simultaneously
@@ -256,11 +266,14 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	nMembers	( rhs.nMembers		) ,
 	nFounders	( rhs.nFounders		) ,
 	sortedMembers	( rhs.sortedMembers	) ,
+	nMendelErrs	( rhs.nMendelErrs	) ,
+	mendelErrsByLocus( rhs.mendelErrsByLocus) ,
 	stateProbs	( rhs.stateProbs	)
     {
     // !!!WARNING!!! -- see NOTE *1*
-    const_cast<Pedigree&>(rhs).sortedMembers = 0;
-    const_cast<Pedigree&>(rhs).stateProbs    = 0;
+    const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
+    const_cast<Pedigree&>(rhs).mendelErrsByLocus = 0;
+    const_cast<Pedigree&>(rhs).stateProbs	 = 0;
     }
 
 Pedigree & Pedigree::operator=( const Pedigree & rhs )
@@ -290,6 +303,7 @@ Pedigree::~Pedigree()
     {
     delete[] sortedMembers;
     delete[] stateProbs;
+    delete[] mendelErrsByLocus;
     }
 
 
@@ -297,7 +311,7 @@ Pedigree::~Pedigree()
 //---------------------------------------------------------------
 // generatePedigrees() [static]
 //
-// Create Pedigree's from raw genotype data (pedfile)
+/// Create Pedigree's from raw genotype data (pedfile)
 //---------------------------------------------------------------
 
 void Pedigree::generatePedigrees( const OrganismArray & organisms, vector<Pedigree> & rv )
@@ -348,6 +362,23 @@ void Pedigree::throwMRange( size_t mIdx ) const
     {
     throw std::runtime_error( estr("Member-index ") + mIdx +
 		" out of range (" + getNMembers() + ')' );
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// haveMendelErrAt()
+//-----------------------------------------------------------------------------
+
+bool Pedigree::haveMendelErrAt( SLocIdxType t ) const
+    {
+    #if AGGRESSIVE_RANGE_CHECK
+    if ( t >= getNSLoci() )
+	throw std::runtime_error( estr("Simple-locus-index ") + t +
+		" out of range (" + getNSLoci() + ')' );
+    #endif
+
+    return (nMendelErrs != 0) && mendelErrsByLocus[t];
     }
 
 

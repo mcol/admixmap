@@ -41,8 +41,6 @@
 
 namespace genepi { // ----
 
-
-
 /** \addtogroup base
  * @{ */
 
@@ -62,7 +60,8 @@ namespace genepi { // ----
 ///
 /// Typically one of these objects exists for each locus.
 ///
-/// Use Iterator to iterate over the states in the space.
+/// Use Iterator to iterate over the states in the space, or indexed-based
+/// access via stateAtIdx()
 //
 //-----------------------------------------------------------------------------
 
@@ -72,6 +71,7 @@ class HiddenStateSpace
 	typedef float ProbType;
 	typedef size_t AncestryIdxType;
 	typedef size_t InheritanceIdxType;
+	typedef size_t StateIdxType;
 
     private:
 
@@ -91,7 +91,7 @@ class HiddenStateSpace
 
 	ProbType * probs;
 
-	size_t aSize() const { return (N_IVs * N_AVs); }
+	StateIdxType aSize() const { return (N_IVs * N_AVs); }
 
 
     public:
@@ -108,14 +108,33 @@ class HiddenStateSpace
 	const Pedigree & getPed() const { gp_assert(ped!=0); return *ped; }
 	PopIdx		 getK  () const { return K; }
 
+	const SimpleLocusArray & getSLoci() const { return getPed().getSLoci(); } ///< Convenience
 
-	/// Get the number of states, including those with 0 probability:
-	size_t getNStates() const { return aSize(); }
 
+	/// Get the number of states, including those with 0 probability.  See
+	/// also stateAtIdx().
+	StateIdxType getNStates() const { return aSize(); }
+
+
+	/// Set all emission-probabilities to zero.
 	void resetEmProbsToZero();
 
 
-	ProbType & getProb( const AncestryVector & av, const InheritanceVector & iv )
+	/// Get the emission probabiliy for the state at index @a idx.  It's too
+	/// bad that we need to expose the internals in the form of an indexing
+	/// scheme, but it's the only easy way to iterate/access for
+	/// computations, especially given that we store "parallel arrays".  See
+	/// also @link getEProb(const AncestryVector&,const InheritanceVector&)
+	/// getEProb(AncestryVector,InheritanceVector) @endlink, which in the
+	/// current implementation is less efficient.
+	ProbType &	 getEProb( StateIdxType idx )	    { return probs[ idx ]; }
+	const ProbType & getEProb( StateIdxType idx ) const { return probs[ idx ]; }
+	///< const version of @link getEProb(StateIdxType) getEProb() @endlink
+
+
+	/// Get the emission probability for the state defined by @a av and @a iv.
+	/// See also getEProb(StateIdxType).
+	ProbType & getEProb( const AncestryVector & av, const InheritanceVector & iv )
 	    {
 	    const unsigned long iv_idx = iv.to_ulong();
 	    const unsigned long av_idx = av.to_ulong();
@@ -126,18 +145,29 @@ class HiddenStateSpace
 	    // We can use either arrangement scheme; if this is changed,
 	    // Iterator::advance() must be reimplemented:
 	    #if HSS_AV_MOST_SIG
-		return probs[ (av_idx * N_IVs) + iv_idx ];
+		return getEProb( (av_idx * N_IVs) + iv_idx );
 	    #else
-		return probs[ (iv_idx * N_AVs) + av_idx ];
+		return getEProb( (iv_idx * N_AVs) + av_idx );
 	    #endif
 	    }
 
 
 	/// Const version; result is not a modifiable reference
-	ProbType getProb( const AncestryVector & av, const InheritanceVector & iv ) const
+	ProbType getEProb( const AncestryVector & av, const InheritanceVector & iv ) const
 	    {
-	    return const_cast<HiddenStateSpace*>(this)->getProb( av, iv );
+	    return const_cast<HiddenStateSpace*>(this)->getEProb( av, iv );
 	    }
+
+
+	//---------------------------------------------------------------------
+	/// Representation of a hidden state, used for iteration and index-based access.
+	//---------------------------------------------------------------------
+	struct State
+	    {
+	    AncestryVector    av     ;
+	    InheritanceVector iv     ;
+	    ProbType	      emProb ; /// Emission probabilitiy
+	    };
 
 
 	//---------------------------------------------------------------------
@@ -178,6 +208,13 @@ class HiddenStateSpace
 	///	for ( HiddenStateSpace::Iterator it( space ); ! it.isFinished(); it.advance() )
 	///	    do_something( *it );
 	/// @endcode
+	///
+	/// Check if the space has any states with non-zero emission probabilities:
+	/// @code
+	///	if ( HiddenStateSpace::Iterator(space).isFinished() )
+	///	    cout << "Mendelian inconsistency.\n";
+	/// @endcode
+	//
 	//---------------------------------------------------------------------
 
 	class Iterator
@@ -186,7 +223,7 @@ class HiddenStateSpace
 		const HiddenStateSpace & space;
 		AncestryVector		 av;
 		InheritanceVector	 iv;
-		size_t			 idx;
+		StateIdxType		 idx;
 
 		/// Can avoid keeping this finished flag by implementing
 		/// isFinished() as "return (idx < space.aSize())";
@@ -195,14 +232,6 @@ class HiddenStateSpace
 	    public:
 
 		Iterator( const HiddenStateSpace & sp );
-
-
-		struct State
-		    {
-		    AncestryVector    av     ;
-		    InheritanceVector iv     ;
-		    ProbType	      emProb ; /// Emission probabilitiy
-		    };
 
 
 		/// Returns true if there are no more states, i.e. if we've
@@ -220,15 +249,52 @@ class HiddenStateSpace
 		/// Retrieve the value of the state currently "pointed to".
 		State getState() const;
 		State operator*() const { return getState(); } ///< Synonym for getState()
+
+		/// Get components of the state currently "pointed to";
+		/// typically more efficient than getState()/operator*():
+		const AncestryVector &	  getAV	  () const { return av; }
+		const InheritanceVector & getIV   () const { return iv; }
+		double			  getEProb() const { return space.getEProb(idx); }
+
+
+		/// Provide access to the "index" of the state currently
+		/// "pointed to".  This is an inelegant exposure of the internal
+		/// implementation of the iterator, but because we @b do use the
+		/// index-style access (in part because it enables us to keep
+		/// "parallel arrays"), providing this bridge between the two
+		/// methods of access allows us to iterate with Iterator at
+		/// times when we need the index for access to external parallel
+		/// arrays; otherwise would have to do all iteration via
+		/// integral indices.  The value returned here can be passed to
+		/// HiddenStateSpace::stateAtIdx(), although
+		/// getState()/operator*() does the same, but more efficiently.
+		StateIdxType getIndex() const { return idx; }
 	    };
 
+
+
+	//-----------------------------------------------------------------------------
+	// Index-based access:
+	//-----------------------------------------------------------------------------
+
+	AncestryVector	  avFromIdx( AncestryIdxType	aIdx ) const;
+	InheritanceVector ivFromIdx( InheritanceIdxType iIdx ) const;
+
+	/// Indexed-based access to states.  See also getNStates().
+	State stateAtIdx( StateIdxType ) const;
+
+
+
+	//-----------------------------------------------------------------------------
+	// Compatibility methods for "old" (individual-based) HMM:
+	//-----------------------------------------------------------------------------
+
+	void lambdaAsArrayOfDouble( double * lambda ) const;
     };
 
 
 
 /** @} */
-
-
 
 } // ---- end namespace genepi
 
