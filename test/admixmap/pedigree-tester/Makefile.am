@@ -1,11 +1,11 @@
 # This works fine when compiling "in-place" (in the source directory) but not
 # when building releases in a separate directory:
-#BASELIB_PATH=$(top_builddir)/src/base
-BASELIB_PATH=$(srcdir)/../../../src/base
+BASELIB_OBJ_PATH=$(top_builddir)/src/base
+BASELIB_SRC_PATH=$(srcdir)/../../../src/base
 
-AM_CPPFLAGS=-I$(BASELIB_PATH)
+AM_CPPFLAGS=-I$(BASELIB_SRC_PATH)
 
-AM_LDFLAGS=-all-static -L$(BASELIB_PATH)
+AM_LDFLAGS=-all-static -L$(BASELIB_OBJ_PATH)
 
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS) -Wextra
@@ -29,7 +29,7 @@ endif
 
 
 
-pedigree_tester_DEPENDENCIES = $(top_builddir)/src/base/libbase.a
+pedigree_tester_DEPENDENCIES = $(BASELIB_OBJ_PATH)/libbase.a
 
 
 
