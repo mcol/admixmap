@@ -48,6 +48,7 @@
 
 static const char ESCAPE_CHAR	= '\\'	;
 static const char COMMENT_CHAR	= '#'	;
+static const char ALT_GT_DELIM	= '/'	;
 
 
 
@@ -517,7 +518,7 @@ void GFileLexer::doParseInt( char ch, Token & tok )
 
     ch = parseOneInt( ch, val, endOfToken, nDigs );
 
-    if ( ch == gtypeDelim )
+    if ( (ch == gtypeDelim) || (ch == ALT_GT_DELIM) )
 	{
 	#if ! ALLOW_EXPLICIT_MISSING_VALS
 	    if ( val == GType::MISSING_VAL )
@@ -619,6 +620,7 @@ GFileLexer::Token GFileLexer::lexToken()
 	if	( ch == '\n'	    ) rv.type = T_EOL;
 	else if ( ch == EOF_MARKER  ) rv.type = T_EOF;
 	else if ( ch == gtypeDelim  ) doParseGType( GType::MISSING_VAL, rv );
+	else if ( ch == ALT_GT_DELIM) doParseGType( GType::MISSING_VAL, rv );
 	else if ( ch == '.'	    ) doParseFloat( 0, rv );
 	else if ( isdigit( ch )	    ) doParseInt( ch, rv );
 	else if ( ch == '-'	    ) doParseInt( ch, rv );
@@ -782,7 +784,7 @@ Genotype GFileLexer::lexGType( const char * fieldName )
 	    {
 	    if ( (tok.strVal.size() == 3) &&
 		    isdigit(tok.strVal[0]) &&
-		    (tok.strVal[1] == gtypeDelim) &&
+		    ((tok.strVal[1] == gtypeDelim) || (tok.strVal[1] == ALT_GT_DELIM)) &&
 		    isdigit(tok.strVal[2]) )
 		{
 		tok.type = T_GTYPE;
