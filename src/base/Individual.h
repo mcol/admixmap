@@ -77,6 +77,8 @@ public:
 
   void UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const;
 
+  static Genome & getGenome() { return *Loci; }
+
   void SampleMissingOutcomes(bclib::DataMatrix *Outcome, const std::vector<bclib::Regression*>& R);
 
   unsigned int getMyNumber() const { return myNumber  ; } ///< number of this individual, counting from 1
@@ -89,11 +91,12 @@ protected:
   bool			    isHaploid	     ; ///< indicates if individual is haploid at all
 					       ///< loci or only at X loci
   static unsigned int	    numChromosomes   ;
-  static int		    NumHiddenStates  ; ///< Number of hidden states in the hidden Markov model
+  static int		    NumHiddenStates  ; ///< Number of hidden states in the hidden Markov model.
+					       ///< Or perhaps sometimes the square-root of that number.
   static Genome *	    Loci	     ;
   static bool		    Xdata	     ; ///< indicates if there is an X chromosome
   static unsigned int	    X_posn	     ; ///< number of X chromosome
-  double		    EffectiveL[2]    ;
+  double		    EffectiveL[2]    ; ///< indexed on "g" (0 or 1)
   unsigned		    NumGametes	     ; ///< 1 if assortative mating or haploid data,
 					       ///< 2 if random mating and diploid data
   std::vector<unsigned int> gametes	     ; ///< number of gametes on each chromosome
