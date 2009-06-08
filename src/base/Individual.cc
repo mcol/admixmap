@@ -76,7 +76,7 @@ void Individual::Initialise(const Options* const options, const InputData* const
 
   //initialise genotype probs array and array of indicators for genotypes missing at locus
 
-  size_t AncestrySize = 0;  // set size of locus ancestry array
+  size_t AncestrySize; // set size of locus ancestry array
   //gametes holds the number of gametes for each chromosome, either 1 or 2
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     if(isHaploid || (!SexIsFemale && Loci->isXChromosome(j))){//haploid on this chromosome
@@ -155,6 +155,7 @@ void Individual::DeleteGenotypes(){
   genotypes.clear();
 }
 
+
 /// sets static members, including allocation and deletion of static objects for score tests
 void Individual::SetStaticMembers(Genome* const pLoci, const Options* const options){
   Loci = pLoci;
@@ -164,6 +165,7 @@ void Individual::SetStaticMembers(Genome* const pLoci, const Options* const opti
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   if(Xdata) X_posn = Loci->GetChrNumOfLocus(Loci->getFirstXLocus());//too clunky, should simplify
 }
+
 
 /// Sets genome (Loci)
 /// Needed for tests which need to substitute only this one static
