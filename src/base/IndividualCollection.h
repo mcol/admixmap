@@ -30,10 +30,6 @@
 #include <string>
 
 
-/** \addtogroup base
- * @{ */
-
-
 class Regression;
 class Individual;
 class AlleleFreqs;
@@ -42,6 +38,13 @@ class AlleleFreqSampler;
 namespace bclib{
   class LogWriter;
 }
+
+
+/** \addtogroup base
+ * @{ */
+
+
+
 ///Class to hold an array of Individuals
 class IndividualCollection
 {
