@@ -132,6 +132,14 @@ class GFileLexer
 		ParseError( const string & msg, const string & fn, int ln ) :
 		    DataValidError( msg, fn, ln ) {}
 	    };
+	class BadIntErr : public ParseError // Invalid/mal-formed integer
+	    {
+	    private:
+		//std::string charsSoFar;
+	    public:
+		BadIntErr( const string & msg, const string & fn, int ln );
+		BadIntErr( char invalidChar, const string & fn, int ln );
+	    };
 
 
 

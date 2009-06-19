@@ -52,6 +52,16 @@ static const char ALT_GT_DELIM	= '/'	;
 
 
 
+/// Yet more insanity: if turned off, we don't make any assumptions about the
+/// lexical type of tokens at this level, but let the upper-level parser decide
+/// how to interpret things based on the semantics; i.e. more-or-less everything
+/// is a string at this level.  The biggest effect of turning it off is that
+/// "1X" (without quotes) will parse as a string rather than throwing a
+/// BadIntErr exception.
+#define CONTEXT_FREE_SYNTAX	0
+
+
+
 using namespace std;
 
 
@@ -124,6 +134,17 @@ static const char * typeName( genepi::GFileLexer::TokenType t )
 
 
 namespace genepi { // ----
+
+
+
+//-----------------------------------------------------------------------------
+// BadIntErr()
+//-----------------------------------------------------------------------------
+
+GFileLexer::BadIntErr::BadIntErr( const string & msg, const string & fn, int ln ) :
+    ParseError( "badly formed integer: " + msg, fn, ln ) {}
+GFileLexer::BadIntErr::BadIntErr( char invalidChar, const string & fn, int ln ) :
+    ParseError( std::string("invalid character `") + invalidChar + "' in integer.", fn, ln ) {}
 
 
 
@@ -351,7 +372,8 @@ char GFileLexer::parseOneInt( char ch, long & val, bool & endOfToken, int & nDig
 	}
     else
 	{
-	gp_assert( isdigit(ch) );
+	if ( ! isdigit(ch) )
+	    throw BadIntErr( ch, fileName, getLastTokenLine() );
 	accum = dval( ch );
 	aNDigs = 1;
 	}
@@ -395,7 +417,7 @@ long GFileLexer::parseFinalInt( char ch )
     ch = parseOneInt( ch, rv, endOfToken, nDigs );
 
     if ( ! endOfToken )
-	throwError( string("invalid character '") + ch + "' in integer" );
+	throw BadIntErr( ch, fileName, getLastTokenLine() );
 
     return rv;
     }
@@ -508,6 +530,9 @@ void GFileLexer::doParseFloat( long intPart, Token & tok )
 
 //-----------------------------------------------------------------------------
 // doParseInt() [private]
+//
+/// NOTE! If CONTEXT_FREE_SYNTAX is not turned on, it is possible to return a
+///	  token of type string here!!!
 //-----------------------------------------------------------------------------
 
 void GFileLexer::doParseInt( char ch, Token & tok )
@@ -534,7 +559,15 @@ void GFileLexer::doParseInt( char ch, Token & tok )
 	tok.intVal = val;
 	}
     else
-	throwError( string("invalid character '") + ch + "' in integer" );
+	{
+	// Part-way through an integer, we encounter a non-digit character:
+	#if CONTEXT_FREE_SYNTAX
+	    throw BadIntErr( ch, fileName, getLastTokenLine() );
+	#else
+	    doParseStr( ch, tok );
+	    tok.strVal.insert( 0, estr(val) ); // .prepend()
+	#endif
+	}
     }
 
 
@@ -676,7 +709,9 @@ bool GFileLexer::skipToToken()
 
 string GFileLexer::lexString()
     {
+
     #if ACCEPT_INT_AS_STRING
+
 	Token tok = lexToken();
 	if ( tok.isType( T_INTEGER ) )
 	    {
@@ -685,10 +720,14 @@ string GFileLexer::lexString()
 	    }
 	else
 	    assert_type( T_STRING, tok );
+
     #else
+
 	const Token & tok = lexToken();
 	assert_type( T_STRING, tok );
+
     #endif
+
     return tok.strVal;
     }
 
