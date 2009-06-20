@@ -56,9 +56,13 @@ class DataValidError : public std::exception
 	static bool getEmacsStyleFmt()		{ return emacsStyleFmt; }
 	static void setEmacsStyleFmt( bool nv ) { emacsStyleFmt = nv  ; }
 
-	std::string getFileName() const { return fileName; }
-	int	    getLineNum () const { return lineNum ; }
-	std::string getMessage () const { return message ; }
+	const std::string & getFileName() const { return fileName; }
+	int		    getLineNum () const { return lineNum ; }
+	const std::string & getMessage () const { return message ; }
+
+	std::string & getMessageWritable() { return message ; }
+
+	std::string getFormattedMsg() const;
 
 	/// Overridden from std::exception
 	virtual const char * what() const throw();

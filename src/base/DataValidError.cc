@@ -67,6 +67,25 @@ DataValidError::~DataValidError() throw()
 
 
 //-----------------------------------------------------------------------------
+/// Get a diagnostic message, ready to deliver to the user (equivalent to
+/// what(), but returns a std::string rather than char pointer).
+//-----------------------------------------------------------------------------
+
+std::string DataValidError::getFormattedMsg() const
+    {
+    estr rv;
+
+    if ( emacsStyleFmt )
+	(rv = fileName) << ':' << lineNum << ": " << message;
+    else
+	(rv = message) << " at " << fileName << ':' << lineNum;
+
+    return rv;
+    }
+
+
+
+//-----------------------------------------------------------------------------
 // what() [virtual, overridden from std::exception]
 //-----------------------------------------------------------------------------
 
@@ -81,10 +100,7 @@ const char * DataValidError::what() const throw()
     if ( ++bufN == NBUFS )
 	bufN = 0;
 
-    if ( emacsStyleFmt )
-	(rv = fileName) << ':' << lineNum << ": " << message;
-    else
-	(rv = message) << " at " << fileName << ':' << lineNum;
+    rv = getFormattedMsg();
 
     return rv.c_str();
     }
