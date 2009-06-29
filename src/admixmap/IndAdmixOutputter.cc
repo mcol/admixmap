@@ -1,14 +1,14 @@
-/** 
+/**
  *   ADMIXMAP
- *   IndAdmixOutputter.cc 
+ *   IndAdmixOutputter.cc
  *   Class to output individual admix parameters
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY.
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License,
+ * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
- * 
+ *
  */
 #include "IndAdmixOutputter.h"
 #include "AdmixIndividualCollection.h"
@@ -26,7 +26,7 @@ IndAdmixOutputter::IndAdmixOutputter(const AdmixOptions& options, const Genome& 
     cerr << "locusfortest is greater than number of loci" << endl;
     exit(0);
   }
-  
+
   _out.open(options.getIndAdmixtureFilename());
 }
 
@@ -44,7 +44,7 @@ IndAdmixOutputter::~IndAdmixOutputter(){
   if(_RandomMatingModelIndicator )
     for( int i = 0; i < _options.getPopulations(); i++ )
       dimnames[0].push_back( _PopulationLabels[i] + "2");
-  
+
 
   if( !_options.isGlobalRho() ){
     if(_options.isRandomMatingModel()){
@@ -54,14 +54,14 @@ IndAdmixOutputter::~IndAdmixOutputter(){
     else
       dimnames[0].push_back("rho");
   }
-  
+
   if (_options.getLocusForTestIndicator()){
     if( _options.getPopulations() > 1 ){
       dimnames[0].push_back("LocusAncestry1");
       dimnames[0].push_back("LocusAncestry2");
     }
     dimnames[0].push_back("Hap1");
-    dimnames[0].push_back("Hap2"); 
+    dimnames[0].push_back("Hap2");
   }
 
   vector<int> dims;
@@ -83,17 +83,17 @@ void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vect
   if(_options.isRandomMatingModel())
     for( int k = 0; k < _options.getPopulations(); k++ )
       _out << ind.getAdmixtureProps()[ k + _options.getPopulations()] ;
-  
+
   //output individual sumintensities
   if( !_options.isGlobalRho() ){
      vector<double> rho = ind.getRho();
      //first gamete
-     _out << rho[0]; 
+     _out << rho[0];
      //second gamete if there is one
      if(_options.isRandomMatingModel())
        _out << rho[1] ;
   }
-  
+
   if (_options.getLocusForTestIndicator()){
     int ancestry[2];
     ind.GetLocusAncestry( _locusfortest[0], _locusfortest[1], ancestry );
@@ -122,4 +122,3 @@ void IndAdmixOutputter::visitIndividualCollection(const AdmixIndividualCollectio
   _totalIndividuals = i.getSize();
   _currentIndividual = 0;
 }
-

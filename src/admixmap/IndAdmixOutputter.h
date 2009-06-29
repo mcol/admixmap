@@ -1,15 +1,15 @@
 // *-*-C++-*-*
-/** 
+/**
  *   ADMIXMAP
- *   IndAdmixOutputter.h 
+ *   IndAdmixOutputter.h
  *   Class to output individual admix parameters
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY.
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License,
+ * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
- * 
+ *
  */
 #ifndef IND_ADMIX_OUTPUTTER
 #define IND_ADMIX_OUTPUTTER 1
@@ -24,7 +24,7 @@ class AdmixIndividualCollection;
 class AdmixedIndividual;
 
 ///Class to output individual admixture proportions and sumintensities to file
-class IndAdmixOutputter 
+class IndAdmixOutputter
 {
 public:
   IndAdmixOutputter(const AdmixOptions& , const Genome&, const Vector_s& PopLabels);
@@ -33,7 +33,7 @@ public:
   void visitIndividualCollection(const AdmixIndividualCollection&);
 
 
-private: 
+private:
   bclib::RObjectWriter _out;
 
   const AdmixOptions&  _options;
