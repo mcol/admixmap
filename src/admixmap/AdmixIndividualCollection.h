@@ -1,15 +1,15 @@
 // *-*-C++-*-*
-/** 
+/**
  *   ADMIXMAP
  *   AdmixIndividualCollection.h
  *   header file for Admixed IndividualCollection class
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY.
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License,
+ * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
- * 
+ *
  */
 #ifndef ADMIX_INDIVIDUAL_COLLECTION_H
 #define ADMIX_INDIVIDUAL_COLLECTION_H 1
@@ -37,7 +37,7 @@ public:
 
   void HMMUpdates(int iteration, const AdmixOptions& options,
                   const vector<bclib::Regression*> &R, const double* const poptheta,
-                  const vector<vector<double> > &alpha, 
+                  const vector<vector<double> > &alpha,
                   AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
   void SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
 				     const vector<bclib::Regression*> &R, const double* const poptheta,
@@ -47,21 +47,21 @@ public:
 			const vector<bclib::Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 			CopyNumberAssocTest& ancestryAssocTest, bool anneal);
-  void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha, 
+  void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha,
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
-  void updateChib(const AdmixOptions& options,const vector<vector<double> > &alpha, 
+  void updateChib(const AdmixOptions& options,const vector<vector<double> > &alpha,
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
 
-  void FindPosteriorModes(const AdmixOptions& options, 
-			  const vector<bclib::Regression*> &R, 
-			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, AlleleFreqs* A, 
+  void FindPosteriorModes(const AdmixOptions& options,
+			  const vector<bclib::Regression*> &R,
+			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, AlleleFreqs* A,
 			  const Vector_s& PopulationLabels);
 
   void OutputIndAdmixture();
   double getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *> &R, Genome* Loci,
 				    bclib::LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
 
-  void WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels, 
+  void WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels,
 			   Genome* Loci)const;
   void OutputChibResults(bclib::LogWriter&)const;
 
@@ -110,5 +110,3 @@ private:
 };
 
 #endif /* !defined ADMIX_INDIVIDUAL_COLLECTION_H */
-
-
