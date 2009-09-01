@@ -4,12 +4,15 @@
  *   This file is part of bcppcl
  *   Class to read program options and flags. 
  *   Copyright (c) 2007 David O'Donnell
+ *   Portions Copyright (c) 2009 David D. Favro
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
  * version 2 or later, as published by the Free Software Foundation. 
  * See the file COPYING for details.
- * 
+ */
+
+/**
  *   Acts as a utility class for reading
  *   commandline options as well as options from
  *   an optionfile with delimited type value pairs.
@@ -35,8 +38,10 @@
  *
  * Why not just use getopt() ?
  *
- *   getopt is C, this is pure C++ and a lot easier to use. Also, getopt is a POSIX standard not part of ANSI-C.
- *   So it may not be available on platforms like Windows.
+ *   getopt is C, this is pure C++ [DDF: actually, non-type-safe code like this
+ *   is not very "pure" C++] and a lot easier to use Also, getopt is a POSIX
+ *   standard not part of ANSI-C.  So it may not be available on platforms like
+ *   Windows.
  */
 
 #ifndef OPTIONREADER_H
@@ -52,6 +57,12 @@ using namespace::std;
 
 BEGIN_BCLIB_NAMESPACE
 
+
+/** \addtogroup bclib
+ * @{ */
+
+
+
 enum OptionType{nullOption, boolOption, intOption, longOption, floatOption, doubleOption, charOption, stringOption, fvectorOption, dvectorOption, uivectorOption, rangeOption, outputfileOption, oldOption};
 
 /// pair to identify types of data members
@@ -64,12 +75,12 @@ class OptionReader{
 public:
   OptionReader();
   virtual ~OptionReader();
-  ///togle verbosity. true complains to cerr when there are problems
+  ///toggle verbosity. true complains to cerr when there are problems
   void setVerbose(bool);
   ///read options, autodetecting file or command args, and set values
-  virtual bool ReadUserOptions(int, char**, const char* fileargIndicator = 0);
+  virtual bool ReadUserOptions( int argc, char** argv, const char* fileargIndicator = 0);
   ///read command-line options
-  bool ReadCommandLineArgs(const int argc, char** argv, const char* fileargIndicator= 0);
+  bool ReadCommandLineArgs( int argc, char** argv, const char* fileargIndicator= 0);
   ///read options from file
   bool ReadArgsFromFile(const char* filename);
   ///check if all required options have been specified
@@ -81,6 +92,19 @@ public:
 
   ///add a long option
   void addOption(const string&, OptionType, void*, bool required = false);
+
+    // D. Favro: adding a few type-safe versions here -- above non-type-safe
+    //	version should not be public.  Actually, the whole thing needs to be
+    //	redesigned from the ground up, but for the moment as a hacked-up
+    //	workaround, these will help.
+
+    void addOption( const string & optName, long & value, long defaultValue = 0 ) { value=defaultValue; addOption(optName,longOption,&value,false); } ///< Add a long option of type long (type-safe)
+    void addOption( const string & optName, long & value, bool required ) { addOption(optName,longOption,&value,required); } ///< Add a long option of type long (type-safe)
+
+    void addOption( const string & optName, bool & value, bool defaultValue = false ) { value=defaultValue; addOption(optName,boolOption,&value,false); } ///< Add a long option of type bool (type-safe)
+
+    // And so on...
+
   void addOption(const char*, OptionType, void*, bool required = false);
   ///add a short option
   void addOption(char, OptionType, void*, bool required = false);
@@ -146,6 +170,10 @@ private:
   OptionReader& operator=(const OptionReader&);
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 
 #endif /* OPTIONREADER_H */
