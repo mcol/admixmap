@@ -41,71 +41,33 @@
 namespace genepi { // ----
 
 
-
-static const int BSIZE = 30;
-
-
-estr::estr( short x )
-    {
-    char buf[BSIZE];
-    const int rc = snprintf( buf, sizeof(buf), "%hd", x );
-    gp_assert( (rc>=0) && (rc<int(sizeof(buf))) );
-    std::string::operator=( buf );
-    }
+static const size_t ES_BSIZE = 28;
 
 
-estr::estr( unsigned short x )
-    {
-    char buf[BSIZE];
-    const int rc = snprintf( buf, sizeof(buf), "%hu", x );
-    gp_assert( (rc>=0) && (rc<int(sizeof(buf))) );
-    std::string::operator=( buf );
-    }
+#define ECON(T,FMT) \
+    estr::estr( T x ) \
+	{ \
+	char buf[ES_BSIZE]; \
+	const int rc = snprintf( buf, sizeof(buf), "%" #FMT, x ); \
+	gp_assert( (rc>=0) && (rc<int(sizeof(buf))) ); \
+	std::string::operator=( buf ); \
+	}
 
 
-estr::estr( int x )
-    {
-    char buf[BSIZE];
-    const int rc = snprintf( buf, sizeof(buf), "%d", x );
-    gp_assert( (rc>=0) && (rc<int(sizeof(buf))) );
-    std::string::operator=( buf );
-    }
+ECON( short	    , hd )
+ECON( unsigned short, hu )
+ECON( int	    , d  )
+ECON( unsigned int  , u  )
+ECON( double	    , lf )
 
-
-estr::estr( unsigned int x )
-    {
-    char buf[BSIZE];
-    const int rc = snprintf( buf, sizeof(buf), "%u", x );
-    gp_assert( (rc>=0) && (rc<int(sizeof(buf))) );
-    std::string::operator=( buf );
-    }
-
-
-estr::estr( long x )
-    {
-    char buf[BSIZE];
-    const int rc = snprintf( buf, sizeof(buf), "%ld", x );
-    gp_assert( (rc>=0) && (rc<int(sizeof(buf))) );
-    std::string::operator=( buf );
-    }
-
-
-estr::estr( unsigned long x )
-    {
-    char buf[BSIZE];
-    const int rc = snprintf( buf, sizeof(buf), "%lu", x );
-    gp_assert( (rc>=0) && (rc<int(sizeof(buf))) );
-    std::string::operator=( buf );
-    }
-
-
-estr::estr( double x )
-    {
-    char buf[BSIZE];
-    const int rc = snprintf( buf, sizeof(buf), "%lf", x );
-    gp_assert( (rc>=0) && (rc<int(sizeof(buf))) );
-    std::string::operator=( buf );
-    }
+// See https://bugs.launchpad.net/ubuntu/+bug/221979
+#if defined(__WIN32)
+    estr::estr(		 long x ) { operator=( static_cast<	    int>( x ) ); }
+    estr::estr( unsigned long x ) { operator=( static_cast<unsigned int>( x ) ); }
+#else
+    ECON( long int	    , ld )
+    ECON( unsigned long int , lu )
+#endif
 
 
 
@@ -119,6 +81,28 @@ bool estr::equalsCaseInsens( const estr & rhs ) const
 bool equalsCaseInsens( const std::string & lhs, const std::string & rhs )
     {
     return (strcasecmp( lhs.c_str(), rhs.c_str() ) == 0);
+    }
+
+
+
+void stripWhitespace( std::string & str )
+    {
+    std::string::iterator iter;
+    for ( iter = str.begin() ;
+	    (iter != str.end()) && isblank(*iter) ;
+	    ++iter )
+	; // Do nothing
+    if ( iter != str.begin() )
+	str.erase( str.begin(), iter );
+
+    std::string::reverse_iterator endIter;
+    for ( endIter = str.rbegin() ;
+	    (endIter != str.rend()) && isblank(*endIter) ;
+	    ++endIter )
+	; // Do nothing
+    const std::string::size_type cutChars = (endIter - str.rbegin());
+    if ( cutChars != 0 )
+	str.resize( str.length() - cutChars );
     }
 
 

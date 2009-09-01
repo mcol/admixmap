@@ -1,4 +1,4 @@
-//=============================================================================
+bcli//=============================================================================
 //
 // Copyright (C) 2009  David D. Favro
 //
@@ -63,17 +63,24 @@ class estr : public std::string
 	//------------------------------------------------------------------
 	// Constructors (specializations and catch-all template):
 	//------------------------------------------------------------------
+
+	//#if defined(__GNUC__) && ((__GNUC__ < 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ < 3)))
+	#if defined(__WIN32)
+	    estr( const std::string & x ) : std::string( x ) {}
+	    estr( const char *	      x ) : std::string( x ) {}
+	#else
+	    template< typename T > estr( const T & x ) : std::string( x ) {}
+	#endif
+
 	estr( short	     x );
 	estr( unsigned short x );
 	estr( int	     x );
 	estr( unsigned int   x );
-	estr( long	     x );
+	estr( long int	     x );
 	estr( unsigned long  x );
 	estr( double	     x );
 
 	estr() {}
-
-	template< typename T > estr( const T & x ) : std::string( x ) {}
 
 
 
@@ -133,7 +140,7 @@ class estr : public std::string
 	template< typename T > estr operator+ ( const T & x )
 	    { return ((*reinterpret_cast<std::string*>(this)) + x); }
 
-	#define ESTR_PLUS(T) estr operator+( T x ) { return (*this) + estr(x); }
+	#define ESTR_PLUS(T) estr operator+( const T & x ) { return (*this) + estr(x); }
 	    ESTR_PLUS(short);
 	    ESTR_PLUS(unsigned short);
 	    ESTR_PLUS(int);
@@ -145,10 +152,16 @@ class estr : public std::string
 
 
 	bool equalsCaseInsens( const estr & rhs ) const;
+
+	void stripWhitespace();
     };
 
 
 bool equalsCaseInsens( const std::string & lhs, const std::string & rhs );
+void stripWhitespace( std::string & str );
+
+
+inline void estr::stripWhitespace() { genepi::stripWhitespace(*this); }
 
 
 
