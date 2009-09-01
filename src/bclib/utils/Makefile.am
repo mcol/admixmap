@@ -6,7 +6,7 @@ AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
 
 #sources for the sublibrary
-all_SOURCES = functions.cc DataReader.cc DataMatrix.cc LogWriter.cc OptionReader.cc StringConvertor.cc StringSplitter.cc GSLErrorHandler.cc ProbVector.cc pvector.cc IsNegative.h DelimitedBuf.cc Delimitedostream.cc RObjectWriter.cc
+all_SOURCES = functions.cc DataReader.cc DataMatrix.cc LogWriter.cc OptionReader.cc StringConvertor.cc StringSplitter.cc GSLErrorHandler.cc ProbVector.cc pvector.cc IsNegative.h DelimitedBuf.cc Delimitedostream.cc RObjectWriter.cc exceptions.cc estr.cc
 
 if PARALLEL
 noinst_LTLIBRARIES = libutils-para.la
