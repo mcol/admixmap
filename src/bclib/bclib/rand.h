@@ -22,6 +22,11 @@ extern "C" {
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 /// Random number generators
 class Rand{
 public:
@@ -51,7 +56,10 @@ public:
 
   static int SampleFromDiscrete( const double probs[] , int numberofelements);
   ///Dirichlet
-  static void gendirichlet(const size_t K, const double alpha[], double theta[] );
+  template<typename ConstVecType, typename VecType> \
+	static void gendirichlet( size_t K, ConstVecType & alpha, VecType & theta );
+  static void gendirichlet( size_t K, const double * alpha, double * theta )
+      { gendirichlet<const double *, double *>( K, alpha, theta ); }
 
 private:
   static gsl_rng *RandomNumberGenerator;
@@ -60,5 +68,9 @@ private:
   Rand& operator=(const Rand);
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

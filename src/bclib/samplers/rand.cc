@@ -12,6 +12,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <vector>
 #include "bclib/rand.h"
 #include <limits>
 #include <sstream>
@@ -22,6 +23,14 @@ extern "C" {
 #include "gsl-sprng.h"
 #endif
 }
+
+
+#define INEXPLICABLY_THROW_AWAY_ERROR_INFO  0
+
+
+// For template instantiation:
+#include "bclib/pvector.h"
+
 
 using namespace std;
 
@@ -164,13 +173,31 @@ int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
   delete[] cdf;
   return(k);
 }
+
+
+
 /// ** Dirichlet distribution **
-void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] ) {
+#if 0
+    void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] )
+#else
+    template<typename ConstVecType, typename VecType> \
+	void Rand::gendirichlet( size_t K, ConstVecType & alpha, VecType & theta )
+#endif
+  {
+    #if 0 // We can't do this because the template is used with "double *" arrays.
+	gp_assert_eq( theta.size(), K );
+	gp_assert_eq( alpha.size(), K );
+    #endif
+
     //bool invalid = false;
   //do{
     //invalid = false;
     double sum = 0.0;
-    try{
+
+    #if INEXPLICABLY_THROW_AWAY_ERROR_INFO
+	try{
+    #endif
+
       for( unsigned int i = 0; i < K; i++ ) {
 	if( alpha[i] > 0 ){
 	  theta[i] = gengam( alpha[i], 1.0 );
@@ -178,10 +205,14 @@ void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] ) {
 	else theta[i] = 0.0;
 	sum += theta[i]; 
       }
-    }
-    catch(...){
-      throw string ("Error in gendirichlet");
-    }
+
+    #if INEXPLICABLY_THROW_AWAY_ERROR_INFO
+	}
+	catch(...){
+	  throw string ("Error in gendirichlet");
+	}
+    #endif
+
     if( sum > 0.0 )
       for( unsigned int i = 0; i < K; i++ ){
 	theta[i] /= sum;
@@ -197,5 +228,14 @@ void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] ) {
     //while(invalid);
   
 }
+
+
+// Instantiate templates:
+template void Rand::gendirichlet<const double *,double *>( size_t K, const double * & alpha, double * & theta );
+template void Rand::gendirichlet<double *,double *>( size_t K, double * & alpha, double * & theta );
+template void Rand::gendirichlet< const std::vector<double>, std::vector<double> >( size_t K, const std::vector<double> & alpha, std::vector<double> & theta );
+template void Rand::gendirichlet< const std::vector<double>, bclib::pvector<double> >( size_t K, const std::vector<double> & alpha, pvector<double> & theta );
+
+
 
 END_BCLIB_NAMESPACE
