@@ -121,7 +121,14 @@ sub doAnalysis
 	{
 	print STDERR PROG . ": $command exited with non-zero status: $status\n";
 	}
-
+    else
+	{
+	# Strip quotes that the "old" admixmap incorrectly leaves on locus
+	# labels, making false differences with the new version's output.  This
+	# would presumably be much better done within this perl script itself.
+	exec_cmd( "sed -i -r 's/(^[^ \\t]+[ \\t]+[0-9]+[ \\t]+[0-9.]+[ \\t]+)\"([^\"]+)\"\$/\\1\\2/' \"$resultsdir"
+		    . DIR_SEP . "LocusTable.txt\"" );
+	}
     exec_cmd( "mv \"$outfile\" \"$resultsdir".DIR_SEP."$outfile\"" ) if ( defined $outfile );
 
     die if ( $abort_err && ($status != 0) );
