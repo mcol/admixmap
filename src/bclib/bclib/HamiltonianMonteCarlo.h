@@ -25,6 +25,11 @@ extern "C" {
 }
 
 BEGIN_BCLIB_NAMESPACE
+
+/** \addtogroup bclib
+ * @{ */
+
+
 /**
  *   Class to implement a Hamiltonian (or hybrid )Monte Carlo sampler.
  *   See Information Theory, Inference, and Learning Algorithms by David Mackay (1993), Neal (1993).
@@ -57,7 +62,7 @@ private:
   double* xnew, *g, *gnew, *p;
   long overall_accept_count;
   long totalsamples;//  "        "      "     "   "    "  in total
-  bclib::StepSizeTuner Tuner;
+  StepSizeTuner Tuner;
 
   bool monitor;
   std::ofstream outfile;
@@ -66,5 +71,9 @@ private:
 
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif /* !defined HMC_H */

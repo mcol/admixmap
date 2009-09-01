@@ -21,6 +21,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 /**
    object to hold the various attributes of a point used in ARS.
    Intended to be used in a vector and thus sortable
@@ -112,7 +117,11 @@ private:
 
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif
 
 

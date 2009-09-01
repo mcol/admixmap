@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///Struct to hold arguments for sampling logistic regression parameters
 typedef struct{
   ///number of individuals
@@ -70,5 +75,9 @@ private:
 		  LogWriter &Log);
 
 };
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

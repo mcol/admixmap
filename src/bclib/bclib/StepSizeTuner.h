@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 /**
  *   This class is used to tune the step size in a Metropolis update, eg proposal sd in a Random Walk , 
  *   in order to reach a specified acceptance rate.
@@ -58,5 +63,9 @@ private:
   int NumberAccepted; // Number of accepted proposals in since last update
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif /* ! StepSizeTuner_H */

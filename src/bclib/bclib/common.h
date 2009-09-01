@@ -1,4 +1,14 @@
 // *-*-C++-*-*
+
+/// \file common.h
+/// <B>Many</B> standard-library (STL, iostream, etc.) include files are
+/// included from here, as well as some types defined.
+///
+/// @warning
+/// <B>WARNING!</B> this file duplicates, in the global namespace, symbols that
+/// are also defined in @a <bclib/common.h>
+
+
 #ifndef COMMON_H
 #define COMMON_H 1
 

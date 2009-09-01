@@ -20,6 +20,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///extension of std::streambuf to write delimited output
 class DelimitedStreamBuf : public std::streambuf
 {
@@ -117,6 +122,10 @@ inline void newline(DelimitedFileBuf& tb ){
   tb.needNewLine = true;
 }
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 
 #endif

@@ -20,6 +20,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///extension of DelimitedFileWriter to write an array as an R object
 class RObjectWriter : public DelimitedFileWriter{
 public:
@@ -70,5 +75,9 @@ private:
   void operator=(const RObjectWriter& );
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

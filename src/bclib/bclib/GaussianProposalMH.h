@@ -17,6 +17,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///Class to implement a Metropolis Hastings update with Gaussian proposal distribution
 class GaussianProposalMH
 {
@@ -55,5 +60,9 @@ private: // members
 
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif /* !defined GAUSSIANPROPOSALMH_H */

@@ -6,6 +6,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 //Throw exceptions instead of using GSL error handler function which
 //prefers to call abort().
 
@@ -18,5 +23,9 @@ BEGIN_BCLIB_NAMESPACE
 void GSLErrorHandler(const char * reason, const char * file, 
 			  int line, int gsl_errno); 
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif //__GSLERRORHANDLER_H__

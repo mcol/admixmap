@@ -5,19 +5,26 @@
 #include <vector>
 #include <string>
 
-typedef std::vector<std::string> Vector_s; //std vector of strings 
+typedef std::vector<std::string> Vector_s; //std vector of strings
 typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 /**
  *  @class StringSplitter.
- *  Used to split string to separate words. Words can be 
+ *
+ *  Used to split string to separate words (tokens). Words can be
  *      enclosed or not enclosed in quotes. Words enclosed in quotes can contain
- *      space symbols.
+ *      space symbols.  Quotation marks (") and backslashes (\) within a quoted string must be escaped by preceding them with a backslash.
+ *
  *  Important:
  *      Enclosing quotes are removed from resulting strings.
- *  Implementation: 
+ *  Implementation:
  *      Class uses "State" pattern (GoF).
  */
 class StringSplitter
@@ -25,12 +32,12 @@ class StringSplitter
 public:
   StringSplitter();
   ~StringSplitter();
-  
+
   // = Splitting (see comments for class above).
 
-  /// splits a char array into a vector of strings, splitting on whitespace ro supplied delimiter(s).  
+  /// splits a char array into a vector of strings, splitting on whitespace or supplied delimiter(s).
   const Vector_s& split(const char *str, char delim = ' ');
-  /// splits a string into a vector of strings, splitting on whitespace or supplied delmiter(s). 
+  /// splits a string into a vector of strings, splitting on whitespace or supplied delmiter(s).
   const Vector_s& split(const std::string& str, char delim = ' ');
   ///   Splits a string into tokens, splitting on any character(s).
   static void Tokenize(const std::string& str,
@@ -63,5 +70,9 @@ private:
     StringSplitter(const StringSplitter&);
     void operator=(const StringSplitter&);
 };
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif /* STRING_SPLITTER_H */

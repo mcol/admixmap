@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///Class to represent a matrix of data, possibly read in from file
 class DataMatrix{
 public:
@@ -52,5 +57,9 @@ private:
   void throwBoundsViolation(unsigned, unsigned)const;
   //void operator=(const DataMatrix&);
 };
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

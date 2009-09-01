@@ -30,6 +30,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 /// struct to hold arguments for sampler for Dirichlet parameters
 typedef struct{
   int dim;
@@ -117,6 +122,10 @@ private:
   void Initialise();
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif 
 /* ! DirichletParamSampler_H */

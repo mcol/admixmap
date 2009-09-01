@@ -6,6 +6,11 @@
 #include <vector>
 
 BEGIN_BCLIB_NAMESPACE
+
+/** \addtogroup bclib
+ * @{ */
+
+
 ///  Utility class used to convert string to other types.
 class StringConvertor
 {
@@ -41,5 +46,9 @@ public:
   /// a dummy function
   static bool dummy();
 };
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif /* !STRING_CONVERTOR_H */

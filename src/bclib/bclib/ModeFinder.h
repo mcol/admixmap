@@ -5,6 +5,11 @@
 #include "bclib/bclib.h"
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///class for finding modes of functions
 class ModeFinder{
 
@@ -29,5 +34,9 @@ class ModeFinder{
 				   double (*gradient)(double, const void* const) ) ; 
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

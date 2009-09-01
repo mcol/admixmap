@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///Class to represent a multivariate Gaussian distribution and sample from it
 class Gaussian
 {
@@ -77,5 +82,9 @@ private:
 
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

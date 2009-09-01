@@ -8,6 +8,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 class InfinityException : public std::exception{
 public:
   InfinityException();
@@ -77,5 +82,9 @@ private:
 
   DataOutOfRangeException();
 };
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

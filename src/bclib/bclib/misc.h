@@ -19,6 +19,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 // transformations
 double AverageOfLogs(const std::vector<double>& vec, double max);
 
@@ -48,5 +53,9 @@ double digamma(double x);
 ///trigamma function with error handling
 double trigamma(double x);
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif /* !MISCFUNCTIONS_H */

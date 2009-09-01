@@ -25,6 +25,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///Abstract Base Class for a generic Bayesian Regression
 class Regression{
 public:
@@ -82,5 +87,9 @@ private:
   Regression();
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

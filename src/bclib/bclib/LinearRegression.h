@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///Class to sample the parameters of a linear regression
 class LinearRegression : public bclib::Regression{
 public:
@@ -51,6 +56,11 @@ private:
 		  LogWriter &Log);
 
 };
+
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 
 #endif

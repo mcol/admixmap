@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///An extension of std::ostream to write delimited output
 class Delimitedostream : public std::ostream{
 public:
@@ -87,5 +92,9 @@ Delimitedostream& operator<<(Delimitedostream& FW, void (*manip)(Delimitedostrea
 ///stream insertion for std::endl, std::ends, std::flush
 Delimitedostream& operator<<(Delimitedostream& FW, std::ostream& (*manip)(std::ostream& ));
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

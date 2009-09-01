@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 // ************** Densities *******************
 
 /// log of gamma(alpha, beta) density at x
@@ -40,5 +45,9 @@ void gradientGammaGammaLogLikelihood(const double a, const double a0, const doub
 				     const int N, const std::vector<double>& x, 
 				     const double sumlogx, double* g);
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif /* !DIST_H */

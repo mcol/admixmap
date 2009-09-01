@@ -18,6 +18,11 @@ using std::string;
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///generic error and base struct
 class GSLerror : public std::exception{   
  public:
@@ -312,5 +317,9 @@ struct indexOutOfRange : public badArgument{
     badArgument(r,f,l) {};
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif //__GSLEXCEPTIONS_H__

@@ -19,6 +19,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 typedef struct{
   const int *counts;
   const double *counts1;
@@ -59,5 +64,9 @@ private:
   static double DlogJacobian(const double* const a, const double z, unsigned H, unsigned h, double delta);
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

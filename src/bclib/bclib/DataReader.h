@@ -13,6 +13,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///  Utility class for reading data from file into a matrix of strings or a DataMatrix
 class DataReader{
 public:    
@@ -32,5 +37,9 @@ private:
 
   static void readFile(const char *fname, Matrix_s& data, LogWriter &Log, bool requireHeader=true);
 };
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif /* !defined DATAREADER_H */

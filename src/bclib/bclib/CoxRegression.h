@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///Struct to hold arguments for sampling logistic regression parameters
 typedef struct{
   int n;  ///< number of individuals
@@ -79,5 +84,9 @@ private:
   void Initialise(double priorPrecision, const bclib::DataMatrix& Covars, const bclib::DataMatrix& Outcome, 
 		  LogWriter &Log);
 };
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///struct to hold the arguments for sampler for dispersion parameters
 typedef struct{
   const int** counts;
@@ -59,5 +64,9 @@ private:
   static void etaGradient(const double * const logitmu, const void* const args, double *g);
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif

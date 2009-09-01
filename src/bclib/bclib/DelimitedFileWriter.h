@@ -18,6 +18,11 @@
 
 BEGIN_BCLIB_NAMESPACE
 
+/** \addtogroup bclib
+ * @{ */
+
+
+
 ///extension of Delimited ostream to write delimited files
 class DelimitedFileWriter : public Delimitedostream{
 public:
@@ -79,5 +84,9 @@ private:
 
 };
 
+
+/** @} */
+
 END_BCLIB_NAMESPACE
+
 #endif
