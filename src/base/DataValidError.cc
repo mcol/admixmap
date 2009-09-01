@@ -24,7 +24,7 @@
 
 #include "DataValidError.h"
 
-#include "estr.h"
+#include "bclib/estr.h"
 
 
 using namespace std;

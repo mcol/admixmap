@@ -11,6 +11,8 @@
  */
 
 #include <cstdlib>
+#include <iostream>
+#include <iomanip>
 #include "Model.h"
 #include <dirent.h>//for OpenResultsDir
 #ifdef HAVE_CONFIG_H 
@@ -98,9 +100,9 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
 }
 
 void ThrowException(const string& msg, bclib::LogWriter & Log){
-  Log << bclib::On << "\n"
+  Log << bclib::On << "\n\n"
 	"UNCAUGHT EXCEPTION: " << msg << "\n"
-	"Exiting...\n";
+	"Exiting...\n\n";
   Log.ProcessingTime();
   exit(1);
 }
@@ -110,7 +112,7 @@ void ThrowException(const string& msg, bclib::LogWriter & Log){
 */
 void WriteIterationNumber(const int iteration, const int width, int displayLevel) {
   if( displayLevel > 2 ) {
-    cout << setiosflags( ios::fixed );//causes memory leak/overwrite error
+    cout << std::setiosflags( ios::fixed );//causes memory leak/overwrite error
     cout.width(width );
     cout << "\n"<< iteration << " ";
   }

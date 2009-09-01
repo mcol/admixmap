@@ -44,9 +44,9 @@ protected:
 #if USE_GENOTYPE_PARSER
     class AdmixGenotypeIterator : public GenotypeIterator {
      private:
-      const std::vector<genepi::Genotype> & v;
+      const genepi::GenotypeArray & v;
      public:
-      AdmixGenotypeIterator(  const std::vector<genepi::Genotype>& in, ploidy p) :
+      AdmixGenotypeIterator(  const genepi::GenotypeArray & in, ploidy p) :
 	GenotypeIterator( p == diploid ) ,
 	v		( in	       ) {}
       unsigned short operator() (unsigned j, unsigned g) const;

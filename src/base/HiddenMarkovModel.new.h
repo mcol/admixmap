@@ -1,0 +1,174 @@
+//=============================================================================
+//
+// Copyright (C) 2009  David D. Favro  gpl-copyright@meta-dynamic.com
+//
+// This is free software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License version 3 as published by the Free
+// Software Foundation.
+//
+// This software is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this software; see the file COPYING.  If not, it can be found at
+// http://www.gnu.org/copyleft/gpl.html or by writing to the Free Software
+// Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+//
+//=============================================================================
+
+//=============================================================================
+/// \file HiddenMarkovModel.new.h
+/// Definition of the genepi::HiddenMarkovModel class.
+//=============================================================================
+
+#ifndef __base_HiddenMarkovModel_new_h
+#define __base_HiddenMarkovModel_new_h
+
+
+
+// For the moment, we'll avoid mixing the "old" code with the "new" code, so no
+// common base class for the HMMs:
+#define HAVE_HMM_BASE 0
+#if HAVE_HMM_BASE
+    #include "HMMBase.h"
+#endif
+#include "HiddenStateSpace.h"
+#include "Pedigree.h"
+#include "TransProbCache.h"
+#include <bclib/cvector.h>
+
+
+#define HMM_OTF_RENORM			1
+
+/// Should the forwards and backwards recursions be done in parallel?
+#define HMM_PARALLELIZE_FWD_BKWD	1
+
+
+
+namespace genepi { // ----
+
+
+/** \addtogroup base
+ * @{ */
+
+
+/// Hidden Markov Model to be used with pedgrees.  This differs from the class
+/// used with individuals only in the namespace (genepi:: vs. ::).  This is
+/// confusing and should be changed.
+
+class HiddenMarkovModel /*: public HMMBase*/
+    {
+    protected:
+	typedef double ProbType;
+
+	/// Probability array type, for the forward (alpha) and backwards(beta)
+	/// probabilities: indexed on locus-index (t); within each locus,
+	/// indexed on hidden-state-index.
+	typedef cvector< ProbType	  > ProbsAtLocusType ;
+	typedef cvector< ProbsAtLocusType > ProbArrType	     ;
+	typedef Pedigree::ThetaType	    ThetaType	     ;
+
+    private:
+	const Pedigree *	ped	; ///< Ref to ped for hidden state space, etc.
+	const TransProbCache *	tpCache ; ///< Transition probabilities.  These should perhaps
+					  ///< be retrieved from the Pedigree object itself
+
+	#if 0
+	    // Can operate on a sub-range of the loci (e.g. a single chromosome):
+	    SimpleLocusArray::const_iterator firstLocus ;
+	    SimpleLocusArray::const_iterator lastLocus  ;
+	#endif
+
+
+	/// Theta probabilities for the founder-gametes, indexed on PopIdxType
+	/// AKA Theta
+	const ThetaType * theta;
+
+	mutable bool dirtyForwards ; ///< Input parameters have changed since last compute
+	mutable bool dirtyBackwards; ///< Input parameters have changed since last compute
+
+	mutable ProbArrType alpha ; ///< Forward probability array: indexed on locus, then hidden-state-index
+	mutable ProbArrType beta  ; ///< Forward probability array: indexed on locus, then hidden-state-index
+	#if HMM_OTF_RENORM
+	    mutable double norm_log_sum_alpha;
+	    mutable double norm_log_sum_beta;
+	#endif
+
+	/// Do the main forwards-backwards computation
+	void computeForwardsBackwards() const;
+
+    protected:
+	void assureNotDirty() const { if ( dirtyForwards || dirtyBackwards ) computeForwardsBackwards(); }
+
+	/// The forwards probability array: indexed on locus, then hidden-state-index.
+	const ProbArrType & getAlpha() const
+	    {
+	    if ( dirtyForwards )
+		computeForwardsBackwards();
+	    return alpha;
+	    }
+
+	/// The backwards probability array: indexed on locus, then hidden-state-index
+	const ProbArrType & getBeta () const
+	    {
+	    if ( dirtyBackwards )
+		computeForwardsBackwards();
+	    return beta;
+	    }
+
+
+    public:
+
+	/// Construct the model.
+	/// @parm theta - see setTheta()
+	HiddenMarkovModel( const Pedigree & ped , const TransProbCache & tpCache ,
+			    const ThetaType * theta = 0 );
+
+	const Pedigree &       getPed() const { return *ped    ; } ///< Get reference to Pedigree
+	const TransProbCache & getTPC() const { return *tpCache; } ///< Get reference to TransProbCache
+
+
+	/// Get the number of loci to model.
+	SLocIdxType getNLoci() const { return getPed().getSLoci().size(); }
+
+
+	/// Set the founder-gamete theta probabilities, indexed on
+	/// PopIdxType (not Pedigree::FounderIdxType).  The model does @b not copy nor take
+	/// ownership; the vector must not be destroyed for as long as the model
+	/// continues to exist, or until a new theta vector is set.  We
+	/// @i really need a copy-on-write vector template.
+	void setTheta( const ThetaType * nv );
+	void thetaChanged() const;
+
+
+	/// Get the natural logarithm of the likelihood (probability of the data given the model).
+	double getLogLikelihood() const;
+
+
+// For the moment, we'll avoid mixing the "old" code with the "new" code, so no common base class for the HMMs:
+#if HAVE_HMM_BASE
+    //------------------------------------------------------------------------
+    // === HMMBase OVERRIDDEN METHODS ===
+    //------------------------------------------------------------------------
+    void SetGenotypeProbs( const double * lambdain, const bool * missing );
+    void SetStateArrivalProbs( const double * Theta, int Mcol, bool isdiploid );
+    void SampleHiddenStates( int * SStates, bool isdiploid );
+    const bclib::pvector<double> & GetHiddenStateProbs( const bool isDiploid, int t );
+    double getLogLikelihood( bool isDiploid );
+    void SampleJumpIndicators( const int * LocusAncestry, const unsigned int gametes, int * SumLocusAncestry,
+		cvector<unsigned> & SumNumArrivals, bool SampleArrivals, unsigned startlocus ) const;
+#endif
+
+    };
+
+
+
+/** @} */
+
+} // ---- end namespace genepi
+
+
+
+#endif // ! __base_HiddenMarkovModel_new_h

@@ -26,7 +26,7 @@
 #include "GenotypeIterator.h"
 
 #include <stdexcept>
-#include "estr.h"
+#include "bclib/estr.h"
 
 
 

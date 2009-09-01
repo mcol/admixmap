@@ -94,7 +94,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
       }
       
       for(int i = 0; i < IC->getSize(); ++i) { // loop over individuals to get locus ancestry
-	const Individual & ind = *(IC->getIndividual(i));
+	const PedBase & ind = IC->getElement(i);
 	//bool diploid = !ind.isFemale() && Loci->isXLocus(complocus);
 	bool diploid = !(ind.isHaploidatLocus(complocus));
 	if(diploid){//skip Xloci in males

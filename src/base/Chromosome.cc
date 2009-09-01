@@ -19,6 +19,7 @@
 
 using namespace std;
 
+/// @parm inNumHiddenStates Not really the number of hidden states.
 Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool isx = false):
   NumberOfCompositeLoci(size), isX(isx), Number(n), _startLocus(start), NumHiddenStates(inNumHiddenStates)
  {
@@ -32,7 +33,7 @@ Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool i
    f = new double[2*size];
    f[0] = f[1] = 0.0;
    
-   HMM = new HiddenMarkovModel( size, NumHiddenStates, f);
+   HMM = new HiddenMarkovModel( size, NumHiddenStates, NumHiddenStates*NumHiddenStates, f);
  }
 
 Chromosome::~Chromosome()
@@ -114,7 +115,7 @@ double Chromosome::LocusCorrelation(unsigned locus, double drho){
    individual-level (non globalrho and assortative mating) sumintensities
    (2) vector of length 2 containing gamete-specific sumintensities for a single individual
 */
-void Chromosome::SetLocusCorrelation(const std::vector<double>& vrho, bool RandomMating=false){
+void Chromosome::SetLocusCorrelation(const genepi::cvector<double>& vrho, bool RandomMating=false){
   for( unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
     //first gamete
     f[2*j] = LocusCorrelation(j, vrho[0]);

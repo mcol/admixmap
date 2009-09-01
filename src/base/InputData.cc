@@ -73,6 +73,14 @@ void InputData::ReadData(Options *options, LogWriter &Log){
 	SimpleLocusParser::parse( options->getLocusFilename(), simpleLoci );
 	genotypeLoader = new GenotypeParser( options->getGenotypesFilename(), simpleLoci );
 
+	// Used to do here, but it turns out the number of populations is not
+	// yet known.  This is now called from InputAdmixData's constructor.
+	// (except that turned out to also be too soon, so it is called from
+	// InputAdmixData::finishConstructing()).
+	#if 0
+	    generatePedigrees( options );
+	#endif
+
 	if ( options->CheckData() && (genotypeLoader->getNWarnings() != 0) )
 	    {
 	    std::cerr << "Warnings treated as errors: aborting execution.\n";
@@ -124,7 +132,22 @@ void InputData::ReadData(Options *options, LogWriter &Log){
 }
 
 
-///determine number of individuals by counting lines in genotypesfile
+
+//-------------------------------------------------------------------------
+// generatePedigrees()
+//-------------------------------------------------------------------------
+
+void InputData::generatePedigrees( const Options & options )
+    {
+    if ( isPedFile() || options.getUsePedForInd() )
+	genepi::Pedigree::generatePedigrees( *genotypeLoader, peds );
+    }
+
+
+
+//-------------------------------------------------------------------------
+/// Determine number of individuals by counting lines in genotypesfile
+//-------------------------------------------------------------------------
 size_t InputData::getNumberOfIndividuals()const {
   #if USE_GENOTYPE_PARSER
     return genotypeLoader->getNumOrganisms();

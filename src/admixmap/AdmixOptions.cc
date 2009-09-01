@@ -284,7 +284,7 @@ int AdmixOptions::sizeInitAlpha() const
   return initalpha.size();
 }
 
-std::vector<double> AdmixOptions::getInitAlpha(int gamete) const
+const std::vector<double> & AdmixOptions::getInitAlpha(int gamete) const
 {
 //   switch(gamete){
 //   case 0: return alpha0;
@@ -297,15 +297,16 @@ std::vector<double> AdmixOptions::getInitAlpha(int gamete) const
 //   }
   return initalpha[gamete];
 }
-std::vector<std::vector<double> > AdmixOptions::getInitAlpha()const{
+const genepi::cvector<std::vector<double> > & AdmixOptions::getInitAlpha()const{
   return initalpha;
 }
 
 bool AdmixOptions::isSymmetric()const{
   return _symmetric;
 }
-bool AdmixOptions::isAdmixed(unsigned gamete)const{
-  return _admixed[gamete];
+
+bool AdmixOptions::isAdmixed(unsigned gamete) const {
+  return _admixed.at(gamete);
 }
 
 const char* AdmixOptions::getIndAdmixModeFilename()const{
@@ -314,10 +315,7 @@ const char* AdmixOptions::getIndAdmixModeFilename()const{
 bool AdmixOptions::PopAdmixturePropsAreEqual()const{
   return PopAdmixPropsAreEqual;
 }
-const vector<float>& AdmixOptions::getrhoSamplerParams()const{
-  return rhoSamplerParams;
-}
-const vector<float>& AdmixOptions::getPopAdmixSamplerParams()const{
+const genepi::cvector<float>& AdmixOptions::getPopAdmixSamplerParams()const{
   return popAdmixSamplerParams;
 }
 
@@ -351,7 +349,6 @@ void AdmixOptions::DefineOptions(){
   addOption("popadmixproportionsequal", boolOption, &PopAdmixPropsAreEqual);
 
   //sampler settings
-  addOption("rhosamplerparams", fvectorOption, &rhoSamplerParams);
   addOption("popadmixsamplerparams", fvectorOption, &popAdmixSamplerParams);
   // test options
   addOption("ancestryassociationtest", boolOption, &TestForLinkageWithAncestry);
@@ -674,13 +671,13 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
 void AdmixOptions::setInitAlpha(bclib::LogWriter &Log){
   _admixed.resize(2,(bool)(Populations>1));
   _symmetric = true;
-  vector<double> alphatemp(Populations);
+  genepi::cvector<double> alphatemp(Populations);
   Log.setDisplayMode(Quiet);
 
   //if no initalpha is specified, alpha for both gametes is initialised to 1.0 for each population  
   if( initalpha[0].size() == 0 && initalpha[1].size() == 0 ){
     fill( alphatemp.begin(), alphatemp.end(), 1.0);//fill alphatemp with 1s
-    initalpha[0] = alphatemp; initalpha[1] = alphatemp;//put 2 copies of alphatemp in alpha
+    initalpha[0] = alphatemp.getVector_unsafe(); initalpha[1] = alphatemp.getVector_unsafe();//put 2 copies of alphatemp in alpha
     if(!IndAdmixHierIndicator)
       Log << "Dirichlet parameters of prior on admixture: ";
     else 
@@ -692,7 +689,7 @@ void AdmixOptions::setInitAlpha(bclib::LogWriter &Log){
   //if only initalpha0 specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed
   else if( initalpha[0].size() > 0 && initalpha[1].size() == 0 ){
-    _admixed[0] = CheckInitAlpha( initalpha[0] );
+    _admixed.at(0) = CheckInitAlpha( initalpha[0] );
     initalpha[1] = initalpha[0];//put 2 copies of alpha[0] in alpha
     if(!IndAdmixHierIndicator)
       Log << "Dirichlet parameters of prior on admixture: ";
@@ -704,8 +701,8 @@ void AdmixOptions::setInitAlpha(bclib::LogWriter &Log){
   //if both are specified and there is no hierarchical model on admixture,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
   else if( !IndAdmixHierIndicator ){ 
-    _admixed[0] = CheckInitAlpha( initalpha[0] );    //gamete 1
-    _admixed[1] = CheckInitAlpha( initalpha[1] );    //gamete 2
+    _admixed.at(0) = CheckInitAlpha( initalpha[0] );    //gamete 1
+    _admixed.at(1) = CheckInitAlpha( initalpha[1] );    //gamete 2
 
     Log << "Dirichlet parameters of prior on maternal gamete admixture: ";
     for(size_t k = 0;k < initalpha[0].size(); ++k){Log << initalpha[0][k] << " ";}
@@ -724,7 +721,7 @@ void AdmixOptions::setInitAlpha(bclib::LogWriter &Log){
   }
 }
 
-bool AdmixOptions::CheckInitAlpha( const vector<double> &alphatemp)const
+bool AdmixOptions::CheckInitAlpha( const std::vector<double> & alphatemp )const
 //returns indicator for admixture as indicated by initalpha   
 // also check that Dirichlet parameter vector, if specified by user, has correct length
 {

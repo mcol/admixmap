@@ -30,7 +30,7 @@
 
 #include "Pedigree.h"
 #include "Organism.h"	// PopIdx
-#include "exceptions.h"
+#include "bclib/exceptions.h"
 
 #include <cstring> // memcpy()
 
@@ -162,6 +162,14 @@ class AncestryVector
 		K   ( rhs.K   )
 	    {
 	    memcpy( data.bytes, rhs.data.bytes, AV_MC_BYTES() );
+	    }
+
+
+
+	/// Converts between founder-gamete-index and founder-index.
+	static Pedigree::FounderIdx founderOf( IdxType idx )
+	    {
+	    return idx >> 1;
 	    }
 
 

@@ -48,8 +48,8 @@ private:
   bool ModelIndicator;
   std::ofstream outputstream;
 
-   std::vector<double>
-  GenerateExpectedGenotype( const Individual* const, const double*, const int  );
+  std::vector<double>
+  GenerateExpectedGenotype( const genepi::PedBase * const, const double*, const int  );
 
   std::vector<unsigned short>
   SimGenotypeConditionalOnAdmixture( const std::vector<double> ProbAllele1 );

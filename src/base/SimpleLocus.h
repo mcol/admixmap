@@ -28,7 +28,7 @@
 
 
 
-#include "estr.h"
+#include "bclib/estr.h"
 #include "GeneticDistance.h"
 
 

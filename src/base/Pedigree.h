@@ -35,11 +35,50 @@
 #include "Genotype.h"
 #include "OrganismArray.h"
 #include "SimpleLocusArray.h"
+#include <bclib/cvector.h>
+#include "PedBase.h"
 
 #include "AlleleArray.h" // AlleleProbTable, AlleleProbVect (for emission probabilities)
 
 #include <vector>
 
+
+// Stages of implementing PedBase methods, ported over from Individual/AdmixedIndividual.
+#define NEEDED_ONLY_FOR_CONJUGATE_UPDATE	0
+
+
+// Need to sort this out:
+class Chromosome;
+class CompositeLocus;
+namespace genepi
+    {
+    typedef size_t CLocIdxType;
+    typedef size_t ChromIdxType;
+    };
+
+
+
+// For admix-model:
+#include <bclib/pvector.h>
+//------------------------------------------------------------------------
+// See NOTE *4*:
+// Used for the additional methods to run the admixmap model.  These should be
+// moved into a derived class in admixmap, not here in libbase.
+class AdmixOptions;
+class Options;
+class CopyNumberAssocTest;
+class AdmixOptions;
+namespace bclib { class DataMatrix; }
+#include "common.h" // for DataType
+#include <bclib/StepSizeTuner.h>
+#if 0 // Circular dependencies
+    #include "HiddenMarkovModel.new.h"
+    #include "TransProbCache.h"
+#else
+    namespace genepi { class HiddenMarkovModel; }
+    namespace genepi { class TransProbCache; }
+#endif
+//------------------------------------------------------------------------
 
 
 namespace genepi { // ----
@@ -53,7 +92,6 @@ namespace genepi { // ----
 class AncestryVector;
 class InheritanceVector;
 class HiddenStateSpace;
-
 
 
 
@@ -120,10 +158,33 @@ class HiddenStateSpace;
 ///  </TR>
 ///
 /// </TABLE>
+///
+/// <A name="note-4"></A>
+/// <TABLE STYLE="border: groove 3pt aqua;">
+///
+///  <TR>
+///	<TD><B>NOTE *4*</B></TD>
+///	<TD>
+///	Additional data members and methods to run the admixmap model. These
+///	should not be here in the base class, but rather should be moved into a
+///	derived class in admixmap, not here in libbase (the implementation of
+///	those methods is already kept in a separate source-code file in
+///	admixmap, AdmixPedigree.cc).  This also applies to deriving from
+///	PedBase, which should take place as multiple inheritance in
+///	AdmixPedigree, like this:
+///
+///	<CODE>
+///	class AdmixPedigree : public Pedigree , public PedBase
+///	    { ... };
+///	</CODE>
+///	</TD>
+///  </TR>
+///
+/// </TABLE>
 //
 //-----------------------------------------------------------------------------
 
-class Pedigree
+class Pedigree : public PedBase // See NOTE *4*
     {
     public:
 	typedef Organism	 Member	    ;
@@ -135,7 +196,7 @@ class Pedigree
 
 	// This is one way to receive the generated "states":
 	typedef void (*StateReceiver)(	const Pedigree &	  ped		  ,
-					size_t			  sLocIdx	  ,
+					SLocIdxType		  sLocIdx	  ,
 					const AncestryVector &	  av		  ,
 					const InheritanceVector & iv		  ,
 					const Haplotype *	  founderHapState ,
@@ -211,7 +272,9 @@ class Pedigree
 	/// Do not use: <A HREF="Pedigree_8cc.html#note-1"><B>NOTE *1*</B> in Pedigree.cc</A>
 	Pedigree( const Pedigree & rhs );		// vector apparently requires this for push_back()
 	Pedigree & operator=( const Pedigree & rhs );	// vector apparently requires this for push_back()
+
 	~Pedigree();
+
 
 	//---------------------------------------------------------------
 	/// Create a vector of Pedigree objects from the raw genotype data (as
@@ -220,19 +283,37 @@ class Pedigree
 	/// This is effectively the public "constructor" for Pedigree objects.
 	/// The Pedigree objects are created in @a rv (output parameter).
 	//---------------------------------------------------------------
-	static void generatePedigrees( const OrganismArray &   organisms ,
-				       std::vector<Pedigree> & rv	 );
+
+	static void generatePedigrees( const OrganismArray & organisms ,
+				       cvector<Pedigree> &   rv	       );
+
+
+	//---------------------------------------------------------------
+	// Access to our "context","domain" (locus file, populations, etc.).
+	// Perhaps these could be static.
+	// Many are convenience methods (simply derived from others).
+	//---------------------------------------------------------------
+
+	PopIdx	     getK	      () const; ///< The number of populations
+	ChromIdxType getNumChromosomes() const; ///< The number of chromosomes
+	static void setK( PopIdx _K );
+
+	const Chromosome & getChromosome( ChromIdxType chromIdx ) const;
+
+	/// Return the pool (pedfile) from which members are drawn
+	const OrganismArray &	 getMemberPool() const { return memberPool; }
+	const SimpleLocusArray & getSLoci     () const { return memberPool.getSLoci(); } ///< Convenience
+	SLocIdxType		 getNSLoci    () const { return getSLoci().size()    ; } ///< Convenience
+
+	const CompositeLocus & getCLocus( CLocIdxType ) const;
+	CLocIdxType	       getNCLoci() const;
 
 
 	//---------------------------------------------------------------
 	// Access to data members:
 	//---------------------------------------------------------------
 
-	/// Return the pool (pedfile) from which members are drawn
-	const OrganismArray &	 getMemberPool() const { return memberPool; }
-	const SimpleLocusArray & getSLoci     () const { return memberPool.getSLoci(); } ///< Convenience
-	SLocIdxType		 getNSLoci    () const { return getSLoci().size()    ; } ///< Convenience
-	const IdType &		 getId	      () const { return id; }
+	const IdType & getId() const { return id; }
 	///< The "family ID" from the pedfile.  Every Organism in this Pedigree
 	///< returns the same value of Organism::getFamId() (which is also returned
 	///< here).
@@ -310,9 +391,9 @@ class Pedigree
 	/// in a separate class.
 	const HiddenStateSpace & getStateProbs( SLocIdxType sLocIdx ) const;
 
-	/// Release any memory consumed by generating the states.
-	/// genPossibleStatesInternal() must then be re-called before
-	/// getStateProbs() can be called.
+	/// Release any memory consumed by generating the states.  After calling
+	/// this, genPossibleStatesInternal() must then be re-called before
+	/// getStateProbs() can again be called.
 	void releaseStateProbs() const;
 
 
@@ -320,6 +401,143 @@ class Pedigree
 	// not compiled into Pedigree, InheritanceVector, AncestryVector, etc.:
 	static void dbgRecursion( bool nv ); ///< Request that recursion debugging information output to cout
 	static void dbgEmission ( bool nv ); ///< Request that emission-probability debugging output to cout
+
+
+
+    //=========================================================================
+    //
+    // See NOTE *4*:
+    // Additional data members and methods to run the admixmap model.  These
+    // should not be here in the base class, but rather should be moved into a
+    // derived class in admixmap, not here in libbase.  This also applies to
+    // deriving from PedBase, which should take place as multiple
+    // inheritance in AdmixPedigree, like this:
+    //
+    // class AdmixPedigree : public Pedigree , public PedBase
+    //  { ... };
+    //
+    // See also NOTE X1 above.
+    //
+    //=========================================================================
+
+    protected:
+	void SetUniformAdmixtureProps(); // Set the initial values of theta
+
+
+    public:
+
+	/// This should be the constructor of the derived AdmixedPedigree class.
+	void InitialiseAdmixedStuff( const AdmixOptions & options );
+
+	void SampleTheta(
+		 int				    iteration	      , // in
+		 double *			    SumLogTheta       , // out (add to existing value)
+		 const bclib::DataMatrix *	    Outcome	      , //
+		 const DataType *		    OutcomeType       , // in
+		 const std::vector<double> &	    lambda	      , //
+		 int				    NumCovariates     , // in
+		 bclib::DataMatrix *		    Covariates	      , //
+		 const std::vector<const double*> & beta	      , //
+		 const PopThetaType &		    poptheta	      , // in
+		 const AdmixOptions &		    options	      , // in
+		 const AlphaType &		    alpha	      , // in?
+		 double				    DInvLink	      , // in
+		 double				    dispersion	      , // in
+		 CopyNumberAssocTest &		    ancestryAssocTest , // Not used by pedigrees
+		 bool				    RW		      , // in (is-random-walk)
+		 bool				    anneal	      );// in
+
+	void HMMIsBad( bool loglikisbad );
+
+
+    private:
+	double ProposeThetaWithRandomWalk( const AdmixOptions & options, const AlphaType & alpha );
+
+	/// Returns size of Theta, used to allocate storage for Theta,
+	/// ThetaProposed, SumSoftmaxTheta.  Was: NumGametes --> K*NumGametes
+	typedef FounderIdx ThetaIdx;
+	ThetaIdx getNTheta() const { return getNFounders(); }
+
+	/// Admixture proportions, one vector of size K for each founder (we
+	/// assume that the admixture proportion is the same for both gametes in
+	/// each founder).
+	ThetaType Theta;
+	ThetaType ThetaProposal;
+	ThetaType SumSoftmaxTheta;
+	ThetaType thetahat; // From AdmixedIndividual
+	cvector<double> dirparams; ///< Dirichlet parameters of full conditional for conjugate updates
+				   ///< Indexed on ?something?.
+				   ///< Taken from AdmixedIndividual, in which it is indexed on K (n-populations)
+
+	RhoType _rho	  ; ///< sum of intensities
+	RhoType sumlogrho ; ///< foo.
+	RhoType rhohat	  ; ///< bar.
+
+	mutable struct
+	  {
+	  double value    ; ///< loglikelihood at current parameter values, annealed if coolness < 1.
+			    ///< Valid iff 'ready' is true
+	  double tempvalue; ///< to store values temporarily: holds unnanealed value (-energy),
+			    ///< or value at proposed update
+	  bool   ready    ; ///< true iff value is the loglikelihood at the current parameter values
+	  bool   HMMisOK  ; ///< true iff values in HMM objects correspond to current parameter values
+			    ///< for this individual
+	  } logLikelihood;
+
+
+	double		     step	     ;
+	unsigned int	     NumberOfUpdates ;
+	unsigned int	     w		     ;
+	bclib::StepSizeTuner ThetaTuner	     ;
+	unsigned int	     NumGametes	     ;
+	unsigned int	     myNumber	     ;
+
+    #define SEPARATE_HMM_FOR_EACH_CHROM 0
+    #if SEPARATE_HMM_FOR_EACH_CHROM
+	genepi::HiddenMarkovModel & getHMM( ChromIdxType chromIdx ) const;
+    #else
+	mutable genepi::TransProbCache * tpCache;
+	genepi::TransProbCache & getTPC() const;
+
+	mutable genepi::HiddenMarkovModel * hmm;
+	genepi::HiddenMarkovModel & getHMM() const;
+	void freeHMM() const;
+    #endif
+    unsigned int getMyNumber() const { return myNumber	; } ///< "number" of this pedigree, counting from 1
+    unsigned int getIndex   () const { return myNumber-1; } ///< "number" of this pedigree, counting from 0
+
+    double LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel,
+					       PopIdx K, int NumCovariates,
+					       const bclib::DataMatrix * Covariates, const double * beta,
+					       double Outcome, const PopThetaType & poptheta, double lambda) const;
+    void Accept_Reject_Theta( double p, int Populations, bool ModelIndicator, bool RW );
+    void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const PopThetaType & poptheta,
+				     bool ModelIndicator, bclib::DataMatrix * Covariates);
+    double getLogLikelihood( const Options & options, const ThetaType & theta,
+				const RhoType & rho, bool updateHMM ) const;
+  double getLogLikelihood( const Options &, bool forceUpdate, bool store);
+  double getLogLikelihoodAtPosteriorMeans( const Options & options );
+  double getLogLikelihoodOnePop() const;
+  void setAdmixtureProps( const ThetaType & rhs );
+  void storeLogLikelihood( bool setHMMAsOK ); ///< to call if a Metropolis proposal is accepted
+
+  #if SEPARATE_HMM_FOR_EACH_CHROM
+    void UpdateHMMInputs( ChromIdxType chromIdx, const Options & options,
+		       const ThetaType & theta, const RhoType & rho ) const;
+  #else
+    void updateHMMInputs( const Options & options, const ThetaType & theta, const RhoType & rho ) const;
+  #endif
+
+
+
+    // Methods (overridden from PedBase) from AdmixedIndividual:
+    virtual void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
+    virtual void drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha);
+
+    #if NEEDED_ONLY_FOR_CONJUGATE_UPDATE
+	virtual void ResetSufficientStats();
+    #endif
+
     };
 
 
@@ -360,6 +578,7 @@ class Pedigree
 
 
 } // ---- end namespace genepi
+
 
 
 

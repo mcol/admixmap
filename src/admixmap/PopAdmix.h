@@ -49,9 +49,9 @@ public:
   double getrhoalpha()const;
   double getrhobeta()const;
   double getglobalrho()const;
-  const vector<double> &getrho()const;
+  const genepi::RhoType & getrho() const;
 
-  const vector<double>& getSumLogRho()const;
+  const genepi::RhoType & getSumLogRho()const;
   const double *getpoptheta()const;
   
   void printAcceptanceRates(bclib::LogWriter &Log);
@@ -68,13 +68,13 @@ private:
   Genome& Loci; 
   const int K;///< number of subpopulations / block states
 
-  std::vector<double> rho;
-  std::vector<double> rhoproposal;
+  genepi::RhoType rho;
+  genepi::RhoType rhoproposal;
   double rhoalpha;
   double rhobeta;
   double rhobeta0;
   double rhobeta1;
-  std::vector<double> SumLogRho; //ergodic sum of log(rho)
+  genepi::RhoType SumLogRho; //ergodic sum of log(rho)
 
   //RWM sampler for global rho
   bclib::StepSizeTuner TuneRhoSampler;
@@ -101,4 +101,3 @@ private:
 };
 
 #endif /* !defined POPADMIX_H */
-

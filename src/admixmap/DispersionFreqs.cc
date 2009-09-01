@@ -15,6 +15,7 @@
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"
 #include "InputAdmixData.h"
+#include "Pedigree.h"
 // #include "bclib/AdaptiveRejection.h"
 #include "bclib/misc.h"
 #include "bclib/linalg.h"

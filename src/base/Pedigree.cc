@@ -37,7 +37,21 @@
 ///	rather than reference-count or allocate-and-copy, the left-hand-side
 ///	"takes ownership" of the dynamically-allocated objects, and we therefore
 ///	remove the RHS's references, so that it does not destroy (i.e.
-///	<CODE>delete[]</CODE>) them when it is destroyed.  </TD>
+///	<CODE>delete[]</CODE>) them when it is destroyed.
+///	</TD>
+///  </TR>
+///
+///  <TR>
+///	<TD><B>NOTE *2*</B></TD>
+///	<TD>
+///	This is really two classes, the general-purpose Pedigree class and the
+///	specialization for Admixmap, but combined into one.  These can and
+///	should be separated.  Most of the code which belongs in the derived
+///	class is in the separate source file AdmixPedigree.cc, but a few things
+///	(e.g. constructor initialisation of data members) must be mixed with the
+///	base-class code.  It is identified with the comment "NOTE *2*" to
+///	facilitate later separation.
+///	</TD>
 ///  </TR>
 ///
 /// </TABLE>
@@ -52,6 +66,9 @@
 #include "SimpleLocusParser.h"
 #include "InheritanceVector.h"
 #include "HiddenStateSpace.h"
+
+#include "HiddenMarkovModel.new.h"  // See NOTE *2*
+#include "TransProbCache.h"	    // See NOTE *2*
 
 
 #define USE_QSORT	1 ///< Whether to use ::qsort() or std::sort() for sorting arrays
@@ -172,7 +189,13 @@ Pedigree::Pedigree( const OrganismArray & pool,
 	sortedMembers	( new Member* [ nMembers ] ) ,
 	nMendelErrs	( 0			   ) ,
 	mendelErrsByLocus( 0			   ) ,
-	stateProbs	( 0			   )
+	stateProbs	( 0			   ) ,
+	step		( 0.3			   ) ,
+	NumberOfUpdates ( 0			   ) ,
+	w		( 1			   ) ,
+	NumGametes	( 2			   ) ,
+	tpCache		( 0			   ) ,
+	hmm		( 0			   )
     {
     // Initialize the array of pointers-to-members, while simultaneously
     // counting the number of founders and traversing the parent-tree to compute
@@ -193,9 +216,23 @@ Pedigree::Pedigree( const OrganismArray & pool,
 	++mPtr;
 	}
 
-    // Once we've traversed every founder's child-tree, we should have the
-    // correct depth for every member of the pedigree since there should be no
-    // disjoint connected sub-graphs per the check in OrganismArray.
+
+    // See NOTE *2*:
+    // We can't allocate these prior to knowing the number of founders.  Of
+    // course they should be in a subclass, in which case they wouldn't be
+    // allocated until much later anyhow.
+    bclib::pvector<double> Kzero;
+    Kzero.resize( getK(), 0.0 );
+    Theta	    .resize( getNTheta() );
+    ThetaProposal   .resize( getNTheta() );
+    SumSoftmaxTheta .resize( getNTheta() );
+    thetahat	    .resize( getNTheta(), Kzero );
+    dirparams	    .resize( getK()	 );
+
+
+    // Set the initial values for Theta:
+    SetUniformAdmixtureProps();
+
 
     #if 0 // ****** DEBUG: ******
 	if ( id == "10" )
@@ -206,6 +243,10 @@ Pedigree::Pedigree( const OrganismArray & pool,
 		    sortedMembers[idx]->isFounder() ? "founder" : "non-founder" );
 	    }
     #endif
+
+    // Once we've traversed every founder's child-tree, we should have the
+    // correct depth for every member of the pedigree since there should be no
+    // disjoint connected sub-graphs per the check in OrganismArray.
 
     SORT( sortedMembers, getNMembers(), depthCompare );
 
@@ -249,6 +290,7 @@ Pedigree::Pedigree( const OrganismArray & pool,
 
     if ( getEndFounder() != getEndMember() ) // If we have any non-founders at all
 	gp_assert( ! (*getEndFounder())->isFounder() );
+
     }
 
 
@@ -261,34 +303,69 @@ Pedigree::Pedigree( const OrganismArray & pool,
 //-----------------------------------------------------------------------------
 
 Pedigree::Pedigree( const Pedigree & rhs ) :
-	memberPool	( rhs.memberPool	) ,
-	id		( rhs.id		) ,
-	nMembers	( rhs.nMembers		) ,
-	nFounders	( rhs.nFounders		) ,
-	sortedMembers	( rhs.sortedMembers	) ,
-	nMendelErrs	( rhs.nMendelErrs	) ,
-	mendelErrsByLocus( rhs.mendelErrsByLocus) ,
-	stateProbs	( rhs.stateProbs	)
+	memberPool	    ( rhs.memberPool	    ) ,
+	id		    ( rhs.id		    ) ,
+	nMembers	    ( rhs.nMembers	    ) ,
+	nFounders	    ( rhs.nFounders	    ) ,
+	sortedMembers	    ( rhs.sortedMembers	    ) ,
+	nMendelErrs	    ( rhs.nMendelErrs	    ) ,
+	mendelErrsByLocus   ( rhs.mendelErrsByLocus ) ,
+	stateProbs	    ( rhs.stateProbs	    ) ,
+	Theta		    ( rhs.Theta		    ) , // See NOTE *2*
+	ThetaProposal	    ( rhs.ThetaProposal	    ) , // See NOTE *2*
+	SumSoftmaxTheta	    ( rhs.SumSoftmaxTheta   ) , // See NOTE *2*
+	thetahat	    ( rhs.thetahat	    ) , // See NOTE *2*
+	dirparams	    ( rhs.dirparams	    ) , // See NOTE *2*
+	logLikelihood	    ( rhs.logLikelihood	    ) , // See NOTE *2*
+	step		    ( rhs.step		    ) , // See NOTE *2*
+	NumberOfUpdates	    ( rhs.NumberOfUpdates   ) , // See NOTE *2*
+	w		    ( rhs.w		    ) , // See NOTE *2*
+	ThetaTuner	    ( rhs.ThetaTuner	    ) , // See NOTE *2*
+	NumGametes	    ( rhs.NumGametes	    ) , // See NOTE *2*
+	tpCache		    ( rhs.tpCache	    ) , // See NOTE *2*
+	hmm		    ( rhs.hmm		    )	// See NOTE *2*
     {
     // !!!WARNING!!! -- see NOTE *1*
     const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
     const_cast<Pedigree&>(rhs).mendelErrsByLocus = 0;
     const_cast<Pedigree&>(rhs).stateProbs	 = 0;
+    const_cast<Pedigree&>(rhs).tpCache		 = 0; // See NOTE *2*
+    const_cast<Pedigree&>(rhs).hmm		 = 0; // See NOTE *2*
     }
 
 Pedigree & Pedigree::operator=( const Pedigree & rhs )
     {
     gp_assert( &memberPool == &rhs.memberPool );
 
-    id		  = rhs.id	      ;
-    nMembers	  = rhs.nMembers      ;
-    nFounders	  = rhs.nFounders     ;
-    sortedMembers = rhs.sortedMembers ;
-    stateProbs	  = rhs.stateProbs    ;
+    id			= rhs.id		;
+    nMembers		= rhs.nMembers		;
+    nFounders		= rhs.nFounders		;
+    sortedMembers	= rhs.sortedMembers	;
+    nMendelErrs		= rhs.nMendelErrs	;
+    mendelErrsByLocus	= rhs.mendelErrsByLocus ;
+    stateProbs		= rhs.stateProbs	;
+    Theta		= rhs.Theta		;
+    ThetaProposal	= rhs.ThetaProposal	;
+    SumSoftmaxTheta	= rhs.SumSoftmaxTheta	;
+    thetahat		= rhs.thetahat		;
+    dirparams		= rhs.dirparams		;
+
+    // See NOTE *2*:
+    logLikelihood	= rhs.logLikelihood	;
+    step		= rhs.step		;
+    NumberOfUpdates	= rhs.NumberOfUpdates	;
+    w			= rhs.w			;
+    ThetaTuner		= rhs.ThetaTuner	;
+    NumGametes		= rhs.NumGametes	;
+    tpCache		= rhs.tpCache		;
+    hmm			= rhs.hmm		;
 
     // !!!WARNING!!! -- see NOTE *1*
-    const_cast<Pedigree&>(rhs).sortedMembers = 0;
-    const_cast<Pedigree&>(rhs).stateProbs    = 0;
+    const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
+    const_cast<Pedigree&>(rhs).mendelErrsByLocus = 0;
+    const_cast<Pedigree&>(rhs).stateProbs	 = 0;
+    const_cast<Pedigree&>(rhs).tpCache		 = 0; // See NOTE *2*
+    const_cast<Pedigree&>(rhs).hmm		 = 0; // See NOTE *2*
 
     return *this;
     }
@@ -304,6 +381,8 @@ Pedigree::~Pedigree()
     delete[] sortedMembers;
     delete[] stateProbs;
     delete[] mendelErrsByLocus;
+    delete tpCache ; // See NOTE *2*
+    delete hmm	   ; // See NOTE *2*
     }
 
 
@@ -314,7 +393,7 @@ Pedigree::~Pedigree()
 /// Create Pedigree's from raw genotype data (pedfile)
 //---------------------------------------------------------------
 
-void Pedigree::generatePedigrees( const OrganismArray & organisms, vector<Pedigree> & rv )
+void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedigree> & rv )
     {
     FamIdType curFamId;
 
@@ -344,6 +423,7 @@ void Pedigree::generatePedigrees( const OrganismArray & organisms, vector<Pedigr
 	interval = organisms.findOrgsInPed( curFamId );
 
     PED_PB( rv, organisms, interval.first, interval.second );
+    rv.back().myNumber = rv.size();
     }
 
 
@@ -354,13 +434,13 @@ void Pedigree::generatePedigrees( const OrganismArray & organisms, vector<Pedigr
 
 void Pedigree::throwFRange( size_t fIdx ) const
     {
-    throw std::runtime_error( estr("Founder-index ") + fIdx +
+    throw std::out_of_range( estr("Founder-index ") + fIdx +
 		" out of range (" + getNFounders() + ')' );
     }
 
 void Pedigree::throwMRange( size_t mIdx ) const
     {
-    throw std::runtime_error( estr("Member-index ") + mIdx +
+    throw std::out_of_range( estr("Member-index ") + mIdx +
 		" out of range (" + getNMembers() + ')' );
     }
 
@@ -374,7 +454,7 @@ bool Pedigree::haveMendelErrAt( SLocIdxType t ) const
     {
     #if AGGRESSIVE_RANGE_CHECK
     if ( t >= getNSLoci() )
-	throw std::runtime_error( estr("Simple-locus-index ") + t +
+	throw std::out_of_range( estr("Simple-locus-index ") + t +
 		" out of range (" + getNSLoci() + ')' );
     #endif
 

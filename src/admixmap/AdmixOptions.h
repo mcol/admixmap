@@ -18,6 +18,9 @@
 #include "Options.h"
 using namespace::std;
 
+#include "bclib/cvector.h"
+
+
 /// Class to hold program options
 class AdmixOptions : public Options
 {
@@ -47,13 +50,12 @@ public:
   double getRhobetaRate()const;
   double getRhoPriorMean()const;
 
-  vector<double> getInitAlpha(int) const;
-  std::vector<std::vector<double> > getInitAlpha()const;
+  const std::vector<double> & getInitAlpha(int) const;
+  const genepi::cvector<std::vector<double> > & getInitAlpha()const;
   int sizeInitAlpha() const;
   double getEtaMean() const;
   double getEtaVar() const;
-  const vector<float>& getrhoSamplerParams()const;
-  const vector<float>& getPopAdmixSamplerParams()const;
+  const genepi::cvector<float>& getPopAdmixSamplerParams()const;
 
   //indicators and model options
   bool getCorrelatedAlleleFreqs() const;
@@ -118,19 +120,19 @@ private:
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
 
   std::vector<bool> _admixed;
-  bool _symmetric;         
+  bool _symmetric;
 
   //priors
   //double Rhoalpha, Rhobeta;//gamma parameters for sumintensities
   //double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
-  std::vector<double> globalrhoPrior;
-  std::vector<double> rhoPrior;
-  std::vector<double> alpha0;
-  std::vector<double> alpha1;
-  std::vector< std::vector<double> > initalpha;
+  genepi::cvector<double> globalrhoPrior;
+  genepi::cvector<double> rhoPrior;
+  genepi::cvector<double> alpha0;
+  genepi::cvector<double> alpha1;
+  genepi::cvector< std::vector<double> > initalpha;
   double etamean, etavar;//gamma parameters for dispersion parameter
 
-  std::vector<float> popAdmixSamplerParams;//parameters for sampler of population admixture
+  genepi::cvector<float> popAdmixSamplerParams;//parameters for sampler of population admixture
 
   //string AlleleFreqPriorOutputFilename;
   string EtaOutputFilename;
@@ -145,7 +147,7 @@ private:
   void SetDefaultValues();  
   void DefineOptions();
   void setInitAlpha(bclib::LogWriter &Log);
-  bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
+  bool CheckInitAlpha( const std::vector<double> & alphatemp )const;
   void AddFilenamesToUserOptions();
 
   // UNIMPLEMENTED: to avoid use

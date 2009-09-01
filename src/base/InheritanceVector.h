@@ -29,7 +29,7 @@
 
 #include <bitset>
 
-#include "exceptions.h"
+#include "bclib/exceptions.h"
 
 
 #define IV_OSTREAM		1 /// Should we compile ostream support for IVs?

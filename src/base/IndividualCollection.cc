@@ -1,18 +1,22 @@
-/** 
+/**
  *   IndividualCollection.cc
  *   Class to hold an array of Individuals
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
+ *   Copyright (c) 2009 David Favro
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY.
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License,
+ * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
- * 
+ *
  */
+
 #include "IndividualCollection.h"
 #include "bclib/Regression.h"
 
+
 using namespace std;
+
 
 // **** CONSTRUCTORS  ****
 // IndividualCollection::IndividualCollection() {
@@ -31,19 +35,17 @@ void IndividualCollection::SetNullValues(){
   ReportedAncestry = 0;
   size = 0;
   NumDiploidIndividuals = 0;
+// Leave NumInd indeterminate here????
 }
 
 IndividualCollection::IndividualCollection(unsigned numIndividuals, unsigned numPopulations, unsigned numCompositeLoci) :
-  NumInd(numIndividuals), Populations(numPopulations), NumCompLoci(numCompositeLoci){
+  NumInd(numIndividuals), Populations(numPopulations), NumCompLoci(numCompositeLoci)
+{
   SetNullValues();
   //Populations = options->getPopulations();
   //NumInd = Data->getNumberOfIndividuals();
   size = NumInd;
   //NumCompLoci = Loci->GetNumberOfCompositeLoci();
-}
-
-int IndividualCollection::getNumDiploidIndividuals()const{
-  return NumDiploidIndividuals;
 }
 
 // ************** DESTRUCTOR **************
@@ -55,24 +57,33 @@ IndividualCollection::~IndividualCollection() {
 }
 void IndividualCollection::DeleteGenotypes(bool setmissing=false){
   for (unsigned int i = 0; i < size; i++) {
-    if(setmissing)_child[i]->SetMissingGenotypes();
+    if ( setmissing )
+	_child[i]->SetMissingGenotypes();
     _child[i]->DeleteGenotypes();
   }
 }
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 
-void IndividualCollection::LoadData(const Options* const options, const InputData* const data_, bool admixtureAsCovariate){
+void IndividualCollection::LoadData( const Options & options, const InputData & data_, bool admixtureAsCovariate ) {
 
-  if ( options->getNumberOfOutcomes()>0){
+  if ( options.getNumberOfOutcomes() > 0 ) {
     delete[] OutcomeType;
-    OutcomeType = new DataType[ options->getNumberOfOutcomes() ];
-    data_->getOutcomeTypes(OutcomeType);
+    OutcomeType = new DataType[ options.getNumberOfOutcomes() ];
+    data_.getOutcomeTypes( OutcomeType );
 
-    if(strlen( options->getOutcomeVarFilename() ) != 0)LoadOutcomeVar(data_);
-    LoadCovariates(data_, options, admixtureAsCovariate);
+    if ( strlen( options.getOutcomeVarFilename() ) != 0 )
+	LoadOutcomeVar( &data_ );
+    LoadCovariates( &data_, &options, admixtureAsCovariate );
   }
 }
+
+
+/// Base class is empty; can be overridden by subclasses.
+void IndividualCollection::getOnePopOneIndLogLikelihood(bclib::LogWriter &, const Vector_s& )
+    {
+    }
+
 
 void IndividualCollection::LoadCovariates(const InputData* const data_, const Options* const options, bool admixtureAsCovariate){
   if ( strlen( options->getCovariatesFilename() ) > 0 ){
@@ -95,7 +106,7 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Op
     if ( Covariates.hasMissing() ) Covariates.SetMissingValuesToColumnMeans();
 
     //centre covariates about their means
-    // (this should already be done by user)    
+    // (this should already be done by user)
     //vector<double> mean = Covariates.columnMeans();
     //for(unsigned int i = 0; i < NumInds; i++ )
     // for( int j = 1; j <= NumberOfInputCovariates; j++ )
@@ -122,13 +133,8 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Op
 void IndividualCollection::LoadOutcomeVar(const InputData* const data_){
   Outcome = data_->getOutcomeVarMatrix();
   NumOutcomes = Outcome.nCols();
- 
 }
 
-void IndividualCollection::HMMIsBad(bool b){
-  for(unsigned i = 0; i < size; i++)
-    _child[i]->HMMIsBad(b);
-}
 
 /**
    Samples Haplotype pairs and upates allele/haplotype counts if requested
@@ -141,10 +147,10 @@ void IndividualCollection::SampleHapPairs(const Options& options, AlleleFreqs *A
   bool annealthermo = anneal && options.getThermoIndicator() && !options.getTestOneIndivIndicator();
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-      
+
       for(unsigned int i = 0; i < size; i++ ){
 	//Sample Haplotype Pair
-	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles 
+	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles
 	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo, UpdateAlleleCounts);
       }
       locus++;
@@ -169,59 +175,30 @@ void IndividualCollection::AccumulateAlleleCounts(const Options& options, Allele
   }
 }
 
-// ************** ACCESSORS **************
-int IndividualCollection::getSize()const {
-  return size;
-}
 
-const vector<double> IndividualCollection::getOutcome(int j)const{
-  vector<double> col;
-  if(j < (int)Outcome.nCols())
-    col = Outcome.getCol(j);
-  return col;
-}
+int IndividualCollection::getNumberOfIndividualsForScoreTests () const
+    {
+    return getSize();
+    }
 
-double IndividualCollection::getOutcome(int j, int ind)const{
-    return Outcome.get(ind, j);
-}
-bool IndividualCollection::isMissingOutcome(int j, int i)const{
-    return Outcome.isMissing(i, j);
-}
-int IndividualCollection::getNumberOfOutcomeVars()const{
-  return NumOutcomes;
-}
 
-DataType IndividualCollection::getOutcomeType(int i)const{
-  return OutcomeType[i];
-}
-
-Individual* IndividualCollection::getIndividual(int num)const
-{
-  if (num < (int)size){
-    return _child[num];
-  } else {
+unsigned int IndividualCollection::getFirstScoreTestIndividualNumber() const
+    {
     return 0;
-  }
-}
+    }
 
-int IndividualCollection::GetNumberOfInputCovariates()const{
-  return NumberOfInputCovariates;
-}
-int IndividualCollection::GetNumCovariates() const{
-  return NumCovariates;
-}
 
-const bclib::DataMatrix& IndividualCollection::getCovariatesMatrix()const{
-  return Covariates;
-}
-const bclib::DataMatrix& IndividualCollection::getOutcomeMatrix()const{
-  return Outcome;
-}
+// ************** ACCESSORS **************
+vector<double> IndividualCollection::getOutcome( size_t j ) const
+    {
+    gp_assert_lt( j, Outcome.nCols() );
+    return Outcome.getCol( j );
+    }
 
 /**
  * returns a count of the copies of allele a at a comp locus.
  * Only works for diallelic loci.
- * used in strat test to determine loci with given percentage of observed genotypes 
+ * used in strat test to determine loci with given percentage of observed genotypes
  */
 unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)const{
   int AlleleCounts = 0;
@@ -239,7 +216,8 @@ unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)con
   return AlleleCounts;
 }
 
-const vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop, unsigned NumStates)const{
+vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop, unsigned NumStates) const
+{
   int ancestry[2];
   vector<int> counts(NumStates);
   fill(counts.begin(), counts.end(), 0);
@@ -277,25 +255,39 @@ double IndividualCollection::getLogLikelihood(const Options& options, bool force
   return LogLikelihood;
 }
 
-double IndividualCollection::getEnergy(const Options& options, const vector<bclib::Regression*> &R, 
+double IndividualCollection::getEnergy(const Options& options, const vector<bclib::Regression*> &R,
 				       const bool & annealed) {
-  // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
+  // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression
   // called every iteration after burnin, after update of genotype probs and before annealing
   // accumulates sums of deviance and squared deviance
   double LogLikHMM = 0.0;
   double LogLikRegression = 0.0;
   double Energy = 0.0;
-  // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
+  // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs
   for(unsigned i = 0; i < size; i++) {
     LogLikHMM += _child[i]->getLogLikelihood(options, false, !annealed); // store result if not an annealed run
     // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
-    
-    if(annealed) 
+
+    if(annealed)
       _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
-    else _child[i]->HMMIsBad(false); 
+    else _child[i]->HMMIsBad(false);
   }
-  // get regression log-likelihood 
+  // get regression log-likelihood
   for(unsigned c = 0; c < R.size(); ++c) LogLikRegression += R[c]->getLogLikelihood(getOutcome(c));
   Energy = -(LogLikHMM + LogLikRegression);
   return Energy;
-} 
+}
+
+
+
+void IndividualCollection::HMMIsBad( bool b )
+    {
+    for(unsigned i = 0; i < size; i++)
+	_child[i]->HMMIsBad( b );
+    }
+
+
+/// Virtual in base class (empty method); sub-classes can override.
+void IndividualCollection::resetStepSizeApproximators( int )
+    {
+    }

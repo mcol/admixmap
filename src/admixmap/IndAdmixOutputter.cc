@@ -13,7 +13,12 @@
 #include "IndAdmixOutputter.h"
 #include "AdmixIndividualCollection.h"
 
+
 using namespace std;
+
+using genepi::RhoType;
+
+
 
 IndAdmixOutputter::IndAdmixOutputter(const AdmixOptions& options, const Genome& Loci, const Vector_s& PopulationLabels):
   _options(options), _Loci(Loci), _PopulationLabels(PopulationLabels),  _RandomMatingModelIndicator(options.isRandomMatingModel())
@@ -71,7 +76,7 @@ IndAdmixOutputter::~IndAdmixOutputter(){
   _out.close(dims, dimnames);
 }
 
-void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vector<int> _locusfortest)
+void IndAdmixOutputter::visitIndividual(const PedBase & ind, const vector<int> _locusfortest)
 {
 
   //output individual admixture proportions
@@ -86,7 +91,7 @@ void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vect
 
   //output individual sumintensities
   if( !_options.isGlobalRho() ){
-     vector<double> rho = ind.getRho();
+     const RhoType & rho = ind.getRho();
      //first gamete
      _out << rho[0];
      //second gamete if there is one

@@ -31,8 +31,7 @@
 #include "AlleleArray.h"
 #include "GFileLexer.h"
 #include "SimpleLocusArray.h"
-
-#include <vector>
+#include "bclib/cvector.h"
 
 
 
@@ -48,7 +47,7 @@ namespace genepi { // ----
 class AlleleFreqParser : public GFileLexer
     {
     public:
-	typedef std::vector<std::string> PopArray;
+	typedef cvector<std::string> PopArray;
 
     private:
 	const SimpleLocusArray & loci	     ; ///< Keep a reference to the loci

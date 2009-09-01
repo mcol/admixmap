@@ -200,6 +200,10 @@ bool Options::getHWTestIndicator() const
   return HWTest;
 }
 
+const std::vector<float>& Options::getrhoSamplerParams()const{
+  return rhoSamplerParams;
+}
+
 double Options::getRegressionPriorPrecision()const{
   return regressionPriorPrecision;
 }
@@ -232,6 +236,8 @@ bool Options::getDeleteOldResultsIndicator()const{
 void Options::DefineOptions(){
   //set up Option map
 
+  addOption( "use-pedigree-for-individual", usePedForInd, false );
+
   addFlag('h', "help");
   addFlag('v', "version");
   addFlag('c', "checkmode");
@@ -263,6 +269,7 @@ void Options::DefineOptions(){
   addOption("allelicassociationtest", boolOption, &TestForAllelicAssociation);
   addOption("residualldtest", boolOption, &TestForResidualAllelicAssoc);
   addOption("hwtest", boolOption, &HWTest);
+  addOption("rhosamplerparams", fvectorOption, &rhoSamplerParams);
 
   // Other options
   addOption("numannealedruns", intOption, &NumAnnealedRuns);// number of coolnesses 

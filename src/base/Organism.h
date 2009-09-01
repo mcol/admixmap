@@ -30,7 +30,7 @@
 
 #include "SimpleLocusArray.h"
 #include "Genotype.h"
-#include "estr.h"
+#include "bclib/estr.h"
 
 #include <cstddef>	// size_t
 #include <climits>	// SHRT_MAX

@@ -34,7 +34,7 @@
 #include <stdexcept>
 #include <iostream>	// cerr
 
-#include "estr.h"
+#include "bclib/estr.h"
 #include "Genotype.h"
 
 
@@ -47,6 +47,10 @@ using namespace std;
 /// Should male with diploid genotype-data on X chromosome issue warning if the
 /// two gametes' alleles are the same?
 #define MALE_DIPLOID_X_WARN_HOMO 0
+
+/// Male diploid genotypes on X chromosome should be regarded as missing or haploid?
+#define MALE_DIPLOID_X_HOMO_MISSING	0
+#define MALE_DIPLOID_X_HETERO_MISSING	0
 
 /// Should an individual with no genotypes be a fatal error?
 #define NO_GENOTYPES_FATAL	 0
@@ -106,7 +110,7 @@ void checkGenotypes( const Organism & org,
 	}
 
     // Check for male with diploid X data
-    if ( (numhaploidX|numdiploidX) != 0) // Some X genotypes present
+    if ( (numhaploidX != 0) || (numdiploidX != 0) ) // Some X genotypes present
 	{
 	#if 0 // Apparently not checking for this
 	    if ( (numdiploidX != 0) && !org.isFemale() )
@@ -117,7 +121,7 @@ void checkGenotypes( const Organism & org,
 	    {
 
 	    // Check for female with haploid and diploid X data
-	    if ( numdiploidX != 0)
+	    if ( numdiploidX != 0 )
 		thrGenErr( org, "females should have diploid X-chromosome genotypes", haveErr );
 
 	    // Check for phased X data but unphased autosomal genotypes
@@ -130,7 +134,7 @@ void checkGenotypes( const Organism & org,
     else // only autosomes
 	{
 	// Check for mixed haploid/diploid data:
-	if ( numhaploid != 0 && numdiploid != 0 )
+	if ( (numhaploid != 0) && (numdiploid != 0) )
 	    thrGenErr( org, "both haploid and diploid genotypes and no X chromosome", haveErr );
 	}
 
@@ -145,7 +149,8 @@ void checkGenotypes( const Organism & org,
 void convert( const Organism &		org	  ,
 	      const Genome &		loci	  ,
 	      vector<GenotypeArray> &	genotypes ,
-	      bool**			missing	  ) {
+	      bool**			missing	  )
+    {
 
     SLocIdxType	 sLocIdx      = 0; // Simple locus counter
     unsigned int compLocusIdx = 0;
@@ -206,12 +211,33 @@ void convert( const Organism &		org	  ,
 		#if MALE_DIPLOID_X_FATAL
 		    thrGenErr( ind, msg, haveErr );
 		#else
+
+		    if ( heterozygous )
+			#if MALE_DIPLOID_X_HETERO_MISSING
+			    g.forceMissing();
+			#else
+			    g.forceHaploid();
+			#endif
+		    else
+			#if MALE_DIPLOID_X_HOMO_MISSING
+			    g.forceMissing();
+			#else
+			    g.forceHaploid();
+			#endif
+
 		    #if ! MALE_DIPLOID_X_WARN_HOMO
 		      if ( heterozygous )
 		    #endif
+			{
 			cerr << org.inLineDesc() << ": WARNING: individual " << org.idDesc() <<
-			    ": " << msg << ": forcing to haploid\n";
-		    g.forceHaploid();
+			    ": " << msg
+			#if MALE_DIPLOID_X_MISSING
+				<< ": forcing to haploid\n";
+			#else
+				<< ": considering to be missing\n";
+			#endif
+			}
+
 		#endif
 	      }
 	      ++numDiploidX;

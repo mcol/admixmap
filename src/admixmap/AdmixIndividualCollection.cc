@@ -14,85 +14,152 @@
 #include "InputAdmixData.h"
 #include "bclib/Regression.h"
 
+
+#define PED_DEBUG	0
+#define DEBUG2		0 // DDF: debug which objects in the collection are of what class
+#define DEBUG_BUILD_CNT 0
+
+#if DEBUG2
+    #include <cxxabi.h>
+#endif
+
+
 using namespace std;
+
+using genepi::RhoType;
+using genepi::Pedigree;
+
+
 
 // **** CONSTRUCTORS  ****
 // AdmixIndividualCollection::AdmixIndividualCollection() {
 //     SetNullValues();
 // }
 void AdmixIndividualCollection::SetNullValues(){
-  IndividualCollection::SetNullValues();
-  AdmixedChild = 0;
+  SUPER::SetNullValues();
   TestInd = 0;
   sizeTestInd = 0;
   indadmixoutput = 0;
   SumLogTheta = 0;
 }
 
-AdmixIndividualCollection::AdmixIndividualCollection(const AdmixOptions* const options,
-						     const InputAdmixData* const Data, Genome* Loci):
-  IndividualCollection(Data->getNumberOfIndividuals(), options->getPopulations(), Loci->GetNumberOfCompositeLoci())
- {
+AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   options ,
+						      const InputAdmixData & data    ,
+						      Genome &		     loci    ) :
+    SUPER( data.isPedFile() ? data.getPeds().size() : data.getNumberOfIndividuals() ,
+	   options.getPopulations() ,
+	   loci.GetNumberOfCompositeLoci() )
+  {
   SetNullValues();
   //  Populations = options->getPopulations();
-  //NumInd = Data->getNumberOfIndividuals();
+
   size = NumInd;
+
   //NumCompLoci = Loci->GetNumberOfCompositeLoci();
 
-  AdmixedIndividual::SetStaticMembers(Loci, options);
+  AdmixedIndividual::SetStaticMembers( loci, options );
 
   unsigned i0 = 0; // used to offset numbering of other individuals (not the one under test)
-  // Fill separate individuals.
-  if(options->getTestOneIndivIndicator()) {
-    sizeTestInd = options->getNumAnnealedRuns()+1;
-    //create array of copies of TestInd
-    TestInd = new AdmixedIndividual*[sizeTestInd];
-    SumEnergy = new double[sizeTestInd];
-    fill(SumEnergy, SumEnergy+sizeTestInd, 0.0);
-    SumEnergySq = new double[sizeTestInd];
-    fill(SumEnergySq, SumEnergySq+sizeTestInd, 0.0);
 
-    for(int i = 0; i < sizeTestInd; ++i){
-      TestInd[i] = new AdmixedIndividual(1, options, Data, true);
+  // Fill separate individuals.
+  if ( options.getTestOneIndivIndicator() ) {
+    sizeTestInd = options.getNumAnnealedRuns()+1;
+    // Create array of copies of TestInd
+    TestInd = new PedBase*[ sizeTestInd ];
+    SumEnergy = new double[ sizeTestInd ];
+    fill( SumEnergy, SumEnergy+sizeTestInd, 0.0 );
+    SumEnergySq = new double[ sizeTestInd ];
+    fill( SumEnergySq, SumEnergySq+sizeTestInd, 0.0 );
+
+    for ( int i = 0; i < sizeTestInd; ++i ) {
+	TestInd[i] = new AdmixedIndividual(1, &options, &data, true);
     }
     ++i0;
     --size;
-    if(!TestInd[0]->isHaploidIndividual())++NumDiploidIndividuals;
+    if ( ! TestInd[0]->isHaploidIndividual() )
+	++NumDiploidIndividuals;
   }
 
-  AdmixedChild = new AdmixedIndividual*[size];
-  for (unsigned int i = 0; i < size; i++ ) {
-    AdmixedChild[i] = new AdmixedIndividual(i+i0+1, options, Data, false);
-    if(!AdmixedChild[i]->isHaploidIndividual())
-      ++NumDiploidIndividuals;
-  }
+  _child = new PedBase*[ size ];
 
-  _child = (Individual**)AdmixedChild;
+  if ( data.isPedFile() || options.getUsePedForInd() )
+      {
+      #if DEBUG_BUILD_CNT
+	  fprintf( stderr, "Building AdmixIndividualCollection, i0=%d, size=%d\n", i0, size );
+      #endif
+
+      for ( unsigned int i = 0; i < size; i++ )
+	{
+	_child[i] = const_cast<genepi::Pedigree*>( &data.getPeds()[ i + i0 ] );
+	#if DEBUG_BUILD_CNT
+	    const PedBase &  twg = *(_child[i]);
+	    const Pedigree & ped = data.getPed( i + i0 );
+	    fprintf( stderr, "  twg %u (ped %u) at %p (ped %p): %zu loci at %p\n",
+			i, i+i0,
+			&twg, &ped,
+			ped.getSLoci().size(), &(ped.getSLoci()) );
+	#endif
+	++NumDiploidIndividuals;
+	}
+      iOwnChildren = false;
+
+      #if DEBUG_BUILD_CNT
+	  fprintf( stderr, "Finished building AdmixIndividualCollection.\n" );
+      #endif
+
+      }
+  else
+      {
+      for (unsigned int i = 0; i < size; i++ )
+	{
+	_child[i] = new AdmixedIndividual(i+i0+1, &options, &data, false);
+	if ( ! _child[i]->isHaploidIndividual() )
+	  ++NumDiploidIndividuals;
+	}
+      iOwnChildren = true;
+      }
 
 }
+
 
 // ************** DESTRUCTOR **************
 AdmixIndividualCollection::~AdmixIndividualCollection() {
   //cout << "\n Deleting individual objects\n" << flush;
   //  AdmixedIndividual::DeleteStaticMembers();
 
-  if(TestInd){
-    for(int i = 0; i < sizeTestInd; ++i)delete TestInd[i];
-  }
+  if ( TestInd )
+    {
+    for ( int i = 0 ; i < sizeTestInd ; ++i )
+	delete TestInd[i];
+    }
 
   delete[] TestInd;
   delete indadmixoutput;
   delete[] SumLogTheta;
 
-  for(unsigned int i = 0; i < size; i++)
-    delete _child[i];
+#if DEBUG2
+  for ( size_t i = 0 ; i < size ; i++ )
+    {
+    int status;
+    char * const realname = abi::__cxa_demangle( typeid(*(_child[i])).name(), 0, 0, &status );
+    const char * cl = (status == 0) ? realname : typeid(*(_child[i])).name();
+    fprintf( stderr, "Class of %z: %s\n", i, cl );
+    if ( realname != 0 )
+	free( realname );
+    }
+#endif
+
+  if ( iOwnChildren )
+    for(unsigned int i = 0; i < size; i++)
+      delete _child[i];
+
   delete[] _child;
 }
 
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 
-void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Genome& Loci,
+void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Genome & Loci,
 				      const Vector_s& PopulationLabels, bclib::LogWriter &Log){
   Log.setDisplayMode(bclib::Quiet);
   //Open indadmixture file
@@ -113,12 +180,37 @@ void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Ge
 
   //allocate array of sufficient statistics for update of locus-specific sumintensities
 
+  #if PED_DEBUG // ***** DEBUG *****
+	fprintf( stderr, "N-tests: %d\n" "N-inds: %d\n", sizeTestInd, size );
+	const Genome & gen = Individual::getGenome();
+	for ( unsigned int i = 0; i < size; i++ )
+	    {
+	    fprintf( stderr, "  %d %d: ", i, _child[i]->getMyNumber() );
+	    for ( unsigned int loc = 0; loc < gen.GetNumberOfCompositeLoci(); loc++ )
+		{
+		fprintf( stderr, " %c/", _child[i]->GenotypeIsMissing(loc) ? 'M' : 'n' );
+		const std::vector<hapPair > & pairs = _child[i]->getPossibleHapPairs( loc );
+		for ( size_t pr = 0 ; pr < pairs.size() ; ++pr )
+		    fprintf( stderr, "(%d,%d)", pairs[pr].haps[0], pairs[pr].haps[1] );
+		}
+	    putc( '\n', stderr );
+	    }
+
+      for ( unsigned c = 0; c < getOutcomeMatrix().nCols(); ++c) {
+	const std::vector<double> & outc = getOutcome(c);
+	fprintf( stderr, "Initialize-outcome-%u [%lu]", c, outc.size() );
+	for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
+	    fprintf ( stderr, " %lf", outc[idx] );
+	putc( '\n', stderr );
+	}
+  #endif
+
 }
 
 void AdmixIndividualCollection::DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha){
     //draw initial values for individual admixture proportions
   for(unsigned int i = 0; i < size; i++)
-    AdmixedChild[i]->drawInitialAdmixtureProps(alpha);
+    getElement(i).drawInitialAdmixtureProps(alpha);
     if(TestInd)
       for(int i = 0; i < sizeTestInd; i++)
 	TestInd[i]->drawInitialAdmixtureProps(alpha);
@@ -127,15 +219,15 @@ void AdmixIndividualCollection::DrawInitialAdmixture(const std::vector<std::vect
 
 void AdmixIndividualCollection::resetStepSizeApproximators(int k) {
   for(unsigned i = 0; i < size; i++)
-    AdmixedChild[i]->resetStepSizeApproximator(k);
+    getElement(i).resetStepSizeApproximator(k);
 }
 
-void AdmixIndividualCollection::LoadData(const AdmixOptions* const options, const InputAdmixData* const data_){
+void AdmixIndividualCollection::LoadData( const AdmixOptions & options, const InputAdmixData & data_ ) {
 
-  IndividualCollection::LoadData(options, data_,
-				 (!options->getTestForAdmixtureAssociation() && options->getPopulations() > 1));
-  if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
-    LoadRepAncestry(data_);
+  SUPER::LoadData( options, data_,
+			(!options.getTestForAdmixtureAssociation() && options.getPopulations() > 1));
+  if ( strlen( options.getReportedAncestryFilename() ) != 0 ){
+    LoadRepAncestry( &data_ );
   }
 }
 
@@ -155,7 +247,7 @@ void AdmixIndividualCollection::setGenotypeProbs(const Genome* const Loci){
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
       for(unsigned int i = 0; i < size; i++ ) {
-	AdmixedChild[i]->SetGenotypeProbs(j, jj, locus, false);
+	getElement(i).SetGenotypeProbs(j, jj, locus, false);
       }
       if(TestInd)
 	for(int i = 0; i < sizeTestInd; ++i)
@@ -173,7 +265,7 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 
     } else { // anneal all individuals
       for(unsigned int i = 0; i < size; i++) {
-	AdmixedChild[i]->AnnealGenotypeProbs(j, coolness);
+	getElement(i).AnnealGenotypeProbs(j, coolness);
       }
     }
   }
@@ -193,7 +285,7 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 //   vector<double> lambda;
 //   vector<const double*> beta;
 
-//   for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+//   for(int i = 0; i < options.getNumberOfOutcomes(); ++i){
 //     lambda.push_back( R[i]->getlambda());
 //     beta.push_back( R[i]->getbeta());
 //   }
@@ -201,33 +293,49 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 //   double dispersion = 0.0;
 //   if(R.size()>0) dispersion = R[0]->getDispersion();
 
-//   //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
+//   //if( !options.getIndAdmixHierIndicator() ) alpha = admixtureprior;
 //   int i0 = 0;
-//   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only
+//   if(options.getTestOneIndivIndicator()) {// anneal likelihood for test individual only
 //     i0 = 1;
 //   }
-//   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-//   if(iteration >= options->getBurnIn())
+//   fill(SumLogTheta, SumLogTheta+options.getPopulations(), 0.0);//reset to 0
+//   if(iteration >= options.getBurnIn())
 //     ancestryAssocTest.Reset();
 
-//   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
+//   bool _anneal = (anneal && !options.getTestOneIndivIndicator());
 //     for(unsigned int i = 0; i < size; i++ ){
 // 	double DinvLink = 1.0;
 // 	if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
 // // ** update theta with random-walk proposal on even-numbered iterations
-// 	AdmixedChild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
+// 	getElement(i).SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
 // 			       &Covariates, beta, poptheta, options, alpha, DinvLink,
 // 			       dispersion, ancestryAssocTest, true, _anneal);
 //     }
 // }
 
-void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions& options,
-					   const vector<bclib::Regression*> &R, const double* const poptheta,
-                                                    const vector<vector<double> > &alpha,
-                                                    AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
+void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & options,
+						const vector<bclib::Regression*> &R,
+						const double * const poptheta,
+						const vector<vector<double> > & alpha,
+						AffectedsOnlyTest& affectedsOnlyTest,
+						CopyNumberAssocTest& ancestryAssocTest, bool anneal){
   vector<double> lambda;
   vector<const double*> beta;
   double dispersion = 0.0;
+
+
+#if PED_DEBUG // ***** DEBUG *****
+    fprintf( stderr, "At iteration %d, loglike:\n", iteration );
+    Genome & gen = Individual::getGenome();
+    for ( size_t chr = 0 ; chr < gen.GetNumberOfChromosomes() ; ++chr )
+	{
+	Chromosome & cref = gen.getChromosomeRef( chr );
+	const std::string & name = cref.GetLabel();
+	fprintf( stderr, "\t{%lu(%s): %lf}\n", chr, name.c_str(), cref.getHMM().getLogLikelihood(true/*diploid*/) );
+	}
+#endif
+
+
   const bool even_numbered_iteration = !(iteration %2);
   const bool _anneal = (anneal && !options.getTestOneIndivIndicator());
   const bool updateScoreTests = iteration > options.getBurnIn()
@@ -259,14 +367,14 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions& op
   //now loop over individuals
   for(unsigned int i = 0; i < size; i++ ){
     // ** set SumLocusAncestry and SumNumArrivals to 0
-    AdmixedChild[i]->ResetSufficientStats();
+    getElement(i).ResetSufficientStats();
 
     if(Populations >1){//no updates required for single-population model
       // ** update theta with random-walk proposal on even-numbered iterations
       if(even_numbered_iteration){
         double DinvLink = 1.0;
         if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-        AdmixedChild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
+        getElement(i).SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
                                      &Covariates, beta, poptheta, options, alpha, DinvLink,
                                      dispersion, ancestryAssocTest, true, _anneal);
       }
@@ -274,11 +382,11 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions& op
       // ** Run HMM forward recursions, if required, and sample locus ancestry
       _child[i]->SampleHiddenStates(options);
       // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-      AdmixedChild[i]->SampleJumpIndicators(!options.isGlobalRho());
+      getElement(i).SampleJumpIndicators(!options.isGlobalRho());
 
       // ** Update score, info and varscore for ancestry score tests
       if(updateScoreTests)
-        AdmixedChild[i]->UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest, ancestryAssocTest);
+        getElement(i).UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest, ancestryAssocTest);
     }
 
   }
@@ -340,13 +448,13 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
   for(unsigned int i = 0; i < size; i++ ){
     // ** Sample individual- or gamete-specific sumintensities
     if(Populations>1 && !options.isGlobalRho() )
-       AdmixedChild[i]->SampleRho( options, rhoalpha, rhobeta,
+       getElement(i).SampleRho( options, rhoalpha, rhobeta,
 				   (!anneal && iteration > options.getBurnIn()));
     // ** update admixture props with conjugate proposal on odd-numbered iterations
      if((iteration %2) && Populations >1 ){
            double DinvLink = 1.0;
        if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-        AdmixedChild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates,
+        getElement(i).SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates,
 			       beta, poptheta, options, alpha, DinvLink, dispersion, ancestryAssocTest, false, anneal);
             }
     // ** Sample missing values of outcome variable
@@ -356,12 +464,12 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
 
 void AdmixIndividualCollection::setChibNumerator(const AdmixOptions& options,const vector<vector<double> > &alpha,
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
-   AdmixedChild[0]->setChibNumerator(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat*,*/ &MargLikelihood, A);
+   getElement(0).setChibNumerator(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat*,*/ &MargLikelihood, A);
 }
 
 void AdmixIndividualCollection::updateChib(const AdmixOptions& options,const vector<vector<double> > &alpha,
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
-   AdmixedChild[0]->updateChib(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat,*/ &MargLikelihood, A);
+   getElement(0).updateChib(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat,*/ &MargLikelihood, A);
 }
 
 void AdmixIndividualCollection::FindPosteriorModes(const AdmixOptions& options,
@@ -401,7 +509,7 @@ void AdmixIndividualCollection::FindPosteriorModes(const AdmixOptions& options,
 					       modefile/*, thetahat, rhohat*/);
   }
   for(unsigned int i = 0; i < size; i++ ){
-     AdmixedChild[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,A,
+     getElement(i).FindPosteriorModes(options, alpha, rhoalpha, rhobeta,A,
 				  modefile/*, thetahat, rhohat*/);
     modefile << endl;
   }
@@ -414,7 +522,7 @@ double AdmixIndividualCollection::GetSumrho()const
 {
    double Sumrho = 0;
    for( unsigned int i = 0; i < size; i++ )
-      Sumrho += ( AdmixedChild[i])->getSumrho();
+      Sumrho += getElement(i).getSumrho();
    return Sumrho;
 }
 
@@ -439,7 +547,7 @@ void AdmixIndividualCollection::OutputIndAdmixture()
   if(TestInd)
     indadmixoutput->visitIndividual(*(TestInd[sizeTestInd-1]), _locusfortest);
   for(unsigned int i = 0; i < size; i++){
-    indadmixoutput->visitIndividual(* AdmixedChild[i], _locusfortest);
+    indadmixoutput->visitIndividual( getElement(i), _locusfortest );
   }
 }
 
@@ -458,7 +566,7 @@ void AdmixIndividualCollection::OutputChibResults(bclib::LogWriter& Log) const {
 void AdmixIndividualCollection::getOnePopOneIndLogLikelihood(bclib::LogWriter &Log, const Vector_s& PopulationLabels) {
   Log.setDisplayMode(bclib::On);
   Log << "Log-likelihood for unadmixed "  << PopulationLabels[0] << ": "
-      <<  AdmixedChild[0]->getLogLikelihoodOnePop() << "\n";
+      <<  getElement(0).getLogLikelihoodOnePop() << "\n";
 }
 
 void AdmixIndividualCollection::accumulateEnergyArrays(const Options& options) {
@@ -479,35 +587,95 @@ void AdmixIndividualCollection::HMMIsBad(bool b){
     _child[i]->HMMIsBad(b);
 }
 
+
 void AdmixIndividualCollection::ResetChib(){
   MargLikelihood.Reset();
 }
 
+
 void AdmixIndividualCollection::OutputErgodicChib(std::ofstream *avgstream, bool fixedallelefreqs) {
   *avgstream << MargLikelihood.getLogPrior()<< " " << MargLikelihood.getLogPosterior() << " "
-	     <<  AdmixedChild[0]->getLogPosteriorTheta() << " " <<   AdmixedChild[0]->getLogPosteriorRho()<< " ";
+	     <<  getElement(0).getLogPosteriorTheta() << " " <<   getElement(0).getLogPosteriorRho()<< " ";
   if(!fixedallelefreqs)
-    *avgstream  <<  AdmixedChild[0]->getLogPosteriorAlleleFreqs() << " "; // not if fixedallelefreqs
+    *avgstream  <<  getElement(0).getLogPosteriorAlleleFreqs() << " "; // not if fixedallelefreqs
   *avgstream << MargLikelihood.getLogMarginalLikelihood();
 }
+
+
 double* AdmixIndividualCollection::getSumEnergy()const{
     return SumEnergy;
 }
+
+
 double* AdmixIndividualCollection::getSumEnergySq()const{
     return SumEnergySq;
 }
-double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *> &R, Genome* Loci,
-							     bclib::LogWriter &Log, const vector<double>& SumLogRho, unsigned,  AlleleFreqs* /*A*/){
+
+
+double AdmixIndividualCollection::getDevianceAtPosteriorMean(
+						const Options &			options		,
+						vector<bclib::Regression *> &	R		,
+						Genome *			Loci		,
+						bclib::LogWriter &		Log		,
+						const RhoType &			/*SumLogRho*/	,
+						unsigned			/*something*/	,
+						AlleleFreqs *			/*A*/		) {
+
   //SumRho = ergodic sum of global sumintensities
   int iterations = options.getTotalSamples()-options.getBurnIn();
 
-  //update chromosomes using globalrho, for globalrho model
-  if(options.getPopulations() >1 && options.isGlobalRho() ){
-    vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
-    for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
-    //set locus correlation
-    Loci->SetLocusCorrelation(RhoBar);
-  }
+
+#if PED_DEBUG // ***** DEBUG *****
+  for ( unsigned c = 0; c < R.size(); ++c) {
+    double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
+    const std::vector<double> & outc = getOutcome(c);
+    fprintf( stderr, "Before-regression-%u (%d) [%lu]", c, iterations, outc.size() );
+    for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
+	fprintf ( stderr, " %lf", outc[idx] );
+    fprintf( stderr, "  -> %lf\n", RegressionLogL );
+    }
+#endif
+
+  // *********************************************************************
+  // *********************************************************************
+  // *****
+  // ***** DDF 2009-06-27:
+  // *****
+  // ***** This is problematic (i.e. buggy): when this method is called from
+  // ***** AdmixMapModel::getDevianceAtPosteriorMean(), which is called from
+  // ***** AdmixMapModel::Finalize(), it passes L->getSumLogRho()
+  // ***** (i.e. PopAdmix::sumLogRho) in as SubLogRho.  As nearly as I can tell
+  // ***** from examining the PopAdmix code as well as observing it while
+  // ***** running, PopAdmix::SumLogRho will never have more than 1 element, yet
+  // ***** here we access it past the end of its elements provided the genome
+  // ***** has more than 1 composite locus.
+  // *****
+  // ***** This is not overly problematic because the computed RhoBar is passed
+  // ***** into Genome::SetLocusCorrelation(), which, it appears to me, promptly
+  // ***** ignores it since it ignores any rho vector of length other than 1 (I
+  // ***** have added some comments to that method indicating this).  I have
+  // ***** therefore #if'd out the buggy code here, although perhaps someday
+  // ***** someone should try to figure out what it is trying to do.
+  // *****
+  // *********************************************************************
+  // ***** VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+  #if 0
+      // Update chromosomes using globalrho, for globalrho model
+      if ( (options.getPopulations() > 1) && options.isGlobalRho() ) {
+
+	RhoType RhoBar(Loci->GetNumberOfCompositeLoci());
+	for ( unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i )
+	    RhoBar[i] = exp( SumLogRho[i] / double(iterations) );
+	//set locus correlation
+	Loci->SetLocusCorrelation( RhoBar );
+      }
+  #endif
+  // ***** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  // ***** End of buggy+ineffectual code
+  // *********************************************************************
+  // *********************************************************************
+
+
 
   //set haplotype pair probs to posterior means
   for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
@@ -529,10 +697,21 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options& opti
     Lhat += RegressionLogL;
     Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
 	<< -2.0*RegressionLogL << "\n";
+
+#if PED_DEBUG // ***** DEBUG *****
+    const std::vector<double> & outc = getOutcome(c);
+    fprintf( stderr, "After-regression-%u (%d) [%lu]", c, iterations, outc.size() );
+    for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
+	fprintf ( stderr, " %lf", outc[idx] );
+    fprintf( stderr, "  -> %lf\n", RegressionLogL );
+#endif
+
   }
 
   return(-2.0*Lhat);
 }
+
+
 
 #include "AdmixFilenames.h"
 ///write posterior means of individual admixture params to file
@@ -565,7 +744,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
 
   const unsigned samples = options.getTotalSamples() - options.getBurnIn();
   for(unsigned int i = 0; i < size; i++ ){
-    AdmixedChild[i]->WritePosteriorMeans(meanfile, samples, options.isGlobalRho());
+    getElement(i).WritePosteriorMeans(meanfile, samples, options.isGlobalRho());
     meanfile << endl;
   }
   meanfile.close();
@@ -581,11 +760,11 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
     locifile << "structure(c(";
 
   for( unsigned int i = 0; i < size-1; ++i ){
-    AdmixedChild[i]->WritePosteriorMeansLoci(locifile);
+    getElement(i).WritePosteriorMeansLoci(locifile);
     locifile << ",\n";
   }
   // do not append comma to values for last individual
-  AdmixedChild[size-1]->WritePosteriorMeansLoci(locifile);
+  getElement(size-1).WritePosteriorMeansLoci(locifile);
   locifile << "), .Dim=c(" << size << ", " << Loci->GetNumberOfCompositeLoci() << ", " <<
     options.getPopulations() << ", 3))\n";
   locifile.close();

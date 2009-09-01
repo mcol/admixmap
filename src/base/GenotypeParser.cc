@@ -36,7 +36,7 @@
 #endif
 #include <set>	// Used for pedigree-connected-graph traversal
 
-#include "estr.h"
+#include "bclib/estr.h"
 
 
 
@@ -338,7 +338,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		std::cout << "format: no-sex genotype file";
 	    #endif
 
-	    // Report an error if have data for X chromosomes and no sex supplied:
+	    // Warning if have data for X chromosomes and no sex supplied:
 	    for ( SimpleLocusArray::ConstIter it = simpleLoci.begin(); it != simpleLoci.end(); ++it )
 		if ( it->isXChrom() )
 		    {

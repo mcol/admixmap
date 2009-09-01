@@ -1,20 +1,20 @@
-/** 
+/**
  *   ADMIXMAP
- *   MisSpecAlleleFreqTest.cc 
+ *   MisSpecAlleleFreqTest.cc
  *   Implements score tests for mis-specified allele frequencies
- *   Only used with fixed allele frequencies and only for monitoring. 
+ *   Only used with fixed allele frequencies and only for monitoring.
 
  * There are currently two tests:
  * 1. scalar test carried out only at composite loci with a single locus
  * 2. a generalized test , not fully implemented yet
  *
  * Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY.
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License,
+ * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
- * 
+ *
  */
 
 #include "MisSpecAlleleFreqTest.h"
@@ -42,7 +42,7 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
    doTest1 = options->getTestForMisspecifiedAlleleFreqs();
    doTest2 = options->getTestForMisspecifiedAlleleFreqs2();
 
-   
+
    if(doTest1){
      Test1.Initialise(options, Loci, Log);
    }
@@ -58,16 +58,16 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
  }
 }
 
-void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals, 
+void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals,
 				   const AlleleFreqs* const A, const Genome* const Loci){
   if(doTest1)
     Test1.Update(individuals, A, Loci);
 
-  if( doTest2 )    
+  if( doTest2 )
     Test2.Update(individuals, A, Loci);
 }
 
-void MisSpecAlleleFreqTest::Output(const string& ResultsDir, const Genome* const Loci, 
+void MisSpecAlleleFreqTest::Output(const string& ResultsDir, const Genome* const Loci,
 				   const Vector_s& PopLabels, bclib::LogWriter& Log){
     if( doTest1){
       const string filename = ResultsDir + "/" + MISSPECALLELEFREQTEST_1;
@@ -102,7 +102,7 @@ MisSpecifiedAlleleFreqTest::~MisSpecifiedAlleleFreqTest(){
       delete[] Info[i-1];
       delete[] SumScore[i-1];
       delete[] SumInfo[i-1];
-      delete[] SumScoreSq[i-1];  
+      delete[] SumScoreSq[i-1];
     }
     delete[] Score;
     delete[] SumScore;
@@ -120,7 +120,7 @@ void MisSpecifiedAlleleFreqTest::Initialise(const AdmixOptions* const options, c
    test = options->getTestForMisspecifiedAlleleFreqs();
    Populations = options->getPopulations();
    NumCompLoci = Loci->GetNumberOfCompositeLoci();
-   
+
    if(test){
      NumTestLoci = 0;
      for(int i = 0; i < NumCompLoci; ++i)
@@ -131,10 +131,10 @@ void MisSpecifiedAlleleFreqTest::Initialise(const AdmixOptions* const options, c
      Info = new double*[NumCompLoci];
      SumInfo = new double*[NumCompLoci];
      SumScoreSq = new double*[NumCompLoci];
-     
+
      for(int i = 0; i < NumCompLoci; ++i){
        Score[i] = new double[ Populations ];
-       Info[i] = new double[ Populations * Populations ]; 
+       Info[i] = new double[ Populations * Populations ];
        SumScore[i] = new double[ Populations ];
        fill(SumScore[i], SumScore[i]+Populations, 0.0);
        SumInfo[i] = new double[ Populations * Populations ];
@@ -166,17 +166,17 @@ void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const indivi
   if( test ) {
     double** phi = bclib::alloc2D_d(Populations, Populations);
     for( int i = 0; i < individuals->getSize(); i++ ){
-      const Individual* ind = individuals->getIndividual(i);
-      
+      const PedBase & ind = individuals->getElement(i);
+
       for( int k = 0; k < Populations; k++ )
 	for( int kk = 0; kk < Populations; kk++ )
-	  phi[k][ kk ] = ind->getAdmixtureProps()[k] * ind->getAdmixtureProps()[kk];
-      
+	  phi[k][ kk ] = ind.getAdmixtureProps()[k] * ind.getAdmixtureProps()[kk];
+
       for(int j = 0; j < NumCompLoci; j++ ){
-	if( !(ind->GenotypeIsMissing(j)) && 
+	if( !(ind.GenotypeIsMissing(j)) &&
 	    (*Loci)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) ){//CHECK: do only for SNPs?
 	  int NumStates = Loci->GetNumberOfStates(j);
-	  const vector<int> NumCopiesAllele1 = (*Loci)(j)->getAlleleCounts(1, ind->getSampledHapPair(j));
+	  const vector<int> NumCopiesAllele1 = (*Loci)(j)->getAlleleCounts(1, ind.getSampledHapPair(j));
 	  UpdateLocus( j, phi, NumCopiesAllele1[0], A->GetAlleleFreqs(j), NumStates );
 	}
       }
@@ -210,7 +210,7 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
 {
   vector<double> score( Populations );
   double Pi[3] = {0.0, 0.0, 0.0};
-  
+
   for( int k = 0; k < Populations; k++ ){
     for( int kk = 0; kk < Populations; kk++ ){
       Pi[0] += AlleleFreqs[ NumStates*k ] * AlleleFreqs[ NumStates*kk ] * phi[k][kk];
@@ -218,7 +218,7 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
       Pi[2] += ( 1 - AlleleFreqs[ NumStates*k ] ) * ( 1 - AlleleFreqs[ NumStates*kk ] ) * phi[k][kk];
     }
   }
-  
+
   if( NumCopiesAllele1 == 2 ){
     for( int k = 0; k < Populations; k++ ){
       score[k] = 2 * AlleleFreqs[ NumStates*k ] * phi[k][k];
@@ -233,7 +233,7 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
       for( int kk = 0; kk < Populations; kk++ )
 	if( k != kk )
 	  Info[j][ k*Populations + kk ] += score[k] * score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[0];}
-  
+
   else if( NumCopiesAllele1 == 1 ){
     for( int k = 0; k < Populations; k++ ){
       score[k] = 2 * ( 1 - 2 * AlleleFreqs[ NumStates*k ] ) * phi[k][k];
@@ -247,7 +247,7 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
 	 for( int kk = 0; kk < Populations; kk++ )
 	   if( k != kk )
 	     Info[j][ k*Populations + kk ] += score[k] * score[kk] + 2*(phi[k][kk] + phi[kk][k]) / Pi[1];}
-  
+
   else if( NumCopiesAllele1 == 0 ){
     for( int k = 0; k < Populations; k++ ){
       score[k] = -2 * ( 1 - AlleleFreqs[ NumStates*k ] ) * phi[k][k];
@@ -263,16 +263,16 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
 	    Info[j][ k*Populations + kk ] += score[k] * score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[2];}
 }
 
-void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* const Loci, 
+void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* const Loci,
 					 const Vector_s& PopLabels, bclib::LogWriter& Log)
 {
   if( test){
 
-     Log << "Writing score tests for mis-specified allele frequencies(1) to " 
+     Log << "Writing score tests for mis-specified allele frequencies(1) to "
 	 << filename << "\n";
      bclib::DelimitedFileWriter outputfile(filename);
-     outputfile << "Locus" << "Population" << "Score" << "CompleteInfo" 
-		<< "ObservedInfo" << "PercentInfo" << "StdNormal" << "PValue" 
+     outputfile << "Locus" << "Population" << "Score" << "CompleteInfo"
+		<< "ObservedInfo" << "PercentInfo" << "StdNormal" << "PValue"
 		<< "ChiSquared" << "PValue"<< bclib::newline;
 
     double* ObservedMatrix = new double[Populations*Populations];
@@ -280,7 +280,7 @@ void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* con
     outputfile.setDecimalPrecision(2);//output 2 decimal places
     for(int j = 0; j < NumCompLoci; j++ ){
       if( (*Loci)(j)->GetNumberOfLoci() == 1 ){
-	
+
 	for(int k = 0; k < Populations; ++k)SumScore[j][k] /= (double) numUpdates;
 	bclib::matrix_product(SumScore[j], ScoreSq, Populations, 1);//ScoreSq = Score * t(Score)
 	//CompleteMatrix = SumInfo[j] / samples;
@@ -288,29 +288,29 @@ void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* con
 	  SumInfo[j][k] /= (double) numUpdates;//SumInfo[j] = CompleteMatrix
 	  ObservedMatrix[k] = SumInfo[j][k] + ScoreSq[k] - SumScoreSq[j][k] / (double)numUpdates;
 	}
-	
+
 	//ObservedMatrix = CompleteMatrix + ScoreMatrix * ScoreMatrix.Transpose() - SumScoreSq[j] / numUpdates;
-	
+
 	for( int k = 0; k < Populations; k++ ){
 	  double observedinfo = ObservedMatrix[ k*Populations + k ];
 	  double completeinfo = SumInfo[j][ k*Populations + k ];
 	  // Test for mis-specification within each continental-population.
-	  outputfile << (*Loci)(j)->GetLabel(0) 
-		     << PopLabels[k] 
+	  outputfile << (*Loci)(j)->GetLabel(0)
+		     << PopLabels[k]
 		     << SumScore[j][ k ] //score
 		     << completeinfo     //complete info
 		     << observedinfo ;   //observed info
 	  if(completeinfo > 0.0)
 	    outputfile << 100*observedinfo / completeinfo ;
 	  else outputfile << "NA";
-	  
+
 	  if(observedinfo > 0.0){
 	    double zscore = SumScore[j][ k ] / sqrt( observedinfo );
 	    double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
 	    outputfile << zscore << pvalue ;
 	  }
 	  else outputfile << "NA" << "NA";
-	  
+
 	  if( k < Populations - 1 )
 	    outputfile  << "NA" << "NA" << bclib::newline;//output NA in chisq column
 	}
@@ -326,7 +326,7 @@ void MisSpecifiedAlleleFreqTest::Output( const char* filename, const Genome* con
       }
     }//end locus loop
     delete[] ObservedMatrix;
-    delete[] ScoreSq; 
+    delete[] ScoreSq;
     outputfile.close();
   }//end if test
 }
@@ -370,12 +370,12 @@ void MisSpecifiedAlleleFreqTest2::Initialise(const AdmixOptions* const options, 
    test = options->getTestForMisspecifiedAlleleFreqs2();
    Populations = options->getPopulations();
    NumCompLoci = Loci->GetNumberOfCompositeLoci();
-   
+
    if(test){
      SumScore = new double**[NumCompLoci];
      SumInfo = new double**[NumCompLoci];
      SumScoreSq = new double**[NumCompLoci];
-     
+
      for(int i = 0; i < NumCompLoci; ++i){
        SumScore[i] = new double*[Populations];
        SumInfo[i] = new double*[Populations];
@@ -400,7 +400,7 @@ void MisSpecifiedAlleleFreqTest2::Initialise(const AdmixOptions* const options, 
  }
 }
 
-void MisSpecifiedAlleleFreqTest2::Update(const IndividualCollection* const individuals, 
+void MisSpecifiedAlleleFreqTest2::Update(const IndividualCollection* const individuals,
 					 const AlleleFreqs* const A, const Genome* const Loci){
   if( test ){
     for( int j = 0; j < NumCompLoci; j++ ){
@@ -413,8 +413,8 @@ void MisSpecifiedAlleleFreqTest2::Update(const IndividualCollection* const indiv
 }
 
 // presumably this calculates score test for mis-spec allele freqs at multi-allelic loci
-void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus, const int NumberOfStates, 
-								const double* const AlleleFreqs, 
+void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus, const int NumberOfStates,
+								const double* const AlleleFreqs,
 								const IndividualCollection* const individuals)
 {
    double rn, r, pj, pi, q;
@@ -452,11 +452,11 @@ void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int 
    delete[] NewInfo;
 }
 
-void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* const Loci, 
+void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* const Loci,
 					 const Vector_s& PopLabels, bclib::LogWriter& Log)
 {
   if( test ){
-     Log << "Writing score tests for mis-specified allele frequencies(2) to " 
+     Log << "Writing score tests for mis-specified allele frequencies(2) to "
 	 << filename << "\n";
      bclib::DelimitedFileWriter outputfile(filename);
      outputfile << "Locus" << "Population" << "CompleteInfo" << "ObservedInfo" << "PercentInfo" << "ChiSquared" << bclib::newline;
@@ -468,43 +468,43 @@ void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* con
       double* completeinfo = new double[(NumberOfStates-1)*(NumberOfStates-1)];
       double* observedinfo = new double[(NumberOfStates-1)*(NumberOfStates-1)];
       double* scoresq = new double[(NumberOfStates-1)*(NumberOfStates-1)];
-    
+
       //CompositeLocus *locus = (CompositeLocus*)(*Lociptr)(j);
       for( int k = 0; k < Populations; k++ ){
 	for(int s = 0; s < NumberOfStates-1; ++s){
 	  score[s] = SumScore[j][k][s] / (double)numUpdates;
 	}
-	
+
 	bclib::matrix_product(score, scoresq, NumberOfStates-1, 1);//scoresq = score * t(score)
 	for(int s = 0; s < (NumberOfStates-1)*(NumberOfStates-1); ++s){
 	  completeinfo[s] = SumInfo[j][k][s] / (double)numUpdates;
 	  observedinfo[s] = completeinfo[s] + scoresq[s] - SumScoreSq[j][k][s] / (double)numUpdates;
 	}
-	
+
 	//score = SumScore[j][k] / numUpdates;
 	//completeinfo = SumInfo[j][k] / numUpdates;
 	//observedinfo = completeinfo + score * score.Transpose() - SumScoreSq[j][k] / numUpdates;
-	outputfile << (*Loci)(j)->GetLabel(0) 
+	outputfile << (*Loci)(j)->GetLabel(0)
 		   << PopLabels[k] ;
 	try{
 	  double det1 = bclib::determinant(completeinfo, NumberOfStates-1);
 	  double det2 = bclib::determinant(observedinfo, NumberOfStates-1);
-	  outputfile << det1 
-		     << det2 
+	  outputfile << det1
+		     << det2
 		     << 100*det2 / det1 ;
 	}
 	catch(...){
 	  outputfile << "NA" << "NA" << "NA";
 	}
 	try{
-	  double chisq = bclib::GaussianMarginalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
+	  double chisq = bclib::GaussianMarginalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);
 	  //observedinfo.InvertUsingLUDecomposition();
 	  outputfile << chisq/*double2R((score.Transpose() * observedinfo * score)(0,0))*/  << bclib::newline;
 	}
 	catch(...){
 	  outputfile << "NA" << bclib::newline;
 	}
-	
+
       }
       delete[] score;
       delete[] completeinfo;
@@ -514,7 +514,3 @@ void MisSpecifiedAlleleFreqTest2::Output(const char* filename, const Genome* con
     outputfile.close();
   }//end if test
 }
-
-
-
-

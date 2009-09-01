@@ -41,7 +41,7 @@ public:
 
   void MergeRareHaplotypes(const std::vector<double> &alpha0);
 
-  void Update( const Individual* const , double, double, double, bool);
+  void Update( const PedBase * , double, double, double, bool);
 
   void Accumulate();
 

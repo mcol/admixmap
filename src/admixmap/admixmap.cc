@@ -25,6 +25,35 @@
 extern const char SVN_VERSION [];
 
 using namespace std;
+using namespace genepi;
+
+
+
+#define DEBUG_PRINT_EPROBS  0 // **** PRINT EMISSION PROBABILITIES DEBUG-CODE ****
+#define max_print_states    12
+
+
+
+#if DEBUG_PRINT_EPROBS
+
+    #include "HiddenStateSpace.h"
+
+    //-----------------------------------------------------------------------------
+    /// Output a summary of a pedigree
+    //-----------------------------------------------------------------------------
+
+    ostream & ped_sum( ostream & os, const Pedigree & ped )
+	{
+	os << "pedigree \""
+		    << ped.getId() << "\" (" << ped.getNMembers() << " members, "
+		    << ped.getNFounders() << " founders, "
+		    << ped.getNNonFndrs() << " non-founders)";
+	return os;
+	}
+
+#endif
+
+
 
 int main( int argc , char** argv ){
   AdmixOptions options(argc, argv);
@@ -70,12 +99,18 @@ int main( int argc , char** argv ){
     //also sets 'numberofoutcomes' and 'populations' options
     InputAdmixData data(&options, Log); 
 
-     //check user options
+    // "check user options"
+    // DDF: well, actually finish constructing them also.  They can't be used
+    // prior to this call.
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
       Log << bclib::On << "\nProgram aborted due to bad options. See logfile for details\n";
       exit(1);
     }
-  
+
+    // DDF: What can one say?  This shouldn't be required, but circular
+    // dependencies (AdmixOptions/InputAdmixData) do that to you.
+    data.finishConstructing( options );
+
     //print user options to args.txt; must be done after all options are set
     options.PrintUserOptions("args.txt");
 
@@ -83,7 +118,98 @@ int main( int argc , char** argv ){
 
     M.Initialise(options, data, Log);
 
-    data.Delete();
+    // ---- DDF NOTE: ----
+    // The old (pre-pedigree) method was to use the InputAdmixData (data) as a
+    // temporary holding/conversion object which read the input-data from the
+    // files, and used it to construct all of the necessary objects in the
+    // AdmixMapModel (M).  The data object was then deleted (presumably just to
+    // free memory) prior to beginning to run the model.  The Pedigree objects
+    // violate the assumptions of this method in that they are more-or-less
+    // constructed in-place when the files are parsed (being rather large,
+    // complex, and unwieldy to copy), so either the model object must be passed
+    // into the input-data object (presumably the best idea), which requires
+    // that the method signatures of InputAdmixData (and InputData and
+    // InputHapmixData) change, and that the model be constructed prior to the
+    // input-data object; or that (currently the case) the input-data object
+    // hold the "master" copies of these objects (Pedigree, SimpleLocusArray,
+    // etc.), which requires that the input-data object remain in existence for
+    // the lifetime of the model object (ugly).  A third option would be to copy
+    // (take-ownership or use reference-counted objects would be preferable) the
+    // objects from the input-data object to the model object.
+    #if ! USE_GENOTYPE_PARSER
+	data.Delete();
+    #endif
+
+
+    #if DEBUG_PRINT_EPROBS // **** PRINT EMISSION PROBABILITIES DEBUG-CODE ****
+
+	const bool   print_eprobs	= true;
+	const bool   print_ssize	= true;
+
+	const cvector<Pedigree> & peds = const_cast<const InputAdmixData &>( data ) .getPeds();
+	const SimpleLocusArray &  loci = data.getSimpleLoci();
+
+	for ( cvector<Pedigree>::const_iterator iter = peds.begin() ; iter != peds.end() ; ++iter )
+	    {
+
+	    const Pedigree & ped = *iter;
+
+	    cout << "\nPrinting hidden states and emission-probabilities for " << ped.getId() << ":\n";
+
+	    if ( ped.getNFounders() > 1 )
+		{
+		cout << "\n  For this pedigree, AVs are listed in founder organism order:";
+
+		for ( Pedigree::Iterator it = ped.getFirstFounder() ; it != ped.getEndFounder() ; ++it )
+			cout << ' ' << (*it)->getOrgId();
+		}
+
+	    if ( ped.getNNonFndrs() > 1 )
+		{
+		cout << "\n"
+			"  IVs are listed in non-founder organism order:";
+		for ( Pedigree::Iterator it = ped.getFirstNonFndr() ; it != ped.getEndNonFndr() ; ++it )
+			cout << ' ' << (*it)->getOrgId();
+		}
+
+	    if ( (ped.getNNonFndrs() > 1) || (ped.getNFounders() > 1) )
+		cout << '\n';
+
+	    for ( SLocIdxType sLocIdx = 0 ; sLocIdx < loci.size() ; ++sLocIdx )
+		{
+		const HiddenStateSpace & space = ped.getStateProbs( sLocIdx );
+
+		if ( print_eprobs || print_ssize )
+		    cout << (print_eprobs ? "\n" : "  ") << "Simple-locus \"" << loci[ sLocIdx ].getName() << "\":";
+
+		size_t n_states = 0;
+
+		for ( HiddenStateSpace::Iterator it(space); it; ++it )
+		    {
+		    ++n_states;
+		    if ( print_eprobs && ((max_print_states == 0) || (n_states <= size_t(max_print_states))) )
+			{
+			const HiddenStateSpace::State & st = *it;
+			cout << "\n  " << st.av << ' ' << st.iv << "  " << st.emProb;
+			}
+		    }
+
+		if ( print_eprobs )
+		    cout << "\n  ";
+
+		if ( print_eprobs || print_ssize )
+		    cout << ' ' << space.getNStates() << " states, of which "
+			<< n_states << " have non-zero emission probability.\n";
+
+		if ( print_eprobs )
+		    cout << "\n\n";
+		}
+
+	    }
+
+    #endif // DEBUG_PRINT_EPROBS
+
+
 
    //  ******** single individual, one population, fixed allele frequencies  ***************************
     if( M.getNumIndividuals() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )

@@ -12,6 +12,8 @@
 #include "HiddenMarkovModel.h"
 #include <cmath>
 #include "bclib/rand.h"
+#include "bclib/exceptions.h"
+
 
 using namespace std;
 using bclib::Rand;
@@ -24,8 +26,8 @@ void HiddenMarkovModel::SetNullValues(){
   p = 0;
   StateArrivalProbs[0] = 0;
   StateArrivalProbs[1] = 0;
-  ThetaThetaPrime = 0;
-  ThetaThetaInv = 0;
+  pi = 0;
+  piInv = 0;
   colProb = 0;
   Expectation0 = 0;
   Expectation1 = 0;
@@ -38,18 +40,32 @@ void HiddenMarkovModel::SetNullValues(){
   sumfactor = 0.0;
 }
 
-///no-argument constructor
-// HiddenMarkovModel::HiddenMarkovModel()
-// {
-//   SetNullValues();
-// }
 
-///constructor with arguments
-HiddenMarkovModel::HiddenMarkovModel( int inTransitions, int NumHiddenStates, const double* const fin):
-  K(NumHiddenStates), DStates(NumHiddenStates*NumHiddenStates), Transitions(inTransitions){
+
+//-----------------------------------------------------------------------------
+//
+/// Constructor with arguments.
+///
+/// This version of the HMM only works for individuals, not pedigrees, so the
+/// assumption is built-in that the number of states (@a _nStates) must be the
+/// square of the number of populations (@a _K).  We nonetheless pass both in as
+/// separate arguments so that we can have a standardized interface to HMMBase
+/// that can be used by both "specialized" (individual) and "generalized"
+/// (pedigree) versions.
+//
+//-----------------------------------------------------------------------------
+
+HiddenMarkovModel::HiddenMarkovModel( int _transitions, size_t _K, size_t _nStates, const double * _f) :
+    K( _K ),
+    nStates( _nStates ),
+    Transitions( _transitions )
+  {
+  gp_assert_eq( _nStates, _K*_K );
+
   SetNullValues();
-  SetDimensions(fin, true);
-}
+  SetDimensions(_f, true);
+  }
+
 
 HiddenMarkovModel::~HiddenMarkovModel()
 {
@@ -59,8 +75,8 @@ HiddenMarkovModel::~HiddenMarkovModel()
   delete[] LambdaBeta;
   delete[] StateArrivalProbs[0];
   delete[] StateArrivalProbs[1];
-  delete[] ThetaThetaPrime;
-  delete[] ThetaThetaInv;
+  delete[] pi;
+  delete[] piInv;
   delete[] rowProb;
   delete[] colProb;
   delete[] Expectation0;
@@ -69,26 +85,26 @@ HiddenMarkovModel::~HiddenMarkovModel()
 }
 
 ///allocate arrays and set f pointer
-void HiddenMarkovModel::SetDimensions( const double* const fin, bool)
+void HiddenMarkovModel::SetDimensions( const double * const fin, bool)
 {
-  alpha = new double[Transitions*K*K];
+  alpha = new double[Transitions* nStates];
   p = new double[Transitions];
   f = fin;
   StateArrivalProbs[0] = new double[Transitions * K ];
   StateArrivalProbs[1] = new double[Transitions * K ];
-  ThetaThetaPrime = new double[K*K];
-  ThetaThetaInv = new double[K*K];
+  pi = new double[ nStates ];
+  piInv = new double[ nStates ];
 
-  SetArraysForRecursionProbs(K);
+  SetArraysForRecursionProbs();
 }
 
-void HiddenMarkovModel::SetArraysForRecursionProbs(unsigned k){
-  if(k>2){
-    rowProb = new double[k];
-    colProb = new double[k];
-    Expectation0 = new double[k];
-    Expectation1 = new double[k];
-    cov = new double[k*k]; 
+void HiddenMarkovModel::SetArraysForRecursionProbs(){
+  if(K>2){
+    rowProb = new double[K];
+    colProb = new double[K];
+    Expectation0 = new double[K];
+    Expectation1 = new double[K];
+    cov = new double[ nStates ];
   }
 }
 
@@ -102,7 +118,7 @@ void HiddenMarkovModel::SetGenotypeProbs(const double* const lambdain, const boo
 
 /**
    set state arrival probs.
-   Set arrival rates and set pointer to ?? probs and , if diploid, calculate ThetaThetaPrime and ThetaThetaInv. 
+   Set arrival rates and set pointer to ?? probs and , if diploid, calculate pi and piInv. 
    Requires f to have been set.
    \param Theta mixture proportions
    \param Mcol Maternal gamete column (0 if assortative mating, 1 if random mating)
@@ -116,8 +132,8 @@ void HiddenMarkovModel::SetStateArrivalProbs(const double* const Theta, const in
   if(isDiploid){
     for(int j0 = 0; j0 < K; ++j0) {
       for(int j1 = 0; j1 < K; ++j1) {
-	ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
-	ThetaThetaInv[j0*K + j1] = 1.0 / ThetaThetaPrime[j0*K + j1];
+	pi[j0*K + j1] = Theta[j0] * Theta[j1 + K*Mcol];
+	piInv[j0*K + j1] = 1.0 / pi[j0*K + j1];
       }
     }
   }
@@ -175,7 +191,7 @@ double HiddenMarkovModel::getLogLikelihood(const bool isDiploid) {
   UpdateForwardProbs(isDiploid);
 
   double sum = 0.0;
-  const int NumStates = isDiploid? DStates : K;
+  const int NumStates = isDiploid? nStates : K;
   
   for( int j = 0; j < NumStates; j++ ) {
     sum += alpha[(Transitions - 1)*NumStates + j];
@@ -189,14 +205,14 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
 
   int j1,j2;
   if(isDiploid) { 
-    double* V = new double[DStates]; //probability vector for possible states (haploid or diploid)
+    double* V = new double[nStates]; //probability vector for possible states (haploid or diploid)
     int C = 0; // sampled state (haploid or diploid) coded as integer
     // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete 
     int State = 0;
     // sample rightmost locus  
-    for( int j = 0; j < DStates; ++j ) V[State++] = alpha[(Transitions - 1)*DStates + j];
+    for( int j = 0; j < nStates; ++j ) V[State++] = alpha[(Transitions - 1)*nStates + j];
     
-    C = Rand::SampleFromDiscrete( V, DStates ); 
+    C = Rand::SampleFromDiscrete( V, nStates ); 
     SStates[Transitions-1] = (int)(C/K);
     SStates[Transitions - 1 + Transitions] = (C % K);
     
@@ -208,10 +224,10 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
 	V[State] = 
 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[0][(t+1)*K + j1] ) * 
 	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[1][(t+1)*K + j2] );
-	V[State] *= alpha[t*DStates + i1*K + i2];
+	V[State] *= alpha[t*nStates + i1*K + i2];
 	++State;
       }
-      C = Rand::SampleFromDiscrete( V, DStates );
+      C = Rand::SampleFromDiscrete( V, nStates );
       SStates[t] = (int)(C/K);//paternal
       SStates[t + Transitions] = (C % K);//maternal
     }
@@ -243,7 +259,7 @@ const bclib::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDipl
   UpdateBackwardProbs(isDiploid);
   unsigned States = K;
   if(isDiploid) {
-    States=DStates;
+    States=nStates;
   }
   
   if (hiddenStateProbs.size() != (unsigned)States) {
@@ -303,12 +319,12 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
   double scaleFactor = 0.0;
   
   if(!missingGenotypes[0]) {
-    for(int j = 0; j < DStates; ++j) {
-      alpha[j] =  ThetaThetaPrime[j] * Lambda[j];
+    for(int j = 0; j < nStates; ++j) {
+      alpha[j] =  pi[j] * Lambda[j];
     } 
   } else {
-    for(int j = 0; j < DStates; ++j) {
-      alpha[j] = ThetaThetaPrime[j];
+    for(int j = 0; j < nStates; ++j) {
+      alpha[j] = pi[j];
     }
   }
   
@@ -316,21 +332,21 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
     if(!missingGenotypes[t-1]) {
       Sum = 0.0;
       //scale previous alpha to sum to 1
-      for( int j = 0; j <  DStates; ++j ) {
-	Sum += alpha[(t-1)*DStates +j];
+      for( int j = 0; j <  nStates; ++j ) {
+	Sum += alpha[(t-1)*nStates +j];
       }
       scaleFactor = 1.0 / Sum;
-      for( int j = 0; j <  DStates; ++j ) {
-	alpha[(t-1)*DStates +j] *= scaleFactor;
+      for( int j = 0; j <  nStates; ++j ) {
+	alpha[(t-1)*nStates +j] *= scaleFactor;
       }
       sumfactor += log(Sum);
     }
     
-    RecursionProbs(p[t], f + 2*t, StateArrivalProbs[0] + t*K, StateArrivalProbs[1] + t*K, alpha + (t-1)*DStates, alpha + t*DStates);
+    RecursionProbs(p[t], f + 2*t, StateArrivalProbs[0] + t*K, StateArrivalProbs[1] + t*K, alpha + (t-1)*nStates, alpha + t*nStates);
     
-    for(int j = 0; j < DStates; ++j){
+    for(int j = 0; j < nStates; ++j){
       if(!missingGenotypes[t]) {
-	alpha[t*DStates +j] *=  Lambda[t*DStates + j]; //*lam++; 
+	alpha[t*nStates +j] *=  Lambda[t*nStates + j]; //*lam++; 
 	//++lam;
       } //else ++lam;
     }
@@ -342,34 +358,34 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
 void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   if(!beta) { // allocate beta array if not already done
-    beta =  new double[Transitions*K*K];
+    beta =  new double[Transitions * nStates];
   }
   if(!LambdaBeta)
-    LambdaBeta = new double[K*K];
+    LambdaBeta = new double[ nStates ];
 
   double scaleFactor, Sum;
   
-  for(int j = 0; j < DStates; ++j){
+  for(int j = 0; j < nStates; ++j){
     //set beta(T) = 1
-    beta[(Transitions - 1)*DStates + j] = 1.0;
+    beta[(Transitions - 1)*nStates + j] = 1.0;
   }
   
   for( int t = Transitions-2; t >= 0; --t ) {
     double f2[2] = {f[2*t + 2], f[2*t + 3]};
     Sum = 0.0;
-    for(int j = 0; j < DStates; ++j){
-      LambdaBeta[j] = Lambda[(t+1)*K*K + j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
+    for(int j = 0; j < nStates; ++j){
+      LambdaBeta[j] = Lambda[(t+1)*nStates + j] * beta[(t+1)*nStates + j] * pi[j];
       Sum += LambdaBeta[j];
     }
     //scale LambdaBeta to sum to 1
     scaleFactor = 1.0 / Sum;
-    for( int j = 0; j <  DStates; ++j ) {
+    for( int j = 0; j <  nStates; ++j ) {
       LambdaBeta[j] *= scaleFactor;
     }
     
-    RecursionProbs(p[t+1], f2, StateArrivalProbs[0]+(t+1)*K, StateArrivalProbs[1]+(t+1)*K, LambdaBeta, beta+ t*DStates);
-    for(int j = 0; j < DStates; ++j){ // vectorization successful
-      beta[t*DStates + j] *= ThetaThetaInv[j];
+    RecursionProbs(p[t+1], f2, StateArrivalProbs[0]+(t+1)*K, StateArrivalProbs[1]+(t+1)*K, LambdaBeta, beta+ t*nStates);
+    for(int j = 0; j < nStates; ++j){ // vectorization successful
+      beta[t*nStates + j] *= piInv[j];
     }
   }
   betaIsBad = false;
@@ -423,10 +439,10 @@ void HiddenMarkovModel::UpdateForwardProbsHaploid(){
 void HiddenMarkovModel::UpdateBackwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   if(!beta) { // allocate diploid-sized beta array if not already done
-    beta =  new double[Transitions*K*K];
+    beta =  new double[Transitions*nStates];
   }
   if(!LambdaBeta)
-    LambdaBeta = new double[K*K];
+    LambdaBeta = new double[ nStates ];
   double Sum = 0.0;
   for(int j = 0; j < K; ++j){
     beta[(Transitions-1)*K + j] = 1.0;

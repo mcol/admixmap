@@ -15,13 +15,18 @@
 #include <sstream>
 #include <exception>
 
+
+using genepi::RhoType;
+
+
 #define PR(x) cout << #x << " = " << x << endl;
+
 
 // ******* Static Member Declarations
 bool Individual::Xdata;
 unsigned Individual::X_posn;
 unsigned int Individual::numChromosomes;
-Genome *Individual::Loci;
+Genome * Individual::Loci;
 int Individual::NumHiddenStates;
 
 
@@ -157,15 +162,19 @@ void Individual::DeleteGenotypes(){
 
 
 /// sets static members, including allocation and deletion of static objects for score tests
-void Individual::SetStaticMembers(Genome* const pLoci, const Options* const options){
-  Loci = pLoci;
+void Individual::SetStaticMembers( Genome & pLoci, const Options & options ) {
+  Loci = &pLoci;
   numChromosomes = Loci->GetNumberOfChromosomes();
-  NumHiddenStates = options->getPopulations();
+  NumHiddenStates = options.getPopulations();
   Xdata = Loci->isX_data();
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   if(Xdata) X_posn = Loci->GetChrNumOfLocus(Loci->getFirstXLocus());//too clunky, should simplify
 }
 
+
+const RhoType & Individual::getRho() const {
+   return _rho;
+}
 
 /// Sets genome (Loci)
 /// Needed for tests which need to substitute only this one static
@@ -265,7 +274,7 @@ double Individual::getLogLikelihood( const Options& options, const bool forceUpd
 
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
 double Individual::getLogLikelihood(const Options& options, const double* const theta,
-				    const vector<double > rho,	bool updateHMM) {
+				    const RhoType & rho, bool updateHMM) {
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
     //cout << Loci->isXChromosome(j) << " ";

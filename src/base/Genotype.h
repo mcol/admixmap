@@ -32,8 +32,9 @@
 #include <climits>  // USHRT_MAX
 #include <vector>
 
-#include "estr.h"
-#include "exceptions.h"
+#include "bclib/estr.h"
+#include "bclib/exceptions.h"
+#include <bclib/cvector.h>
 
 
 
@@ -143,7 +144,7 @@ class Genotype
 	    }
 
 	// NOTE *3*: if uses a constructor can't be used in a union
-	// (Token) nor memcpy()d (GenotypeParser::Individual):
+	// (Token) nor memcpy()d (Organism):
 	#if 0
 	    Genotype() {}
 	    Genotype( AlleleType a1, AlleleType a2 ) : val1(a1), val2(a2) {}
@@ -161,7 +162,7 @@ class Genotype
 /// Array of Genotypes
 //-----------------------------------------------------------------------------
 
-typedef std::vector<Genotype> GenotypeArray;
+typedef cvector<Genotype> GenotypeArray;
 
 
 

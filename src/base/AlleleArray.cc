@@ -62,6 +62,8 @@ void AlleleProbTable::normalizeProbs()
 	    }
 	else
 	    {
+	    // Consider computing reciprocal before the loop and replacing FP
+	    // divide with FP multiply for performance:
 	    for ( Genotype::AlleleType al = 1 ; al <= getLoc().getNumAlleles() ; ++al )
 		at( al, pIdx ) /= total;
 	    }
@@ -76,7 +78,7 @@ void AlleleProbTable::normalizeProbs()
 
 #if AA_OSTREAM
 
-    void AlleleProbTable::print( std::ostream & os, const std::vector<std::string> & pops ) const
+    void AlleleProbTable::print( std::ostream & os, const cvector<std::string> & pops ) const
 	{
 	os << "Allele probability table for locus " << getLoc().getName() << ":\n";
 

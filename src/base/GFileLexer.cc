@@ -30,7 +30,7 @@
 #include <cctype>   // isblank(), isdigit()
 #include <iostream> // cerr (for warn())
 
-#include "estr.h"
+#include "bclib/estr.h"
 
 
 #define SUPPORT_QUOTED_GENOTYPE		1

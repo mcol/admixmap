@@ -16,12 +16,13 @@
 
 #include "AdmixOptions.h"
 #include "Genome.h"
+#include "PedBase.h"
 #include "bclib/RObjectWriter.h"
 #include <vector>
 #include <iostream>
 
 class AdmixIndividualCollection;
-class AdmixedIndividual;
+
 
 ///Class to output individual admixture proportions and sumintensities to file
 class IndAdmixOutputter
@@ -29,7 +30,7 @@ class IndAdmixOutputter
 public:
   IndAdmixOutputter(const AdmixOptions& , const Genome&, const Vector_s& PopLabels);
   virtual ~IndAdmixOutputter();
-  void visitIndividual(const AdmixedIndividual&, const std::vector<int>);
+  void visitIndividual(const genepi::PedBase &, const std::vector<int>);
   void visitIndividualCollection(const AdmixIndividualCollection&);
 
 

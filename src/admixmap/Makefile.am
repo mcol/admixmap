@@ -9,7 +9,9 @@ SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS) -Wextra
 
 bin_PROGRAMS = admixmap
-admixmap_SOURCES = AdmixFilenames.h \
+admixmap_SOURCES = \
+AdmixPedigree.cc \
+AdmixFilenames.h \
 AdmixedIndividual.cc AdmixedIndividual.h \
 AdmixIndividualCollection.cc AdmixIndividualCollection.h \
 admixmap.cc \
@@ -44,6 +46,7 @@ admixmap_DEPENDENCIES=svn_version.o
 admixmap_LDADD+=-lbase -lbcl -lgsl -lgslcblas -lm
 
 admixmap_DEPENDENCIES += $(top_builddir)/$(subdir)/../base/libbase.a
+#admixmap_DEPENDENCIES += $(top_builddir)/src/base/libbase.a $(top_builddir)/src/bclib/libbcl.la
 
 #.cc.o:
 #	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<

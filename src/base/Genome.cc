@@ -24,10 +24,14 @@
 #include "bclib/DataMatrix.h"
 #include "bclib/StringConvertor.h"
 #include "bclib/LogWriter.h"
-#include "estr.h"
+#include "bclib/estr.h"
+
 
 using namespace std;
 using namespace genepi;
+
+
+#define LOC_NUM_DEBUG 0
 
 
 /// This just exists so that we don't need to include <stdexcept> in the header
@@ -89,7 +93,8 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
   
   // Set number of alleles at each locus
   unsigned row = 0; // counts lines in locusfile
-  vector<unsigned int> cstart;
+  vector<unsigned int> cstart; ///< The starting composite-locus-index of each chromosome
+  vector<size_t>       sstart; ///< The starting simple-locus-index of each chromosome
  
   int cnum = -1; //cnum = number of chromosomes -1
   int lnum = 0;
@@ -110,6 +115,9 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
     //retrieve first row of this comp locus from locusfile
     #if USE_GENOTYPE_PARSER
       const SimpleLocus & sLoc = simpleLoci[row];
+#if LOC_NUM_DEBUG
+  fprintf( stderr, "Composite-locus %u starts at simple-locus %u (%s) starts-chrom:%s\n", i, row, sLoc.getName().c_str(), sLoc.startsNewChromosome() ? "yes" : "no" );
+#endif
       Distances[ i ] = sLoc.getDistance().inMorgans();
     #else
       const Vector_s& m = data_->getLocusData()[row+1];//+1 because LocusData has a header, LocusMatrix doesn't
@@ -128,9 +136,16 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
       //new chromosome, triggered by missing value or distance of >= threshold
       cnum++;
       lnum = 0; 
-      cstart.push_back(i);//locus number of first locus on new chromosome
+      cstart.push_back(i  ); // composite-locus index of first locus on new chromosome
+      sstart.push_back(row); // simple-locus index of first locus on new chromosome
+#if LOC_NUM_DEBUG
+  fprintf( stderr, "  start chrom: %d\n", cnum );
+#endif
     } else{
       lnum++;//one more locus on chromosome
+#if LOC_NUM_DEBUG
+  fprintf( stderr, "  loci so far on chrom %d: %d\n", cnum, lnum );
+#endif
     }
     LocusTable[i][0] = cnum;//chromosome on which locus i is located
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
@@ -146,6 +161,11 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 		    (nextLoc = &(simpleLoci[row]))->isCompositeWithPrevious() ) {
 	  // Adds locus with number of alleles given as argument:
 	  LocusArray[i].AddLocus( nextLoc->getNumAlleles(), nextLoc->getName() );
+
+#if LOC_NUM_DEBUG
+  fprintf( stderr, "  comp-locus %d has %d simple-loci.\n", i, LocusArray[i].GetNumberOfLoci() );
+#endif
+
 	}
 
     #else
@@ -177,7 +197,7 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
   for(unsigned c = 0; c < NumberOfChromosomes; ++c) SizesOfChromosomes[c] = cstart[c+1] - cstart[c];
   //create Chromosome objects
   #if USE_GENOTYPE_PARSER
-    InitialiseChromosomes(cstart, populations, simpleLoci);
+    InitialiseChromosomes(cstart, sstart, populations, simpleLoci);
   #else
     InitialiseChromosomes(cstart, populations);
   #endif
@@ -190,7 +210,7 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 ///Also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
 ///LengthOfXChrm 
 #if USE_GENOTYPE_PARSER
-  void Genome::InitialiseChromosomes(const std::vector<unsigned> cstart, int populations, const SimpleLocusArray & sLoci )
+  void Genome::InitialiseChromosomes(const std::vector<unsigned> & cstart, const std::vector<size_t> & sstart, int populations, const SimpleLocusArray & sLoci )
     {
 #else
   void Genome::InitialiseChromosomes(const std::vector<unsigned> cstart, int populations ){
@@ -201,16 +221,21 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
   for(unsigned i = 0; i < NumberOfChromosomes; i++){//loop over chromsomes
 
     const size_t cStLocIdx = cstart[i];
-
-    #if USE_GENOTYPE_PARSER
-	const SimpleLocus & startLocus = sLoci.at( cStLocIdx );
-    #endif
-
     const size_t size = cstart[i+1] - cStLocIdx; //number of loci on chromosome i
 
     #if USE_GENOTYPE_PARSER
-	const bool     isX   = startLocus.isXChrom();
-	const string & label = startLocus.getChromLabel();
+
+	const size_t	    sStLocIdx	= sstart[i];
+	const SimpleLocus & startLocus	= sLoci[ sStLocIdx ];
+	const bool	    isX		= startLocus.isXChrom();
+	const string &	    label	= startLocus.getChromLabel();
+
+#if LOC_NUM_DEBUG
+  fprintf( stderr, "Making new chromosome index %u (%s) starts at simple-locus index %zu, "
+		    "composite-locus index %zu, number of composite-loci = %zu\n",
+		    i, label.c_str(), sStLocIdx, cStLocIdx, size );
+#endif
+
     #else
 
 	//set chromosome label
@@ -228,7 +253,6 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 	bool isX = false;
 	string s1("X"), s2("x");
 	isX = ( (label == s1) || (label == s2) );
-
 
     #endif
 
@@ -444,14 +468,22 @@ unsigned Genome::getFirstXLocus()const{
   else return NumberOfCompositeLoci;
 }
 
-///set global locus correlation across all chromosomes, case of vector-valued rho
-void Genome::SetLocusCorrelation(const vector<double>& rho){
-  if(rho.size()==1) 
-    for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-      //in case of global rho model (rho has length 1), sets f globally across loci
-      C[j]->SetLocusCorrelation(rho, false/*<-no random-mating*/);
-  }
-}
+
+
+//-----------------------------------------------------------------------------
+/// Set global locus correlation across all chromosomes, case of vector-valued rho
+/// In case of global rho model (rho has length 1), sets f globally across loci.
+/// <B>NB:</B> <I>if @a rho has length other than 1, it is <B>ignored</B></I>
+//-----------------------------------------------------------------------------
+
+void Genome::SetLocusCorrelation( const genepi::cvector<double> & rho )
+    {
+    if ( rho.size() == 1 )
+	for ( unsigned int j = 0; j < NumberOfChromosomes; j++ )
+	    C[j]->SetLocusCorrelation(rho, false/*<-no random-mating*/);
+    }
+
+
 
 ///set global locus correlation across all chromosomes, case of global rho
 void Genome::SetLocusCorrelation(double rho){
@@ -468,6 +500,8 @@ void Genome::SetLocusCorrelation(double rho){
     void Genome::PrintLocusTable( const char * filename, const SimpleLocusArray & sLoci ) const
 	{
 
+	// Compilers other than gcc rarely support nested functions, yet we can
+	// nest a class definition with an inline method here.
 	class non_gcc {
 	public: static inline void print( ostream & os,
 		const CompositeLocus & compLoc, const string & cLabel, double mapPos )
@@ -495,6 +529,11 @@ void Genome::SetLocusCorrelation(double rho){
 	    const string & label	= C[c]->GetLabel();
 	    double	   mapPosition	= 0.0;
 
+#if LOC_NUM_DEBUG
+  fprintf( stderr, "-> Chromosome index %u (%s) has %u composite-loci; first is at index %u (simple-locus-index %u = %s)\n",
+	    c, label.c_str(), SizesOfChromosomes[c], locus, simple_locus, LocusArray[locus].GetLabel(0).c_str() );
+#endif
+
 	    // Print the first locus on chromosome:
 	    non_gcc::print( os, LocusArray[locus], label, mapPosition );
 
@@ -505,7 +544,8 @@ void Genome::SetLocusCorrelation(double rho){
 	    for ( unsigned j = 1; j < SizesOfChromosomes[c]; ++j )
 		{
 		// Increment map position by distance of first locus in complocus:
-		mapPosition += sLoci[simple_locus].getDistance().inCentimorgans();
+		//mapPosition += sLoci[simple_locus].getDistance().inCentimorgans();
+		mapPosition += sLoci[simple_locus].getDistance().inMorgans();
 		non_gcc::print( os, LocusArray[locus], label, mapPosition );
 		simple_locus += LocusArray[locus].GetNumberOfLoci();
 		++locus;

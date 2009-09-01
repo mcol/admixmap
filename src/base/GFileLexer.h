@@ -34,8 +34,8 @@
 #include <string>
 #include <vector>
 
-#include "exceptions.h"		// GP_NO_RETURN
-#include "estr.h"
+#include "bclib/exceptions.h"		// GP_NO_RETURN
+#include "bclib/estr.h"
 #include "DataValidError.h"
 #include "Genotype.h"
 

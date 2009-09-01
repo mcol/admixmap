@@ -72,8 +72,9 @@ void AlleleFreqParser::checkLocusComplete( Genotype::AlleleType lastAllele,
     {
     if ( lastAllele != lastLocus->getNumAlleles() )
 	warn( estr("locus ") + lastLocus->getName() +
-		": contiguous locus block incomplete: ended at " +
-		lastAllele + ", but expected up to " + lastLocus->getNumAlleles() );
+		": contiguous locus allele-block incomplete: ended at " +
+		lastAllele + ", but expected up to allele #" +
+		lastLocus->getNumAlleles() );
     }
 
 
@@ -119,7 +120,7 @@ void AlleleFreqParser::parse()
 
 
 	// The rest are population-names:
-	lexLineStrings( populations );
+	lexLineStrings( populations.getVector_unsafe() );
 
 
 	//------------------------------------------------------------------

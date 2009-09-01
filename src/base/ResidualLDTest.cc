@@ -178,13 +178,13 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
   int ancA[2];//ancestry at A
   int ancB[2];//ancestry at B
   for(int i = 0; i < individuals->getSize(); i++) {
-    Individual* ind = individuals->getIndividual(i);
-    if( !ind->GenotypeIsMissing(abslocus) && !ind->GenotypeIsMissing(abslocus+1) ) {
+    const PedBase & ind = individuals->getElement(i);
+    if( !ind.GenotypeIsMissing(abslocus) && !ind.GenotypeIsMissing(abslocus+1) ) {
       //skip missing genotypes as hap pairs not sampled
-      ind->GetLocusAncestry(c, locus, ancA);
-      ind->GetLocusAncestry(c, locus+1, ancB);
-      const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A: values from 0 to M-1
-      const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B: values from 0 to N-1
+      ind.GetLocusAncestry(c, locus, ancA);
+      ind.GetLocusAncestry(c, locus+1, ancB);
+      const int* hA = ind.getSampledHapPair(abslocus);//realized hap pair at locus A: values from 0 to M-1
+      const int* hB = ind.getSampledHapPair(abslocus+1);//realized hap pair at locus B: values from 0 to N-1
       int numGametes = 2;
       if(hA[1] < 0) numGametes = 1;//haplotypes are coded as happair with second hap as -1
       for(int g = 0; g < numGametes; ++g) {
@@ -235,13 +235,13 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus
   int ancA[2];//ancestry at A
   int ancB[2];//ancestry at B
   for(int i = 0; i < individuals->getSize(); i++) {
-    Individual* ind = individuals->getIndividual(i);
-    if( !ind->GenotypeIsMissing(abslocus) && !ind->GenotypeIsMissing(abslocus+1) ) {
+    const PedBase & ind = individuals->getElement(i);
+    if( !ind.GenotypeIsMissing(abslocus) && !ind.GenotypeIsMissing(abslocus+1) ) {
       //skip missing genotypes as hap pairs not sampled
-      ind->GetLocusAncestry(c, locus, ancA);
-      ind->GetLocusAncestry(c, locus+1, ancB);
-      const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A: values from 0 to M-1
-      const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B: values from 0 to N-1
+      ind.GetLocusAncestry(c, locus, ancA);
+      ind.GetLocusAncestry(c, locus+1, ancB);
+      const int* hA = ind.getSampledHapPair(abslocus);//realized hap pair at locus A: values from 0 to M-1
+      const int* hB = ind.getSampledHapPair(abslocus+1);//realized hap pair at locus B: values from 0 to N-1
       int numGametes = 2;
       if(hA[1] < 0) numGametes = 1;//haplotypes are coded as happair with second hap as -1
       for(int g = 0; g < numGametes; ++g) {

@@ -124,17 +124,17 @@ void StratificationTest::calculate( const IndividualCollection* const individual
     //const double* const freqs = AlleleFreqs[jj];  // array of length (NumberOfStates-1)*Populations
 
     for( int i = 0; i < individuals->getSize(); i++ ){
-      const Individual* const ind = individuals->getIndividual(i);
-      bool diploid = !(ind->isHaploidatLocus(jj));
+      PedBase & ind = individuals->getElement(i);
+      bool diploid = !(ind.isHaploidatLocus(jj));
       if(diploid){//skip Xloci in males
-	if(ind->GenotypeIsMissing(jj)){// if genotype is missing, sample it
+	if(ind.GenotypeIsMissing(jj)){// if genotype is missing, sample it
 	  int ancestry[2];
-	  ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
+	  ind.GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
 	  genotype = SimGenotypeConditionalOnAncestry(AlleleFreqs[jj] , ancestry );
 	}
 	else{//get sampled haplotype pair
 	  // (the number of copies of allele1 is the same as in the observed genotype)
-	  const int* genotypeArray = ind->getSampledHapPair(jj);
+	  const int* genotypeArray = ind.getSampledHapPair(jj);
 	  genotype[0] = genotypeArray[0]+1;
 	  genotype[1] = genotypeArray[1]+1;
 	}
@@ -143,7 +143,7 @@ void StratificationTest::calculate( const IndividualCollection* const individual
 	//} else 
 	
 	// ProbAllele1 = Prob( allele 1 ) conditional on individual admixture
-	vector<double> ProbAllele1 = GenerateExpectedGenotype( ind, AlleleFreqs[jj], Populations );
+	vector<double> ProbAllele1 = GenerateExpectedGenotype( &ind, AlleleFreqs[jj], Populations );
 	vector<unsigned short> repgenotype = SimGenotypeConditionalOnAdmixture( ProbAllele1 );
 	// vector<unsigned short> repgenotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
 	// Calculate score X = Obs0 + Obs1 - Expected0 - Expected1, where Obs0, Obs1 are coded 1 for allele 1, 0 for allele 2
@@ -196,7 +196,7 @@ void StratificationTest::calculate( const IndividualCollection* const individual
   gsl_matrix_free(popRepX);
 }
 
-vector<double> StratificationTest::GenerateExpectedGenotype( const Individual* const ind, const double* freqs, const int Populations )
+vector<double> StratificationTest::GenerateExpectedGenotype( const PedBase * ind, const double * freqs, const int Populations )
 {
   vector<double> pA(2,0);
   for( int k = 0; k < Populations; k++ ){

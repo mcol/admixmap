@@ -33,6 +33,8 @@
     #include "SimpleLocusArray.h"
     using genepi::SimpleLocusArray;
 
+    #include "Pedigree.h"
+
 #else
     #include "GenotypeLoader.h"
     #define GenotypeArray std::vector<genotype>
@@ -129,11 +131,11 @@ public:
   */
   bool isFemale(int i)const;
 
-  ///< Returns number of individuals (lines in the genotype/pedigree file)
+  /// Returns number of individuals (lines in the genotype/pedigree file)
   size_t getNumberOfIndividuals() const;
   size_t getNumberOfSimpleLoci () const; ///< returns total number of loci in locusfile
 
-  ///returns number of composite loci
+  /// Returns number of composite loci
   unsigned getNumberOfCompositeLoci() const
 	#if USE_GENOTYPE_PARSER
 	    { return simpleLoci.getNComposite(); }
@@ -206,7 +208,18 @@ protected:
   protected:
 
   GenotypeLoader * genotypeLoader;
-  #if ! USE_GENOTYPE_PARSER
+  #if USE_GENOTYPE_PARSER
+    private:
+      genepi::cvector<genepi::Pedigree> peds;
+    protected:
+      genepi::cvector<genepi::Pedigree> & getPeds()		{ return peds	   ; }
+      genepi::Pedigree &		  getPed( size_t idx )	{ return peds[idx] ; }
+    public:
+      const genepi::cvector<genepi::Pedigree> & getPeds() const { return peds; }
+  const genepi::Pedigree &			getPed( size_t idx ) const { return peds[idx] ; }
+      bool isPedFile() const { return genotypeLoader->isPedFile(); }
+    protected:
+  #else
     size_t		NumSimpleLoci	;
     GeneticDistanceUnit distanceUnit	;
     unsigned		NumCompositeLoci;
@@ -231,6 +244,8 @@ private:
   //assignment operator, not implemented
   void operator=(const InputData&);
 
+protected:
+  void generatePedigrees( const Options & options );
 };
 
 //void getLabels(const Vector_s& data, std::string *labels);

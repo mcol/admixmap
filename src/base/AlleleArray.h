@@ -30,10 +30,9 @@
 
 #include "SimpleLocusArray.h"
 #include "Genotype.h"		// AlleleType
-#include "Organism.h"		// PopIdx
-#include "exceptions.h"
-
-#include <vector>
+#include "Organism.h"		// PopIdxType
+#include "bclib/exceptions.h"
+#include "bclib/cvector.h"
 
 
 
@@ -149,7 +148,7 @@ class AlleleProbTable : public AlleleArray<double>
 
 	/// Useful for debugging: output an AlleleProbTable to an ostream
 	#if AA_OSTREAM
-	    void print( std::ostream & os, const std::vector<std::string> & pops ) const;
+	    void print( std::ostream & os, const cvector<std::string> & pops ) const;
 	#endif // AA_OSTREAM
     };
 
@@ -158,12 +157,9 @@ class AlleleProbTable : public AlleleArray<double>
 //-----------------------------------------------------------------------------
 /// Table of allele frequencies (normalized probabilities) at each locus.
 /// Vector of AlleleProbTable s, indexed on Simple-Locus index.
-///
-/// To-do: reimplement at private subclass, with range-checking enabled for
-/// operator[]().  In the meantime, use at() instead.
 //-----------------------------------------------------------------------------
 
-typedef std::vector<AlleleProbTable> AlleleProbVect;
+typedef cvector<AlleleProbTable> AlleleProbVect;
 
 
 

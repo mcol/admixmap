@@ -50,7 +50,7 @@ namespace genepi { // ----
 //-----------------------------------------------------------------------------
 //
 /// Convert an Organism's genotype data to the vector of genotypes and
-/// missing-array that is used by the model.
+/// missing-array that is used by Model / AdmixMapModel.
 ///
 /// This is a temporary function to bridge between the "old" (GenotypeLoader)
 /// and the "new" (GenotypeParser) method of external and internal data

@@ -26,7 +26,9 @@
 #pragma implementation
 #include "HiddenStateSpace.h"
 
-#include <cmath> // exp()
+#include <cmath>  // exp()
+#include <limits> // numeric_limits::min()
+
 
 
 #define DEBUG_DENSITY	0
@@ -34,6 +36,12 @@
 
 
 namespace genepi { // ----
+
+
+
+#if TRACK_UNVISITED_STATES
+    const HiddenStateSpace::ProbType HiddenStateSpace::State::NOT_VISITED = std::numeric_limits<ProbType>::min();
+#endif
 
 
 
@@ -117,7 +125,11 @@ HiddenStateSpace::~HiddenStateSpace()
 void HiddenStateSpace::resetEmProbsToZero()
     {
     for ( size_t idx = aSize() ; idx-- != 0 ; )
-	probs[ idx ] = 0.0;
+	#if TRACK_UNVISITED_STATES
+	    probs[ idx ] = State::NOT_VISITED;
+	#else
+	    probs[ idx ] = 0.0;
+	#endif
     }
 
 
@@ -138,7 +150,7 @@ HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp ) :
 	av.setAt( aIdx, 0 );
     iv.set_ulong( 0 );
 
-    if ( sp.probs[ idx ] == 0.0 )
+    if ( sp.getEProb(idx) == 0.0 )
 	advance();
     }
 
@@ -193,7 +205,7 @@ bool HiddenStateSpace::Iterator::advance()
 	    //gp_assert( idx == (av.to_ulong() * space.N_IVs) + nextIV );
 	    }
 
-	} while ( (! finished) && (space.probs[ idx ] == 0.0) );
+	} while ( (! finished) && (space.getEProb(idx) == 0.0) );
 
     return finished;
     }
@@ -204,7 +216,8 @@ HiddenStateSpace::State HiddenStateSpace::Iterator::getState() const
     {
     gp_assert( ! finished );
 
-    const State rv = { av, iv, space.probs[idx] };
+    State rv = { av, iv, space.getEProb(idx) };
+
     return rv;
     }
 
@@ -214,7 +227,7 @@ HiddenStateSpace::State HiddenStateSpace::stateAtIdx( StateIdxType idx ) const
     {
     const size_t iv_idx = idx % N_IVs;
     const size_t av_idx = idx / N_IVs;
-    State rv = { AncestryVector(getPed(),K), InheritanceVector(getPed()), probs[idx] };
+    State rv = { AncestryVector(getPed(),K), InheritanceVector(getPed()), getEProb(idx) };
     gp_assert( rv.av.size() != 0 );
     rv.av.set_ulong( av_idx );
     gp_assert( rv.av.size() != 0 );
@@ -232,7 +245,7 @@ void HiddenStateSpace::lambdaAsArrayOfDouble( double * lambda ) const
     {
     StateIdxType limit = getNStates();
     for ( StateIdxType idx = 0 ; idx < limit ; ++idx )
-	lambda[ idx ] = probs[ idx ];
+	lambda[ idx ] = getEProb( idx );
     }
 
 

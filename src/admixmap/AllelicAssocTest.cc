@@ -55,7 +55,7 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
   for(int j = 0; j < L; ++j){
     locusObsIndicator[j] = false;
 	for(int i = indiv->getFirstScoreTestIndividualNumber(); i < indiv->getNumberOfIndividualsForScoreTests(); i++){
-	  if(!indiv->getIndividual(i)->GenotypeIsMissing(j)){
+	  if ( ! indiv->getElement(i).GenotypeIsMissing(j) ) {
 	    locusObsIndicator[j] = true;
 	  }
 	}
@@ -143,7 +143,7 @@ void AllelicAssocTest::Reset(){
   }
 }
 
-void AllelicAssocTest::Update( const Individual* const ind, double YMinusEY, double phi, 
+void AllelicAssocTest::Update( const PedBase * const ind, double YMinusEY, double phi, 
 			       double DInvLink, bool /*missingOutcome*/)
 {
   int locus = 0;

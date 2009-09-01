@@ -27,12 +27,19 @@
 #include <vector>
 #include "bclib/pvector.h"
 
+// For the moment, we'll avoid mixing the "old" code with the "new" code, so no common base class for the HMMs:
+#if 0
+    #include "HMMBase.h"
+#endif
+
+
 class GenotypeProbIterator;
+
 
 /** Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
     Resides in class Chromosome
 */
-class HiddenMarkovModel{
+class HiddenMarkovModel /*: public genepi::HMMBase*/ {
 public:
   /**
      initialising constructor.
@@ -40,7 +47,7 @@ public:
      \param pops number of hidden states
      \param f pointer to locus correlation (held in Chromosome
   */
-  HiddenMarkovModel( int inTransitions, int pops, const double* const f);
+  HiddenMarkovModel( int _transitions, size_t _K, size_t _nStates, const double * _f);
   ///Destructor
   virtual ~HiddenMarkovModel();
 
@@ -94,7 +101,7 @@ public:
 
 protected:
   const int K;
-  const int DStates; //number of diploid states  = K*K
+  const int nStates; ///< Number of hidden states (for diploid individual, K*K)
   const int Transitions; //length of chain
   // = # composite Loci, (=L in Chromosome)
 
@@ -105,8 +112,8 @@ protected:
   double *alpha, *beta, *LambdaBeta;
   double *p;
   double* StateArrivalProbs[2];
-  double* ThetaThetaPrime;
-  double* ThetaThetaInv;
+  double* pi;
+  double* piInv;
 
   const double* f;
   const double* theta;
@@ -126,7 +133,7 @@ protected:
   virtual void UpdateBackwardProbsDiploid();
   virtual void UpdateBackwardProbsHaploid();
 
-  void SetArraysForRecursionProbs(unsigned K);
+  void SetArraysForRecursionProbs();
   void SetNullValues();
   void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs0,const double* const stateArrivalProbs1,
 		      const double* const oldProbs, double *newProbs); 

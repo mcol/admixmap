@@ -1,9 +1,10 @@
 // *-*-C++-*-*
-/**
+/*
  *   ADMIXMAP
  *   AdmixIndividualCollection.h
  *   header file for Admixed IndividualCollection class
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (C) 2009 David Favro
  *
  * This program is free software distributed WITHOUT ANY WARRANTY.
  * You can redistribute it and/or modify it under the terms of the GNU General Public License,
@@ -24,15 +25,17 @@ class IndAdmixOutputter;
 ///Class to hold an array of AdmixedIndividuals
 class AdmixIndividualCollection : public IndividualCollection
 {
+typedef IndividualCollection SUPER;
+
 public:
   ~AdmixIndividualCollection();
-  AdmixIndividualCollection(const AdmixOptions* const options, const InputAdmixData* const Data, Genome* Loci);
+  AdmixIndividualCollection( const AdmixOptions & options, const InputAdmixData & Data, Genome & Loci );
 
   //void DeleteGenotypes(bool);
   void Initialise(const AdmixOptions& options, const Genome& Loci,
 		  const Vector_s& PopulationLabels, bclib::LogWriter &Log);
   void DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha);
-  void LoadData(const AdmixOptions* const options, const InputAdmixData* const);
+  void LoadData( const AdmixOptions & options, const InputAdmixData & input );
   void getOnePopOneIndLogLikelihood(bclib::LogWriter &Log, const Vector_s& PopulationLabels);
 
   void HMMUpdates(int iteration, const AdmixOptions& options,
@@ -59,7 +62,7 @@ public:
 
   void OutputIndAdmixture();
   double getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *> &R, Genome* Loci,
-				    bclib::LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
+				    bclib::LogWriter &Log, const genepi::RhoType & SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
 
   void WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels,
 			   Genome* Loci)const;
@@ -88,9 +91,9 @@ public:
   const chib* getChib()const;
 
 private:
-  AdmixedIndividual** AdmixedChild;
-  AdmixedIndividual** TestInd;// pointer to individual for whom to estimate marginal likelihood
+  PedBase * * TestInd;// pointer to individual for whom to estimate marginal likelihood
   int sizeTestInd;
+  bool iOwnChildren;
 
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
 

@@ -31,11 +31,13 @@
 #include "Pedigree.h"
 #include "AncestryVector.h"
 #include "InheritanceVector.h"
-#include "exceptions.h"
+#include "bclib/exceptions.h"
 
 
 
 #define HSS_AV_MOST_SIG		1
+
+#define TRACK_UNVISITED_STATES	0
 
 
 
@@ -127,9 +129,30 @@ class HiddenStateSpace
 	/// also @link getEProb(const AncestryVector&,const InheritanceVector&)
 	/// getEProb(AncestryVector,InheritanceVector) @endlink, which in the
 	/// current implementation is less efficient.
-	ProbType &	 getEProb( StateIdxType idx )	    { return probs[ idx ]; }
-	const ProbType & getEProb( StateIdxType idx ) const { return probs[ idx ]; }
-	///< const version of @link getEProb(StateIdxType) getEProb() @endlink
+	ProbType & getEProb( StateIdxType idx )
+	    {
+	    ProbType & rv = probs[ idx ];
+	    #if TRACK_UNVISITED_STATES
+		if ( rv == State::NOT_VISITED )
+		    rv = 0.0;
+	    #endif
+	    return rv;
+	    }
+
+	/// const version of @link getEProb(StateIdxType) getEProb() @endlink
+	ProbType getEProb( StateIdxType idx ) const
+	    {
+	    #if TRACK_UNVISITED_STATES
+		const ProbType rv = probs[ idx ];
+		return (rv == State::NOT_VISITED) ? 0.0 : rv;
+	    #else
+		return probs[ idx ];
+	    #endif
+	    }
+
+	#if TRACK_UNVISITED_STATES
+	    bool nodeIsVisited( StateIdxType idx ) { return (probs[idx] != State::NOT_VISITED); }
+	#endif
 
 
 	/// Get the emission probability for the state defined by @a av and @a iv.
@@ -164,9 +187,16 @@ class HiddenStateSpace
 	//---------------------------------------------------------------------
 	struct State
 	    {
-	    AncestryVector    av     ;
-	    InheritanceVector iv     ;
-	    ProbType	      emProb ; /// Emission probabilitiy
+	    private:
+		#if TRACK_UNVISITED_STATES
+		    static const ProbType NOT_VISITED;
+		#endif
+		friend class HiddenStateSpace;
+
+	    public:
+		AncestryVector    av     ;
+		InheritanceVector iv     ;
+		ProbType	  emProb ; /// Emission probabilitiy
 	    };
 
 

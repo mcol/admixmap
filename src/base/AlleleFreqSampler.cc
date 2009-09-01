@@ -200,10 +200,10 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
 
   //accumulate minus log likelihood over individuals
   for(int i = 0; i < args->IP->getSize(); ++i){
-    const Individual* ind = args->IP->getIndividual(i);
+    const PedBase & ind = args->IP->getElement(i);
     int Anc[2];
-    ind->GetLocusAncestry(args->locus, Anc);
-    energy -= logLikelihood(phi, Anc, ind->getPossibleHapPairs(args->locus), States);
+    ind.GetLocusAncestry(args->locus, Anc);
+    energy -= logLikelihood(phi, Anc, ind.getPossibleHapPairs(args->locus), States);
   }
   energy *= args->coolness;
 
@@ -234,10 +234,10 @@ void AlleleFreqSampler::gradient(const double* const params, const void* const v
   double* dE_dphi = new double[States * args->NumPops]; 
   fill(dE_dphi, dE_dphi+States*args->NumPops, 0.0);
   for(int i = 0; i < args->IP->getSize(); ++i){ // compute gradient of minus log-likelihood wrt phi
-    const Individual* ind = args->IP->getIndividual(i);
+    const PedBase & ind = args->IP->getElement(i);
     int Anc[2];
-    ind->GetLocusAncestry(args->locus, Anc);
-    minusLogLikelihoodFirstDeriv(phi, Anc, ind->getPossibleHapPairs(args->locus), States, dE_dphi);
+    ind.GetLocusAncestry(args->locus, Anc);
+    minusLogLikelihoodFirstDeriv(phi, Anc, ind.getPossibleHapPairs(args->locus), States, dE_dphi);
   }
   for(unsigned s = 0; s < States; ++s) {
     for(unsigned k = 0; k < args->NumPops; ++k) {

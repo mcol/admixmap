@@ -109,7 +109,7 @@ void ScoreTests::Update(const vector<bclib::Regression* >& R)
 
     for( int i = 0; i < NumberOfIndividuals; i++ ){
       
-      Individual* ind = individuals->getIndividual(i + offset);
+      const PedBase & ind = individuals->getElement( i + offset );
       double YMinusEY = individuals->getOutcome(0, i) - EY[i];//individual outcome - its expectation
       //note that it is the first regression that is used
       DInvLink = R[0]->DerivativeInverseLinkFunction(i);
@@ -117,12 +117,12 @@ void ScoreTests::Update(const vector<bclib::Regression* >& R)
      
       //admixture association
       if( options->getTestForAdmixtureAssociation() && (options->getNumberOfOutcomes() == 1) ){
-	AdmixtureAssocScoreTest.UpdateIndividualScore(ind->getAdmixtureProps(), YMinusEY, dispersion, 
+	AdmixtureAssocScoreTest.UpdateIndividualScore(ind.getAdmixtureProps(), YMinusEY, dispersion, 
 						      DInvLink, options->isRandomMatingModel());
       }
       //allelic association
       if( options->getTestForAllelicAssociation() )
-	AllelicAssociationTest.Update( ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
+	AllelicAssociationTest.Update( &ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
     }
   }
   

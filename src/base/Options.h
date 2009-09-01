@@ -90,6 +90,8 @@ public:
   bool getTestForResidualAllelicAssoc()const; 
   bool getHWTestIndicator() const;
 
+  const vector<float>& getrhoSamplerParams()const;
+
 protected:
   long burnin;
   long TotalSamples;
@@ -133,9 +135,17 @@ protected:
   bool ReadUserOptions(int, char**, const char* fileargIndicator = 0);
 private:
 
+  bool usePedForInd; ///< Use Pedigree rather than Individual objects for individuals (single-member pedigrees).
+
   // UNIMPLEMENTED: to avoid use
   Options(const Options&);
   Options& operator=(const Options&);
+
+
+  public:
+
+    bool getUsePedForInd() const { return usePedForInd; } ///< Use Pedigree rather than Individual objects for individuals (single-member pedigrees).
+
 };
 
 

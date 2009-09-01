@@ -140,9 +140,10 @@ int CompositeLocus::GetNumberOfAllelesOfLocus( int locus )const
 ///Gets the name of this composite locus
 const string CompositeLocus::GetLabel(int index)const
 {
-  if(index < NumberOfLoci)
-    return( Label[index] );
-  else return Label[NumberOfLoci-1];
+  gp_assert_ge( index, 0 );
+  gp_assert_lt( index, NumberOfLoci );
+
+  return( Label[index] );
 }
 
 /** returns array of marginal probs for each allele at each simple locus

@@ -33,6 +33,7 @@ GenotypeProbOutputter.cc GenotypeProbOutputter.h \
 GPI.cc GPI.h \
 Haplotype.cc Haplotype.h \
 HapPair.h \
+HMMBase.h HMMBase.cc \
 HiddenMarkovModel.cc HiddenMarkovModel.h \
 HWTest.cc HWTest.h \
 Individual.cc Individual.h \
@@ -43,10 +44,10 @@ Model.cc Model.h \
 Options.cc Options.h \
 ResidualLDTest.cc ResidualLDTest.h \
 ScoreTestBase.cc ScoreTestBase.h \
-exceptions.cc exceptions.h \
-estr.cc estr.h \
 Genotype.h Genotype.cc \
-GenotypeIterator.cc
+GenotypeIterator.cc \
+cvector.h \
+RhoType.h
 
 
 if USE_GENOTYPE_PARSER
@@ -61,10 +62,15 @@ if USE_GENOTYPE_PARSER
 		GenotypeParser.cc GenotypeParser.h \
 		InheritanceVector.h InheritanceVector.cc \
 		Pedigree.h Pedigree.cc PedigreeGenStates.cc \
+		PedigreeAddl.h PedigreeAddl.cc \
 		AncestryVector.cc AncestryVector.h \
 		HiddenStateSpace.h HiddenStateSpace.cc \
 		AlleleArray.h AlleleArray.cc \
-		AlleleFreqParser.h AlleleFreqParser.cc
+		AlleleFreqParser.h AlleleFreqParser.cc \
+		TransProbCache.h TransProbCache.cc \
+		HiddenMarkovModel.new.h HiddenMarkovModel.new.cc \
+		TwoDimArray.h ThetaType.h \
+		PedBase.h PedBase.cc
 else
   libbase_a_SOURCES += \
 		GenotypeLoader.cc GenotypeLoader.h

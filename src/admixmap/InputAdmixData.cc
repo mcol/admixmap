@@ -16,11 +16,13 @@
 
 #include "bclib/DataReader.h"
 #include "config.h" // USE_GENOTYPE_PARSER
-#include "estr.h"
+#include "bclib/estr.h"
 
 #include <cstring>  // strlen()
 #include <typeinfo> // typeid
 
+#include "AlleleFreqParser.h"
+#include "AlleleArray.h"
 
 #include "AdmixOptions.h"
 
@@ -29,6 +31,16 @@
 #endif
 
 using bclib::LogWriter;
+using namespace genepi;
+
+
+#define DEBUG_PED_CONSTRUCTION	0
+
+
+// This should be a runtime-specified option:
+#define DISQUAL_MENDEL_ERR	1
+
+
 
 InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
   using bclib::DataReader;
@@ -70,12 +82,137 @@ InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
     exit(1);
   }
   catch(string s){
-    cerr << "\nException (strin) occured during parsing of input file:\n" << s << endl;;
+    cerr << "\nException (string) occured during parsing of input file:\n" << s << endl;
     exit(1);
   }
  
   CheckData(options, Log);
-}
+  }
+
+
+
+//-------------------------------------------------------------------------
+// DDF: This obviously should not exist.  No more circular dependencies, please.
+//-------------------------------------------------------------------------
+
+void InputAdmixData::finishConstructing( const AdmixOptions & options )
+    {
+
+    if ( isPedFile() || options.getUsePedForInd() )
+	{
+
+	#if DISQUAL_MENDEL_ERR
+	    int n_peds_disq = 0;
+	#endif
+
+
+	// Generate pedigrees: must know how many populations, the _real_ value of
+	// which isn't known until after CheckData(), so we delay until here
+	// (i.e. otherwise we could and would call it from the constructor).
+	generatePedigrees( options );
+
+
+	// AdmixedPedigree::InitialiseAdmixedStuff() needs to know the value of
+	// options._admixed, which isn't known until after
+	// InputAdmixOptions::checkOptions(), which isn't called [in admixmap.cc's
+	// main()] until after InputAdmixData is finished constructing because it
+	// needs the number of individuals passed into it.  This causes a nasty
+	// circular dependency, and means that this must be delayed until after
+	// InputAdmixOptions::checkOptions(), and can't be called from the
+	// constructor of either this or the parent class.
+
+	// Construct the new-format allele-frequencies matrix: for the moment, we'll
+	// re-parse the input file (which was already read into one of
+	// AdmixInputData's various matrices) rather than construct it from the
+	// already-read data.
+
+	AlleleProbVect		   alProbVect;
+	AlleleFreqParser::PopArray populations;
+
+	const PopIdx K = options.getPopulations();
+
+	const char * const aFileName = options.getPriorAlleleFreqFilename();
+	if ( (aFileName == 0) || (aFileName[0] == '\0') )
+	    throw std::runtime_error( "at this time, pedigrees are only supported"
+					" with a prior-allele-frequency file" );
+	AlleleFreqParser::parse( aFileName, getSimpleLoci(), populations, alProbVect );
+	gp_assert_eq( K, populations.size() );
+
+	#if DEBUG_PED_CONSTRUCTION
+
+	    fprintf( stderr, "\n\"Finishing\" intialize-peds, %zu pedigrees, %zu loci\n",
+		getPeds().size(), getSimpleLoci().size() );
+
+	    // Turn on if desired:
+	    Pedigree::dbgRecursion( true );
+	    Pedigree::dbgEmission( true );
+
+	    #if 1 // Turn on to print allele-frequency table
+		cerr << "\n\n==== Allele-Probabilities ====\n\n";
+		for ( SLocIdxType sLocIdx = 0 ; sLocIdx < getSimpleLoci().size() ; ++sLocIdx )
+		    alProbVect[sLocIdx].print( cerr << '\n', populations );
+		cerr << "\n\n";
+	    #endif
+
+	#endif
+
+
+	for ( size_t idx = getPeds().size() ; idx-- != 0 ; )
+	    {
+	    Pedigree & ped = getPed( idx );
+
+	    #if DEBUG_PED_CONSTRUCTION
+		fprintf( stderr, "	ped %zu (%s) at %p: %zu members, %zu founders, %zu non-founders.\n", idx,
+		    ped.getId().c_str(), &ped, ped.getNMembers(), ped.getNFounders(), ped.getNNonFndrs() );
+	    #endif
+
+
+	    ped.genPossibleStatesInternal( K, alProbVect );
+
+
+	    #if DISQUAL_MENDEL_ERR
+
+		// DDF: At this time, I am disqualifying all pedigrees which contain
+		// mendelian errors/inconsistencies.  This is because they will have
+		// emission probability of 0 for all hidden states (i.e. hidden state
+		// space of size 0), because no inheritance vector can ever be
+		// consistent with the observed genotyped data.  This means that:
+		//	(1) Running the HMM is pointless, and
+		//	(2) Running the HMM will generate errors because it will try to
+		//	    normalize likelihoods that sum to 0.  We can add an
+		//	    exception to the code that will deal with this, but why
+		//	    bother?
+
+		if ( ped.getNMendelErrs() != 0 )
+		    {
+		    cerr << "Pedigree " << ped.getId() << " DISQAULIFIED due to "
+			    << ped.getNMendelErrs() << " Mendelian errors!\n\n";
+		    getPeds().erase( idx );
+		    ++n_peds_disq;
+		    continue;
+		    }
+
+	    #endif // DISQUAL_MENDEL_ERR
+
+
+	    ped.InitialiseAdmixedStuff( options );
+	    }
+
+
+	#if DISQUAL_MENDEL_ERR
+	    if ( n_peds_disq != 0 )
+		cerr << "After disqualifying " << n_peds_disq << " pedigrees due to Mendelian errors, "
+		    << getPeds().size() << " pedigrees remain.\n";
+	#endif
+
+
+	#if DEBUG_PED_CONSTRUCTION
+	    fprintf( stderr, "---> Finished constructing InputAdmixData.\n" );
+	#endif
+
+	}
+
+    }
 
 
 
@@ -310,6 +447,8 @@ void InputAdmixData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     //       }
     //     }
   }
+
+  genepi::Pedigree::setK( Populations ); // We need the concept of context
 }
 
 void InputAdmixData::CheckRepAncestryFile(int populations, LogWriter &Log)const{

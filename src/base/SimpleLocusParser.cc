@@ -23,11 +23,16 @@
 /// Implementation of SimpleLocusParser class
 //=============================================================================
 
+
 #include "SimpleLocusParser.h"
 
 
+#include <cctype>	// isblank()
+
 
 #define STATUS_TO_COUT	1
+
+#define LOC_NUM_DEBUG	0
 
 
 #if STATUS_TO_COUT
@@ -41,6 +46,10 @@ static const size_t DISTANCE_COL = 2; // 0-based
 
 
 namespace genepi { // ----
+
+
+
+const size_t SimpleLocusParser::MAX_COLS;
 
 
 
@@ -143,6 +152,10 @@ void SimpleLocusParser::parse()
 	    // --- Column 1: locus name ---
 	    row.name = lexString();
 
+	    // It's hard to understand why this would happen and if so why we
+	    // would want to strip it, but strip leading/trailing whitespace:
+	    stripWhitespace( row.name );
+
 
 	    // --- Column 2: number of alleles ---
 	    const long nAlleles = lexInteger();
@@ -200,6 +213,11 @@ void SimpleLocusParser::parse()
 		    throwError( "spurious garbage at end of line (too many fields)" );
 		}
 
+#if LOC_NUM_DEBUG
+  fprintf( stderr, "Locus %zd %s %s %s(%zd) ",
+    loci.size(), row.name.c_str(), row.isCompositeWithPrevious() ? "composite-with-prev" : "",
+    row.startsNewChromosome() ? "starts-new-chrom" : "same-chrom-as-last", loci.nChromosomes );
+#endif
 
 	    // --- A few more validation checks ---
 	    if ( loci.empty() )		// First locus in file:
@@ -248,6 +266,11 @@ void SimpleLocusParser::parse()
 		    ++chromLabelCtr;
 		row.chromNum = chromLabelCtr;
 		}
+
+#if LOC_NUM_DEBUG
+  const std::string & lab = row.getChromLabel();
+  fprintf( stderr, " chr:%s:\n", lab.c_str() );
+#endif
 
 	    // --- Add the newly-parsed row to the container of simple loci. ---
 	    loci.push_back( row );

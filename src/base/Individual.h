@@ -26,6 +26,8 @@
 #include "bclib/LogWriter.h"
 #include "GenotypeProbOutputter.h"
 #include "bclib/Regression.h"
+#include "PedBase.h"
+
 
 using namespace std;
 
@@ -38,7 +40,8 @@ class AlleleFreqs;
 
 
 ///Class to represent an individual and update individual-level parameters
-class Individual{
+class Individual : public genepi::PedBase
+{
 public:
   Individual(unsigned number);
   //Individual(const Options* const options, const InputData* const Data);
@@ -47,12 +50,11 @@ public:
 
   void DeleteGenotypes();
   void HMMIsBad(bool loglikisbad);
-  static void SetStaticMembers(Genome* const pLoci, const Options* const options);
+  static void SetStaticMembers( Genome & pLoci, const Options & options );
 
   void setOutcome(double*);
   void setCovariates(double*);
   void setGenotypesToMissing();
-  virtual void SetMissingGenotypes() = 0;
 
   const double* getAdmixtureProps()const;
   const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
@@ -62,7 +64,7 @@ public:
   bool isHaploidatLocus(unsigned j)const;
   bool isHaploidIndividual()const;
 
-  virtual double getLogLikelihood(const Options& , const bool forceUpdate, const bool store);
+  virtual double getLogLikelihood(const Options& , bool forceUpdate, bool store);
   void storeLogLikelihood(const bool setHMMAsOK); ///< to call if a Metropolis proposal is accepted
   virtual double getLogLikelihoodAtPosteriorMeans(const Options& options);
 
@@ -110,7 +112,7 @@ protected:
   double *		    Theta	     ; ///< admixture proportions
 
   int **		    LocusAncestry    ;
-  std::vector<double>	    _rho	     ; ///< sum of intensities
+  genepi::RhoType	    _rho	     ; ///< sum of intensities
   double *		    Outcome	     ;
   double *		    Covariates	     ;
 
@@ -132,11 +134,14 @@ protected:
   /// getLogLikelihood(); it is currently making a copy on every call.  Requires
   /// changing derived classes also.
   virtual void UpdateHMMInputs(unsigned int j, const Options& options,
-			       const double* const theta, const std::vector<double> rho) = 0;
+			       const double* const theta, const genepi::RhoType & rho) = 0;
 
   /// See UpdateHMMInputs() for rho-reference
   virtual double getLogLikelihood(const Options& options,
-				  const double* const theta, const std::vector<double > rho, bool updateHMM);
+				  const double * theta, const genepi::RhoType & rho, bool updateHMM );
+
+  public:
+    const genepi::RhoType & getRho() const;
 };
 
 

@@ -30,11 +30,11 @@
 
 
 #include <cstddef>	// size_t
-#include <vector>
 
-#include "SimpleLocus.h"
 #include "GeneticDistanceUnit.h"
+#include "SimpleLocus.h"
 #include "config.h"	// AGGRESSIVE_RANGE_CHECK
+#include <bclib/cvector.h>
 
 
 
@@ -56,27 +56,13 @@ typedef size_t SLocIdxType;
 /// Container for the SimpleLocus records.  Also holds some summary and
 /// aggregate information such as the number of composite loci, number of
 /// chromosomes, and the genetic distance unit.
-///
-/// <A name="note-1"></A>
-/// <TABLE STYLE="border: groove 3pt aqua;">
-///
-///  <TR>
-///	<TD><B>NOTE *1*</B></TD>
-///	<TD>
-///	We currently use private inheritance from std::vector so that we can
-///	impose stricter range-checking; public inheritance would work fine as
-///	well.
-///	</TD>
-///  </TR>
-///
-/// </TABLE>
 //
 //-----------------------------------------------------------------------------
 
 
-class SimpleLocusArray : private std::vector<SimpleLocus> // see NOTE *1*
+class SimpleLocusArray : public cvector<SimpleLocus>
     {
-    typedef std::vector<SimpleLocus> SUPER;
+    typedef cvector<SimpleLocus> SUPER;
     friend class SimpleLocusParser;
 
 
@@ -114,28 +100,7 @@ class SimpleLocusArray : private std::vector<SimpleLocus> // see NOTE *1*
 	size_t getNComposite   () const { return nComposite  ; } ///< number of composite loci
 	size_t getNChromosomes () const { return nChromosomes; } ///< number of chromosomes
 
-
-	//-------------------------------------------------------------------
-	// Vector-style access (see NOTE *1*):
-	//-------------------------------------------------------------------
-
-	SimpleLocus &	    operator[]( SLocIdxType idx )	{ rc(idx); return SUPER::operator[](idx); }
-	const SimpleLocus & operator[]( SLocIdxType idx ) const { rc(idx); return SUPER::operator[](idx); }
-	const SimpleLocus & atUnsafe  ( SLocIdxType idx ) const {	   return SUPER::operator[](idx); }
-	SLocIdxType	    size()			  const { return SUPER::size(); }
-
-	/// Convenience method, in case someone is used to calling STL's
-	/// range-checked at() (be aware that this overrides a (privately)
-	/// inherited non-virtual method).
-	const SimpleLocus & at( SLocIdxType idx ) const { return operator[](idx); }
-
-
-	const SimpleLocus & last() const { rc(0); return SUPER::back(); }
-
-	Iter	  begin()	{ return SUPER::begin(); }
-	Iter	  end  ()	{ return SUPER::end  (); }
-	ConstIter begin() const { return SUPER::begin(); }
-	ConstIter end  () const { return SUPER::end  (); }
+	const SimpleLocus & atUnsafe( SLocIdxType idx ) const { return getVector_unsafe().operator[](idx); }
 
 
 	/// Locate the index of a locus in the array, based on its name.  Throws

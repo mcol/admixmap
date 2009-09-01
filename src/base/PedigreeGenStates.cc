@@ -164,6 +164,10 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 				  const Haplotype *	    founderHapState ,
 				  double		    emProb	    )
     {
+    if ( emProb == 0.0 )
+	cerr << "Strangeness: pedigree " << ped.getId() << " at locus " << sLocIdx << " (" <<
+	    ped.getSLoci()[sLocIdx].getName() << ") received a zero emission-probability.\n";
+
     // stateProbs is mutable, so we don't need to const_cast<> here:
     ped.stateProbs[sLocIdx].getEProb( av, iv ) += emProb;
 
@@ -226,13 +230,13 @@ static inline Haplotype inheritHap(
 //
 //-----------------------------------------------------------------------------
 
-void Pedigree::recurseSib( SLocIdxType		sLocIdx		,
-			   Haplotype *		memberHapState	,
-			   const AncestryVector&av		,
-			   InheritanceVector &	iv		,
-			   MemberIdx		memDepth	,
-			   double		emProbTerm	,
-			   StateReceiver	receiver	) const
+void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
+			   Haplotype *		  memberHapState ,
+			   const AncestryVector & av		 ,
+			   InheritanceVector &	  iv		 ,
+			   MemberIdx		  memDepth	 ,
+			   double		  emProbTerm	 ,
+			   StateReceiver	  receiver	 ) const
     {
 
     #if DEBUG_RECURSION
@@ -261,11 +265,18 @@ void Pedigree::recurseSib( SLocIdxType		sLocIdx		,
     //***************************************************************************
     //*** What about haploid genotypes here???  Only need one loop, but must
     //*** modify the IV to know about haploid organism-loci to reserve only one
-    //*** bit.  This will also affect Pedigree::getNMeiosis().
+    //*** bit.  This will also affect Pedigree::getNMeiosis().  Alternatively,
+    //*** we could use the full complement of 4 possible segregation indicators,
+    //*** even though they are not meaningful and we are overstating the number
+    //*** of possible states, perhaps the resulting probabilities will not be
+    //*** incorrect, i.e. the sum of the probabilities of the 2 states with the
+    //*** same value for the paternal SI and (incorrectly) varying maternal SI
+    //*** will sum to the correct probability of what would have been the single
+    //*** state containing that value of the paternal SI and no maternal SI.
     //***************************************************************************
 
-    // These two odd-looking for-loops each iterate over the two possible
-    // segregation-indicators:
+    // These odd-looking for-loops each iterate over the two possible
+    // segregation-indicators.
 
     for ( InheritanceVector::SegInd patSI = InheritanceVector::SI_PATERNAL ; ;
 	    patSI = InheritanceVector::SI_MATERNAL )
@@ -279,8 +290,9 @@ void Pedigree::recurseSib( SLocIdxType		sLocIdx		,
 
 	    // One possible added optimization: if two different IVs produce the
 	    // same haplotype here, we don't need to recurse each separately,
-	    // but we may need a way to express the set of possible IVs as an
-	    // equivalence class, so for the moment we'll use all separately.
+	    // but we may need a way to express the set of possible resulting
+	    // IVs as an equivalence class of states, so for the moment we'll
+	    // generate all of them separately.
 
 	    if ( myUnphasedGType.consistent( thisMemberHap ) )
 		{

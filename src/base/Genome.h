@@ -113,7 +113,12 @@ public:
   
   double GetLengthOfGenome()const;
   double GetLengthOfXchrm()const;
-  virtual void SetLocusCorrelation(const std::vector<double>& rho);
+
+  /// @parm rho Vector has length 1 if globalrho option, otherwise indexed on
+  ///	    << something, perhaps composite-locus-index >>
+  ///	    (note however that is ignored if the length is not 1).
+  virtual void SetLocusCorrelation(const genepi::cvector<double>& rho);
+
   void SetLocusCorrelation(double rho);
 
 protected:
@@ -147,7 +152,9 @@ private:
   #endif
 
   #if USE_GENOTYPE_PARSER
-    void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations, const SimpleLocusArray & sLoci );
+  void InitialiseChromosomes(const std::vector<unsigned> & cstart, const std::vector<size_t> & sstart,
+			     int populations, const SimpleLocusArray & sLoci );
+
   #else
     void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations );
   #endif

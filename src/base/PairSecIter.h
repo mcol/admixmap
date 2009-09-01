@@ -20,6 +20,7 @@
 
 //=============================================================================
 /// \file PairSecIter.h
+/// Definition of the PairSecIter class.
 //=============================================================================
 
 #ifndef __base_PairSecIter_h
@@ -44,7 +45,11 @@ namespace genepi { // ----
 
 
 
-// Pedigree subset manipulation:
+//-----------------------------------------------------------------------------
+/// This is an interator for std::pair, such that the dereferenced value is the
+/// second item.  Used for manipulation of Pedigree subsets in the current
+/// (std::multimap) implementation in GenotypeParser.
+//-----------------------------------------------------------------------------
 
 template< typename PIT, typename PST > class PairSecIter
     {

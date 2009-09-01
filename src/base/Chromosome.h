@@ -18,6 +18,7 @@
 
 
 #include <vector>
+#include <bclib/cvector.h>
 #include <string>
 #include "HiddenMarkovModel.h"
 
@@ -29,6 +30,10 @@
 /// Represents a chromosome and holds HMM object
 class Chromosome
 {
+public:
+  ///HMM Object (should be private for safety, use getHMM() instead):
+  HiddenMarkovModel * HMM;
+
 public:
   Chromosome(int, int size,int start, int, bool isx);
    ~Chromosome();
@@ -45,7 +50,7 @@ public:
   bool isXChromosome()const;
   // ****************** Setting of locus correlation, f *************************
   void SetGlobalLocusCorrelation(const double rho);
-  void SetLocusCorrelation(const std::vector<double>& vrho, bool RandomMating);
+  void SetLocusCorrelation(const genepi::cvector<double>& vrho, bool RandomMating);
 
   // ********** Interface to HMM ****************************************
 
@@ -55,9 +60,9 @@ public:
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, std::vector<unsigned> &SumN, 
 			    bool SampleArrivals)const;
-  
-  ///HMM Object, public for convenient access
-  HiddenMarkovModel* HMM;
+
+  HiddenMarkovModel &	    getHMM()	   { return *HMM; }
+  const HiddenMarkovModel & getHMM() const { return *HMM; }
 
 protected:
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
@@ -74,7 +79,7 @@ private:
  
   const int Number;//number of chromosome
   const int _startLocus;
-  const int NumHiddenStates;
+  const int NumHiddenStates; ///< Not really the number of hidden states -- we're just funning you!
   std::string _Label;
   
   int *CodedStates;//used to sample hidden states from HMM
@@ -92,3 +97,4 @@ private:
 
 
 #endif /* !defined CHROMOSOME_H */
+
