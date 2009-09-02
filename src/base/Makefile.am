@@ -33,7 +33,6 @@ GenotypeProbOutputter.cc GenotypeProbOutputter.h \
 GPI.cc GPI.h \
 Haplotype.cc Haplotype.h \
 HapPair.h \
-HMMBase.h HMMBase.cc \
 HiddenMarkovModel.cc HiddenMarkovModel.h \
 HWTest.cc HWTest.h \
 Individual.cc Individual.h \
