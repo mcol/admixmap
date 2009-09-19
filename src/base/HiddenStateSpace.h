@@ -262,6 +262,9 @@ class HiddenStateSpace
 	    public:
 
 		Iterator( const HiddenStateSpace & sp );
+		Iterator( const HiddenStateSpace & sp, StateIdxType idx );
+
+		const HiddenStateSpace & getSpace() const { return space; }
 
 
 		/// Returns true if there are no more states, i.e. if we've
@@ -278,7 +281,9 @@ class HiddenStateSpace
 
 		/// Retrieve the value of the state currently "pointed to".
 		State getState() const;
-		State operator*() const { return getState(); } ///< Synonym for getState()
+		State operator* () const { return getState(); } ///< Synonym for getState()
+		Iterator *	 operator->()	    { return this; }
+		const Iterator * operator->() const { return this; }
 
 		/// Get components of the state currently "pointed to";
 		/// typically more efficient than getState()/operator*():
