@@ -69,7 +69,8 @@ if USE_GENOTYPE_PARSER
 		TransProbCache.h TransProbCache.cc \
 		HiddenMarkovModel.new.h HiddenMarkovModel.new.cc \
 		TwoDimArray.h ThetaType.h \
-		PedBase.h PedBase.cc
+		PedBase.h PedBase.cc \
+		CodeTimer.h CodeTimer.cc
 else
   libbase_a_SOURCES += \
 		GenotypeLoader.cc GenotypeLoader.h
