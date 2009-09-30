@@ -12,6 +12,7 @@ distuninstallcheck:
 #create docs
 docs:
 	@(cd src/doxygen && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
+	##@(cd src/bclib/doxygen && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 
 #install binaries
 binstall: all
