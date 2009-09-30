@@ -1,10 +1,10 @@
 BCLIB_PATH=$(srcdir)/../bclib
 BASELIB_PATH=$(srcdir)/../base
-AM_CPPFLAGS=-I$(BCLIB_PATH)  -I$(BASELIB_PATH)
+AM_CPPFLAGS=-I$(BCLIB_PATH) -I$(BASELIB_PATH)
 
 AM_LDFLAGS= -L$(top_builddir)/src/bclib
 SUFFIXES=.cc .o
-AM_CXXFLAGS=$(WFLAGS) -fexceptions
+AM_CXXFLAGS=$(WFLAGS) -fexceptions -DUSE_GENOTYPE_PARSER=0
 
 bin_PROGRAMS = hapmixmap
 hapmixmap_LDFLAGS = -all-static $(AM_LDFLAGS)
