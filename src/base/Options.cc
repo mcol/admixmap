@@ -236,7 +236,12 @@ bool Options::getDeleteOldResultsIndicator()const{
 void Options::DefineOptions(){
   //set up Option map
 
-  addOption( "use-pedigree-for-individual", usePedForInd, false );
+  addOption( "use-pedigree-for-individual", usePedForInd	 , false );
+  addOption( "warnings-are-errors"	  , warningsAreErrors	 , false );
+  addOption( "ignore-invalid-parents"	  , ignoreInvalidParents , false );
+  addOption( "max-cpus"			  , maxCPUsToUse	 , 0	 );
+  addOption( "exclude-mendelian-errors"	  , excludeMendelError	 , true  );
+  addOption( "exclude-unaffected-sibs"	  , excludeUnaffectedSibs, false );
 
   addFlag('h', "help");
   addFlag('v', "version");

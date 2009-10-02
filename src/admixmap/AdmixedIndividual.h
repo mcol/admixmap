@@ -19,6 +19,7 @@
 #include <gsl/gsl_cdf.h>
 #include "AffectedsOnlyTest.h"
 #include "CopyNumberAssocTest.h"
+#include "PopAdmix.h"
 
 class AdmixOptions;
 class InputAdmixData;
@@ -32,7 +33,7 @@ public:
 
   static void SetStaticMembers( Genome & pLoci, const Options & options );
   static void DeleteStaticMembers();
-  void drawInitialAdmixtureProps(const vector<vector<double> > &alpha);
+  void drawInitialAdmixtureProps(const /*vector<vector<double> >*/ AlphaType &alpha);
   void SetMissingGenotypes();
 
   double getSumrho()const;
@@ -49,16 +50,16 @@ public:
 		 bool updateSumLogRho);
   void SampleTheta( int iteration, double * SumLogTheta, const bclib::DataMatrix * Outcome,
 		    const DataType * OutcomeType, const std::vector<double> & lambda, int NumCovariates,
-		    bclib::DataMatrix * Covariates, const std::vector<const double*> & beta, const double * poptheta,
-		    const AdmixOptions & options, const vector<vector<double> > & alpha,
+		    bclib::DataMatrix * Covariates, const std::vector<const double*> & beta, const PopAdmix::PopThetaType & poptheta,
+		    const AdmixOptions & options, const /*vector<vector<double> >*/ AlphaType & alpha,
 		    double DInvLink, double dispersion, CopyNumberAssocTest & ancestryAssocTest, bool RW, bool anneal);
 
-  void FindPosteriorModes(const AdmixOptions& options, const vector<vector<double> > &alpha,
+  void FindPosteriorModes(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);
   void resetStepSizeApproximator(int k);
-  void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha, double rhoalpha,
+  void setChibNumerator(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha, double rhoalpha,
 			double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
-  void updateChib(const AdmixOptions& options, const vector<vector<double> > &alpha, double rhoalpha,
+  void updateChib(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha, double rhoalpha,
 		  double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
 
   double getLogPosteriorTheta()const;
@@ -103,24 +104,24 @@ private:
   const std::vector<unsigned> getSumNumArrivals()const;
   const std::vector<unsigned> getSumNumArrivals_X()const;
   void getSumNumArrivals(std::vector<unsigned> *sum)const;
-  void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta,
+  void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const PopAdmix::PopThetaType & poptheta,
 				     bool ModelIndicator, bclib::DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, int Populations, bool ModelIndicator, bool RW );
   double LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel,
 					       int Populations, int NumCovariates,
 					       const bclib::DataMatrix * Covariates, const double * beta,
-					       const double Outcome, const double * poptheta, double lambda);
+					       const double Outcome, const PopAdmix::PopThetaType & poptheta, double lambda);
   void UpdateHMMInputs(unsigned int j, const Options& options,
 		       const double * theta, const genepi::RhoType & rho );
-  void ProposeTheta(const AdmixOptions& options, const vector<vector<double> > &alpha,
+  void ProposeTheta(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
-  double ProposeThetaWithRandomWalk(const AdmixOptions& options, const vector<vector<double> > &alpha);
+  double ProposeThetaWithRandomWalk( const AdmixOptions & options, const /*vector<vector<double> >*/ AlphaType & alpha );
   double LogPriorTheta_Softmax(const double* const theta,
-			       const AdmixOptions& options, const vector<vector<double> > &alpha) const ;
+			       const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha) const ;
   double LogPriorRho_LogBasis( const genepi::RhoType & rho, const AdmixOptions& options,
 			      double rhoalpha, double rhobeta) const;
   double LogPosteriorTheta_Softmax(const AdmixOptions& options, const double* const theta,
-				   const vector<vector<double> > &alpha)const;
+				   const /*vector<vector<double> >*/ AlphaType &alpha)const;
   double LogPosteriorRho_LogBasis(const AdmixOptions& options, const genepi::RhoType & rho,
 				  double rhoalpha, double rhobeta)const;
 

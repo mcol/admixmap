@@ -20,13 +20,16 @@
 
 using namespace std;
 using namespace bclib;
+using namespace genepi;
 
-AdmixOptions::AdmixOptions(int argc,  char** argv){
-  SetDefaultValues();
-  DefineOptions();
-  if(!ReadUserOptions(argc, argv, "-f"))
-    exit(1);
-}
+
+AdmixOptions::AdmixOptions(int argc,  char** argv)
+    {
+    SetDefaultValues();
+    DefineOptions();
+    if ( ! ReadUserOptions(argc, argv, "-f") )
+	exit(1);
+    }
 
 void AdmixOptions::SetDefaultValues(){
   Populations = 1;
@@ -284,7 +287,7 @@ int AdmixOptions::sizeInitAlpha() const
   return initalpha.size();
 }
 
-const std::vector<double> & AdmixOptions::getInitAlpha(int gamete) const
+const cvector<double> & AdmixOptions::getInitAlpha(int gamete) const
 {
 //   switch(gamete){
 //   case 0: return alpha0;
@@ -297,7 +300,7 @@ const std::vector<double> & AdmixOptions::getInitAlpha(int gamete) const
 //   }
   return initalpha[gamete];
 }
-const genepi::cvector<std::vector<double> > & AdmixOptions::getInitAlpha()const{
+const cvector<cvector<double> > & AdmixOptions::getInitAlpha()const{
   return initalpha;
 }
 
@@ -321,6 +324,10 @@ const genepi::cvector<float>& AdmixOptions::getPopAdmixSamplerParams()const{
 
 void AdmixOptions::DefineOptions(){
   //set up Option map
+
+  addOption( "no-conjugate-update", noConjugateUpdate, false );
+  addOption( "print-ped-summary"  , printPedSummary  , false );
+  addOption( "exclude-peds-over"  , excludePedsOver  , 0     );
 
   addOption("populations", intOption, &Populations);
   addOption("allelefreqfile", stringOption, &alleleFreqFilename);
@@ -721,7 +728,7 @@ void AdmixOptions::setInitAlpha(bclib::LogWriter &Log){
   }
 }
 
-bool AdmixOptions::CheckInitAlpha( const std::vector<double> & alphatemp )const
+bool AdmixOptions::CheckInitAlpha( const cvector<double> & alphatemp ) const
 //returns indicator for admixture as indicated by initalpha   
 // also check that Dirichlet parameter vector, if specified by user, has correct length
 {

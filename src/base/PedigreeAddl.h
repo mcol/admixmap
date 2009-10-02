@@ -45,6 +45,13 @@ namespace genepi { // ----
 std::ostream & print_aggregate_summary( std::ostream & os, const std::vector<Pedigree> & peds );
 
 
+/// Output a summary of a pedigree.
+std::ostream & ped_sum( std::ostream & os, const Pedigree & ped );
+
+/// Output a summary of a pedigree, with hidden-state-space details.
+std::ostream & ped_sum_hss( std::ostream & os, const Pedigree & ped );
+
+
 
 /** @} */
 

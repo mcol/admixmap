@@ -27,10 +27,7 @@
 #include "TransProbCache.h"
 
 
-#define DEBUG_PRINT_TP_DETAIL	0
-
-
-#include <cmath>
+#include <cmath> // exp()
 
 
 namespace genepi { // ----
@@ -38,11 +35,11 @@ namespace genepi { // ----
 
 
 //-----------------------------------------------------------------------------
-// computeFactors() [protected]
+// reComputeFactors() [protected]
 // Recompute the cached "f" values (called initially and when rho changes).
 //-----------------------------------------------------------------------------
 
-void TransProbCache::computeFactors()
+void TransProbCache::reComputeFactors()
     {
     // No need to recompute g since it doesn not depend on rho
     for ( int t = factors.size() ; t-- != 0 ; )
@@ -52,81 +49,186 @@ void TransProbCache::computeFactors()
 
 
 //-----------------------------------------------------------------------------
+// LocusTP::init()
+//-----------------------------------------------------------------------------
+
+#if TPC_CACHE_MODEL == TPC_BIG_CACHE
+
+    void TransProbCache::LocusTP::init( size_t from_n_states, size_t to_n_states )
+	{
+	stMultiplier = to_n_states;
+
+	const size_t npr = from_n_states * to_n_states;
+
+	gp_assert( probs == 0 );
+	probs = new CacheProbType[ npr ];
+
+	#if AGGRESSIVE_RANGE_CHECK
+	    // Keep the number of probabilities (array-size) for later range checks:
+	    n_probs = npr;
+	#endif
+	}
+
+#endif
+
+
+
+//-----------------------------------------------------------------------------
+//
+// recomputeBigCache() [protected] [big-cache model only]
+//
+/// Recompute the cached transition probabilities for one whole pedigree
+/// (i.e. one matrix for each locus).  Called when constructed and again
+/// whenever rho or mu (aka theta) changes.
+//
+//-----------------------------------------------------------------------------
+
+#if TPC_CACHE_MODEL == TPC_BIG_CACHE
+
+    void TransProbCache::recomputeBigCache()
+	{
+
+	const size_t T_minus_1 = loci.size() - 1;
+
+	// Let's try using the same code that caches the F and G factors for the
+	// no-cache model, even though they don't need to be persistent for the
+	// big-model (they take up so much less space than the TPs themselves, it's
+	// insignificant).
+	#define BIG_MODEL_TEMP_FACTORS 0
+	#if BIG_MODEL_TEMP_FACTORS
+	    // Cache f & g by locus:
+	    double fa[ loci.size() ];
+	    double ga[ loci.size() ];
+	    for ( SLocIdxType t = T_minus_1 ; t-- != 0 ; )
+		{
+		fa[ t ] = computeF( loci, t, rho );
+		ga[ t ] = computeG( loci, t );
+		}
+	#endif
+
+
+	for ( SLocIdxType t = T_minus_1 ; t-- != 0 ; )
+	    {
+
+	    LocusTP &	 lProbs	      = probs[ t ];
+	    const size_t stMultiplier = lProbs.stMultiplier;
+
+	    const HiddenStateSpace & frSpace = pedigree.getStateProbs( t     );
+	    const HiddenStateSpace & toSpace = pedigree.getStateProbs( t + 1 );
+
+	    #if AGGRESSIVE_RANGE_CHECK
+		gp_assert_eq( lProbs.n_probs, frSpace.getNNon0() * toSpace.getNNon0() );
+		gp_assert_eq( stMultiplier, toSpace.getNNon0() );
+	    #endif
+
+	    #if BIG_MODEL_TEMP_FACTORS
+		const double f = fa[t];
+		const double g = ga[t];
+	    #endif
+
+	    for ( HiddenStateSpace::Iterator fr_it( frSpace ) ; fr_it ; ++fr_it )
+		{
+		const size_t	  stOffset = fr_it.getNon0Index() * stMultiplier;
+		const SLocFacts & fact	   = factors[ t ];
+		for ( HiddenStateSpace::Iterator to_it( toSpace ) ; to_it ; ++to_it )
+		    // lProbs.getProbs( fr_it.getNon0Index(), to_it.getNon0Index() ) =
+		    lProbs.probs[ stOffset + to_it.getNon0Index() ] =
+			computeProb( fr_it, to_it, fact, getMu() );
+		}
+	    }
+
+	cacheIsDirty = false;
+
+	}
+
+
+#endif // TPC_CACHE_MODEL == TPC_BIG_CACHE
+
+
+
+//-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
 
 TransProbCache::TransProbCache( const Pedigree & _pedigree, double _rho, const MuType & _mu ) :
+	#if TPC_CACHE_MODEL == TPC_BIG_CACHE
+	    cacheIsDirty( true ) ,
+	#endif
 	pedigree ( _pedigree		) ,
 	loci	 ( _pedigree.getSLoci() ) ,
 	rho	 ( _rho			) ,
 	mu	 ( &_mu			)
     {
 
-    #if TPC_CACHE_MODEL == TPC_NO_CACHE
+    #if (TPC_CACHE_MODEL == TPC_NO_CACHE) || ((TPC_CACHE_MODEL == TPC_BIG_CACHE) && (! BIG_MODEL_TEMP_FACTORS))
 
 	muChanged();
 
 	gp_assert( loci.size() != 0 ); // Unnecessary, but a bug did manifest itself this way once
 
 	factors.resize( loci.size() - 1 );
-	for ( int t = factors.size() ; t-- != 0 ; )
-	    factors[ t ].g = computeG( loci, t	);
-	computeFactors();
-
-    #elif TPC_CACHE_MODEL == TPC_BIG_CACHE
-
-	const size_t T_minus_1 = loci.size() - 1;
-
-	// Cache f & g by locus:
-	double fa[ loci.size() ];
-	double ga[ loci.size() ];
-	for ( SLocIdxType t = T_minus_1 ; t-- != 0 ; )
+	for ( size_t t = factors.size() ; t-- != 0 ; )
 	    {
-	    fa[ t ] = computeF( loci, t, rho );
-	    ga[ t ] = computeG( loci, t );
-	    #if DEBUG_PRINT_TP_DETAIL
-		printf( "At locus %lu, f=%lf g=%lf\n", t, fa[t], ga[t] );
-	    #endif
+	    const double g = computeG( loci, t );
+	    factors[ t ].g = g;
+	    cvector<CachedIVFactor> & gtab = factors[ t ].iv_factors;
+	    const size_t n_meiosis = (_pedigree.getNNonFndrs() << 1);
+	    gtab.resize( 1 << n_meiosis ); // 2^n_meiosis = 4^n_non_founders
+	    if ( n_meiosis == 0 )
+		gtab[0] = 1.0; // For no-non-founders, "null" IV
+	    else
+		{
+		double preCompTab[ n_meiosis ];
+		const double gPlusOne = (g + 1) * 0.5;
+		double gPlusOneTerm = 1.0;
+		for ( size_t ctr = 0 ; ctr < n_meiosis ; ++ctr )
+		    {
+		    preCompTab[ ctr ] = gPlusOneTerm;
+		    gPlusOneTerm *= gPlusOne;
+		    }
+		const double oneMinusG = (1 - g) * 0.5;
+		double oneMinusGTerm = gPlusOne;
+		for ( size_t ctr = n_meiosis - 1 ; ctr-- != 0 ; )
+		    {
+		    preCompTab[ ctr ] *= oneMinusGTerm;
+		    oneMinusGTerm *= oneMinusG;
+		    }
+		for ( size_t idx = 0 ; idx < gtab.size() ; ++idx )
+		    {
+		    unsigned int n_non_zero_bits = 0;
+		    size_t ivTransBits = idx;
+		    for ( size_t ctr = n_meiosis ; ctr-- != 0 ; )
+			{
+			n_non_zero_bits += (ivTransBits & 1);
+			ivTransBits >>= 1;
+			}
+		    gtab[ idx ] = preCompTab[ n_non_zero_bits ];
+		    }
+		}
 	    }
 
+	reComputeFactors();
 
-	// Assume that all loci have the same sized hidden-state-space:
-	const size_t n_states = pedigree.getStateProbs(0).getNStates();
-	pCache.stMultiplier  = n_states;
-	pCache.locMultiplier = n_states * n_states;
-	size_t n_probs = pCache.locMultiplier * T_minus_1;
-	#if AGGRESSIVE_RANGE_CHECK
-	    // Keep the number of probabilities (array-size) for later range checks:
-	    pCache.n_probs = n_probs;
-	#endif
+    #endif
 
-	#if 0 // MEM-DEBUG
-	    fprintf( stderr, "T-1: %lu; N-states: %lu; N-probs: %lu; mem request: %lu\n",
-		    T_minus_1, n_states, n_probs, n_probs * sizeof(CacheProbType) );
-	#endif
-	float * const probs = new CacheProbType[ n_probs ];
-	pCache.probs = probs;
 
-	for ( SLocIdxType t = T_minus_1 ; t-- != 0 ; )
+
+    #if TPC_CACHE_MODEL == TPC_BIG_CACHE
+
+	const SLocIdxType T_minus_1 = loci.size() - 1;
+
+	probs.resize( T_minus_1 );
+
+	for ( SLocIdxType loc = T_minus_1 ; loc-- != 0 ; )
 	    {
-	    const double f = fa[t];
-	    const double g = ga[t];
 
-	    const HiddenStateSpace & frSpace = pedigree.getStateProbs( t     );
-	    const HiddenStateSpace & toSpace = pedigree.getStateProbs( t + 1 );
+	    // We no longer assume that all loci have the same state-space size,
+	    // i.e. we only allocate for non-0 states.
+	    const size_t from_n_states = pedigree.getStateProbs( loc	 ).getNNon0();
+	    const size_t to_n_states   = pedigree.getStateProbs( loc + 1 ).getNNon0();
 
-	    gp_assert_eq( n_states, frSpace.getNStates() );
-	    gp_assert_eq( n_states, toSpace.getNStates() );
+	    probs[ loc ].init( from_n_states, to_n_states );
 
-	    const size_t locOffset = t * pCache.locMultiplier;
-
-	    for ( HiddenStateSpace::StateIdxType frIdx = n_states ; frIdx-- != 0 ; )
-		{
-		const size_t stOffset = frIdx * pCache.stMultiplier;
-		for ( HiddenStateSpace::StateIdxType toIdx = n_states ; toIdx-- != 0 ; )
-		    probs[ locOffset + stOffset + toIdx ] =
-			computeProb( frSpace, frIdx, toSpace, toIdx, f, g, getMu() );
-		}
 	    }
 
     #endif
@@ -141,9 +243,6 @@ TransProbCache::TransProbCache( const Pedigree & _pedigree, double _rho, const M
 
 TransProbCache::~TransProbCache()
     {
-    #if TPC_CACHE_MODEL == TPC_BIG_CACHE
-	delete[] probs;
-    #endif
     }
 
 
@@ -151,8 +250,12 @@ TransProbCache::~TransProbCache()
 void TransProbCache::setRho( double nv )
     {
     // Needs conversion to TP_BIG_CACHE
-    rho = nv;
-    computeFactors();
+    if ( nv != rho )
+	{
+	rho = nv;
+	reComputeFactors();
+	cacheIsDirty = true;
+	}
     }
 
 
@@ -165,9 +268,9 @@ void TransProbCache::setMu( const MuType & nv )
 
 void TransProbCache::muChanged()
     {
-    // Needs conversion to TP_BIG_CACHE
     gp_assert_eq( pedigree.getNFounders(), getMu().size() );
     gp_assert_eq( pedigree.getK(), getMu()[0].size() );
+    cacheIsDirty = true;
     }
 
 
@@ -178,7 +281,7 @@ void TransProbCache::muChanged()
 
 //-----------------------------------------------------------------------------
 // computeF() [static]
-/// \f$f = (1 - e^{-\rho x})\f$
+/// \f$f = e^{-\rho x}\f$
 //-----------------------------------------------------------------------------
 
 inline double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxType t, double rho )
@@ -188,9 +291,9 @@ inline double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxTy
 
     const SimpleLocus & locTPlusOne = loci[ t + 1 ];
 
-    return locTPlusOne.startsNewChromosome()			  ?
-	1.0							  :
-	1.0 - exp( - rho * locTPlusOne.getDistance().inMorgans() );
+    return locTPlusOne.startsNewChromosome()		     ?
+	0.0						     :
+	exp( - rho * locTPlusOne.getDistance().inMorgans() ) ;
     }
 
 
@@ -214,130 +317,99 @@ inline double TransProbCache::computeG( const SimpleLocusArray & loci, SLocIdxTy
 
 
 
-#if 0
-    //-----------------------------------------------------------------------------
-    // bitsInULong() [static helper]
-    // Could use for more sophisticated cache strategy
-    //-----------------------------------------------------------------------------
-    static inline size_t bitsInULong( unsigned long x )
-	{
-	#define T_SIZE (1U << 16)
-	static size_t tbl16[ T_SIZE ];
-	static bool initialized = false;
-	if ( ! initialized )
-	    {
-	    for ( size_t i = T_SIZE ; i-- != 0 ; )
-		tbl16 ofoo here
-	    }
-	}
-#endif
-
-
-
 //-----------------------------------------------------------------------------
 // computeProb() [static]
 //-----------------------------------------------------------------------------
 
-double TransProbCache::computeProb( const HiddenStateSpace & frSpace, HiddenStateSpace::StateIdxType frIdx,
-				    const HiddenStateSpace & toSpace, HiddenStateSpace::StateIdxType toIdx,
-				    double f, double g, const MuType & _mu )
+double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
+				    const HiddenStateSpace::Iterator & toState,
+				    const SLocFacts & facts, const MuType & _mu )
     {
-    const Pedigree & ped = frSpace.getPed();
-    gp_assert( &ped == &(toSpace.getPed()) );
+    const AncestryVector & frAV = frState.getAV();
+    const AncestryVector & toAV = toState.getAV();
 
-    const HiddenStateSpace::State & A = frSpace.stateAtIdx( frIdx );
-    const HiddenStateSpace::State & B = toSpace.stateAtIdx( toIdx );
+    const Pedigree & ped = frState.getSpace().getPed();
+    gp_assert( &(frState.getSpace().getPed()) == &(toState.getSpace().getPed()) );
 
-    gp_assert( A.av.size() == B.av.size() ); // DEBUG
+    gp_assert_eq( frAV.size(), toAV.size() ); // DEBUG
 
-    #if 0 // overkill
-	gp_assert( &A.av.getPed() == &ped );
-	gp_assert( &A.iv.getPed() == &ped );
-	gp_assert( &B.av.getPed() == &ped );
-	gp_assert( &B.iv.getPed() == &ped );
-    #endif
+    double rv = facts.iv_factors[ frState.getIV().to_ulong() ^ toState.getIV().to_ulong() ];
 
-    double rv = 1.0;
-
-    const size_t n_meiosis = (ped.getNNonFndrs() << 1);
-
-    unsigned long ivTransBits = A.iv.to_ulong() ^ B.iv.to_ulong();
-    for ( size_t ctr = n_meiosis ; ctr-- != 0 ; )
+    const double f = facts.f;
+    const double one_minus_f = 1 - f;
+    for ( Pedigree::FounderIdx fIdx = ped.getNFounders() ; fIdx-- != 0 ; )
 	{
-	const bool notEqual = (ivTransBits & 1);
-	ivTransBits >>= 1;
-	rv *= (notEqual ? (g + 1) : (1 - g)) * 0.5;
-	#if DEBUG_PRINT_TP_DETAIL
-	    printf( " (%lu,%lu) IV%lu=%d: %lf %lf\n", frIdx, toIdx, ctr, notEqual, (notEqual ? (g + 1) : (1 - g)) * 0.5, rv );
-	#endif
-	}
-
-    for ( AncestryVector::IdxType avIdx = A.av.size() ; avIdx-- != 0 ; )
-	{
-	const PopIdx i = A.av.at( avIdx );
-	const PopIdx j = B.av.at( avIdx );
+	PopIdx frMatAncestry;
+	const PopIdx frPatAncestry = frAV.getBoth( fIdx, frMatAncestry );
+	PopIdx toMatAncestry;
+	const PopIdx toPatAncestry = toAV.getBoth( fIdx, toMatAncestry );
 
 	// The ancestry-vector is indexed on founder-gamete; mu (the ancestry
 	// proportions) is indexed on founder (since we are assuming that the
 	// ancestry proportions are the same for both of a founder's gametes) To
 	// find mu, we need to translate the founder-gamete index into a
 	// founder-index.
-	const Pedigree::FounderIdx fIdx = avIdx >> 1; // NOTE *X117*!!!!
-	double factor = (1 - f) * _mu[fIdx][j];
-	if ( i == j )
+	const cvector<double> & mu_of_fIdx = _mu[ fIdx ];
+
+	double factor = one_minus_f * mu_of_fIdx[ toPatAncestry ];
+	if ( frPatAncestry == toPatAncestry )
 	    factor += f;
 	rv *= factor;
-	#if DEBUG_PRINT_TP_DETAIL
-	    printf( " (%lu,%lu) AV%lu = %lu,%lu{%d}: %lf %lf\n", frIdx, toIdx, avIdx, i, j, (i == j), factor, rv );
-	#endif
-	}
 
-    #if DEBUG_PRINT_TP_DETAIL
-	printf( " (%lu,%lu) trans-prob=%lf\n", frIdx, toIdx, rv );
-    #endif
+
+	factor = one_minus_f * mu_of_fIdx[ toMatAncestry ];
+	if ( frMatAncestry == toMatAncestry )
+	    factor += f;
+	rv *= factor;
+
+	}
 
     return rv;
     }
 
 
 
-//-----------------------------------------------------------------------------
-// getProb()
-//-----------------------------------------------------------------------------
-
-#if TPC_CACHE_MODEL == TPC_NO_CACHE
-
-    double TransProbCache::getProb( SLocIdxType t,
-				    HiddenStateSpace::StateIdxType i,
-				    HiddenStateSpace::StateIdxType j ) const
-	{
-	// t must be less than T-1 since we are computing the probability from t to t+1:
-	gp_assert_lt( t, (loci.size() - 1) );
-
-	const SLocFacts & fact = factors[ t ];
-
-	return computeProb( pedigree.getStateProbs( t	), i,
-			    pedigree.getStateProbs( t+1 ), j,
-			    fact.f, fact.g, getMu() );
-	}
-
-#endif
-
-
-
-//-----------------------------------------------------------------------------
-// PedCache::getNProbs()
-//-----------------------------------------------------------------------------
-
 #if TPC_CACHE_MODEL == TPC_BIG_CACHE
-    size_t TransProbCache::PedCache::getNProbs() const
+
+    //-----------------------------------------------------------------------------
+    // LocusTP::debugOut()
+    //-----------------------------------------------------------------------------
+
+    void TransProbCache::LocusTP::debugOut(
+				    std::ostream &	 os	,
+				    const Pedigree & ped	,
+				    SLocIdxType	 frLoc	) const
 	{
-	#if AGGRESSIVE_RANGE_CHECK
-	    return n_probs;
-	#else
-	    return 0;//locMultiplier * T_minus_1;
-	#endif
+	os << "Transition-probabilities for ped #" << ped.getMyNumber() << " (" << ped.getId()
+	    << ") from locus #" << frLoc << " to " << (frLoc+1) << ":\n";
+
+	const HiddenStateSpace & frSpace = ped.getStateProbs( frLoc );
+	const HiddenStateSpace & toSpace = ped.getStateProbs( frLoc + 1 );
+
+	for ( HiddenStateSpace::Iterator to_it(toSpace) ; to_it ; ++to_it )
+	    os << '\t' << to_it.getOverallIndex() << '=' << to_it.getNon0Index();
+	os << '\n';
+
+	for ( HiddenStateSpace::Iterator fr_it(frSpace) ; fr_it ; ++fr_it )
+	    {
+	    os << fr_it.getOverallIndex() << '=' << fr_it.getNon0Index();
+	    for ( HiddenStateSpace::Iterator to_it(toSpace) ; to_it ; ++to_it )
+		os << '\t' << getProb(fr_it.getNon0Index(),to_it.getNon0Index());
+	    os << '\n';
+	    }
 	}
+
+
+
+    //-----------------------------------------------------------------------------
+    // debugOut( std::ostream & ostr, SLocIdxType frLoc ) const;
+    //-----------------------------------------------------------------------------
+
+    void TransProbCache::debugOut( std::ostream & ostr, SLocIdxType frLoc ) const
+	{
+	probs[frLoc].debugOut( ostr, pedigree, frLoc );
+	}
+
 #endif
 
 

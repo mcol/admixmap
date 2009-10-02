@@ -98,11 +98,11 @@ public:
     //	redesigned from the ground up, but for the moment as a hacked-up
     //	workaround, these will help.
 
-    void addOption( const string & optName, long & value, long defaultValue = 0 ) { value=defaultValue; addOption(optName,longOption,&value,false); } ///< Add a long option of type long (type-safe)
-    void addOption( const string & optName, long & value, bool required ) { addOption(optName,longOption,&value,required); } ///< Add a long option of type long (type-safe)
-
-    void addOption( const string & optName, bool & value, bool defaultValue = false ) { value=defaultValue; addOption(optName,boolOption,&value,false); } ///< Add a long option of type bool (type-safe)
-
+    void addOption( const string & name, long & value, long defaultValue = 0 ); ///< Add a long option of type long (type-safe)
+    void addOption( const string & name, long & value, bool required ); 	///< Add a long option of type long (type-safe)
+    void addOption( const string & name, int & value, int defaultValue = 0 );	///< Add a long option of type int (type-safe)
+    void addOption( const string & name, int & value, bool required );		///< Add a long option of type int (type-safe)
+    void addOption( const string & name, bool & value, bool defaultValue = false ); ///< Add a long option of type bool (type-safe)
     // And so on...
 
   void addOption(const char*, OptionType, void*, bool required = false);

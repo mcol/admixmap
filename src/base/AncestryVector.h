@@ -35,11 +35,6 @@
 #include <cstring> // memcpy()
 
 
-/// Should computation of transition probabilities be parallelized (requires
-/// thread-safety for AncestryVector::set_ulong()).  This only has any effect if
-/// TPC_CACHE_MODEL==TPC_BIG_CACHE
-#define PARALLELIZE_TRANS_PROB	1
-
 #define AV_OSTREAM		1 ///< Should we compile ostream support for AVs?
 
 #if AV_OSTREAM
@@ -94,6 +89,7 @@ class AncestryVector
 	/// usable from outside AncestryVector.
 	struct DType
 	    {
+
 	    WordType bytes[ MAX_BYTES ];
 
 	    PopIdx at_unsafe( IdxType el ) const
@@ -107,15 +103,39 @@ class AncestryVector
 		WordType & byte = bytes[ el >> 1 ];
 
 		if ( (el & 1) == 0 )
-		    { // Lower-order nibble
+		    { // Lower-order nibble (even index, maternal)
 		    byte &= 0xF0;
 		    byte |= val;
 		    }
 		else
-		    { // Higher-order nibble
+		    { // Higher-order nibble (odd index, paternal)
 		    byte &= 0x0F;
 		    byte |= (val << 4);
 		    }
+		}
+
+	    PopIdx getBoth( const Pedigree::FounderIdx & f, PopIdx & maternalAncestry ) const
+		{
+		const WordType byte = bytes[ f ];
+		maternalAncestry = byte & 0x0F;
+		return byte >> 4;
+		}
+
+	    int nCopiesFromKAtFounder( const Pedigree::FounderIdx & f, const PopIdx & k ) const
+		{
+		const WordType byte = bytes[ f ];
+		const PopIdx matAnc = byte & 0x0F;
+		const PopIdx patAnc = byte >> 4;
+		return (matAnc == k) + (patAnc == k);
+		}
+
+	    bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k ) const
+		{
+		const WordType byte = bytes[ f ];
+		const PopIdx matAnc = byte & 0x0F;
+		const PopIdx patAnc = byte >> 4;
+		return	((matAnc == k) && (patAnc != k)) ||
+			((patAnc == k) && (matAnc != k));
 		}
 
 	    };
@@ -176,10 +196,7 @@ class AncestryVector
 	/// For use as an index into arrays; in the range of (0,K^F)
 	unsigned long to_ulong() const;
 
-	/// @warning Not thread-safe!!!  This method uses an unprotected global
-	/// cache.  We take explicit precautions for the OpenMP facility if
-	/// PARALLELIZE_TRANS_PROB is turned on, but this method will not be
-	/// compatible with other multi-threaded environments.
+	/// @warning set_parms() must be called prior to this method.
 	void set_ulong( unsigned long nv );
 
 
@@ -230,9 +247,34 @@ class AncestryVector
 	    }
 
 
-	#if PARALLELIZE_TRANS_PROB && defined(_OPENMP)
+	/// Retrieve two ancestry values at once (for the maternal and paternal
+	/// gametes of one individual).  Pass in the founder index in @a f;
+	/// returns the paternal gamete's ancestry, and puts the maternal
+	/// gamete's ancestry into @a maternalAncestry.  Implementation note:
+	/// this depends on the internal implementation of DType in a slightly
+	/// inelegant way; but getBoth() can improve performance in
+	/// certain situations, and it does not expose the implementation
+	/// details outside of the AncestryVector class.
+	PopIdx getBoth( const Pedigree::FounderIdx & f, PopIdx & maternalAncestry ) const
+	    {
+	    return data.getBoth( f, maternalAncestry );
+	    }
+
+	bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k ) const
+	    {
+	    return data.isHetrozygousForPop( f, k );
+	    }
+
+	int nCopiesFromKAtFounder( const Pedigree::FounderIdx & f, const PopIdx & k ) const
+	    {
+	    return data.nCopiesFromKAtFounder( f, k );
+	    }
+
+
+	#if defined(_OPENMP)
 	    /// Hack!  Must be called prior to first call to set_ulong().
-	    static void set_K( PopIdx K );
+	    /// Number of populations and maximum number of founder-gametes.
+	    static void set_parms( PopIdx K, Pedigree::FounderIdx maxF );
 	#endif
 
     };

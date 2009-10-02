@@ -95,11 +95,15 @@ class GenotypeParser : public GFileLexer
 
 
     protected:
-	Organism::SexType sexFromInt( long s );
+	Organism::SexType lexSex();
 
 
 	void insert_pmap( Organism & org )
 	    { pmap.insert( std::multimap<FamIdType,Organism*>::value_type( org.getFamId(), &org ) ); }
+
+
+	void validateOrg( const Organism & org ) const;
+
 
     public:
 
@@ -128,6 +132,10 @@ class GenotypeParser : public GFileLexer
 	/// access, see getOrganismUnsafe().  For easier syntax, see
 	/// operator[]().
 	const Organism & getOrganism( size_t orgIdx ) const { return rows.at(orgIdx); }
+
+	// Currently, this is only needed for InputData to "merge" the
+	// outcome-file back into the organisms; not needed for pedigree files.
+	Organism & getOrganism( size_t orgIdx ) { return rows.at(orgIdx); }
 
 	/// Range-checked array-index access to organisms; for extra-fast
 	/// access, see getOrganismUnsafe().
@@ -183,7 +191,7 @@ class GenotypeParser : public GFileLexer
 
 
 	/// Returns the number of organisms in pedigree <B>famId</B>
-	size_t numorgsInPed( const FamIdType & famId ) const
+	size_t numOrgsInPed( const FamIdType & famId ) const
 	    {
 	    return pmap.count( famId );
 	    }
@@ -195,6 +203,10 @@ class GenotypeParser : public GFileLexer
 	/// Convenience: returns the number of loci in the locus file
 	size_t getNSimpleLoci() const { return getSLoci().size(); }
 
+
+	/// Run through the input data after the initial parsing has finished,
+	/// checking the dataset as a whole for some basic validation.
+	void validate() const;
 
 
 	//---------------------------------------------------------------

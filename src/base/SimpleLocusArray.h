@@ -89,6 +89,8 @@ class SimpleLocusArray : public cvector<SimpleLocus>
 	    #if AGGRESSIVE_RANGE_CHECK
 		if ( idx >= size() )
 		    throwRange( idx );
+	    #else
+		if ( idx ) {;} // Suppress compiler warning
 	    #endif
 	    }
 

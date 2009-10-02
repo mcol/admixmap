@@ -66,14 +66,16 @@ double DataMatrix::DataMatrix::get(unsigned row, unsigned col)const{
   return data[row*ncols +col];
 }
 std::vector<double> DataMatrix::getRow(unsigned r)const{
-  std::vector<double> row(ncols);
+  std::vector<double> row( ncols );
   std::vector<double>::const_iterator it = data.begin()+r*ncols;
   copy(it, it + ncols, row.begin());
   return row;
 }
 std::vector<double> DataMatrix::getCol(unsigned c)const{
   std::vector<double> col;
-  for(unsigned row = 0; row < nrows; ++row)col.push_back( data[row*ncols + c] );
+  col.reserve( nrows );
+  for ( unsigned row = 0; row < nrows; ++row )
+    col.push_back( data[row*ncols + c] );
   return col;
 }
 std::vector<double> DataMatrix::columnMeans()const{

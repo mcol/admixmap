@@ -68,6 +68,7 @@ class AdmixOptions;
 class Options;
 class CopyNumberAssocTest;
 class AdmixOptions;
+class AffectedsOnlyTest;
 namespace bclib { class DataMatrix; }
 #include "common.h" // for DataType
 #include <bclib/StepSizeTuner.h>
@@ -207,8 +208,8 @@ class Pedigree : public PedBase // See NOTE *4*
 	const OrganismArray & memberPool;
 
 	IdType	   id		 ;
-	size_t	   nMembers	 ;
-	size_t	   nFounders	 ;
+	MemberIdx  nMembers	 ;
+	FounderIdx nFounders	 ;
 	Member * * sortedMembers ;
 
 	// Mendelian error detection and tracking:
@@ -294,7 +295,9 @@ class Pedigree : public PedBase // See NOTE *4*
 	// Many are convenience methods (simply derived from others).
 	//---------------------------------------------------------------
 
-	PopIdx	     getK	      () const; ///< The number of populations
+	private: static PopIdx K; public:
+	PopIdx	     getK	      () const	///< The number of populations
+						{ gp_assert_ne( K, 0 ); return K; }
 	ChromIdxType getNumChromosomes() const; ///< The number of chromosomes
 	static void setK( PopIdx _K );
 
@@ -449,9 +452,12 @@ class Pedigree : public PedBase // See NOTE *4*
 
 	void HMMIsBad( bool loglikisbad );
 
+	void SampleHiddenStates ( const Options & options );
+	void SampleJumpIndicators ( bool sampleArrivals );
+
 
     private:
-	double ProposeThetaWithRandomWalk( const AdmixOptions & options, const AlphaType & alpha );
+	size_t nAffected;
 
 	/// Returns size of Theta, used to allocate storage for Theta,
 	/// ThetaProposed, SumSoftmaxTheta.  Was: NumGametes --> K*NumGametes
@@ -461,17 +467,18 @@ class Pedigree : public PedBase // See NOTE *4*
 	/// Admixture proportions, one vector of size K for each founder (we
 	/// assume that the admixture proportion is the same for both gametes in
 	/// each founder).
-	ThetaType Theta;
-	ThetaType ThetaProposal;
-	ThetaType SumSoftmaxTheta;
-	ThetaType thetahat; // From AdmixedIndividual
-	cvector<double> dirparams; ///< Dirichlet parameters of full conditional for conjugate updates
-				   ///< Indexed on ?something?.
-				   ///< Taken from AdmixedIndividual, in which it is indexed on K (n-populations)
+	ThetaType	  Theta;
+	ThetaType	  ThetaProposal;
+	mutable ThetaType SumSoftmaxTheta; ///< Mutable so that WritePosteriorMeans() can modify it.
+	ThetaType	  thetahat;	   // From AdmixedIndividual
+	cvector<double>	  dirparams;	   ///< Dirichlet parameters of full conditional for conjugate updates
+					   ///< Indexed on <I>?something?</I>.
+					   ///< Taken from AdmixedIndividual, in which it is indexed on K (n-populations)
 
 	RhoType _rho	  ; ///< sum of intensities
 	RhoType sumlogrho ; ///< foo.
 	RhoType rhohat	  ; ///< bar.
+
 
 	mutable struct
 	  {
@@ -492,19 +499,28 @@ class Pedigree : public PedBase // See NOTE *4*
 	unsigned int	     NumGametes	     ;
 	unsigned int	     myNumber	     ;
 
-    #define SEPARATE_HMM_FOR_EACH_CHROM 0
-    #if SEPARATE_HMM_FOR_EACH_CHROM
-	genepi::HiddenMarkovModel & getHMM( ChromIdxType chromIdx ) const;
-    #else
+	// For affected-only test: maintain precomputed factors
+	typedef float AAProbType;
+	cvector<AAProbType> aaInfo  ; // Indexed on HSS-non0-index
+	cvector<AAProbType> aaScore ;
+	void accumAAScore();
+
+
 	mutable genepi::TransProbCache * tpCache;
 	genepi::TransProbCache & getTPC() const;
 
 	mutable genepi::HiddenMarkovModel * hmm;
 	genepi::HiddenMarkovModel & getHMM() const;
 	void freeHMM() const;
-    #endif
+
+    public:
+    MemberIdx getNAffected() const { return nAffected; }
     unsigned int getMyNumber() const { return myNumber	; } ///< "number" of this pedigree, counting from 1
     unsigned int getIndex   () const { return myNumber-1; } ///< "number" of this pedigree, counting from 0
+    void setMyNumber( unsigned int nv ) { myNumber = nv; }
+    private:
+
+    double ProposeThetaWithRandomWalk( const AdmixOptions & options, const AlphaType & alpha );
 
     double LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel,
 					       PopIdx K, int NumCovariates,
@@ -521,23 +537,69 @@ class Pedigree : public PedBase // See NOTE *4*
   void setAdmixtureProps( const ThetaType & rhs );
   void storeLogLikelihood( bool setHMMAsOK ); ///< to call if a Metropolis proposal is accepted
 
-  #if SEPARATE_HMM_FOR_EACH_CHROM
-    void UpdateHMMInputs( ChromIdxType chromIdx, const Options & options,
-		       const ThetaType & theta, const RhoType & rho ) const;
-  #else
-    void updateHMMInputs( const Options & options, const ThetaType & theta, const RhoType & rho ) const;
-  #endif
+  void updateHMMInputs( const Options & options, const ThetaType & theta, const RhoType & rho ) const;
 
 
 
     // Methods (overridden from PedBase) from AdmixedIndividual:
     virtual void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
-    virtual void drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha);
+    virtual void drawInitialAdmixtureProps(const AlphaType &alpha);
 
-    #if NEEDED_ONLY_FOR_CONJUGATE_UPDATE
+    // ResetSufficientStats() is only needed if we are doing conjugate updates
+    // (which we don't do for pedigrees), as well as when we do not do conjugate
+    // updates.
+    #if NEEDED_ONLY_FOR_CONJUGATE_UPDATE || (! NEEDED_ONLY_FOR_CONJUGATE_UPDATE)
 	virtual void ResetSufficientStats();
     #endif
 
+    void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A,
+			  bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts);
+    void SampleMissingOutcomes( bclib::DataMatrix * Outcome, const vector<bclib::Regression*> & R );
+
+    void UpdateScores( const AdmixOptions & options, bclib::DataMatrix * Outcome,
+			bclib::DataMatrix * Covariates,
+			const vector<bclib::Regression*> & R, AffectedsOnlyTest & affectedsOnlyTest,
+			CopyNumberAssocTest & ancestryAssocTest );
+
+    bool GenotypeIsMissing	( unsigned int clIdx ) const; ///< locus is a comp locus
+    bool simpleGenotypeIsMissing( SLocIdxType  slIdx ) const; ///< locus is a simple locus
+    bool isHaploidatLocus(unsigned j)const;
+    bool isHaploidIndividual()const;
+
+
+    /// Copied from AdmixedIndividual because it is used by WritePosteriorMeans().
+    void getPosteriorMeans( ThetaType & ThetaMean, RhoType & rhoMean /* output parameter? */, unsigned int samples ) const;
+
+
+    /// Overridden from PedBase (body is adapted from code copied from
+    /// AdmixedIndividual).  Perhaps should be moved up to base class.
+    void WritePosteriorMeans( ostream& os, unsigned samples, bool globalrho ) const;
+
+
+    /// Supports affected-only test computations.
+    int getNInheritedByAffected( FounderIdx fIdx, PopIdx k, const AncestryVector & av, const InheritanceVector & iv ) const;
+
+    /// Supports affected-only test computations.
+    void accumAOScore( AffectedsOnlyTest & aoTest ) const;
+
+
+    /// This is very bad; we need the concept of context.
+    static const AdmixOptions * optionsRef;
+    public:
+	/// This is very bad; we need the concept of context.
+	const AdmixOptions & getOptions() const { gp_assert(optionsRef != 0); return *optionsRef; }
+
+
+    public:
+	virtual void setRho( double nv );
+
+
+    private:
+
+    // ====== DEBUGGING METHODS (overridden from PedBase) ======
+    #if PEDBASE_DEBUG_METHODS
+	virtual void dumpTheta( const char * prefix ) const;
+    #endif
     };
 
 

@@ -19,25 +19,33 @@
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
 
+#define DEBUG_OMP		0
+#define DEBUG_RHO_PROPOSAL	0
+
+#if DEBUG_OMP
+    #include <omp.h>
+    #include "CodeTimer.h"
+#endif
+
 using namespace std;
+using namespace genepi;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-PopAdmix::PopAdmix( const AdmixOptions& op, Genome& loci)
-  :options(op), Loci(loci),   K (op.getPopulations()){
-  poptheta = 0;
-  rho.push_back(0.0);
-}
+PopAdmix::PopAdmix( const AdmixOptions& op, Genome& loci) :
+	options ( op			   ),
+	Loci	( loci			   ),
+	K	( op.getPopulations()	   ),
+	poptheta( op.getPopulations(), 0.0 )
+    {
+    rho.push_back(0.0);
+    }
 
 void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, bclib::LogWriter &Log){
   Log.setDisplayMode(bclib::On);
-  //ergodic average of population admixture, which is used to centre
-  // the values of individual admixture in the regression model
-  poptheta = new double[ K ];
-  for( int i = 0; i < K; i++ ) poptheta[i] = 0.0;
 
   // ** Initialise population admixture distribution Dirichlet parameters alpha **
-  alpha = options.getInitAlpha().getVector_unsafe();
+  alpha = options.getInitAlpha();
   SumAlpha.resize( K );
   if(!options.getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
 
@@ -90,6 +98,18 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
     }
 
 
+#define DEBUG_RHO 0
+#if DEBUG_RHO
+  //init = numeric_limits<double>::infinity();
+  cerr << "\n"
+	"*********************************************\n"
+	"********** FORCING POP-ADMIX-RHO TO 0 **********\n"
+	"*********************************************\n"
+	"\n";
+  for ( genepi::RhoType::iterator it = rho.begin() ; it != rho.end() ; ++it )
+    *it = 0.0;
+#endif
+
     // ** Open paramfile **
     if ( options.getIndAdmixHierIndicator()){
       Log.setDisplayMode(bclib::Quiet);
@@ -120,7 +140,6 @@ void PopAdmix::resetStepSizeApproximator(int k) {
 
 PopAdmix::~PopAdmix()
 {
-  delete[] poptheta;
 }
 
 /** Samples for population admixture distribution Dirichlet parameters, alpha **
@@ -140,9 +159,9 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
      try{
        if(options.PopAdmixturePropsAreEqual())
 	 //sample only dispersion
-	 PopAdmixSampler.SampleEta(sumlogtheta, alpha[0]);
+	 PopAdmixSampler.SampleEta(sumlogtheta, alpha[0].getVector_unsafe());
        else//sample proportions and dispersion
-	 PopAdmixSampler.Sample( sumlogtheta, alpha[0]);
+	 PopAdmixSampler.Sample( sumlogtheta, alpha[0].getVector_unsafe());
      }
      catch(string s){
        throw string("Error encountered while sampling population admixture parameters:\n" +s);
@@ -172,51 +191,103 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
    }
 }
 
+
+
+//-----------------------------------------------------------------------------
 ///updates global sumintensities in a globalrho model, using random-walk Metropolis-Hastings
+//-----------------------------------------------------------------------------
+
 void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const IC, bool sumlogrho) {
   using bclib::Rand;
   if( options.isGlobalRho() ) {
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
-    double LogLikelihoodRatio = 0.0;
-    int accept = 0;
-    double rhoprop = rho[0];
-    double logrhoprop = 0.0;
-    double logrho0 = log(rho[0]);
+    #if DEBUG_RHO
+	double logrho0 = log(0.5);
+	double logrhoprop = log(0.5);
+	double rhoprop = rho[0];
+    #else
+	double logrho0 = log( rho[0] );
+	double logrhoprop = Rand::gennor( logrho0, step );
+	double rhoprop = exp( logrhoprop ); // propose log rho from normal distribution with SD step
+    #endif
 
     NumberOfUpdates++;
-    logrhoprop = Rand::gennor(logrho0, step);
-    rhoprop = exp(logrhoprop); // propose log rho from normal distribution with SD step
 
     //get log likelihood at current parameter values, annealed if this is an annealing run
+    #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+      #pragma omp parallel for default(shared) if(options.getUsePedForInd())
+    #endif
     for(int i = 0; i < IC->getSize(); i++) {
       PedBase & ind = IC->getElement(i);
+
+      #if DEBUG_OMP
+	  genepi::CodeTimer ct;
+      #endif
+
       ind.HMMIsBad(true);//to force HMM update
       LogLikelihood += ind.getLogLikelihood(options, false, true); // don't force update, store result if updated
       ind.HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
+
+      #if DEBUG_OMP
+	  #pragma omp critical
+	    {
+	    if ( i == 0 )
+		cout << "DEBUG-OMP-2: " << omp_get_num_threads() << " threads\n";
+	    std::cout << "DEBUG-OMP-2: ped#" << i << " (" << dynamic_cast<Pedigree&>(ind).getId() <<
+		    ") is thread#" << omp_get_thread_num() << " started at: " << ct.local_started()
+		    << "  time: " << ct.local_elapsed() << '\n';
+	    }
+      #endif
     }
+
     // set ancestry correlations using proposed value of sum-intensities
     // value for X chromosome set to half the autosomal value
-    Loci.SetLocusCorrelation(rhoprop);
+    Loci.SetLocusCorrelation( rhoprop );
+    for ( int idx = IC->getSize() ; idx-- != 0 ; )
+	IC->getElement(idx).setRho( rhoprop );
 
     //get log HMM likelihood at proposal rho and current admixture proportions
+    #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+      #pragma omp parallel for default(shared) if(options.getUsePedForInd())
+    #endif
     for(int i = 0; i < IC->getSize(); i++) {
       PedBase & ind = IC->getElement(i);
+
+      #if DEBUG_OMP
+	  genepi::CodeTimer ct;
+      #endif
+
       LogLikelihoodAtProposal += ind.getLogLikelihood(options, true, false); // force update, do not store result
       ind.HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
       // line above should not be needed for a forced update with result not stored
+
+      #if DEBUG_OMP
+	  #pragma omp critical
+	    {
+	    if ( i == 0 )
+		cout << "DEBUG-OMP-3: " << omp_get_num_threads() << " threads\n";
+	    std::cout << "DEBUG-OMP-3: ped#" << i << " (" << dynamic_cast<Pedigree&>(ind).getId() <<
+		    ") is thread#" << omp_get_thread_num() << " started at: " << ct.local_started()
+		    << "  time: " << ct.local_elapsed() << '\n';
+	    }
+      #endif
     }
-    LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
+
+    const double LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
 
     //compute log ratio of prior densities in log rho basis
     double LogPriorRatio = rhoalpha * (logrhoprop - logrho0) - rhobeta * (rhoprop - rho[0]);
     // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
-    double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio;
+    const double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio;
 
     // generic Metropolis step
-    if( LogAccProbRatio < 0 ) {
-      if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
-    } else accept = 1;
+    const bool accept = (LogAccProbRatio >= 0) || (log(Rand::myrand()) < LogAccProbRatio);
+
+#if DEBUG_RHO_PROPOSAL
+  fprintf( stderr, "Rho-prop: LogLikelihoodAtProposal=%.9lf; LogLikelihood=%.9lf; LogLikelihoodRatio=%.9lf; LogPriorRatio=%.9lf; LogAccProbRatio=%.9lf; accept=%s\n",
+	    LogLikelihoodAtProposal, LogLikelihood, LogLikelihoodRatio, LogPriorRatio, LogAccProbRatio, accept ? "yes" : "no" );
+#endif
 
     if(accept){
       rho[0] = rhoprop;
@@ -235,6 +306,8 @@ void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const
     } else {
       // restore ancestry correlations in Chromosomes using original value of sum-intensities
       Loci.SetLocusCorrelation(rho);
+      for ( int idx = IC->getSize() ; idx-- != 0 ; )
+	  IC->getElement(idx).setRho( rho[0] );
     } // stored loglikelihoods are still ok
   }//end if global rho model
 
@@ -256,6 +329,10 @@ void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const
   }
 }
 
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 void PopAdmix::InitializeOutputFile(const Vector_s& PopulationLabels) {
   // Header line of paramfile
   //Pop. Admixture
@@ -302,10 +379,12 @@ void PopAdmix::OutputParams(){
   outputstream << bclib::newline;
 }
 
-const vector<double > &PopAdmix::getalpha0()const{
-  return alpha[0];
-}
-const std::vector<vector<double> > &PopAdmix::getalpha()const{
+const cvector<double> & PopAdmix::getalpha0() const
+    {
+    return alpha[0];
+    }
+
+const cvector<cvector<double> > &PopAdmix::getalpha()const{
   return alpha;
 }
 
@@ -324,9 +403,7 @@ const genepi::RhoType & PopAdmix::getrho() const {
 const genepi::RhoType & PopAdmix::getSumLogRho() const {
   return SumLogRho;
 }
-const double *PopAdmix::getpoptheta()const{
-  return poptheta;
-}
+
 
 void PopAdmix::printAcceptanceRates(bclib::LogWriter &Log) {
 //     Log << "Expected acceptance rate in global admixture sampler: "

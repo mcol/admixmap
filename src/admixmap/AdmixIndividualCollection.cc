@@ -18,11 +18,16 @@
 #define PED_DEBUG	0
 #define DEBUG2		0 // DDF: debug which objects in the collection are of what class
 #define DEBUG_BUILD_CNT 0
+#define DEBUG_OMP	0
 
 #if DEBUG2
     #include <cxxabi.h>
 #endif
 
+#if DEBUG_OMP
+    #include <omp.h>
+    #include "CodeTimer.h"
+#endif
 
 using namespace std;
 
@@ -94,8 +99,8 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
 	#if DEBUG_BUILD_CNT
 	    const PedBase &  twg = *(_child[i]);
 	    const Pedigree & ped = data.getPed( i + i0 );
-	    fprintf( stderr, "  twg %u (ped %u) at %p (ped %p): %zu loci at %p\n",
-			i, i+i0,
+	    fprintf( stderr, "  twg %u (ped idx %u id=%s myNumber=%u) at %p (ped %p): %zu loci at %p\n",
+			i, i+i0, ped.getId().c_str(), ped.getMyNumber(),
 			&twg, &ped,
 			ped.getSLoci().size(), &(ped.getSLoci()) );
 	#endif
@@ -143,7 +148,7 @@ AdmixIndividualCollection::~AdmixIndividualCollection() {
     int status;
     char * const realname = abi::__cxa_demangle( typeid(*(_child[i])).name(), 0, 0, &status );
     const char * cl = (status == 0) ? realname : typeid(*(_child[i])).name();
-    fprintf( stderr, "Class of %z: %s\n", i, cl );
+    fprintf( stderr, "Class of %zu: %s\n", i, cl );
     if ( realname != 0 )
 	free( realname );
     }
@@ -189,7 +194,7 @@ void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Ge
 	    for ( unsigned int loc = 0; loc < gen.GetNumberOfCompositeLoci(); loc++ )
 		{
 		fprintf( stderr, " %c/", _child[i]->GenotypeIsMissing(loc) ? 'M' : 'n' );
-		const std::vector<hapPair > & pairs = _child[i]->getPossibleHapPairs( loc );
+		const vector<hapPair > & pairs = _child[i]->getPossibleHapPairs( loc );
 		for ( size_t pr = 0 ; pr < pairs.size() ; ++pr )
 		    fprintf( stderr, "(%d,%d)", pairs[pr].haps[0], pairs[pr].haps[1] );
 		}
@@ -197,7 +202,7 @@ void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Ge
 	    }
 
       for ( unsigned c = 0; c < getOutcomeMatrix().nCols(); ++c) {
-	const std::vector<double> & outc = getOutcome(c);
+	const vector<double> & outc = getOutcome(c);
 	fprintf( stderr, "Initialize-outcome-%u [%lu]", c, outc.size() );
 	for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
 	    fprintf ( stderr, " %lf", outc[idx] );
@@ -207,7 +212,7 @@ void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Ge
 
 }
 
-void AdmixIndividualCollection::DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha){
+void AdmixIndividualCollection::DrawInitialAdmixture(const /*vector<vector<double> >*/ PedBase::AlphaType &alpha){
     //draw initial values for individual admixture proportions
   for(unsigned int i = 0; i < size; i++)
     getElement(i).drawInitialAdmixtureProps(alpha);
@@ -280,8 +285,8 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
    calling annealGenotypeProbs
 */
 // void AdmixIndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
-// 							 const vector<bclib::Regression*> &R, const double* const poptheta,
-// 							 const vector<vector<double> > &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
+// 							 const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
+// 							 const /*vector<vector<double> >*/ PedBase::AlphaType &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
 //   vector<double> lambda;
 //   vector<const double*> beta;
 
@@ -315,8 +320,8 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 
 void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & options,
 						const vector<bclib::Regression*> &R,
-						const double * const poptheta,
-						const vector<vector<double> > & alpha,
+						const PopAdmix::PopThetaType & poptheta,
+						const /*vector<vector<double> >*/ PedBase::AlphaType & alpha,
 						AffectedsOnlyTest& affectedsOnlyTest,
 						CopyNumberAssocTest& ancestryAssocTest, bool anneal){
   vector<double> lambda;
@@ -336,7 +341,7 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
 #endif
 
 
-  const bool even_numbered_iteration = !(iteration %2);
+  const bool even_numbered_iteration = ((iteration & 1) == 0);
   const bool _anneal = (anneal && !options.getTestOneIndivIndicator());
   const bool updateScoreTests = iteration > options.getBurnIn()
     && (options.getTestForAffectedsOnly() || options.getTestForLinkageWithAncestry());
@@ -364,29 +369,58 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
     affectedsOnlyTest.Reset();
   }
 
-  //now loop over individuals
-  for(unsigned int i = 0; i < size; i++ ){
+  // Now loop over individuals
+  const int ssize = int(size);
+  #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+    #pragma omp parallel for default(shared) if(options.getUsePedForInd())
+  #endif
+  for ( int i = 0 ; i < ssize ; i++ ){
+
+    PedBase & el = getElement(i);
+
+      #if DEBUG_OMP
+	  genepi::CodeTimer ct;
+      #endif
+
     // ** set SumLocusAncestry and SumNumArrivals to 0
-    getElement(i).ResetSufficientStats();
+    el.ResetSufficientStats();
 
     if(Populations >1){//no updates required for single-population model
       // ** update theta with random-walk proposal on even-numbered iterations
       if(even_numbered_iteration){
         double DinvLink = 1.0;
         if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-        getElement(i).SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
+        el.SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
                                      &Covariates, beta, poptheta, options, alpha, DinvLink,
                                      dispersion, ancestryAssocTest, true, _anneal);
       }
 
-      // ** Run HMM forward recursions, if required, and sample locus ancestry
-      _child[i]->SampleHiddenStates(options);
-      // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-      getElement(i).SampleJumpIndicators(!options.isGlobalRho());
+
+      if ( ! (options.getNoConjugateUpdate() && options.isGlobalRho()) )
+	{
+
+	// ** Run HMM forward recursions, if required, and sample locus ancestry
+	_child[i]->SampleHiddenStates(options);
+
+	// ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
+	el.SampleJumpIndicators(!options.isGlobalRho());
+
+	}
 
       // ** Update score, info and varscore for ancestry score tests
-      if(updateScoreTests)
-        getElement(i).UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest, ancestryAssocTest);
+      if ( updateScoreTests )
+        el.UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest, ancestryAssocTest);
+
+      #if DEBUG_OMP
+	  #pragma omp critical
+	    {
+	    if ( i == 0 )
+		cout << "DEBUG-OMP-1: " << omp_get_num_threads() << " threads\n";
+	    std::cout << "DEBUG-OMP-1: ped#" << i << " (" << dynamic_cast<Pedigree&>(el).getId() <<
+		    ") is thread#" << omp_get_thread_num() << " started at: " << ct.local_started()
+		    << "  time: " << ct.local_elapsed() << '\n';
+	    }
+      #endif
     }
 
   }
@@ -394,8 +428,8 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
 
 ///samples individual-level sumintensities and admixture
 void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptions& options,
-						 const vector<bclib::Regression*> &R, const double* const poptheta,
-					    const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
+						 const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
+					    const /*vector<vector<double> >*/ PedBase::AlphaType &alpha, double rhoalpha, double rhobeta,
 					    CopyNumberAssocTest& ancestryAssocTest, bool anneal=false){
   //sufficient statistics have been stored in Individuals
   // coolness is not passed as argument to this function because annealing has already been implemented by
@@ -455,26 +489,26 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
            double DinvLink = 1.0;
        if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
         getElement(i).SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates,
-			       beta, poptheta, options, alpha, DinvLink, dispersion, ancestryAssocTest, false, anneal);
+			       beta, poptheta, options, alpha, DinvLink, dispersion, ancestryAssocTest, options.getNoConjugateUpdate(), anneal);
             }
     // ** Sample missing values of outcome variable
     _child[i]->SampleMissingOutcomes(&Outcome, R);
   }
 }
 
-void AdmixIndividualCollection::setChibNumerator(const AdmixOptions& options,const vector<vector<double> > &alpha,
+void AdmixIndividualCollection::setChibNumerator(const AdmixOptions& options,const /*vector<vector<double> >*/ PedBase::AlphaType &alpha,
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
    getElement(0).setChibNumerator(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat*,*/ &MargLikelihood, A);
 }
 
-void AdmixIndividualCollection::updateChib(const AdmixOptions& options,const vector<vector<double> > &alpha,
+void AdmixIndividualCollection::updateChib(const AdmixOptions& options,const /*vector<vector<double> >*/ PedBase::AlphaType &alpha,
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
    getElement(0).updateChib(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat,*/ &MargLikelihood, A);
 }
 
 void AdmixIndividualCollection::FindPosteriorModes(const AdmixOptions& options,
 						   const vector<bclib::Regression*> &R,
-					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
+					      const /*vector<vector<double> >*/ PedBase::AlphaType &alpha, double rhoalpha, double rhobeta,
 					      AlleleFreqs* A,
 					      const Vector_s& PopulationLabels){
   if(options.getDisplayLevel()>1)
@@ -628,7 +662,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
 #if PED_DEBUG // ***** DEBUG *****
   for ( unsigned c = 0; c < R.size(); ++c) {
     double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
-    const std::vector<double> & outc = getOutcome(c);
+    const vector<double> & outc = getOutcome(c);
     fprintf( stderr, "Before-regression-%u (%d) [%lu]", c, iterations, outc.size() );
     for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
 	fprintf ( stderr, " %lf", outc[idx] );
@@ -699,7 +733,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
 	<< -2.0*RegressionLogL << "\n";
 
 #if PED_DEBUG // ***** DEBUG *****
-    const std::vector<double> & outc = getOutcome(c);
+    const vector<double> & outc = getOutcome(c);
     fprintf( stderr, "After-regression-%u (%d) [%lu]", c, iterations, outc.size() );
     for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
 	fprintf ( stderr, " %lf", outc[idx] );

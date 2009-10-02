@@ -146,10 +146,10 @@ class Organism
 	// once no longer needed.
 	union {
 	    Organism * father	 ; ///< 0 for blank (missing, unknown)
-	    OrgIdType	 fatherId; };
+	    OrgIdType  fatherId; };
 	union {
 	    Organism * mother	 ; ///< 0 for blank (missing, unknown)
-	    OrgIdType	 motherId; };
+	    OrgIdType  motherId; };
 
 	short depth; ///< See NOTE *1*
 
@@ -196,6 +196,8 @@ class Organism
 	bool	isMale	() const { return (sex == SEX_MALE   ); } ///< true if male, false if female/unknown
 	bool	sexKnown() const { return (sex != SEX_UNKNOWN); }
 
+	int  getOutcome() const { return outcome; }
+	void setOutcome( int nv ) { outcome = nv; }
 
 	/// Returns reference to the genotype at locus locIdx.
 	const Genotype & getGType( SLocIdxType sLocIdx ) const;

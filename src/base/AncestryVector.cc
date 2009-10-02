@@ -31,12 +31,16 @@
 #endif
 
 
-#if PARALLELIZE_TRANS_PROB && defined(_OPENMP)
-    #define THREAD_PRIVATE_CACHE    1
+#define MULTIPLE_PARMS	0
+
+#if MULTIPLE_PARMS && defined(_OPENMP)
+    #define THREAD_PRIVATE_CACHE	0
     #if THREAD_PRIVATE_CACHE
 	#include <omp.h>
     #endif
 #endif
+
+
 
 
 
@@ -82,7 +86,7 @@ class IdxCache
 	struct El
 	    {
 	    size_t  F	  ; ///< Number of founder gametes
-	    size_t  n_els ; ///< K^F, sizeof val vect, cached for range-checking
+	    size_t  n_els ; ///< K^F, size of val vect, cached for range-checking
 	    DType * val   ;
 
 	    El() : val ( 0 ) { }
@@ -90,107 +94,152 @@ class IdxCache
 	    El& operator=( const El & rhs )
 		{ F = rhs.F; val = rhs.val; const_cast<El&>(rhs).val = 0; return *this; }
 	    ~El() { delete[] val; }
+
+	    void generate( size_t K, size_t F );
 	    };
-	std::vector<El> els;
+
+	#if MULTIPLE_PARMS
+	    cvector<El> els;
+	#else
+	    El el; ///< One element with F = maximum-F
+	#endif
 
     public:
 
-	void reserve( size_t max_F ) { els.reserve( max_F ); }
+	#if MULTIPLE_PARMS
+	    IdxCache( PopIdx _K ) : K( _K ) {}
+	    void reserve( size_t max_F ) { els.reserve( max_F ); }
+	#else
+	    IdxCache( PopIdx _K, size_t max_F ) : K( _K )
+		{
+		el.generate( _K, max_F );
+		}
+	#endif
 
-	IdxCache( PopIdx _K ) : K( _K ) {}
 
 	const DType & lookup( PopIdx _K, size_t F, unsigned long index );
     };
 
 
-const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long index )
+
+void IdxCache::El::generate( size_t _K, size_t _F )
     {
-    gp_assert_eq( _K, K );
+    F = _F;
+    const size_t size = K_to_the_F( _K, _F );
+    n_els = size;
 
-    #if 0 // DEBUG, will be checked below for cheaper in one of two places (see *!*!*)
-	gp_assert_lt( index, K_to_the_F(_K,F) );
-    #endif
-
-    for ( std::vector<El>::iterator it = els.begin(); it != els.end(); ++it )
-	if ( F == it->F )
-	    {
-	    gp_assert_lt( index, it->n_els ); // (*!*!*)
-	    return it->val[ index ]; // **** RETURN HERE ****
-	    }
-
-
-
-    // We didn't find an existing entry in the cache with number of
-    // founder-gametes "F", so we'll create one and populate it.  Since this
-    // involves modifying the (shared) cache, we mark this section as critical.
-
-    const DType * rv;
-
-    #if PARALLELIZE_TRANS_PROB && defined(_OPENMP) && (! THREAD_PRIVATE_CACHE)
-      #pragma omp critical
-	{
-    #endif
-
-    #define MOD_IN_PLACE 0
-    #if MOD_IN_PLACE
-	els.resize( els.size() + 1 );
-	El & newEl = els.back();
-    #else
-	El newEl;
-    #endif
-
-    newEl.F = F;
-    const size_t size = K_to_the_F( K, F );
-    newEl.n_els = size;
-
-    newEl.val = new DType[ size ];
-    memset( newEl.val, '\0', size );
+    val = new DType[ size ];
+    memset( val, '\0', size );
 
     #if 0
-	DType * last = newEl.val + (size-1); // **** DEBUG ****
+        DType * last = val + (size-1); // **** DEBUG ****
     #endif
-    DType * ptr = newEl.val;
+    DType * ptr = val;
     for ( size_t x = size ; --x != 0 ; )
+        {
+        DType & prev = *ptr;
+        DType & next = *++ptr;
+        next = prev;
+        #if 0
+            gp_assert_eq( prev.size(), F ); // **** DEBUG ****
+            gp_assert_eq( next.size(), F ); // **** DEBUG ****
+            fprintf( stderr, "-> %lu %lu %p %p %p\n", size, x, &prev, &next, last ); // **** DEBUG ****
+        #endif
+
+        // ---- begin "increment" operation ----
+        size_t curEl = 0;
+        PopIdx val = next.at_unsafe( curEl );
+
+        while ( ++val == _K )
+            {
+            next.setAt_unsafe( curEl++, 0 );
+            gp_assert_lt( curEl, F );
+            val = next.at_unsafe( curEl );
+            }
+        next.setAt_unsafe( curEl, val );
+        // ---- end "increment" operation ----
+        }
+    }
+
+
+
+#if MULTIPLE_PARMS
+
+    const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long index )
 	{
-	DType & prev = *ptr;
-	DType & next = *++ptr;
-	next = prev;
-	#if 0
-	    gp_assert_eq( prev.size(), F ); // **** DEBUG ****
-	    gp_assert_eq( next.size(), F ); // **** DEBUG ****
-	    fprintf( stderr, "-> %lu %lu %p %p %p\n", size, x, &prev, &next, last ); // **** DEBUG ****
+	gp_assert_eq( _K, K );
+
+	#if 0 // DEBUG, will be checked below for cheaper in one of two places (see *!*!*)
+	    gp_assert_lt( index, K_to_the_F(_K,F) );
 	#endif
 
-	// ---- begin "increment" operation ----
-	size_t curEl = 0;
-	PopIdx val = next.at_unsafe( curEl );
+	for ( std::vector<El>::iterator it = els.begin(); it != els.end(); ++it )
+	    if ( F == it->F )
+		{
+		gp_assert_lt( index, it->n_els ); // (*!*!*)
+		return it->val[ index ]; // **** RETURN HERE ****
+		}
 
-	while ( ++val == _K )
+
+
+	// We didn't find an existing entry in the cache with number of
+	// founder-gametes "F", so we'll create one and populate it.  Since this
+	// involves modifying the (shared) cache, we mark this section as critical.
+
+	const DType * rv;
+
+	#if defined(_OPENMP) && (! THREAD_PRIVATE_CACHE)
+	  #pragma omp critical
 	    {
-	    next.setAt_unsafe( curEl++, 0 );
-	    gp_assert_lt( curEl, F );
-	    val = next.at_unsafe( curEl );
-	    }
-	next.setAt_unsafe( curEl, val );
-	// ---- end "increment" operation ----
+	#endif
+
+	#define MOD_IN_PLACE 0
+	#if MOD_IN_PLACE
+	    els.resize( els.size() + 1 );
+	    El & newEl = els.back();
+	#else
+	    El newEl;
+	#endif
+
+	newEl.generate( K, F );
+
+	gp_assert_lt( index, size ); // (*!*!*)
+	#if 0
+	    gp_assert_eq( newEl.val[index].size(), F ); // **** DEBUG ****
+	#endif
+	rv = &( newEl.val[ index ] );
+
+	#if ! MOD_IN_PLACE
+	    els.push_back( newEl );
+	#endif
+
+	#if defined(_OPENMP) && (! THREAD_PRIVATE_CACHE)
+	  } // End critical section
+	#endif
+
+	return *rv;
 	}
 
-    gp_assert_lt( index, size ); // (*!*!*)
-    #if 0
-	gp_assert_eq( newEl.val[index].size(), F ); // **** DEBUG ****
-    #endif
-    rv = &( newEl.val[ index ] );
+#else
 
-    #if ! MOD_IN_PLACE
-	els.push_back( newEl );
-    #endif
+    const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long index )
+	{
 
-    #if PARALLELIZE_TRANS_PROB && defined(_OPENMP) && (! THREAD_PRIVATE_CACHE)
-      } // End critical section
-    #endif
+	#if AGGRESSIVE_RANGE_CHECK
+	    gp_assert_eq( _K, K );
+	    gp_assert_le( F, el.F );
+	    #if 0 // DEBUG, will be checked below for cheaper in one of two places (see *!*!*)
+		gp_assert_lt( index, K_to_the_F(_K,F) );
+	    #endif
+	#else
+	    if ( _K ) {;} // suppress compiler warning
+	    if ( F  ) {;} // suppress compiler warning
+	#endif
 
-    return *rv;
-    }
+	return el.val[ index ];
+	}
+
+#endif
 
 
 } // End anonymous namespace to give IdxCache internal linkage
@@ -199,38 +248,45 @@ const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long ind
 
 //-----------------------------------------------------------------------------
 // set_ulong()
-// WARNING:  NOT THREAD-SAFE!!!  USES UNPROTECTED GLOBAL CACHE!!!
-// We protected for OpenMP, when PARALLELIZE_TRANS_PROB is turned on.
 //-----------------------------------------------------------------------------
 
-#if PARALLELIZE_TRANS_PROB && defined(_OPENMP)
+#if defined(_OPENMP)
 
     #if THREAD_PRIVATE_CACHE
-	static IdxCache * cache = 0;
-	void AncestryVector::set_K( PopIdx /*K*/ )
+
+	void AncestryVector::set_parms( PopIdx /*K*/, size_t /*maxF*/ )
 	    {
-	    omp_set_dynamic( false ); // Explicitly turn off dynamic threads
+	    // Explicitly turn off dynamic threads (to preserve the value of
+	    // cache within a thread from one parallel task to another) (is this
+	    // required?)
+	    omp_set_dynamic( false );
 	    }
+
     #else
+
 	static IdxCache * cache = 0;
-	void AncestryVector::set_K( PopIdx K )
+
+	void AncestryVector::set_parms( PopIdx K, size_t maxF )
 	    {
 	    gp_assert( cache == 0 );
-	    cache = new IdxCache( K );
+	    cache = new IdxCache( K, maxF ); // Could use AV_MAX_FOUNDER_GAMETES
 	    #if ! THREAD_PRIVATE_CACHE
-		cache->reserve( AV_MAX_FOUNDER_GAMETES );
-		for ( size_t F = 1 ; F < 6 ; ++F )
-		    cache->lookup( K, F, 0 );
+		#if MULTIPLE_PARMS
+		    for ( size_t F = 1 ; F < 6 ; ++F )
+			cache->lookup( K, F, 0 );
+		#endif
 	    #endif
 	    }
+
     #endif
 
 #endif
 
+
 void AncestryVector::set_ulong( unsigned long nv )
     {
-    #if ! (defined(_OPENMP) && PARALLELIZE_TRANS_PROB)
-	static IdxCache _cache( K );
+    #if ! defined(_OPENMP)
+	static IdxCache _cache( K, AV_MAX_FOUNDER_GAMETES );
 	#define cache (&_cache)
     #elif THREAD_PRIVATE_CACHE
 	#pragma omp threadprivate( cache )

@@ -23,8 +23,8 @@ class Array : public genepi::cvector<T>{
 
 public:
   Array() : SUPER() {}
-
-  Array(unsigned n) : SUPER (n){}
+  Array( size_t n ) : SUPER( n ) {}
+  Array( size_t n, const T & def_val ) : SUPER( n, def_val ) {}
   virtual ~Array(){};
 
 

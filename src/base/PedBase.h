@@ -80,7 +80,7 @@ class PedBase
 	typedef cvector< cvector<double> >	  AlphaType	;
 	typedef cvector< bclib::pvector<double> > ThetaType	; ///< Alternatively, TwoDimArray<FounderIdxType,PopIdx,double>
 								  ///< Size getNTheta() [effectively getNFounders()] by K
-	typedef bclib::pvector< double >	  PopThetaType	;
+	typedef genepi::cvector< double >	  PopThetaType	;
 
 
     public:
@@ -94,15 +94,15 @@ class PedBase
 	virtual void setGenotypesToMissing();
 	virtual void SetMissingGenotypes();
 
-	virtual const double* getAdmixtureProps()const;
-	virtual const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
-	virtual const int* getSampledHapPair(int locus)const;
+	virtual const double * getAdmixtureProps()const;
+	virtual const std::vector<hapPair> & getPossibleHapPairs( unsigned int locus ) const;
+	virtual const int * getSampledHapPair(int locus)const;
 	virtual bool GenotypeIsMissing(unsigned int locus)const;///< locus is a comp locus
 	virtual bool simpleGenotypeIsMissing(unsigned locus)const;///< locus is a simple locus
 	virtual bool isHaploidatLocus(unsigned j)const;
 	virtual bool isHaploidIndividual()const;
 
-	virtual double getLogLikelihood(const Options& , const bool forceUpdate, const bool store);
+	virtual double getLogLikelihood(const Options& , bool forceUpdate, bool store);
 	virtual void storeLogLikelihood(const bool setHMMAsOK); ///< to call if a Metropolis proposal is accepted
 	virtual double getLogLikelihoodAtPosteriorMeans(const Options& options);
 
@@ -110,7 +110,7 @@ class PedBase
 	virtual void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
 	virtual int GetLocusAncestry(int, int, int)const;
 
-	virtual void SampleHiddenStates(const Options& options);
+	virtual void SampleHiddenStates( const Options & options );
 
 	virtual void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A,
 			  bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts);
@@ -125,28 +125,28 @@ class PedBase
 
 
 	// Methods from AdmixedIndividual:
-	virtual void drawInitialAdmixtureProps(const vector<vector<double> > &alpha);
+	virtual void drawInitialAdmixtureProps(const AlphaType &alpha);
 	virtual void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
 	virtual void AnnealGenotypeProbs(int j, const double coolness);
 	virtual void ResetSufficientStats();
 	virtual void SampleJumpIndicators(bool sampleArrivals);
 	virtual void SampleTheta( int iteration, double * SumLogTheta, const bclib::DataMatrix * Outcome,
 		const DataType * OutcomeType, const std::vector<double> & lambda, int NumCovariates,
-		bclib::DataMatrix * Covariates, const std::vector<const double*> & beta, const double * poptheta,
-		const AdmixOptions & options, const vector<vector<double> > & alpha,
+		bclib::DataMatrix * Covariates, const std::vector<const double*> & beta, const PopThetaType & poptheta,
+		const AdmixOptions & options, const AlphaType & alpha,
 		double DInvLink, double dispersion, CopyNumberAssocTest & ancestryAssocTest, bool RW, bool anneal);
 	virtual void SampleRho(const AdmixOptions& options, double rhoalpha,
 		    double rhobeta, bool updateSumLogRho);
-	virtual void FindPosteriorModes(const AdmixOptions& options, const vector<vector<double> > &alpha,
+	virtual void FindPosteriorModes(const AdmixOptions& options, const AlphaType &alpha,
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);
 	virtual const RhoType & getRho() const;
 	virtual void resetStepSizeApproximator(int k);
 	virtual void UpdateScores(const AdmixOptions& options, bclib::DataMatrix *Outcome, bclib::DataMatrix *Covariates,
 		    const vector<bclib::Regression*> & R, AffectedsOnlyTest & affectedsOnlyTest,
 		    CopyNumberAssocTest & ancestryAssocTest );
-	virtual void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha, double rhoalpha,
+	virtual void setChibNumerator(const AdmixOptions& options, const AlphaType &alpha, double rhoalpha,
 		double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
-	virtual void updateChib(const AdmixOptions& options, const vector<vector<double> > &alpha, double rhoalpha,
+	virtual void updateChib(const AdmixOptions& options, const AlphaType &alpha, double rhoalpha,
 		double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
 	virtual double getSumrho()const;
 	virtual double getLogLikelihoodOnePop();
@@ -155,6 +155,16 @@ class PedBase
 	virtual double getLogPosteriorAlleleFreqs()const;
 	virtual void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
 	virtual void WritePosteriorMeansLoci(ostream& os)const;
+
+
+	virtual void setRho( double nv );
+
+
+	// ====== DEBUGGING METHODS: ======
+	#define PEDBASE_DEBUG_METHODS	1
+	#if PEDBASE_DEBUG_METHODS
+	    virtual void dumpTheta( const char * prefix ) const = 0;
+	#endif
     };
 
 

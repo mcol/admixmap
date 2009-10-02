@@ -19,6 +19,7 @@
 #include "bclib/StepSizeTuner.h"//for sampling globalrho
 #include "bclib/DirichletParamSampler.h"//for sampling pop admix
 #include "bclib/DelimitedFileWriter.h"
+#include "bclib/cvector.h"
 
 class InputData;
 class AdmixIndividualCollection;
@@ -27,6 +28,8 @@ class AdmixIndividualCollection;
 class PopAdmix
 {
 public:
+  typedef genepi::cvector<double> PopThetaType; // Must match PedBase::PopThetaType -- break this out from both classes.
+
   PopAdmix(const AdmixOptions& op, Genome& loci);
   
   ~PopAdmix();
@@ -44,15 +47,15 @@ public:
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
   
-  const std::vector<double> &getalpha0()const;
-  const std::vector<std::vector<double> > &getalpha()const;
+  const genepi::cvector<double> &getalpha0()const;
+  const genepi::cvector<genepi::cvector<double> > &getalpha()const;
   double getrhoalpha()const;
   double getrhobeta()const;
   double getglobalrho()const;
   const genepi::RhoType & getrho() const;
 
-  const genepi::RhoType & getSumLogRho()const;
-  const double *getpoptheta()const;
+  const genepi::RhoType & getSumLogRho() const;
+  const PopThetaType & getpoptheta() const { return poptheta; }
   
   void printAcceptanceRates(bclib::LogWriter &Log);
   
@@ -82,12 +85,13 @@ private:
   double step;
   double step0;
 
-  std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
-  std::vector<double> SumAlpha; //ergodic sums of alphas
+  genepi::cvector<genepi::cvector<double> > alpha; //population admixture Dirichlet parameters
+  genepi::cvector<double> SumAlpha; //ergodic sums of alphas
   //sampler for alpha
   bclib::DirichletParamSampler PopAdmixSampler;
-  double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
-                       //in the regression model
+  PopThetaType poptheta; // ergodic average of population admixture, used to
+			 // centre the values of individual admixture in the
+			 // regression model
 
   bclib::DelimitedFileWriter outputstream;//output to paramfile
 

@@ -17,6 +17,13 @@
 #include "ScoreTestBase.h"
 #include "bclib/RObjectWriter.h"
 
+#include "config.h"		// AGGRESSIVE_RANGE_CHECK
+#include "SimpleLocusArray.h"	// SLocIdxType
+#include "Organism.h"		// PopIdx
+#include "bclib/estr.h"
+using genepi::SLocIdxType;
+using genepi::PopIdx;
+
 class Genome;
 namespace bclib{
   class LogWriter;
@@ -43,6 +50,34 @@ public:
   void WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
 		       const Genome& Loci, bclib::LogWriter& Log);
   void OutputLikRatios(const char* const filename, const Vector_s& PopLabels, const Genome& Loci);
+
+
+
+  //-------------------------------------------------------------------------
+  // Expose internal data structures so pedigrees can directly update them:
+  //-------------------------------------------------------------------------
+
+  /// Range-check indexes.
+  void rc( SLocIdxType t, PopIdx k ) const
+    {
+    #if AGGRESSIVE_RANGE_CHECK
+	if ( t >= L )
+	    throw std::runtime_error( genepi::estr("Locus-index (") + t + ") out-of-range (" + L + ')' );
+	if ( k >= K )
+	    throw std::runtime_error( genepi::estr("Population-index (") + k + ") out-of-range (" + K + ')' );
+    #else
+	if ( t|k ) {;} // Suppress compiler warning
+    #endif
+    }
+  double & getAffectedsScore	( SLocIdxType t, PopIdx k ) { rc(t,k); return AffectedsScore   [ t * K + k ]; }
+  double & getAffectedsVarScore ( SLocIdxType t, PopIdx k ) { rc(t,k); return AffectedsVarScore[ t * K + k ]; }
+  double & getAffectedsInfo	( SLocIdxType t, PopIdx k ) { rc(t,k); return AffectedsInfo    [ t * K + k ]; }
+
+
+
+  //-------------------------------------------------------------------------
+  // Private members:
+  //-------------------------------------------------------------------------
 
 private:
   unsigned K, L;

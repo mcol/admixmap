@@ -359,3 +359,21 @@ void Individual::SampleMissingOutcomes(bclib::DataMatrix *Outcome, const vector<
     }
   }
 }
+
+
+
+// ====== DEBUGGING METHODS (overridden from PedBase) ======
+#if PEDBASE_DEBUG_METHODS
+    void Individual::dumpTheta( const char * prefix ) const
+	{
+	const size_t K = NumHiddenStates;
+	for ( unsigned int g = 0 ; g < NumGametes ; ++g )
+	    {
+	    fprintf( stderr, "%s theta (%d,%d): ", prefix, getMyNumber(), g );
+	    for ( size_t x = 0 ; x < K ; ++x )
+		fprintf( stderr, " %18.15lf", Theta[g*K+x] );
+	    fprintf( stderr, "\n" );
+	    }
+	}
+#endif
+

@@ -181,7 +181,7 @@ int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
     void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] )
 #else
     template<typename ConstVecType, typename VecType> \
-	void Rand::gendirichlet( size_t K, ConstVecType & alpha, VecType & theta )
+	void Rand::gendirichlet( size_t K, const ConstVecType & alpha, VecType & theta )
 #endif
   {
     #if 0 // We can't do this because the template is used with "double *" arrays.
@@ -231,10 +231,10 @@ int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
 
 
 // Instantiate templates:
-template void Rand::gendirichlet<const double *,double *>( size_t K, const double * & alpha, double * & theta );
-template void Rand::gendirichlet<double *,double *>( size_t K, double * & alpha, double * & theta );
-template void Rand::gendirichlet< const std::vector<double>, std::vector<double> >( size_t K, const std::vector<double> & alpha, std::vector<double> & theta );
-template void Rand::gendirichlet< const std::vector<double>, bclib::pvector<double> >( size_t K, const std::vector<double> & alpha, pvector<double> & theta );
+template void Rand::gendirichlet<double *,double *>( size_t K, double * const & alpha, double * & theta );
+template void Rand::gendirichlet<const double *,double *>( size_t K, const double * const & alpha, double * & theta );
+template void Rand::gendirichlet< std::vector<double>, std::vector<double> >( size_t K, const std::vector<double> & alpha, std::vector<double> & theta );
+template void Rand::gendirichlet< std::vector<double>, bclib::pvector<double> >( size_t K, const std::vector<double> & alpha, pvector<double> & theta );
 
 
 

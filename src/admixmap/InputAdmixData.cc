@@ -25,9 +25,17 @@
 #include "AlleleArray.h"
 
 #include "AdmixOptions.h"
+#include "CodeTimer.h"
+#include "PedigreeAddl.h"
 
 #if USE_GENOTYPE_PARSER
     #include "AdmixmapGenotypeConverter.h"
+#endif
+
+#if defined(_OPENMP)
+    #include <omp.h>
+    #include "AdmixIndividualCollection.h"	// For PARALLELIZE_EPROB_COMPS
+    #include "AncestryVector.h"
 #endif
 
 using bclib::LogWriter;
@@ -35,10 +43,6 @@ using namespace genepi;
 
 
 #define DEBUG_PED_CONSTRUCTION	0
-
-
-// This should be a runtime-specified option:
-#define DISQUAL_MENDEL_ERR	1
 
 
 
@@ -101,8 +105,22 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
     if ( isPedFile() || options.getUsePedForInd() )
 	{
 
-	#if DISQUAL_MENDEL_ERR
-	    int n_peds_disq = 0;
+	#if defined(_OPENMP)
+	    // Big hack, we need the concept of 'context'.  We could determine
+	    // the maximum number of founder gametes that actually occurs in the
+	    // dataset, but it does not consume too much resources to just
+	    // use the maximum allowable constant here.
+	    AncestryVector::set_parms( options.getPopulations(), AV_MAX_FOUNDER_GAMETES );
+	#endif
+
+
+	int n_peds_excl = 0;
+
+
+	#if ! (defined(NEEDED_ONLY_FOR_CONJUGATE_UPDATE) && NEEDED_ONLY_FOR_CONJUGATE_UPDATE)
+	  if ( ! options.getNoConjugateUpdate() )
+	    throw std::runtime_error( "Pedigrees are not compatible with conjugate-update."
+					"  To correct, enable the no-conjugate-update option." );
 	#endif
 
 
@@ -110,6 +128,19 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	// which isn't known until after CheckData(), so we delay until here
 	// (i.e. otherwise we could and would call it from the constructor).
 	generatePedigrees( options );
+
+
+	// If the option is turned on, exclude pedigrees with more than the
+	// specified number of members.
+	if ( options.getExcludePedsOver() != 0 )
+	    for ( size_t pIdx = getPeds().size() ; pIdx-- != 0 ; )
+		if ( getPed(pIdx).getNMembers() > size_t(options.getExcludePedsOver()) )
+		    {
+		    cerr << "Excluding pedigree " << getPed(pIdx).getId()
+			<< " because size=" << getPed(pIdx).getNMembers()
+			<< " exceeds limit=" << options.getExcludePedsOver() << '\n';
+		    getPeds().erase( pIdx );
+		    }
 
 
 	// AdmixedPedigree::InitialiseAdmixedStuff() needs to know the value of
@@ -144,8 +175,8 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 		getPeds().size(), getSimpleLoci().size() );
 
 	    // Turn on if desired:
-	    Pedigree::dbgRecursion( true );
-	    Pedigree::dbgEmission( true );
+	    Pedigree::dbgRecursion( false );
+	    Pedigree::dbgEmission( false );
 
 	    #if 1 // Turn on to print allele-frequency table
 		cerr << "\n\n==== Allele-Probabilities ====\n\n";
@@ -157,20 +188,38 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	#endif
 
 
-	for ( size_t idx = getPeds().size() ; idx-- != 0 ; )
+	genepi::CodeTimer ct;
+	cerr << ct.local_started() << " computing hidden-state spaces and emission probabilities...\n";
+
+	// This can't be parallelized until Mendelian-error-exclusions are done
+	// in a separate loop, because they mess with the iterator.
+	#if defined(_OPENMP) && PARALLELIZE_EPROB_COMPS
+	  #pragma omp parallel for default(shared) if(options.getUsePedForInd())
+	#endif
+	  for ( int idx = 0 ; idx < int(getPeds().size()) ; ++idx )
 	    {
 	    Pedigree & ped = getPed( idx );
 
 	    #if DEBUG_PED_CONSTRUCTION
-		fprintf( stderr, "	ped %zu (%s) at %p: %zu members, %zu founders, %zu non-founders.\n", idx,
+		fprintf( stderr, "	ped %zu (%s) at %p: %zu members, %zu founders, %zu non-founders\n", idx,
 		    ped.getId().c_str(), &ped, ped.getNMembers(), ped.getNFounders(), ped.getNNonFndrs() );
+		fflush( stderr );
 	    #endif
 
 
 	    ped.genPossibleStatesInternal( K, alProbVect );
 
+	    #if 0 && DEBUG_PED_CONSTRUCTION
+		fprintf( stderr, " of %d possible states, %d are non-zero.\n", 0, 0 );
+	    #endif
 
-	    #if DISQUAL_MENDEL_ERR
+
+	    if ( options.getPrintPedSummary() )
+		ped_sum_hss(cerr,ped) << '\n';
+
+
+	    if ( options.getExcludeMendelError() )
+		{
 
 		// DDF: At this time, I am disqualifying all pedigrees which contain
 		// mendelian errors/inconsistencies.  This is because they will have
@@ -185,25 +234,26 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 
 		if ( ped.getNMendelErrs() != 0 )
 		    {
-		    cerr << "Pedigree " << ped.getId() << " DISQAULIFIED due to "
+		    cerr << "Pedigree " << ped.getId() << " excluded due to "
 			    << ped.getNMendelErrs() << " Mendelian errors!\n\n";
-		    getPeds().erase( idx );
-		    ++n_peds_disq;
+		    getPeds().erase( idx-- );
+		    ++n_peds_excl;
 		    continue;
 		    }
 
-	    #endif // DISQUAL_MENDEL_ERR
+		}
 
 
 	    ped.InitialiseAdmixedStuff( options );
 	    }
 
 
-	#if DISQUAL_MENDEL_ERR
-	    if ( n_peds_disq != 0 )
-		cerr << "After disqualifying " << n_peds_disq << " pedigrees due to Mendelian errors, "
-		    << getPeds().size() << " pedigrees remain.\n";
-	#endif
+	if ( options.getExcludeMendelError() && (n_peds_excl != 0) )
+	    cerr << "After excluding " << n_peds_excl << " pedigrees due to Mendelian errors, "
+		<< getPeds().size() << " pedigrees remain.\n";
+
+
+	cerr << ct.local_now() << " finished HSS/EP generation: " << ct.local_elapsed() << '\n';
 
 
 	#if DEBUG_PED_CONSTRUCTION
@@ -280,6 +330,9 @@ void InputAdmixData::GetGenotype(int i, const Genome &Loci,
 			   std::vector<genotype>* genotypes, bool **Missing) const {
   #if USE_GENOTYPE_PARSER
     convert( (*genotypeLoader)[i-1], Loci, *genotypes, Missing );
+    #if 0 // DEBUG_MY_NUMBER_MAPPING
+      fprintf( stderr, "Individual my-number %d is %s/%d\n", i, (*genotypeLoader)[i-1].getFamId().c_str(), (*genotypeLoader)[i-1].getOrgId() ); // ***DEBUG***
+    #endif
   #else
     genotypeLoader->GetGenotype(i, Loci, genotypes, Missing);
   #endif

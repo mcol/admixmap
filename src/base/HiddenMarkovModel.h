@@ -27,11 +27,6 @@
 #include <vector>
 #include "bclib/pvector.h"
 
-// For the moment, we'll avoid mixing the "old" code with the "new" code, so no common base class for the HMMs:
-#if 0
-    #include "HMMBase.h"
-#endif
-
 
 class GenotypeProbIterator;
 
@@ -39,7 +34,7 @@ class GenotypeProbIterator;
 /** Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
     Resides in class Chromosome
 */
-class HiddenMarkovModel /*: public genepi::HMMBase*/ {
+class HiddenMarkovModel {
 public:
   /**
      initialising constructor.

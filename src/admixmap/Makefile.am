@@ -8,6 +8,15 @@ AM_LDFLAGS=-all-static -L$(top_builddir)/src/bclib -L$(top_builddir)/src/base
 SUFFIXES=.cc .o
 AM_CXXFLAGS=$(WFLAGS) -Wextra
 
+if USE_OPENMP
+    AM_CXXFLAGS+=-fopenmp
+endif
+
+# This was needed in AM_CXXFLAGS when using reinterpret_cast<> for punning
+# parent-IDs (rather than union):
+#-Wstrict-aliasing=0
+
+
 bin_PROGRAMS = admixmap
 admixmap_SOURCES = \
 AdmixPedigree.cc \
@@ -45,6 +54,11 @@ admixmap_DEPENDENCIES=svn_version.o
 
 admixmap_LDADD+=-lbase -lbcl -lgsl -lgslcblas -lm
 
+if USE_OPENMP
+    admixmap_LDADD+=-lgomp
+endif
+
+
 admixmap_DEPENDENCIES += $(top_builddir)/$(subdir)/../base/libbase.a
 #admixmap_DEPENDENCIES += $(top_builddir)/src/base/libbase.a $(top_builddir)/src/bclib/libbcl.la
 
@@ -54,5 +68,5 @@ admixmap_DEPENDENCIES += $(top_builddir)/$(subdir)/../base/libbase.a
 
 
 svn_version.o: $(admixmap_SOURCES) Makefile.am
-	svnversion $(top_builddir)/src | sed 's/^/extern const char SVN_VERSION [] = "/;s/$$/";/' > svn_version.cc
-	$(CXX) $(CXXFLAGS) -c svn_version.cc
+	svnversion $(top_builddir)/src | sed 's/^/extern const char SVN_VERSION [] = "/;s/$$/";/' > $(srcdir)/svn_version.cc
+	$(CXX) $(CXXFLAGS) -o "$@" -c $(srcdir)/svn_version.cc

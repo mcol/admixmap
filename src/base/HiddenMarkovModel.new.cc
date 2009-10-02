@@ -30,12 +30,18 @@
 
 #define CHECK_ALL_LIKELIHOODS	0 ///< Validation check that dot-products of all alpha & beta are "equal"
 				  ///< Which only works if we're _not_ renormalizing on-the-fly
+#define DEBUG_OMP		0
 #define DEBUG_PRINT_ALPHA_SUMS	0
 #define USE_LIBOIL		0
 
 
+
 #if USE_LIBOIL
     #include <liboil/liboil.h>
+#endif
+
+#if DEBUG_OMP
+    #include <omp.h>
 #endif
 
 
@@ -49,14 +55,20 @@ namespace genepi { // ----
 //-----------------------------------------------------------------------------
 
 HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	      _ped	,
-				      const TransProbCache &  _tpCache  ,
+				      TransProbCache &	      _tpCache  ,
 				      const ThetaType *	      _theta	) :
 	ped	      ( &_ped	  ) ,
 	tpCache	      ( &_tpCache ) ,
 	theta	      ( _theta	  ) ,
 	dirtyForwards ( true	  ) ,
-	dirtyBackwards( true	  )
+	dirtyBackwards( true	  ) ,
+	dirtyCondStateProbs( true )
     {
+    #if USE_LIBOIL
+	oil_init();
+    #endif
+
+    condStateProbs.resize( getNLoci() );
     }
 
 
@@ -68,6 +80,7 @@ HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	      _ped	,
 void HiddenMarkovModel::setTheta( const ThetaType * nv )
     {
     theta = nv;
+    tpCache->setMu( *nv );
     thetaChanged();
     }
 
@@ -81,6 +94,9 @@ void HiddenMarkovModel::thetaChanged() const
     {
     dirtyForwards = true;
     dirtyBackwards = true;
+
+    // This is not really necessary, forwards-backwards recomputation invalidates this cache:
+    dirtyCondStateProbs = true;
     }
 
 
@@ -92,16 +108,15 @@ void HiddenMarkovModel::thetaChanged() const
 void HiddenMarkovModel::computeForwardsBackwards() const
     {
 
-    // Verify that all input for the model has been specified:
-    gp_assert( theta != 0 );
-
-
-    const SLocIdxType T = getNLoci();
-
-
     #if HMM_PARALLELIZE_FWD_BKWD && defined(_OPENMP)
       //#pragma omp parallel default(shared) num_threads(2)
-      #pragma omp parallel default(shared)
+      #if DEBUG_OMP
+	int th_id, nthreads;
+	#define PRIV_STORAGE private(th_id)
+      #else
+	#define PRIV_STORAGE
+      #endif
+      #pragma omp parallel default(shared) PRIV_STORAGE num_threads(2)
       { // begin parallel
 
       #pragma omp sections
@@ -109,7 +124,75 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 
       #pragma omp section
       { // begin compute-forwards section
+
+
+      #if DEBUG_OMP
+	  th_id = omp_get_thread_num();
+	  std::cout << "DEBUG-OMP: alpha-thread " << th_id << '\n';
+	  #pragma omp barrier
+	  if ( th_id == 0 )
+	      {
+	      nthreads = omp_get_num_threads();
+	      cout << "DEBUG-OMP: " << nthreads << " threads\n";
+	      }
+      #endif
+
+
     #endif
+
+
+    if ( dirtyForwards )
+	computeForwards();
+
+
+    #if HMM_PARALLELIZE_FWD_BKWD && defined(_OPENMP)
+      } // end compute-forwards section
+
+      #pragma omp section
+      { // begin compute-backwards section
+
+      #if DEBUG_OMP
+	  th_id = omp_get_thread_num();
+	  std::cout << "DEBUG-OMP: beta-thread " << th_id << '\n';
+	  #pragma omp barrier
+	  if ( th_id == 0 )
+	      {
+	      nthreads = omp_get_num_threads();
+	      cout << "DEBUG-OMP: " << nthreads << " threads\n";
+	      }
+      #endif
+
+
+    #endif
+
+
+    if ( dirtyBackwards )
+	computeBackwards();
+
+
+    #if HMM_PARALLELIZE_FWD_BKWD && defined(_OPENMP)
+      } // end compute-backwards section
+      } // end sections
+      } // end parallel
+    #endif
+
+
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// computeForwards()
+//-----------------------------------------------------------------------------
+
+void HiddenMarkovModel::computeForwards() const
+    {
+
+    // Verify that all input for the model has been specified:
+    gp_assert( theta != 0 );
+
+
+    const SLocIdxType T = getNLoci();
 
 
 
@@ -132,21 +215,21 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 	double normalize_sum = 0.0;
     #endif
 
-    alpha_0.resize( hss_0.getNStates() );
+    alpha_0.resize( hss_0.getNNon0() );
 
     // Probability of any given IV is 1/(2^M): perhaps this should be cached in
     // the pedigree or HSS?
     const double prob_of_each_iv = 1.0 / (1LL << getPed().getNMeiosis());
 
-    // Iterator is more efficient than index here:
+    const ThetaType th = *theta;
     for ( HiddenStateSpace::Iterator it( hss_0 ) ; it ; ++it )
 	{
 	double pi = prob_of_each_iv;
 	const AncestryVector & av = it.getAV();
 	for ( AncestryVector::IdxType idx = av.size() ; idx-- != 0 ; )
-	    pi *= (*theta) [ AncestryVector::founderOf(idx) ] [ av.at(idx) ];
+	    pi *= th[ AncestryVector::founderOf(idx) ] [ av.at(idx) ];
 	const double val = pi * it.getEProb();
-	alpha_0[ it.getIndex() ] = val;
+	alpha_0[ it.getNon0Index() ] = val;
 	#if HMM_OTF_RENORM
 	    normalize_sum += val;
 	#endif
@@ -166,45 +249,55 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 	{
 	const SLocIdxType t_m1 = t - 1;
 
-	const HiddenStateSpace &	     hss_t	= getPed().getStateProbs( t );
-	ProbsAtLocusType &		     alpha_t	= alpha[ t ];
-	const HiddenStateSpace &	     hss_t_m1	= getPed().getStateProbs( t_m1 );
-	ProbsAtLocusType &		     alpha_t_m1 = alpha[ t_m1 ];
-	const HiddenStateSpace::StateIdxType n_st_t_m1	= hss_t_m1.getNStates();
+	const HiddenStateSpace & hss_t	    = getPed().getStateProbs( t );
+	ProbsAtLocusType &	 alpha_t    = alpha[ t ];
+	const HiddenStateSpace & hss_t_m1   = getPed().getStateProbs( t_m1 );
+	ProbsAtLocusType &	 alpha_t_m1 = alpha[ t_m1 ];
 
 	#if HMM_OTF_RENORM
 	    norm_log_sum_alpha += log( normalize_sum );
 	    gp_assert( normalize_sum != 0.0 );
 	    normalize_sum = 1.0 / normalize_sum;
-	    for ( HiddenStateSpace::StateIdxType j = hss_t_m1.getNStates() ; j-- != 0 ; )
+	    for ( HiddenStateSpace::Non0IdxType j = hss_t_m1.getNNon0() ; j-- != 0 ; )
 		alpha_t_m1[ j ] *= normalize_sum;
 	    normalize_sum = 0.0;
 	#endif
 
-	alpha_t.resize( hss_t.getNStates() );
+	alpha_t.resize( hss_t.getNNon0() );
 
-	for ( HiddenStateSpace::StateIdxType j = hss_t.getNStates() ; j-- != 0 ; )
+	for ( HiddenStateSpace::Iterator to_it( hss_t ) ; to_it ; ++to_it )
 	    {
 	    double val = 0.0;
-	    for ( HiddenStateSpace::StateIdxType i = n_st_t_m1 ; i-- != 0 ; )
-		val += alpha_t_m1[ i ] * tpCache->getProb( t_m1, i, j );
-	    val *= hss_t.getEProb( j );
+	    for ( HiddenStateSpace::Iterator fr_it( hss_t_m1 ) ; fr_it ; ++fr_it )
+		val += alpha_t_m1[ fr_it->getNon0Index() ] * tpCache->getProb( t_m1, fr_it, to_it );
+	    val *= to_it->getEProb();
 	    #if HMM_OTF_RENORM
 		normalize_sum += val;
 	    #endif
-	    alpha_t[ j ] = val;
+	    alpha_t[ to_it->getNon0Index() ] = val;
 	    }
+
 	}
 
     dirtyForwards = false;
+    dirtyCondStateProbs = true;
+
+    }
 
 
-    #if HMM_PARALLELIZE_FWD_BKWD && defined(_OPENMP)
-      } // end compute-forwards section
 
-      #pragma omp section
-      { // begin compute-backwards section
-    #endif
+//-----------------------------------------------------------------------------
+// computeBackwards()
+//-----------------------------------------------------------------------------
+
+void HiddenMarkovModel::computeBackwards() const
+    {
+
+    // Verify that all input for the model has been specified:
+    gp_assert( theta != 0 );
+
+
+    const SLocIdxType T = getNLoci();
 
 
 
@@ -224,16 +317,13 @@ void HiddenMarkovModel::computeForwardsBackwards() const
     const HiddenStateSpace & hss_Tm1  = getPed().getStateProbs( t );
     ProbsAtLocusType &	     beta_Tm1 = beta[ t ];
 
-    beta_Tm1.resize( hss_Tm1.getNStates() );
+    beta_Tm1.resize( hss_Tm1.getNNon0() );
 
-    for ( HiddenStateSpace::StateIdxType i = hss_Tm1.getNStates() ; i-- != 0 ; )
+    for ( HiddenStateSpace::Non0IdxType i = hss_Tm1.getNNon0() ; i-- != 0 ; )
 	beta_Tm1[ i ] = 1.0;
 
     #if HMM_OTF_RENORM
-	#if HMM_PARALLELIZE_FWD_BKWD && defined(_OPENMP)
-	    double
-	#endif
-	normalize_sum = hss_Tm1.getNStates(); // 1.0 + 1.0 + ... + 1.0
+	double normalize_sum = hss_Tm1.getNNon0(); // 1.0 + 1.0 + ... + 1.0
     #endif
 
 
@@ -249,51 +339,42 @@ void HiddenMarkovModel::computeForwardsBackwards() const
     SLocIdxType t_p1 = t; // t plus 1
     while ( t-- != 0 )
 	{
-	const HiddenStateSpace &	     hss_t	= getPed().getStateProbs( t );	  // HSS at locus t
-	ProbsAtLocusType &		     beta_t	= beta[ t ];			  // beta at locus t
-	const HiddenStateSpace &	     hss_t_p1	= getPed().getStateProbs( t_p1 ); // HSS at locus t+1
-	ProbsAtLocusType &		     beta_t_p1	= beta[ t_p1 ];			  // beta at locus t+1
-	const HiddenStateSpace::StateIdxType n_st_t_p1	= hss_t_p1.getNStates();	  // # of states at t+1
+	const HiddenStateSpace & hss_t	   = getPed().getStateProbs( t );    // HSS at locus t
+	ProbsAtLocusType &	 beta_t	   = beta[ t ];			     // beta at locus t
+	const HiddenStateSpace & hss_t_p1  = getPed().getStateProbs( t_p1 ); // HSS at locus t+1
+	ProbsAtLocusType &	 beta_t_p1 = beta[ t_p1 ];		     // beta at locus t+1
 
 	// Normalize the probabilities for beta at t+1
 	#if HMM_OTF_RENORM
 	    norm_log_sum_beta += log( normalize_sum );
 	    gp_assert( normalize_sum != 0.0 );
 	    normalize_sum = 1.0 / normalize_sum;
-	    for ( HiddenStateSpace::StateIdxType j = hss_t_p1.getNStates() ; j-- != 0 ; )
+	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNNon0() ; j-- != 0 ; )
 		beta_t_p1[ j ] *= normalize_sum;
 	    normalize_sum = 0.0;
 	#endif
 
-	beta_t.resize( hss_t.getNStates() );
+	beta_t.resize( hss_t.getNNon0() );
 
-	for ( HiddenStateSpace::StateIdxType i = hss_t.getNStates() ; i-- != 0 ; )
+	for ( HiddenStateSpace::Iterator to_it( hss_t ) ; to_it ; ++to_it )
 	    {
 	    double val = 0.0;
 
-	    for ( HiddenStateSpace::StateIdxType j = n_st_t_p1 ; j-- != 0 ; )
-		val += beta_t_p1[ j ] * tpCache->getProb( t, i, j ) * hss_t_p1.getEProb( j );
+	    for ( HiddenStateSpace::Iterator fr_it( hss_t_p1 ) ; fr_it ; ++fr_it )
+		val += beta_t_p1[ fr_it->getNon0Index() ] * tpCache->getProb( t, to_it, fr_it ) * fr_it->getEProb();
 
 	    #if HMM_OTF_RENORM
 	      normalize_sum += val;
 	    #endif
 
-	    beta_t[ i ] = val;
+	    beta_t[ to_it->getNon0Index() ] = val;
 	    }
 
 	t_p1 = t;
 	}
 
     dirtyBackwards = false;
-
-
-    #if HMM_PARALLELIZE_FWD_BKWD && defined(_OPENMP)
-      } // end compute-backwards section
-      } // end sections
-      } // end parallel
-    #endif
-
-
+    dirtyCondStateProbs = true;
 
     }
 
@@ -306,7 +387,7 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 double HiddenMarkovModel::getLogLikelihood() const
     {
     if ( dirtyForwards )
-	computeForwardsBackwards();
+	computeForwards();
 
 
     #if DEBUG_PRINT_ALPHA_SUMS
@@ -316,7 +397,7 @@ double HiddenMarkovModel::getLogLikelihood() const
 	    {
 	    double sum = 0.0;
 	    const ProbsAtLocusType & a = alpha[ t ];
-	    for ( HiddenStateSpace::StateIdxType stIdx = a.size() ; stIdx-- != 0 ; )
+	    for ( HiddenStateSpace::Non0IdxType stIdx = a.size() ; stIdx-- != 0 ; )
 		sum += a[ stIdx ];
 	    printf( "  Alpha-sum at locus %lu = %.16lf\n", t, sum );
 	    }
@@ -328,17 +409,22 @@ double HiddenMarkovModel::getLogLikelihood() const
     SLocIdxType t = getNLoci();
     const ProbsAtLocusType & alpha_Tm1 = alpha[ --t ];
 
-    double rv = 0.0;
-
-    // Parallelizing this probably gains little after overhead.
-    #if defined(_OPENMP)
-	#warning expect 1 "iteration variable is unsigned" warning here
-	#pragma omp parallel for default(shared) reduction(+:rv)
-	for ( HiddenStateSpace::StateIdxType stIdx = 0 ; stIdx < alpha_Tm1.size() ; ++stIdx )
+    #if USE_LIBOIL
+	double rv;
+	oil_sum_f64( &rv, alpha_Tm1.data(), 1, alpha_Tm1.size() );
     #else
-	for ( HiddenStateSpace::StateIdxType stIdx = alpha_Tm1.size() ; stIdx-- != 0 ; )
+	double rv = 0.0;
+
+	// Parallelizing this probably gains little after overhead, but works:
+	#if 0 && defined(_OPENMP)
+	    #warning expect 1 "iteration variable is unsigned" warning here
+	    #pragma omp parallel for default(shared) reduction(+:rv)
+	    for ( HiddenStateSpace::Non0IdxType stIdx = 0 ; stIdx < alpha_Tm1.size() ; ++stIdx )
+	#else
+	    for ( HiddenStateSpace::Non0IdxType stIdx = alpha_Tm1.size() ; stIdx-- != 0 ; )
+	#endif
+		rv += alpha_Tm1[ stIdx ];
     #endif
-	    rv += alpha_Tm1[ stIdx ];
 
     rv = log(rv);
     #if HMM_OTF_RENORM
@@ -360,7 +446,7 @@ double HiddenMarkovModel::getLogLikelihood() const
 	    const ProbsAtLocusType & alpha_t = alpha[ t ];
 	    const ProbsAtLocusType & beta_t  = beta [ t ];
 	    gp_assert_eq( alpha_t.size(), beta_t.size() );
-	    for ( HiddenStateSpace::StateIdxType stIdx = alpha_t.size() ; stIdx-- != 0 ; )
+	    for ( HiddenStateSpace::Non0IdxType stIdx = alpha_t.size() ; stIdx-- != 0 ; )
 		l_at_t += alpha_t[ stIdx ] * beta_t[ stIdx ];
 
 	    #if 0 // Well, not _exactly_ equal
@@ -380,45 +466,58 @@ double HiddenMarkovModel::getLogLikelihood() const
 
 
 
-//------------------------------------------------------------------------
-// HMMBase-OVERRIDE METHODS:
-//------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// getCondStateProbsAtLocus()
+//-----------------------------------------------------------------------------
 
-#if HAVE_HMM_BASE
-
-void HiddenMarkovModel::SetGenotypeProbs( const double * /*lambdain*/, const bool * /*missing*/ )
+const cvector<double> & HiddenMarkovModel::getCondStateProbsAtLocus( SLocIdxType t ) const
     {
-    throw std::runtime_error( "SetGenotypeProbs() not implemented" );
-    }
 
-void HiddenMarkovModel::SetStateArrivalProbs( const double * /*Theta*/, int /*Mcol*/, bool /*isdiploid*/ )
-    {
-    throw std::runtime_error( "SetStateArrivalProbs() not implemented" );
-    }
+    if ( dirtyForwards || dirtyBackwards )
+	computeForwardsBackwards();
 
-void HiddenMarkovModel::SampleHiddenStates( int * /*SStates*/, bool /*isdiploid*/ )
-    {
-    throw std::runtime_error( "SampleHiddenStates() not implemented" );
-    }
+    if ( dirtyCondStateProbs )
+	for ( SLocIdxType sLoc = getNLoci() ; sLoc-- != 0 ; )
+	    {
 
-const bclib::pvector<double> & HiddenMarkovModel::GetHiddenStateProbs( const bool /*isDiploid*/, int /*t*/ )
-    {
-    throw std::runtime_error( "GetHiddenStateProbs() not implemented" );
-    }
+	    gp_assert_eq( getNLoci(), alpha.size() );
+	    gp_assert_eq( getNLoci(), beta.size() );
+	    gp_assert_eq( getNLoci(), condStateProbs.size() );
 
-double HiddenMarkovModel::getLogLikelihood( bool /*isdiploid*/ )
-    {
-    return getLikelihood();
-    }
+	    ProbsAtLocusType & locAlpha = alpha		[ sLoc ];
+	    ProbsAtLocusType & locBeta	= beta		[ sLoc ];
+	    ProbsAtLocusType & locProbs = condStateProbs[ sLoc ];
 
-void HiddenMarkovModel::SampleJumpIndicators( const int * /*LocusAncestry*/, const unsigned int /*gametes*/,
-		int * /*SumLocusAncestry*/, std::vector<unsigned> & /*SumNumArrivals*/,
-		bool /*SampleArrivals*/, unsigned /*startlocus*/ ) const
-    {
-    throw std::runtime_error( "SampleJumpIndicators() not implemented" );
-    }
+	    locProbs.resize( locAlpha.size() );
 
-#endif
+	    #if USE_LIBOIL
+
+		double normSum;
+		oil_multiply_f64( locProbs.data(), locAlpha.data(), locBeta.data(), locAlpha.size() );
+		oil_sum_f64( locProbs.data(), &normSum, 1, locProbs.size() );
+		normSum = 1.0 / normSum;
+		oil_scalarmult_f64( locProbs.data(), 1, locProbs.data(), 1, &normSum, locProbs.size() );
+
+	    #else
+
+		double normSum = 0.0;
+		for ( size_t stIdx = locAlpha.size() ; stIdx-- != 0 ; )
+		    {
+		    const double el = locAlpha[stIdx] * locBeta[stIdx];
+		    locProbs[stIdx] = el;
+		    normSum += el;
+		    }
+		normSum = 1.0 / normSum;
+		for ( size_t stIdx = locProbs.size() ; stIdx-- != 0 ; )
+		    locProbs.at_unsafe(stIdx) *= normSum;
+
+	    #endif
+
+	    }
+
+    return condStateProbs[ t ];
+
+    }
 
 
 

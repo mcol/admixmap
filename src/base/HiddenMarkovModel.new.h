@@ -28,12 +28,6 @@
 
 
 
-// For the moment, we'll avoid mixing the "old" code with the "new" code, so no
-// common base class for the HMMs:
-#define HAVE_HMM_BASE 0
-#if HAVE_HMM_BASE
-    #include "HMMBase.h"
-#endif
 #include "HiddenStateSpace.h"
 #include "Pedigree.h"
 #include "TransProbCache.h"
@@ -54,11 +48,12 @@ namespace genepi { // ----
  * @{ */
 
 
+
 /// Hidden Markov Model to be used with pedgrees.  This differs from the class
 /// used with individuals only in the namespace (genepi:: vs. ::).  This is
 /// confusing and should be changed.
 
-class HiddenMarkovModel /*: public HMMBase*/
+class HiddenMarkovModel
     {
     protected:
 	typedef double ProbType;
@@ -71,9 +66,9 @@ class HiddenMarkovModel /*: public HMMBase*/
 	typedef Pedigree::ThetaType	    ThetaType	     ;
 
     private:
-	const Pedigree *	ped	; ///< Ref to ped for hidden state space, etc.
-	const TransProbCache *	tpCache ; ///< Transition probabilities.  These should perhaps
-					  ///< be retrieved from the Pedigree object itself
+	const Pedigree * ped	 ; ///< Ref to ped for hidden state space, etc.
+	TransProbCache * tpCache ; ///< Transition probabilities.  These should perhaps
+				   ///< be retrieved from the Pedigree object itself
 
 	#if 0
 	    // Can operate on a sub-range of the loci (e.g. a single chromosome):
@@ -86,17 +81,29 @@ class HiddenMarkovModel /*: public HMMBase*/
 	/// AKA Theta
 	const ThetaType * theta;
 
-	mutable bool dirtyForwards ; ///< Input parameters have changed since last compute
-	mutable bool dirtyBackwards; ///< Input parameters have changed since last compute
+	mutable bool dirtyForwards ; ///< Input parameters have changed since last compute; stored alpha is invalid
+	mutable bool dirtyBackwards; ///< Input parameters have changed since last compute; stored beta is invalid
 
-	mutable ProbArrType alpha ; ///< Forward probability array: indexed on locus, then hidden-state-index
-	mutable ProbArrType beta  ; ///< Forward probability array: indexed on locus, then hidden-state-index
+	mutable ProbArrType alpha ; ///< Forward probability array: indexed on locus, then hidden-state-non0-index
+	mutable ProbArrType beta  ; ///< Forward probability array: indexed on locus, then hidden-state-non0-index
 	#if HMM_OTF_RENORM
 	    mutable double norm_log_sum_alpha;
 	    mutable double norm_log_sum_beta;
 	#endif
 
-	/// Do the main forwards-backwards computation
+	/// Cached conditional state probabilities (these are just the
+	/// normalized element-wise product of alpha and beta, could be computed
+	/// on-the-fly).  Indexed on locus, then hidden-state-non0-index.
+	mutable ProbArrType condStateProbs;
+	mutable bool	    dirtyCondStateProbs;
+
+	/// Do the main forwards recursion
+	void computeForwards() const;
+
+	/// Do the main backwards recursion
+	void computeBackwards() const;
+
+	/// Do both the forwards and backwards computations, in parallel if possible.
 	void computeForwardsBackwards() const;
 
     protected:
@@ -123,7 +130,7 @@ class HiddenMarkovModel /*: public HMMBase*/
 
 	/// Construct the model.
 	/// @parm theta - see setTheta()
-	HiddenMarkovModel( const Pedigree & ped , const TransProbCache & tpCache ,
+	HiddenMarkovModel( const Pedigree & ped , TransProbCache & tpCache ,
 			    const ThetaType * theta = 0 );
 
 	const Pedigree &       getPed() const { return *ped    ; } ///< Get reference to Pedigree
@@ -143,23 +150,15 @@ class HiddenMarkovModel /*: public HMMBase*/
 	void thetaChanged() const;
 
 
-	/// Get the natural logarithm of the likelihood (probability of the data given the model).
+	/// Get the natural logarithm of the likelihood (probability of the data
+	/// given the model).  We cache the forward/backwards probabilities and
+	/// only recompute them when the data has changed; but the dot-product
+	/// is recomputed every time that this method is called, so avoid
+	/// re-calling with abandon for unchanged input data.
 	double getLogLikelihood() const;
 
-
-// For the moment, we'll avoid mixing the "old" code with the "new" code, so no common base class for the HMMs:
-#if HAVE_HMM_BASE
-    //------------------------------------------------------------------------
-    // === HMMBase OVERRIDDEN METHODS ===
-    //------------------------------------------------------------------------
-    void SetGenotypeProbs( const double * lambdain, const bool * missing );
-    void SetStateArrivalProbs( const double * Theta, int Mcol, bool isdiploid );
-    void SampleHiddenStates( int * SStates, bool isdiploid );
-    const bclib::pvector<double> & GetHiddenStateProbs( const bool isDiploid, int t );
-    double getLogLikelihood( bool isDiploid );
-    void SampleJumpIndicators( const int * LocusAncestry, const unsigned int gametes, int * SumLocusAncestry,
-		cvector<unsigned> & SumNumArrivals, bool SampleArrivals, unsigned startlocus ) const;
-#endif
+	/// Get the conditional probability distribution of the hidden states at locus @a t.
+	const cvector<double> & getCondStateProbsAtLocus( SLocIdxType t ) const;
 
     };
 

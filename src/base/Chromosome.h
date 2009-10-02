@@ -21,6 +21,7 @@
 #include <bclib/cvector.h>
 #include <string>
 #include "HiddenMarkovModel.h"
+#include "RhoType.h"
 
 
 /** \addtogroup base
@@ -50,7 +51,7 @@ public:
   bool isXChromosome()const;
   // ****************** Setting of locus correlation, f *************************
   void SetGlobalLocusCorrelation(const double rho);
-  void SetLocusCorrelation(const genepi::cvector<double>& vrho, bool RandomMating);
+  void SetLocusCorrelation( const genepi::RhoType & vrho, bool RandomMating );
 
   // ********** Interface to HMM ****************************************
 

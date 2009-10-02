@@ -61,8 +61,21 @@ namespace genepi { // ----
 
 
 #if GP_NDEBUG
-    #define gp_assert(x)
-    #define gp_assert_eq(x,y)
+    template <typename T	    > void t_gp_assert( const T & /*x*/ ) {}
+    template <typename T, typename U> void t_gp_assert_eq( const T & /*x*/, const U & /*y*/ ) {}
+    template <typename T, typename U> void t_gp_assert_ne( const T & /*x*/, const U & /*y*/ ) {}
+    template <typename T, typename U> void t_gp_assert_gt( const T & /*x*/, const U & /*y*/ ) {}
+    template <typename T, typename U> void t_gp_assert_ge( const T & /*x*/, const U & /*y*/ ) {}
+    template <typename T, typename U> void t_gp_assert_lt( const T & /*x*/, const U & /*y*/ ) {}
+    template <typename T, typename U> void t_gp_assert_le( const T & /*x*/, const U & /*y*/ ) {}
+
+    #define gp_assert(x)      genepi::t_gp_assert(x)
+    #define gp_assert_eq(x,y) genepi::t_gp_assert_eq(x,y)
+    #define gp_assert_ne(x,y) genepi::t_gp_assert_ne(x,y)
+    #define gp_assert_gt(x,y) genepi::t_gp_assert_gt(x,y)
+    #define gp_assert_ge(x,y) genepi::t_gp_assert_ge(x,y)
+    #define gp_assert_lt(x,y) genepi::t_gp_assert_lt(x,y)
+    #define gp_assert_le(x,y) genepi::t_gp_assert_le(x,y)
 #else
 
     #define gp_assert(x) \

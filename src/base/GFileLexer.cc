@@ -66,6 +66,10 @@ using namespace std;
 
 
 
+namespace genepi { // ----
+
+
+
 //-----------------------------------------------------------------------------
 // static helper functions:
 //-----------------------------------------------------------------------------
@@ -105,14 +109,14 @@ static long long_pow10( int exponent )
     const int N_ENT = sizeof(p10tab) / sizeof(*p10tab);
 
     if ( (exponent < 0) || (exponent >= N_ENT) )
-	throw std::overflow_error( genepi::estr("decimal part has too many digits: ") + exponent );
+	throw std::overflow_error( estr("decimal part has too many digits: ") + exponent );
 
     return p10tab[ exponent ];
     }
 
 
 
-static const char * typeName( genepi::GFileLexer::TokenType t )
+static const char * typeName( GFileLexer::TokenType t )
     {
     static const char * const NAMES [] =
 	{
@@ -124,16 +128,12 @@ static const char * typeName( genepi::GFileLexer::TokenType t )
 	"eof"		,
 	};
 
-    gp_assert( (sizeof(NAMES)/sizeof(*NAMES)) == genepi::GFileLexer::N_TOKEN_TYPES );
+    gp_assert( (sizeof(NAMES)/sizeof(*NAMES)) == GFileLexer::N_TOKEN_TYPES );
     gp_assert( t >= 0 );
-    gp_assert( t < genepi::GFileLexer::N_TOKEN_TYPES );
+    gp_assert( t < GFileLexer::N_TOKEN_TYPES );
 
     return NAMES[ t ];
     }
-
-
-
-namespace genepi { // ----
 
 
 
@@ -285,10 +285,10 @@ void GFileLexer::pushback( char ch )
 // throwError() [protected]
 //-----------------------------------------------------------------------------
 
-void GFileLexer::throwError( const string & msg ) const
+void GFileLexer::throwError( const string & msg, bool atLastTokenLine ) const
 	throw( ParseError )
     {
-    throw ParseError( msg, fileName, getLastTokenLine() );
+    throw ParseError( msg, fileName, atLastTokenLine ? getLastTokenLine() : getCurLineNum() );
     }
 
 
@@ -322,6 +322,8 @@ void GFileLexer::assert_type( TokenType t, const Token & tok, const char * field
 
 void GFileLexer::warn( const string & msg ) const
     {
+    if ( nWarnings == 0 )
+	std::cerr << '\n';
     std::cerr << getFileName() << ':' << getLastTokenLine() << ": warning: " << msg << '\n';
     ++nWarnings;
     }

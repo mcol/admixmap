@@ -81,7 +81,7 @@ void InputData::ReadData(Options *options, LogWriter &Log){
 	    generatePedigrees( options );
 	#endif
 
-	if ( options->CheckData() && (genotypeLoader->getNWarnings() != 0) )
+	if ( options->getWarningsAreErrors() && (genotypeLoader->getNWarnings() != 0) )
 	    {
 	    std::cerr << "Warnings treated as errors: aborting execution.\n";
 	    exit(1);
@@ -376,7 +376,24 @@ void InputData::CheckOutcomeVarFile(unsigned N, Options* const options, LogWrite
   outcomeVarMatrix_ = TempOutcome;
 
   options->setRegType(RegType);
+
+  // Pedigree files contain an outcome column; in the case of genotype files, we
+  // must "merge" the data from the outcome file back into the organism objects:
+  #if USE_GENOTYPE_PARSER
+    if ( ! genotypeLoader->isPedFile() )
+	{
+	// For now, just use the first column.
+	const unsigned col_to_use = 0;
+	if ( outcomeVarMatrix_.nCols() != 0 )
+	    {
+	    gp_assert_eq( outcomeVarMatrix_.nRows(), genotypeLoader->getNumOrganisms() );
+	    for ( unsigned row = outcomeVarMatrix_.nRows() ; row-- != 0 ; )
+		genotypeLoader->getOrganism(row).setOutcome( outcomeVarMatrix_.get(row,col_to_use) );
+	    }
+	}
+  #endif // USE_GENOTYPE_PARSER
 }
+
 
 void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
   if(coxOutcomeVarMatrix_.nCols() !=3){

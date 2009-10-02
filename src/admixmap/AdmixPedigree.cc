@@ -32,9 +32,11 @@
 
 //=============================================================================
 /// Issues yet to resolve:
-///	* Rho indexing.  Is it indexed on for pedigrees?  Which to pass into TPC constructor?
-///	*
+///	* Rho indexing.  On what is it indexed for pedigrees?  Which element to
+///	  pass into TPC constructor?  Update: for the moment, we are restrictng
+///	  pedigrees to globalrho=1, so it's not relevant.
 //=============================================================================
+
 
 #include "Pedigree.h"
 
@@ -44,6 +46,7 @@
 #include <bclib/misc.h>
 #include <bclib/rand.h>
 
+#include "config.h"	// AGGRESSIVE_RANGE_CHECK
 #include "TransProbCache.h"
 #include "HiddenMarkovModel.new.h"
 
@@ -57,6 +60,16 @@
 #endif
 
 
+#define SEPARATE_HMM_FOR_EACH_CHROM 0
+
+
+#if AGGRESSIVE_RANGE_CHECK
+    #define AGGRESSIVE_ONLY(X)	X
+#else
+    #define AGGRESSIVE_ONLY(X)
+#endif
+
+
 
 //------------------------------------------------------------------------
 // NOTE X1:
@@ -67,6 +80,7 @@
 #include "Chromosome.h"
 #include "AdmixOptions.h"
 #include "Individual.h" // For Individual::Loci
+#include "AffectedsOnlyTest.h"
 //------------------------------------------------------------------------
 
 
@@ -74,23 +88,33 @@
 using bclib::pvector;
 
 
-#define NOT_YET_PORTED			0
 
-#define NON_GLOBAL_RHO_WORKS		0
+#define NOT_NEEDED_FOR_FIRST_VERSION			    0
+#define THIS_IS_HOW_IT_WAS				    0
+#define USE_SINGLE_POPULATION_SPECIAL_CASE		    0
+#define NON_GLOBAL_RHO_WORKS				    0
+#define NOT_NEEDED_FOR_FIXEDALLELEFREQ_EQ_1		    0
+#define NOT_NEEDED_UNLESS_CONJUGATE_UPDATE		    0
+#define SUPPORT_ASSOCIATION_TESTS			    0
+#define IMPLEMENTED_AFFECTED_ONLY_SCORE_TEST_FOR_PEDIGREES  0
+#define TRACK_PEDIGREE_MISSING				    0
+#define PEDIGREES_HAVE_PLOIDINESS			    0
+#define POSTERIOR_MEANS_IS_IMPLEMENTED			    1
+#define SUM_PROBS_IS_IMPLEMENTED			    0
 
-#define NOT_NEEDED_FOR_FIRST_VERSION	0
 
 #if ! NOT_NEEDED_FOR_FIRST_VERSION
     #define IAmUnderTest    0
 #endif
 
-#define THIS_IS_HOW_IT_WAS  0
-
-#define USE_SINGLE_POPULATION_SPECIAL_CASE  0
-
 
 
 namespace genepi { // ----
+
+
+
+/// This is bad; we need the concept of context!
+const AdmixOptions * Pedigree::optionsRef = 0;
 
 
 
@@ -104,9 +128,13 @@ namespace genepi { // ----
 
 
 //-----------------------------------------------------------------------------
+//
 // getGenome() [static]
-// Context accesss.
+//
+/// Context access.  This is bad.
+//
 //-----------------------------------------------------------------------------
+
 inline static Genome & getGenome()
     {
     return Individual::getGenome();
@@ -119,7 +147,7 @@ inline static Genome & getGenome()
 // Nasty hack for context access.
 //-----------------------------------------------------------------------------
 
-static PopIdx K = 0;
+PopIdx Pedigree::K = 0;
 
 void Pedigree::setK( PopIdx _K )
     {
@@ -130,20 +158,13 @@ void Pedigree::setK( PopIdx _K )
     K = _K;
     }
 
-inline PopIdx Pedigree::getK() const
-    {
-    gp_assert_ne( K, 0 ); // Assert: has been set already
-    return K;
-    }
 
 
-
-//-----------------------------------------------------------------------------
-// getNumChromosomes() [perhaps could be static but currently isn't]
-// Context access.
-//-----------------------------------------------------------------------------
-
-#if SEPARATE_HMM_FOR_EACH_CHROM
+#if 0
+    //-----------------------------------------------------------------------------
+    // getNumChromosomes() [perhaps could be static but currently isn't]
+    // Context access.
+    //-----------------------------------------------------------------------------
     ChromIdxType Pedigree::getNumChromosomes() const
 	{
 	#error Not yet implemented.
@@ -158,6 +179,13 @@ inline PopIdx Pedigree::getK() const
 
 void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
     {
+    // This is bad.  Where is the concept of context?
+    if ( optionsRef == 0 )
+	optionsRef = &options;
+    else
+	gp_assert( optionsRef == &options );
+
+
     logLikelihood.value = 0.0;
     logLikelihood.ready = false;
     logLikelihood.HMMisOK = false;
@@ -169,6 +197,31 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 	if ( ! options.isGlobalRho() )
 	    throw std::runtime_error( "Only global-rho currently is supported." );
     #endif
+
+    #if ! NOT_NEEDED_UNLESS_CONJUGATE_UPDATE
+	if ( ! options.getNoConjugateUpdate() )
+	    throw std::runtime_error( "Pedigrees (as yet) only support the no-conjugate-update option."
+					" Re-run with no-conjugate-update turned on." );
+    #endif
+
+    #if ! NOT_NEEDED_FOR_FIXEDALLELEFREQ_EQ_1
+	if ( ! options.getFixedAlleleFreqs() )
+	    throw std::runtime_error( "Sorry, pedigrees are not (yet) compatible with fixedallelefreqs=0."
+					" Re-run with fixedallelefreqs=1." );
+    #endif
+
+    #if 0 && ! IMPLEMENTED_AFFECTED_ONLY_SCORE_TEST_FOR_PEDIGREES
+	if ( options.getScoreTestIndicator() )
+	    throw std::runtime_error( "Sorry, pedigrees are not (yet) compatible with affected-only score test."
+					" Re-run with something else." );
+    #endif
+
+    #if ! SUPPORT_ASSOCIATION_TESTS
+	if ( options.hasAnyAssociationTests() )
+	    throw std::runtime_error( "Sorry, pedigrees are not (yet) compatible with association tests."
+					" Re-run with some options turned off." );
+    #endif
+
 
 
     // This was AdmixedIndividual::InitialiseSumIntensities():
@@ -191,6 +244,7 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
     _rho  .assign( NumGametes, 0.0 ); // set to 0 for unadmixed gametes
     rhohat.assign( NumGametes, 0.0 ); // set to 0 for unadmixed gametes
 
+
     for( unsigned g = 0; g < NumGametes; ++g)
 	{
 	if ( options.isAdmixed(g) )
@@ -206,15 +260,260 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 
 
 //-----------------------------------------------------------------------------
-// HMMIsBad()
-// Copied directly from Individual, could be placed in some base class.
+// getNInheritedByAffected()
 //-----------------------------------------------------------------------------
 
-void Pedigree::HMMIsBad( bool loglikisbad )
+int Pedigree::getNInheritedByAffected( FounderIdx fIdx, PopIdx k, const AncestryVector & av, const InheritanceVector & iv ) const
     {
-    logLikelihood.HMMisOK = false;
-    if ( loglikisbad )
-	logLikelihood.ready = false;
+
+    // Is this optimization worth having?  Does it come up in real datasets?
+    #if 0
+	if ( getNAffected() == 0 )
+	    return 0; // *** RETURN HERE ***
+    #endif
+
+    int rv = 0;
+
+    struct Ancestry
+	{
+	bool pAncestry;
+	bool mAncestry;
+
+	Ancestry( bool p, bool m ) : pAncestry(p), mAncestry(m) {}
+	Ancestry() : pAncestry(false), mAncestry(false) {}
+
+	bool hasAncOfType( const InheritanceVector::SegInd & si ) const
+	    {
+	    return (si == InheritanceVector::SI_PATERNAL) ? pAncestry : mAncestry;
+	    }
+	};
+
+    Ancestry ancStack[ getNMembers() ]; // Could just be (getNMembers()-fIdx), then subtract indexes
+
+    PopIdx mAncestry;
+    const PopIdx pAncestry = av.getBoth( fIdx, mAncestry );
+    ancStack[fIdx].pAncestry = (pAncestry == k);
+    ancStack[fIdx].mAncestry = (mAncestry == k);
+
+    #if 0
+
+	const Ancestry & parentAncestry = ancStack[ fIdx ];
+
+	for ( AdmixPedigree::ChConstIter it = childrenBegin() ; it != childrenEnd() ; ++it )
+	    {
+	    const Organism & child = *it;
+	    const MemberIdx cIdx = child.getPIdx();
+	    const InheritanceVector::SegInd si = isFemale() ? iv.maternal(cIdx) : iv.paternal(cIdx);
+	    inheritsPop = (si == SI_PATERNAL) ? parentAncestry.pAncestry : parentAncestry.mAncestry;
+	    if ( inheritsPop )
+		{
+		if ( isFemale() )
+		    ancStack[cIdx].mAncestry = true;
+		else
+		    ancStack[cIdx].pAncestry = true;
+		if ( child.isAffected() )
+		    ++rv;
+		}
+	    Then recurse here...
+	    }
+
+    #else
+
+	// Or do something like this...
+
+	// FIXME: if the founder itself is affected, should that contribute to m?
+	// If so, use this code:
+	#if 0
+	    if ( memberAt(fIdx).getOutcome() != 0 ) // isAffected()
+		{
+		if ( pAncestry == k )
+		    ++rv;
+		if ( mAncestry == k )
+		    ++rv;
+		}
+	#endif
+
+	for ( MemberIdx cIdx = fIdx + 1 ; cIdx < getNMembers() ; ++cIdx )
+	    {
+
+	    const Organism & child	= memberAt( cIdx );
+	    Ancestry &	     cAncestry	= ancStack[ cIdx ];
+
+	    const Organism & father	= *child.getFather();
+	    const Ancestry & pAncestry	= ancStack[ father.getPIdx() ];
+
+	    if ( pAncestry.hasAncOfType( iv.paternal(cIdx) ) )
+		{
+		cAncestry.pAncestry = true;
+		if ( child.getOutcome() != 0 ) // isAffected()
+		    ++rv;
+		}
+
+	    // Even if we already have one inherited k-state, we look for another in
+	    // case of incest-cycle in a multi-generational pedigree
+	    const Organism & mother = *child.getMother();
+	    const Ancestry & mAncestry = ancStack[ mother.getPIdx() ];
+	    if ( mAncestry.hasAncOfType( iv.maternal(cIdx) ) )
+		{
+		cAncestry.mAncestry = true;
+		if ( child.getOutcome() != 0 ) // isAffected()
+		    ++rv;
+		}
+
+	    }
+
+    #endif
+
+    return rv;
+
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// accumAAScore()
+//-----------------------------------------------------------------------------
+
+
+// Static helper:
+static inline double aa_score( int nFromK, double nAffOver2, double negNAffOver2, double nAffOver4, double mu )
+    {
+    if ( nFromK == 0 )
+	return (mu * negNAffOver2);
+    else if ( nFromK == 1 )
+	return nAffOver4 + (negNAffOver2 * mu);
+    else AGGRESSIVE_ONLY( if ( nFromK == 2 ) )
+	return nAffOver2 * (1.0 - mu);
+    AGGRESSIVE_ONLY( else throw std::logic_error( "invalid nFromK" ); )
+    }
+
+
+// Static helper:
+static inline double aa_info( int nFromK, double nNPlus3over8, double nNPlus3over16, double n3over16, double mu )
+    {
+    if ( (nFromK == 0) || (nFromK == 2) )
+	return nNPlus3over8 * (1 - mu) * mu;
+    else AGGRESSIVE_ONLY( if ( nFromK == 1 ) )
+	return (nNPlus3over16 * (1 - mu) * mu) - n3over16;
+    AGGRESSIVE_ONLY( else throw std::logic_error( "invalid nFromK" ); )
+    }
+
+
+// Method:
+void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
+    {
+
+    const MemberIdx nAff = getNAffected();
+    // Is this optimization worth having?  Does it come up in real datasets?
+    if ( nAff == 0 )
+	return; // *** RETURN HERE ***
+
+    // Precompute invariants outside the loop:
+    const double nAffOver2	= double(nAff) / 2;
+    const double negNAffOver2	= - nAffOver2;
+    const double nAffOver4	= double(nAff) / 4;
+    const double nAffOver16	= double(nAff) / 16;
+    const double nNPlus3	= nAff * (nAff + 3);
+    const double n3over16	= (3.0 * nAff) / 16;
+    const double nNPlus3over8	= nNPlus3 / 8;
+    const double nNPlus3over16	= nNPlus3 / 16;
+
+    const SimpleLocusArray & loci = getSLoci();
+
+    // If K==2, only evaluate for 1 population, otherwise for all of them.
+    // Existing code uses k==1 (not 0), yet treats it within the AffectedsOnlyTest object as "k==0", so:
+    const PopIdx k_begin = (getK() == 2) ? 1 : 0;
+
+//    for ( SLocIdxType t = loci.size() ; t-- != 0 ; )
+    for ( SLocIdxType t = 0 ; t < loci.size() ; ++t )
+	{
+
+	// If K==2, only evaluate for 1 population, otherwise for all of them.
+	// Existing code uses k==1 (not 0), so:
+	//for ( PopIdx k = (getK() == 2) ? 1 : getK() ; k-- != 0 ; )
+	for ( PopIdx k = k_begin ; k < getK() ; ++k )
+	    {
+	    double scoreAvg   = 0.0;
+	    double scoreSqAvg = 0.0;
+	    double infoAvg    = 0.0;
+
+	    const HiddenStateSpace & hss	    = getStateProbs( t );
+	    const cvector<double> &  condStateProbs = getHMM().getCondStateProbsAtLocus( t );
+
+	    for ( HiddenStateSpace::Iterator stIt( hss ) ; stIt ; ++stIt )
+		{
+
+		double stScore = 0.0;
+		double stInfo  = 0.0;
+
+		for ( FounderIdx fIdx = getNFounders() ; fIdx-- != 0 ; )
+		    {
+
+		    const int nFromK = stIt.getAV().nCopiesFromKAtFounder( fIdx, k );
+
+		    if ( stIt.getAV().isHetrozygousForPop( fIdx, k ) )
+			{
+			const int m = getNInheritedByAffected( fIdx, k, stIt.getAV(), stIt.getIV() );
+			stScore += 0.25 * (m - nAffOver2);
+			stInfo += nAffOver16;
+			}
+
+		    const double mu = Theta[ fIdx ][ k ];
+
+		    stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
+		    stInfo  += aa_info( nFromK, nNPlus3over8, nNPlus3over16, n3over16, mu );
+
+		    }
+
+		const double stWeight = condStateProbs[ stIt.getNon0Index() ];
+		const double wtScore = stScore * stWeight;
+		scoreAvg += wtScore;
+		scoreSqAvg += wtScore * stScore;
+		infoAvg += stInfo * stWeight;
+		}
+
+	    const double condVarianceOfU = scoreSqAvg - (scoreAvg * scoreAvg);
+
+	    aoTest.getAffectedsScore	( t, k-k_begin ) += scoreAvg	    ;
+	    aoTest.getAffectedsVarScore ( t, k-k_begin ) += condVarianceOfU ;
+	    aoTest.getAffectedsInfo	( t, k-k_begin ) += infoAvg	    ;
+
+	    }
+
+	}
+
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// setRho()
+// Virtual, overridden from PedBase.  Only makes sense if each pedigree keeps its own HMM and TPC.
+//-----------------------------------------------------------------------------
+
+void Pedigree::setRho( double nv )
+    {
+    getTPC().setRho( nv );
+    getHMM().thetaChanged();
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// HMMIsBad()
+// What does this mean?  Exposition of internals to the outside world.
+//-----------------------------------------------------------------------------
+
+void Pedigree::HMMIsBad( bool /*loglikisbad*/ )
+    {
+    #if 0
+	// Copied directly from Individual, could be placed in some base class,
+	// except seems to have no bearing on pedigrees since they track for
+	// themselves whether the HMM is OK.
+	logLikelihood.HMMisOK = false;
+	if ( loglikisbad )
+	    logLikelihood.ready = false;
+    #endif
     }
 
 
@@ -223,9 +522,7 @@ void Pedigree::HMMIsBad( bool loglikisbad )
 // getHMM()
 //-----------------------------------------------------------------------------
 
-#if ! SEPARATE_HMM_FOR_EACH_CHROM
-
-    TransProbCache & Pedigree::getTPC() const
+TransProbCache & Pedigree::getTPC() const
 	{
 	#if NON_GLOBAL_RHO_WORKS
 	    #error Which rho to use here?
@@ -255,37 +552,44 @@ void Pedigree::HMMIsBad( bool loglikisbad )
 	hmm = 0;
 	}
 
-#endif
-
 
 
 //-----------------------------------------------------------------------------
 //
 // SampleTheta()
 //
-/// Samples admixture proportions.  Called with @a RW true for a random-walk
-/// proposal, false for a conjugate proposal
+/// Samples admixture proportions.
+///
+/// @param RW true for a random-walk proposal, false for a conjugate proposal
+///	    NOTE *1*: For Pedigree however, we are ignoring @a RW (treating it
+///	    as true for every call) so as to avoid conjugate-update, thus
+///	    avoiding calling ResetSufficientStats().  There is also a runtime
+///	    option, no-conjugate-update, which should be specified every time
+///	    that pedigrees are used.
 //
 //-----------------------------------------------------------------------------
 
 void Pedigree::SampleTheta(
-		 int				    iteration	      ,
-		 double *			    SumLogTheta       ,
-		 const bclib::DataMatrix *	    Outcome	      ,
-		 const DataType *		    OutcomeType       ,
-		 const std::vector<double> &	    lambda	      ,
-		 int				    NumCovariates     ,
-		 bclib::DataMatrix *		    Covariates	      ,
-		 const std::vector<const double*> & beta	      ,
-		 const PopThetaType &		    poptheta	      ,
-		 const AdmixOptions &		    options	      ,
-		 const AlphaType &		    alpha	      ,
-		 double				    /*DInvLink*/      ,
-		 double				    /*dispersion*/    ,
+		 int				    iteration		,
+		 double *			    SumLogTheta		,
+		 const bclib::DataMatrix *	    Outcome		,
+		 const DataType *		    OutcomeType		,
+		 const std::vector<double> &	    lambda		,
+		 int				    NumCovariates	,
+		 bclib::DataMatrix *		    Covariates		,
+		 const std::vector<const double*> & beta		,
+		 const PopThetaType &		    poptheta		,
+		 const AdmixOptions &		    options		,
+		 const AlphaType &		    alpha		,
+		 double				    /*DInvLink*/	,
+		 double				    /*dispersion*/	,
 		 CopyNumberAssocTest &		    /*ancestryAssocTest*/,
-		 bool				    RW		      ,
-		 bool				    anneal	      )
+		 bool				    /*RW*/		,
+		 bool				    anneal		)
     {
+    // NOTE *1*: We ignore the value of RW, use true every time (see comments above):
+    #define RW true
+
     const PopIdx K = getK();
 
     double logpratio = 0.0;
@@ -296,14 +600,14 @@ void Pedigree::SampleTheta(
 	    NumberOfUpdates++;
 	    logpratio += ProposeThetaWithRandomWalk( options, alpha );
 	    }
-	    #if NOT_NEEDED_FOR_FIRST_VERSION
-		else
-		  ProposeTheta(options, alpha, SumLocusAncestry, SumLocusAncestry_X);
-	    #endif
+	  #if NEEDED_ONLY_FOR_CONJUGATE_UPDATE
+	    else
+		ProposeTheta(options, alpha, SumLocusAncestry, SumLocusAncestry_X);
+	  #endif
 	}
     catch ( string & s )
 	{
-	throw std::runtime_error( "Error encountered while generating proposal individual admixture proportions:\n" + s );
+	throw std::runtime_error( "Error encountered while generating proposal individual admixture proportions:\n  " + s );
 	}
 
     // Calculate Metropolis acceptance probability ratio for proposal theta
@@ -314,9 +618,8 @@ void Pedigree::SampleTheta(
 	    {
 	    const RegressionType RegType = (OutcomeType[k] == Binary) ? Logistic : Linear;
 	    logpratio += LogAcceptanceRatioForRegressionModel( RegType, options.isRandomMatingModel(), K,
-							NumCovariates,
-							 Covariates, beta[k], Outcome->get( getIndex(), k ),
-							 poptheta, lambda[k]);
+						NumCovariates, Covariates, beta[k],
+						Outcome->get( getIndex(), k ), poptheta, lambda[k] );
 	    }
 	}
 
@@ -364,6 +667,9 @@ void Pedigree::SampleTheta(
 	    }
 	#endif
 	}
+
+
+    #undef RW // NOTE *1*
 
     }
 
@@ -472,8 +778,10 @@ void Pedigree::UpdateAdmixtureForRegression( int NumHiddenStates, int NumCovaria
 double Pedigree::ProposeThetaWithRandomWalk( const AdmixOptions & options, const AlphaType & alpha )
     {
     double LogLikelihoodRatio = 0.0;
-    double LogPriorRatio = 0.0;
+    double LogPriorRatio      = 0.0;
 
+
+//fprintf( stderr, "RNG check 2: %20.18lf\n", bclib::Rand::gennor( 20, 10 ) );
 
     //-------------------------------------------------------------------------
     // Generate proposals
@@ -481,7 +789,8 @@ double Pedigree::ProposeThetaWithRandomWalk( const AdmixOptions & options, const
 
     const PopIdx K = getK();
 
-    pvector<double> a( K ); // Maybe should be at class scope?
+    // NOTE *M1*: Maybe this should be be allocated once for the class?
+    pvector<double> a( K );
 
     for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
 	{
@@ -501,6 +810,7 @@ double Pedigree::ProposeThetaWithRandomWalk( const AdmixOptions & options, const
 	    // Reverse transformation from numbers on real line to proportions
 	    a.softmax_gt0( th_prop );
 
+
 	    // Compute contribution of this founder to log prior ratio
 	    // Prior densities must be evaluated in softmax basis
 	    for ( PopIdx k = 0; k < K; ++k )
@@ -512,16 +822,15 @@ double Pedigree::ProposeThetaWithRandomWalk( const AdmixOptions & options, const
 
 	} // End loop over Theta's elements (i.e. founders)
 
-
     // Get log likelihood at current parameter values - do not force update, store result of update
-    LogLikelihoodRatio -= getLogLikelihood(options, false, true);
+    LogLikelihoodRatio -= getLogLikelihood( options, false, true );
 
     // Get log likelihood at proposal theta and current rho - force update
     // store result in loglikelihood.tempvalue, and accumulate loglikelihood ratio
     logLikelihood.tempvalue = getLogLikelihood( options, ThetaProposal, _rho, true );
     LogLikelihoodRatio += logLikelihood.tempvalue;
 
-    return LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
+    return LogLikelihoodRatio + LogPriorRatio; // Log ratio of full conditionals
     }
 
 
@@ -656,11 +965,11 @@ void Pedigree::setAdmixtureProps( const ThetaType & rhs )
 // **** COPIED FROM AdmixedIndividual, NOT Individual ****
 //-----------------------------------------------------------------------------
 
-double Pedigree::getLogLikelihood( const Options& options, const bool forceUpdate, const bool store)
+double Pedigree::getLogLikelihood( const Options & options, bool forceUpdate, bool store )
     {
-    if ( ! logLikelihood.ready || forceUpdate )
+    if ( (! logLikelihood.ready) || forceUpdate )
 	{
-	logLikelihood.tempvalue = getLogLikelihood(options, Theta, _rho, true);
+	logLikelihood.tempvalue = getLogLikelihood( options, Theta, _rho, true );
 	if ( store )
 	    {
 	    logLikelihood.value = logLikelihood.tempvalue;
@@ -686,8 +995,10 @@ double Pedigree::getLogLikelihood( const Options& options, const bool forceUpdat
 //
 //-----------------------------------------------------------------------------
 
-double Pedigree::getLogLikelihood( const Options & options, const ThetaType & theta,
-				    const RhoType & rho,  bool updateHMM) const
+double Pedigree::getLogLikelihood(  const Options &	options	  ,
+				    const ThetaType &	theta	  ,
+				    const RhoType &	rho	  ,
+				    bool		updateHMM ) const
     {
     double rv;
 
@@ -727,7 +1038,7 @@ double Pedigree::getLogLikelihood( const Options & options, const ThetaType & th
 	// FIXME: under what circumstances does this happen?  Throw the proper
 	// exception from within HMM instead.
 	if ( isnan(rv) )
-	    throw std::runtime_error( "HMM returns log-likelihood as nan (not a number)\n" );
+	    throw std::runtime_error( "HMM returns log-likelihood as nan (not a number)" );
 	}
 
     return rv;
@@ -742,6 +1053,8 @@ double Pedigree::getLogLikelihood( const Options & options, const ThetaType & th
 double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
     {
 
+#if POSTERIOR_MEANS_IS_IMPLEMENTED
+
     double rv;
 
     // Should set allele freqs also to posterior means, and recalculate prob
@@ -753,12 +1066,12 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
       else
     #endif
 	{
-	ThetaType thetabar;
+	ThetaType thetabar( getNTheta() );
 	RhoType	  rhobar;
 
 	rhobar.reserve( sumlogrho.size() );
 	for ( unsigned i = 0 ; i < sumlogrho.size() ; ++i )
-	    rhobar.push_back( exp(sumlogrho[i]/(double)(options.getTotalSamples() - options.getBurnIn())) );
+	    rhobar.push_back( exp(sumlogrho[i]/ double(options.getTotalSamples() - options.getBurnIn())) );
 
 	const double scale_factor = options.getTotalSamples() - options.getBurnIn();
 
@@ -771,23 +1084,16 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 	// Rescale sumsoftmaxtheta back
 	SumSoftmaxTheta *= scale_factor;
 
-	#if SEPARATE_HMM_FOR_EACH_CHROM
-	    rv = 0.0;
-	    for ( ChromIdxType chromIdx = 0 ; chromIdx < getNumChromosomes() ; chromIdx++ )
-		{
-		UpdateHMMInputs( chromIdx, options, thetabar, rhobar );
-		#if THIS_IS_HOW_IT_WAS
-		    LogLikelihood += getChromosome(j).getHMM()->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
-		#else
-		    rv += getHMM(chromIdx).getLogLikelihood();
-		#endif
-		}
-	#else
-	    updateHMMInputs( options, thetabar, rhobar );
-	    rv = getHMM().getLogLikelihood();
-	#endif
-
+	updateHMMInputs( options, thetabar, rhobar );
+	rv = getHMM().getLogLikelihood();
 	}
+
+#else // POSTERIOR_MEANS_IS_IMPLEMENTED
+
+    if ( &options == 0 ) {;} // Suppress compiler warning
+    const double rv = 0.0;
+
+#endif // ! POSTERIOR_MEANS_IS_IMPLEMENTED
 
     return rv;
     }
@@ -871,23 +1177,23 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 
 #else
 
-    /// Updates inputs to the HMM (which may seem odd considering the name).
-    void Pedigree::updateHMMInputs( const Options & options, const ThetaType & /*theta*/, const RhoType & /*rho*/ ) const
+    /// Updates inputs to the HMM (which might seem odd considering the name).
+    void Pedigree::updateHMMInputs( const Options & options, const ThetaType & theta, const RhoType & /*rho*/ ) const
 	{
 
-	#if NON_GLOBAL_RHO_WORKS
-	    if ( ! options.isGlobalRho() )
-		getHMM().getTPC().setRho( rho );
-	#else
-	    if ( ! options.isGlobalRho() )
+	// For some reason, rho is not updated here if global-rho is turned on
+	// (it is updated in the Chromosome/TPC from PopAdmix).
+	if ( ! options.isGlobalRho() )
+	    {
+	    #if NON_GLOBAL_RHO_WORKS
+		getTPC().setRho( something else );
+		getHMM().thetaChanged();
+	    #else
 		throw std::runtime_error( "non-global-rho not yet supported." );
-	#endif
+	    #endif
+	    }
 
-	#if SEPARATE_HMM_FOR_EACH_CHROM
-	    getHMM().setTheta( theta );
-	#else
-	    getHMM().thetaChanged();
-	#endif
+	getHMM().setTheta( &theta );
 
 	logLikelihood.HMMisOK = false; // Because forward probs in HMM have been changed
 	}
@@ -912,30 +1218,162 @@ void Pedigree::SetUniformAdmixtureProps()
 
 
 
+void Pedigree::SampleHiddenStates( const Options & /*options*/ )
+    {
+
+    #if NOT_NEEDED_FOR_FIXEDALLELEFREQ_EQ_1
+
+	for ( ChromIdxType j = 0; j < numChromosomes; j++ )
+	    {
+
+	    const Chromosome & C = Loci->getChromosome( j );
+
+	    // Update of forward probs here is unnecessary if SampleTheta was called
+	    // and proposal was accepted.  Update Forward/Backward probs in HMM
+	    if ( ! logLikelihood.HMMisOK )
+		UpdateHMMInputs(j, options, Theta, _rho);
+
+	    // Sampling locus ancestry can use current values of forward probability vectors alpha in HMM
+	    C->HMM->SampleHiddenStates( LocusAncestry[j], (!isHaploid && (!Loci->isXChromosome(j) || SexIsFemale)) );
+
+	    } // end chromosome loop
+
+	logLikelihood.HMMisOK = true;
+
+    #endif
+
+    }
+
+
+void Pedigree::SampleJumpIndicators( bool /*sampleArrivals*/ )
+    {
+    #if NOT_NEEDED_UNLESS_CONJUGATE_UPDATE
+	for ( ChromIdxType chromIdx = 0 ; chromIdx < getNumChromosomes() ; chromIdx++ )
+	    {
+	    const Chromosome & chrom = getChromosome( chromIdx );
+
+	    // Don't need to sample jump indicators if globalrho and no conjugate
+	    // update of admixture this iteration sample number of arrivals, update
+	    // SumNumArrivals and SumLocusAncestry
+
+	    if ( ! chrom.isXChromosome() )
+		chrom.SampleJumpIndicators( LocusAncestry[chromIdx], gametes[chromIdx],
+					    SumLocusAncestry  , SumNumArrivals, sampleArrivals );
+	    else
+		chrom.SampleJumpIndicators( LocusAncestry[chromIdx], gametes[chromIdx],
+					    SumLocusAncestry_X, SumNumArrivals, sampleArrivals );
+	    } //end chromosome loop
+    #endif
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// Overridden from PedBase
+//-----------------------------------------------------------------------------
+
+void Pedigree::SampleMissingOutcomes(bclib::DataMatrix *Outcome, const vector<bclib::Regression*>& R)
+    {
+    // This code directly copied from Individual::SampleMissingOutcomes() --
+    // could be moved up to base class.
+
+    int NumOutcomes = Outcome->nCols();
+    // sample missing values of outcome variable
+    for ( int k = 0; k < NumOutcomes; k++ )
+	if ( Outcome->isMissing( getIndex(), k ) )
+	    {
+	    if ( R[k]->getRegressionType() == Linear )
+		Outcome->set( getIndex(), k, bclib::Rand::gennor( R[k]->getExpectedOutcome(getIndex()), 1 / sqrt( R[k]->getlambda() ) ) );
+	    else
+		Outcome->set( getIndex(), k, (bclib::Rand::myrand() * R[k]->getExpectedOutcome(getIndex()) < 1) ? 1 : 0 );
+	    }
+    }
+
+
+bool Pedigree::GenotypeIsMissing( unsigned int clIdx ) const
+    {
+    #if TRACK_PEDIGREE_MISSING
+	throw std::runtime_error( "Pedigrees don't yet track missing genotypes." );
+    #else
+	if ( clIdx ) {;} // Suppress compiler warning
+	return false;
+    #endif
+    }
+
+
+bool Pedigree::simpleGenotypeIsMissing( SLocIdxType slIdx ) const
+    {
+    #if TRACK_PEDIGREE_MISSING
+	throw std::runtime_error( "Pedigrees don't yet track missing genotypes." );
+    #else
+	if ( slIdx ) {;} // Suppress compiler warning
+	return false;
+    #endif
+    }
+
+
+bool Pedigree::isHaploidatLocus( unsigned int ) const
+    {
+    #if PEDIGREES_HAVE_PLOIDINESS
+	throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
+    #else
+	return false;
+    #endif
+    }
+
+
+bool Pedigree::isHaploidIndividual() const
+    {
+    #if PEDIGREES_HAVE_PLOIDINESS
+	throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
+    #else
+	return false;
+    #endif
+    }
+
+
+
 //=============================================================================
 // Methods from AdmixedIndividual (overridden from PedBase):
 //=============================================================================
 
 //-----------------------------------------------------------------------------
+//
+/// We don't need this for pedigrees because we calculate the
+/// emission-probabilities (AKA genotype-probabilities) via a different
+/// mechanism (Pedigree::genPossibleStates() et al, which gets called by
+/// InputAdmixData::finishConstructing()).
+///
 /// @param chibIndicator Passed to CompositeLocus object.  If set to true,
 ///		CompositeLocus will use HapPairProbsMAP instead of HapPairProbs
 ///		when allelefreqs are not fixed.
+//
 //-----------------------------------------------------------------------------
 
-void Pedigree::SetGenotypeProbs( /*ChromIdxType*/ int chrmIdx		,
-				 int		      locusWithinChrom  ,
-				 unsigned int	      absCompLocIdx	,
-				 bool		      chibIndicator	)
+void Pedigree::SetGenotypeProbs( /*ChromIdxType*/ int /*chrmIdx*/	    ,
+				 int		      /*locusWithinChrom*/  ,
+				 unsigned int	      /*absCompLocIdx*/	    ,
+				 bool		      /*chibIndicator*/	    )
     {
 
-    #if 1 // Not finished porting yet
-	fprintf( stderr, "Warning: unimplemented Pedigree::SetGenotypeProbs()\n" );
+    #if 1
+
+	#if 0 // DEBUG
+	    fprintf( stderr, "Warning: called unimplemented "
+		"Pedigree::SetGenotypeProbs(this=%s,chrmIdx=%d,locusWithinChrom=%d,absCompLocIdx=%u,chibIndicator=%s)\n",
+		getId().c_str(), chrmIdx, locusWithinChrom, absCompLocIdx, chibIndicator ? "true" : "false" );
+	#endif
+
     #else
 
 
 	#if THE_WAY_IT_WAS_BUT_CLEANED_UP_A_LITTLE
 
 	    // === Code copied from AdmixedIndividual, may or may not be appropriate here ===
+
+	    // DDF: Let's encapsulate isHaploid() in a method [of Pedigree?]
+	    //	    Parameterized on what? simple-locus-index?
+	    //	    (chromosome-index,composite-locus-within-chromosome-index)?
 
 	    if( ! GenotypesMissing[chrmIdx][locusWithinChrom] )
 		{
@@ -963,21 +1401,6 @@ void Pedigree::SetGenotypeProbs( /*ChromIdxType*/ int chrmIdx		,
 			GenotypeProbs[chrmIdx][locusWithinChrom*NumHiddenStates + k] = 1.0;
 		}
 
-	#else // ==== Re-implemented for pedigrees: ====
-
-	    if ( isHaploid(  ) )
-		{ //diploid genotype
-		(*Loci)(locus)->GetGenotypeProbs(	GenotypeProbs[chrmIdx] + locusWithinChrom*NumHiddenStates*NumHiddenStates,
-						    PossibleHapPairs[locus],
-						    chibindicator);
-		}
-	    else
-		{ //haploid genotype
-		(*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[chrmIdx] + locusWithinChrom*NumHiddenStates,
-							PossibleHapPairs[locus],
-							chibindicator);
-		}
-
 	#endif
 
     #endif
@@ -986,8 +1409,31 @@ void Pedigree::SetGenotypeProbs( /*ChromIdxType*/ int chrmIdx		,
 
 
 
+void Pedigree::SampleHapPair( unsigned /*j*/, unsigned /*jj*/, unsigned /*locus*/, AlleleFreqs * /*A*/, bool /*skipMissingGenotypes*/, bool /*annealthermo*/, bool /*UpdateCounts*/ )
+    {
+    #if SUPPORT_ASSOCIATION_TESTS
+	PedBase::SampleHapPair( j, jj, locus, A, skipMissingGenotypes, annealthermo, UpdateCounts );
+    #endif
+    }
+
+
+
+#if PEDBASE_DEBUG_METHODS
+    void Pedigree::dumpTheta( const char * prefix ) const
+	{
+	for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
+	    {
+	    fprintf( stderr, "%s theta (%d,%zd): ", prefix, getMyNumber(), fIdx );
+	    for ( size_t x = 0 ; x < Theta[fIdx].size() ; ++x )
+		fprintf( stderr, " %18.15lf", Theta[fIdx][x] );
+	    fprintf( stderr, "\n" );
+	    }
+	}
+#endif
+
+
 // draw initial values for admixture proportions theta from Dirichlet prior
-void Pedigree::drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha)
+void Pedigree::drawInitialAdmixtureProps( const AlphaType & alpha )
     {
       const PopIdx K = getK();
 
@@ -1001,19 +1447,12 @@ void Pedigree::drawInitialAdmixtureProps(const std::vector<std::vector<double> >
 
 	for ( PopIdx k = 0 ; k < K ; ++k )
 	    {
-	    #if 1 // DEBUG
-		const double a = alpha[fIdx][k];
-		const double b = a / sum;
-		pvector<double> & pv = thetahat[fIdx];
-		pv.at(k) = b;
-	    #else
-		thetahat[fIdx][k] = alpha[fIdx][k] / sum; // set thetahat to prior mean
-	    #endif
+	    thetahat[fIdx][k] = alpha[fIdx][k] / sum; // set thetahat to prior mean
 	    dirparams[k] = alpha[fIdx][k];
 	    }
 
 	// draw theta from Dirichlet with parameters dirparams
-	bclib::Rand::gendirichlet< const std::vector<double> , bclib::pvector<double> >( K, dirparams.getVector_unsafe(), Theta[fIdx] );
+	bclib::Rand::gendirichlet( K, dirparams.getVector_unsafe(), Theta[fIdx] );
 
 	}
 
@@ -1021,21 +1460,185 @@ void Pedigree::drawInitialAdmixtureProps(const std::vector<std::vector<double> >
 
 
 
-#if NEEDED_ONLY_FOR_CONJUGATE_UPDATE
-    //************** Updating (Public) **********************************************************
-    void Pedigree::ResetSufficientStats() {
+void Pedigree::ResetSufficientStats()
+    {
+    #if NEEDED_ONLY_FOR_CONJUGATE_UPDATE
+	//************** Updating (Public) **********************************************************
 	if(NumHiddenStates>1) {
-	  // ** reset SumLocusAncestry to zero
-	  for(int j = 0; j < NumHiddenStates *2; ++j) {
-	    SumLocusAncestry[j] = 0;
-	    SumLocusAncestry_X[j] = 0;
-	  }
+	    // ** reset SumLocusAncestry to zero
+	    for(int j = 0; j < NumHiddenStates *2; ++j) {
+		SumLocusAncestry[j] = 0;
+		SumLocusAncestry_X[j] = 0;
+	    }
 
-	  //SumNumArrivals is the number of arrivals between each pair of adjacent loci
-	  fill(SumNumArrivals.begin(), SumNumArrivals.end(), 0);
+	    //SumNumArrivals is the number of arrivals between each pair of adjacent loci
+	    fill(SumNumArrivals.begin(), SumNumArrivals.end(), 0);
 	}
-      }
+    #else
+	#if 0
+	    if ( ! options.getNoConjugateUpdate() )
+		fprintf( stderr ,
+			 "Warning: called unimplemented Pedigree::ResetSufficientStats(this=%s)\n" ,
+			 getId().c_str() );
+	#endif
+    #endif
+    }
+
+
+
+//-----------------------------------------------------------------------------
+//
+// UpdateScores()
+//
+/// DDF: Code is direct copy from AdmixedIndividual, but cleaned up a little.
+///
+/// Copied comment: "Merge with updatescoretests"
+//
+//-----------------------------------------------------------------------------
+
+#if IMPLEMENTED_AFFECTED_ONLY_SCORE_TEST_FOR_PEDIGREES
+    void Pedigree::UpdateScores( const AdmixOptions & options, bclib::DataMatrix * Outcome, bclib::DataMatrix * Covariates,
+				const vector<bclib::Regression*> & R, AffectedsOnlyTest & affectedsOnlyTest,
+				CopyNumberAssocTest& ancestryAssocTest )
+	{
+	// DDF: admixtureCovars is only needed if options.getTestForLinkageWithAncestry() is
+	//	    turned on, but since it apparently is not too large, just allocate
+	//	    it on the stack here.
+	double admixtureCovars[ NumHiddenStates - 1 ];
+
+	for ( ChromIdxType j = 0; j < numChromosomes; j++ )
+	    {
+	    Chromosome & C = getChromosome(j);
+
+	    // Update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted
+	    // Update Forward/Backward probs in HMM
+	    if ( ! logLikelihood.HMMisOK )
+		UpdateHMMInputs(j, options, Theta, _rho);
+
+	    // Update of score tests for linkage with ancestry requires update of backward probs
+	    if ( options.getTestForLinkageWithAncestry() )
+		for ( int t = NumHiddenStates ; t-- != 0 ; )
+		    admixtureCovars[t] = Covariates->get( getIndex(), Covariates->nCols()-NumHiddenStates+1+t );
+
+	    UpdateScoreTests( options, options.getTestForLinkageWithAncestry() ? admixtureCovars : 0,
+				Outcome, C, R, affectedsOnlyTest, ancestryAssocTest);
+	    } //end chromosome loop
+	}
+#else
+
+    void Pedigree::UpdateScores( const AdmixOptions & options, bclib::DataMatrix *, bclib::DataMatrix *,
+				const vector<bclib::Regression*> &, AffectedsOnlyTest & aoTest,
+				CopyNumberAssocTest & )
+	    {
+	    if ( options.getTestForAffectedsOnly() )
+		accumAOScore( aoTest );
+	    }
+
 #endif
+
+
+
+#if POSTERIOR_MEANS_IS_IMPLEMENTED
+
+//-----------------------------------------------------------------------------
+// getPosteriorMeans() [private helper for WritePosteriorMeans()
+// DDF: code is adapted from code copied from AdmixedIndividual::getPosteriorMeans().
+//-----------------------------------------------------------------------------
+
+void Pedigree::getPosteriorMeans( ThetaType & thetaBar, RhoType & rhoMean, unsigned int samples ) const
+    {
+    const double dSamples = samples;
+
+    #if 0
+	for ( size_t i = SumSoftmaxTheta.size() ; i-- != 0 ; )
+	    SumSoftmaxTheta[i] /= dSamples;
+    #else
+	for ( ThetaType::iterator it = SumSoftmaxTheta.begin() ; it != SumSoftmaxTheta.end() ; ++it )
+	    *it /= dSamples;
+    #endif
+
+    rhoMean.clear();
+    for ( size_t i = sumlogrho.size() ; i-- != 0 ; )
+	rhoMean.push_back( exp( sumlogrho[i] / dSamples ) );
+
+    thetaBar.reserve( getNTheta() );
+
+    // Apply softmax transformation to obtain thetabar
+    for ( FounderIdx fIdx = 0 ; fIdx < getNTheta(); fIdx++ )
+	{
+	const bclib::pvector<double> & thetaEl = Theta[fIdx];
+	if ( thetaBar.size() <= fIdx )
+	    thetaBar.resize( fIdx + 1 );
+	bclib::pvector<double> & thetaBarEl = thetaBar[fIdx];
+
+	#if 0
+	    // Keep track of qualifying elements in boolean array on the stack.
+	    // I believe that this should not be necessary.
+	    bool qualifies[ thetaEl.size() ];
+	    for ( PopIdxType k = getK() ; k-- != 0 ; )
+		qualifies[k] = (thetaEl[k] > 0.0);
+	    thetaEl.softmax_gt0( thetaBarEl );
+	#else
+	    // DDF: It might make more sense if pvector::softmax_gt0() just
+	    // resized the output vector to the number of elements that qualify
+	    // and only pushed those elements onto it.  For now, we will roughly
+	    // replicate the behaviour of
+	    // AdmixedIndividual::getPosteriorMeans(), which leaves the values
+	    // of non-qualifying elements in thetaBar undefined [raw new'd
+	    // contents, indeterminate per ISO C++ 1997-5.3.4(14A)]; instead, we
+	    // will keep slots for them but initialise to 0.
+	    thetaEl.softmax_gt0( thetaBarEl );
+	#endif
+
+	// Rescale sumsoftmaxtheta back (DDF: why weren't the original values preserved?)
+	SumSoftmaxTheta[ fIdx ] *= dSamples;
+	}
+
+    #if SUM_PROBS_IS_IMPLEMENTED
+	if ( getOptions().getLocusAncestryProbsIndicator() )
+	    SumProbs /= double(samples);
+    #endif
+
+    }
+
+#endif // ! POSTERIOR_MEANS_IS_IMPLEMENTED
+
+
+
+//-----------------------------------------------------------------------------
+// WritePosteriorMeans()
+// DDF: code is adapted from code copied from AdmixedIndividual::WritePosteriorMeans().
+//-----------------------------------------------------------------------------
+
+void Pedigree::WritePosteriorMeans( ostream& os, unsigned int samples, bool globalrho ) const
+    {
+
+#if POSTERIOR_MEANS_IS_IMPLEMENTED
+
+    ThetaType thetaBar	;
+    RhoType   rhobar	;
+
+    getPosteriorMeans( thetaBar, rhobar, samples );
+
+    for ( ThetaType::iterator it = thetaBar.begin() ; it != thetaBar.end() ; ++it )
+	{
+	copy( it->begin(), it->end(), ostream_iterator<double>(os, "\t") );
+	os << '\n';
+	}
+
+    if ( ! globalrho )
+	copy( rhobar.begin(), rhobar.end(), ostream_iterator<double>(os, "\t") );
+
+#else // POSTERIOR_MEANS_IS_IMPLEMENTED
+
+    //fprintf( stderr, "Warning: posterior-means is not implemented.\n" );
+    if ( os	   ) {;} // Suppress compiler warning
+    if ( samples   ) {;} // Suppress compiler warning
+    if ( globalrho ) {;} // Suppress compiler warning
+
+#endif // ! POSTERIOR_MEANS_IS_IMPLEMENTED
+
+    }
 
 
 

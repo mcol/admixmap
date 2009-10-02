@@ -22,6 +22,22 @@
 class InputAdmixData;
 class IndAdmixOutputter;
 
+
+
+/// This only takes place if OpenMP is also enabled in the configuration
+/// options, and if the runtime option use-pedigree-for-individual
+/// [getUsePedForInd()] is enabled.
+#define PARALLELIZE_PEDIGREE_LOOP	1
+
+/// This only takes place if OpenMP is also enabled in the configuration
+/// options, and is only meaningful for pedigrees.  It also requires further
+/// work on the pedigree loop in InputAdmixData::finishConstructing, which
+/// currently manipulates the iterator-index in the case of
+/// Mendelian-error-exclusions, which will mess up OpenMP.
+#define PARALLELIZE_EPROB_COMPS		0
+
+
+
 ///Class to hold an array of AdmixedIndividuals
 class AdmixIndividualCollection : public IndividualCollection
 {
@@ -34,30 +50,30 @@ public:
   //void DeleteGenotypes(bool);
   void Initialise(const AdmixOptions& options, const Genome& Loci,
 		  const Vector_s& PopulationLabels, bclib::LogWriter &Log);
-  void DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha);
+  void DrawInitialAdmixture(const PedBase::AlphaType &alpha);
   void LoadData( const AdmixOptions & options, const InputAdmixData & input );
   void getOnePopOneIndLogLikelihood(bclib::LogWriter &Log, const Vector_s& PopulationLabels);
 
   void HMMUpdates(int iteration, const AdmixOptions& options,
-                  const vector<bclib::Regression*> &R, const double* const poptheta,
-                  const vector<vector<double> > &alpha,
+                  const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
+                  const PedBase::AlphaType &alpha,
                   AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
   void SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
-				     const vector<bclib::Regression*> &R, const double* const poptheta,
-				     const vector<vector<double> > &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
+				     const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
+				     const PedBase::AlphaType &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
 
   void SampleParameters(int iteration, const AdmixOptions& options,
-			const vector<bclib::Regression*> &R, const double* const poptheta,
-			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
+			const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
+			const PedBase::AlphaType &alpha, double rhoalpha, double rhobeta,
 			CopyNumberAssocTest& ancestryAssocTest, bool anneal);
-  void setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha,
+  void setChibNumerator(const AdmixOptions& options, const PedBase::AlphaType &alpha,
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
-  void updateChib(const AdmixOptions& options,const vector<vector<double> > &alpha,
+  void updateChib(const AdmixOptions& options,const PedBase::AlphaType &alpha,
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
 
   void FindPosteriorModes(const AdmixOptions& options,
 			  const vector<bclib::Regression*> &R,
-			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, AlleleFreqs* A,
+			  const PedBase::AlphaType &alpha, double rhoalpha, double rhobeta, AlleleFreqs* A,
 			  const Vector_s& PopulationLabels);
 
   void OutputIndAdmixture();
@@ -97,7 +113,7 @@ private:
 
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
 
-  std::vector< std::vector<double> > admixtureprior;
+  std::vector<std::vector<double> > admixtureprior;
   double *SumLogTheta;//sums of log individual admixture proportions
 
   IndAdmixOutputter* indadmixoutput;

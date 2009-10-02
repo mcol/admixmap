@@ -61,6 +61,45 @@ string char2String(char c){
   ss << c;
   return ss.str();
 }
+
+
+
+//-----------------------------------------------------------------------------
+// D. Favro: slight improvement.  Needs a lot more work.
+//-----------------------------------------------------------------------------
+
+void OptionReader::addOption( const string & optName, long & value, long defaultValue )
+    {
+    value=defaultValue;
+    addOption( optName, longOption, &value, false );
+    }
+
+void OptionReader::addOption( const string & optName, long & value, bool required )
+    {
+    addOption( optName, longOption, &value, required );
+    }
+
+void OptionReader::addOption( const string & optName, int & value, int defaultValue )
+    {
+    value=defaultValue;
+    addOption( optName, intOption, &value, false );
+    }
+
+void OptionReader::addOption( const string & optName, int & value, bool required )
+    {
+    addOption( optName, intOption, &value, required );
+    }
+
+void OptionReader::addOption( const string & optName, bool & value, bool defaultValue )
+    {
+    value=defaultValue;
+    addOption( optName, boolOption, &value, false );
+    }
+
+//-----------------------------------------------------------------------------
+
+
+
 void OptionReader::addOption(const string& name, OptionType otype, void* address, bool required){
   ProgOptions[name] = OptionPair(address, otype);
   if(required)RequiredOptions.push_back(name);
@@ -129,27 +168,68 @@ void OptionReader::ReportBadUserOption(ostream& os, string& line, unsigned linen
   os << "** Invalid option: \"" << line << "\" on line " << linenum << " of " << filename << endl;
 }
 
+
+/// Strip leading and trailing whitespace from a string (static helper
+/// function).  Returns true if entire string was whitespace.
+static bool stripWS( string & str )
+    {
+    static const char wsChars [] = " \t\n\r";
+    const string::size_type firstCh = str.find_first_not_of( wsChars, 0, sizeof(wsChars)-1 );
+    if ( firstCh == string::npos )
+	return true; // **** RETURN HERE ****
+    const string::size_type lastCh = str.find_last_not_of( wsChars );
+    if ( (lastCh == string::npos) || (lastCh < firstCh) )
+	throw string( "insanity here" );
+    str = str.substr( firstCh, lastCh + 1 - firstCh );
+    return false;
+    }
+
+
+
+static istream& mgetline( istream& in, string & str, char delim )
+    {
+    char ch;
+    //str.erase();
+    while ( in.get( ch ) )
+	{
+	if ( ch == delim )
+	    return in;
+	else
+	    str += ch;
+	}
+    return in;
+    }
+
+
 ///read user options from file
 bool OptionReader::ReadArgsFromFile(const char* filename){
+  if ( (filename == 0) || (strlen(filename) ==0) )
+    return false;
+
   ifstream fin(filename);
-  if (0 == filename || 0 == strlen(filename)) return false;
+
   if (!fin.is_open()) {
     if(Verbose){
       cerr << "Cannot open file \"" << filename << "\"." << endl;
       //exit(1);
     }
     return false;
-  } 
+  }
 
   std::string str;
   bool badoptions = false;
   unsigned linenum = 0;
   //read in line from file
-  while (getline(fin,str,'\n')){// ## apparent memory leak 
+  while (mgetline(fin,str,'\n')){// ## apparent memory leak 
+
     ++linenum;
+
     //ignore #comments
-    if( str.find_first_of("#") < str.length() ) 
-      str.erase( str.find_first_of("#") );
+    // ****WARNING**** THIS WILL BREAK IF A '#' APPEARS WITHIN A QUOTED STRING!
+    string::size_type comChPos = str.find_first_of("#");
+    if( comChPos != string::npos )
+      str.erase( comChPos );
+
     //skip blank lines
     if(str.find_first_not_of(" \t\n\r") < str.length() )
       {   
@@ -169,23 +249,17 @@ bool OptionReader::ReadArgsFromFile(const char* filename){
 	  badoptions = true;
 	  continue;
 	}
-	//check tokens have graphical characters (not just whitespace)
-	string::size_type graph0 = tokens[0].find_first_not_of(" \t\n\r");
-	string::size_type graph1 = tokens[1].find_first_not_of(" \t\n\r");
-	
-	if(graph0 == string::npos || graph1 == string::npos){
-	  if(Verbose)
+
+	// Check that tokens have graphical characters (not just whitespace),
+	// and strip leading and trailing whitespace:
+	if ( stripWS(tokens[0]) || stripWS(tokens[1]) ) {
+	  if ( Verbose )
 	    ReportBadUserOption(cerr, str, linenum, filename);
 	  badoptions = true;
 	  continue;
 	}
 	hasoptions = true;//we have at least one option
-	//strip leading whitespace
-	tokens[0].erase(0, graph0 );
-	tokens[1].erase(0, graph1 );
-	//strip trailing whitespace
-	tokens[0].erase( tokens[0].find_last_not_of(" \t\n\r") + 1 );
-	tokens[1].erase( tokens[1].find_last_not_of(" \t\n\r") + 1 );
+
 	//convert option name to required format, lowercase and no underscores
 	ParseOptionName(tokens[0]);
 	

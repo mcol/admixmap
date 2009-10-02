@@ -30,6 +30,8 @@ using bclib::Rand;
 using genepi::cvector;
 using genepi::RhoType;
 
+using std::vector;
+
 
 
 //******** Constructors **********
@@ -228,8 +230,8 @@ void AdmixedIndividual::SetStaticMembers( Genome & pLoci, const Options & option
 }
 
 // draw initial values for admixture proportions theta from Dirichlet prior
-void AdmixedIndividual::drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha) {
-  size_t K = NumHiddenStates;
+void AdmixedIndividual::drawInitialAdmixtureProps(const /*vector<vector<double> >*/ AlphaType &alpha) {
+  const size_t K = NumHiddenStates;
   for( unsigned g = 0; g < NumGametes; ++g ) {
     double sum = 0.0;
     for(size_t k = 0; k < K; ++k) {
@@ -241,12 +243,7 @@ void AdmixedIndividual::drawInitialAdmixtureProps(const std::vector<std::vector<
       //cout << dirparams[k] << " ";
     }
     // draw theta from Dirichlet with parameters dirparams
-    #if 0
-      Rand::gendirichlet<const double*,double*>(K, static_cast<const double *>(dirparams),
-						  static_cast<double *	   >(Theta+g*K));
-    #else
-      Rand::gendirichlet( K, dirparams, Theta+g*K );
-    #endif
+    Rand::gendirichlet( K, dirparams, Theta+g*K );
     for(size_t k = 0; k < K; ++k) {
       //cout << Theta[g*K+k] << " ";
     }
@@ -353,7 +350,7 @@ const vector<unsigned>AdmixedIndividual::getSumNumArrivals_X()const{
   }
   return SumN;
 }
-void AdmixedIndividual::getSumNumArrivals(std::vector<unsigned> *sum)const{
+void AdmixedIndividual::getSumNumArrivals(vector<unsigned> *sum)const{
   //should check size of argument
   for(unsigned i = 0; i < sum->size(); ++i){//sum over gametes
     (*sum)[i] += SumNumArrivals[2*i] + SumNumArrivals[2*i + 1];
@@ -533,7 +530,7 @@ void AdmixedIndividual::SampleJumpIndicators(bool sampleArrivals){
 
 ///uses an EM algorithm to search for posterior modes of individual parameters theta and rho
 // uses current values of allele freqs
-void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options, const vector<vector<double> > &alpha,
+void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
 				    double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile) {
   if( A->IsRandom() ) {
     // set genotype probs using HapPairProbsMAP and AlleleProbsMAP
@@ -688,8 +685,8 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options, const ve
 
 void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, const bclib::DataMatrix* const Outcome,
 				     const DataType* const OutcomeType, const vector<double> & lambda, const int NumCovariates,
-				     bclib::DataMatrix * Covariates, const vector<const double*> & beta, const double* const poptheta,
-				     const AdmixOptions& options, const vector<vector<double> > &alpha,
+				     bclib::DataMatrix * Covariates, const vector<const double*> & beta, const PopAdmix::PopThetaType & poptheta,
+				     const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
 				     double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest,
 				     const bool RW, const bool anneal )
 // samples individual admixture proportions
@@ -762,9 +759,11 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
 
 // ****** End Public Interface *******
 
-double AdmixedIndividual::ProposeThetaWithRandomWalk(const AdmixOptions& options, const vector<vector<double> > &alpha) {
+double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha) {
   double LogLikelihoodRatio = 0.0;
   double LogPriorRatio = 0.0;
+
+//fprintf( stderr, "RNG check 2: %20.18lf\n", bclib::Rand::gennor( 20, 10 ) );
 
   //generate proposals
   for( unsigned int g = 0; g < NumGametes; g++ ){
@@ -778,12 +777,16 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk(const AdmixOptions& options
 	} else b[k] = false;
       }
       bclib::inv_softmax(NumHiddenStates, Theta+g*NumHiddenStates, a, b);
+
       //random walk step - on all elements of array a
       for(int k = 0; k < NumHiddenStates; ++k) {
-	if( b[k] ) a[k] = Rand::gennor(a[k], step);
+	if( b[k] )
+	    a[k] = Rand::gennor(a[k], step);
       }
+
       //reverse transformation from numbers on real line to proportions
       bclib::softmax(NumHiddenStates, ThetaProposal+g*NumHiddenStates, a, b);
+
       //compute contribution of this gamete to log prior ratio
       for(int k = 0; k < NumHiddenStates; ++k) {
 	if( b[k] ) {
@@ -816,7 +819,7 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk(const AdmixOptions& options
 // as conjugate Dirichlet posterior conditional on prior parameter vector alpha and
 // multinomial likelihood given by sampled values of ancestry at loci where jump indicator xi is 1 (SumLocusAncestry)
 // proposes new values for both gametes if random mating model
-void AdmixedIndividual::ProposeTheta(const AdmixOptions& options, const vector<vector<double> > &alpha,
+void AdmixedIndividual::ProposeTheta(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
 			      int* sumLocusAncestry, int* sumLocusAncestry_X){
   size_t K = NumHiddenStates;
   if( isHaploid || options.isRandomMatingModel() ){ //random mating model
@@ -847,7 +850,7 @@ void AdmixedIndividual::ProposeTheta(const AdmixOptions& options, const vector<v
 double AdmixedIndividual::LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel,
 							 int NumHiddenStates, int NumCovariates,
 							 const bclib::DataMatrix* const Covariates, const double* beta,
-							 const double Outcome, const double* const poptheta, const double lambda) {
+							 const double Outcome, const PopAdmix::PopThetaType & poptheta, const double lambda) {
   // returns log of ratio of likelihoods of new and old values of population admixture
   // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in.
   double logprobratio = 0.0, XBeta = 0.0, currentXBeta = 0.0;
@@ -888,7 +891,7 @@ double AdmixedIndividual::LogAcceptanceRatioForRegressionModel( RegressionType R
 
 // update individual admixture values (mean of both gametes) used in the regression model
 void AdmixedIndividual::UpdateAdmixtureForRegression( int NumHiddenStates, int NumCovariates,
-                                               const double* const poptheta, bool RandomMatingModel,
+                                               const PopAdmix::PopThetaType & poptheta, bool RandomMatingModel,
 					       bclib::DataMatrix *Covariates) {
   vector<double> avgtheta(NumHiddenStates);
   if(RandomMatingModel && NumGametes==2)//average over gametes
@@ -1045,7 +1048,8 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
     for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
       locus = chrm->GetLocus(jj);
       //retrieve AncestryProbs from HMM
-      std::vector<std::vector<double> > AProbs =
+      // DDF says: should use a const-reference here:
+      vector<vector<double> > AProbs =
 	chrm->getHiddenStateCopyNumberProbs(!isHaploid && (!chrm->isXChromosome() || SexIsFemale),  jj );
 
       //Update affecteds only scores
@@ -1087,7 +1091,7 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
 // this function does two things:
 // 1. calculates log-likelihood at thetahat, rhohat, allelefreqsMAP
 // 2. calculates log prior at same values
-void AdmixedIndividual::setChibNumerator(const AdmixOptions& options, const vector<vector<double> > &alpha,
+void AdmixedIndividual::setChibNumerator(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
 				  double rhoalpha, double rhobeta, chib *MargLikelihood, AlleleFreqs* A) {
 
   // 1. pass value of log-likelihood at MAP parameter values, calculated after finding posterior modes, to chib
@@ -1108,7 +1112,7 @@ void AdmixedIndividual::setChibNumerator(const AdmixOptions& options, const vect
   MargLikelihood->setLogPrior(LogPrior);
 }
 
-void AdmixedIndividual::updateChib(const AdmixOptions& options, const vector<vector<double> > &alpha,
+void AdmixedIndividual::updateChib(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
 				   double rhoalpha, double rhobeta,
 				   // double *thetahat, vector<double> &rhohat,
 				   chib *MargLikelihood, AlleleFreqs* A){
@@ -1143,18 +1147,18 @@ void AdmixedIndividual::updateChib(const AdmixOptions& options, const vector<vec
 
 // TODO: fix these two functions to work with assortative mating
 double AdmixedIndividual::LogPriorTheta_Softmax(const double* const theta, const AdmixOptions& options,
-					 const vector<vector<double> > &alpha) const {
+					 const /*vector<vector<double> >*/ AlphaType &alpha) const {
   double LogPrior=0.0;
   for(unsigned g = 0; g < NumGametes; ++g) { //loop over gametes
     if( options.isAdmixed(g) ){
-      LogPrior += bclib::getDirichletLogDensity_Softmax( alpha[g], theta + g*NumHiddenStates);
+      LogPrior += bclib::getDirichletLogDensity_Softmax( alpha[g].getVector_unsafe(), theta + g*NumHiddenStates);
     }
   }
   return LogPrior;
 }
 
 double AdmixedIndividual::LogPosteriorTheta_Softmax(const AdmixOptions& options, const double* const theta,
-					     const vector<vector<double> > &alpha) const{
+					     const /*vector<vector<double> >*/ AlphaType &alpha) const{
   // calculates log full conditional at theta, conditional on realized locus ancestry states and jump indicators
   double LogPosterior = 0.0;
   vector<double> alphaparams(NumHiddenStates); // , alphaparams1(NumHiddenStates);  // to be set to alpha + SumLocusAncestry
@@ -1212,19 +1216,19 @@ double AdmixedIndividual::LogPosteriorRho_LogBasis(const AdmixOptions & options,
 // these three functions can be used to monitor stability of estimates of components of posterior ordinate
 double AdmixedIndividual::getLogPosteriorTheta()const{
   if(NumHiddenStates > 1){
-    std::vector<double>::const_iterator max = max_element(logPosterior[0].begin(), logPosterior[0].end());
+    vector<double>::const_iterator max = max_element(logPosterior[0].begin(), logPosterior[0].end());
     return bclib::AverageOfLogs(logPosterior[0], *max);
   }
   else return 0.0;
 }
 double AdmixedIndividual::getLogPosteriorRho()const{
   if(NumHiddenStates > 1){
-    std::vector<double>::const_iterator max = max_element(logPosterior[1].begin(), logPosterior[1].end());
+    vector<double>::const_iterator max = max_element(logPosterior[1].begin(), logPosterior[1].end());
     return bclib::AverageOfLogs(logPosterior[1], *max);
   }
   else return 0.0;
 }
 double AdmixedIndividual::getLogPosteriorAlleleFreqs()const{
-  std::vector<double>::const_iterator max = max_element(logPosterior[2].begin(), logPosterior[2].end());
+  vector<double>::const_iterator max = max_element(logPosterior[2].begin(), logPosterior[2].end());
   return bclib::AverageOfLogs(logPosterior[2], *max);
 }

@@ -28,6 +28,7 @@
 
 
 #define TREAT_GFILES_AS_PEDFILES 1 ///< Should we build Pedigree objects for non-ped genotype files?
+				   ///< But see also Pedigree::generatePedigrees()
 #define STATUS_TO_COUT		 1
 
 
@@ -37,6 +38,38 @@
 #include <set>	// Used for pedigree-connected-graph traversal
 
 #include "bclib/estr.h"
+
+
+
+//=============================================================================
+// Compile-time options for data validation:
+//=============================================================================
+
+/// Should we consider male with diploid genotype-data on X chromosome fatal error?
+#define MALE_DIPLOID_X_FATAL		0
+
+/// Should male with diploid genotype-data on X chromosome issue warning if the
+/// two gametes' alleles are the same?
+#define MALE_DIPLOID_X_WARN_HOMO	0
+
+/// Male diploid genotypes on X chromosome should be regarded as missing or haploid?
+#define MALE_DIPLOID_X_HOMO_MISSING	0
+#define MALE_DIPLOID_X_HETERO_MISSING	0
+
+/// Should an individual with no genotypes be a fatal error?
+#define NO_GENOTYPES_FATAL		0
+
+
+/// Not sure why we would, but we could count the number of loci on the X chromosome
+#define COUNT_X_LOCI			0
+
+
+// If WAIT_DONT_THROW is turned on, when we encounter an error, just print a
+// diagnostic to cerr, then throw one error after all processing is finished.
+// If not, throw immediately.
+#define WAIT_DONT_THROW			1
+
+//=============================================================================
 
 
 
@@ -50,15 +83,28 @@ namespace genepi { // ----
 
 
 //----------------------------------------------------------------------------
-// sexFromInt() [protected]
+// lexSex() [protected]
 //----------------------------------------------------------------------------
 
-Organism::SexType GenotypeParser::sexFromInt( long s )
+Organism::SexType GenotypeParser::lexSex()
     {
-    if ( (s < 0) || (s > 2) )
-	throwError( estr("invalid sex code: ") + s );
+    Organism::SexType rv;
 
-    return static_cast<Organism::SexType>( s );
+    const Token & tok = lexToken();
+
+    if ( tok.isType( T_INTEGER ) )
+	{
+	const long s = tok.getIntVal();
+	if ( (s < 0) || (s > 2) )
+	    throwError( estr("invalid sex code: ") + s );
+	rv = static_cast<Organism::SexType>( s );
+	}
+    else if ( tok.isType(T_STRING) && equalsCaseInsens(tok.getStrVal(),"na") )
+	rv = Organism::SEX_UNKNOWN;
+    else
+	throwError( estr("expected integer or \"NA\" in sex column; found ") + tok.getTypeName() );
+
+    return rv;
     }
 
 
@@ -285,6 +331,70 @@ void GenotypeParser::buildAndCheckPedGraphs()
 
 
 //-----------------------------------------------------------------------------
+// Check the input data for some basic validation.
+//-----------------------------------------------------------------------------
+
+void GenotypeParser::validateOrg( const Organism & org ) const
+    {
+
+    const SimpleLocusArray & sLoci = getSLoci();
+
+    // Some counts:
+    int nMissing    = 0;
+    int nNotMissing = 0;
+
+    for ( SLocIdxType locIdx = sLoci.size() ; locIdx-- != 0 ; )
+	{
+
+	// Male X-chromosome must be haploid; everything else must be diploid.
+
+	const SimpleLocus & locus  = sLoci[ locIdx ];
+	const bool	    isX	   = locus.isXChrom();
+	const Genotype &    gType  = org.getGType( locIdx );
+	const bool	    isMale = org.isMale();
+
+	if ( gType.isMissing2() )
+	    ++nMissing;
+	else
+	    {
+	    ++nNotMissing;
+
+	    if ( gType.isHaploid() )
+		{
+		if ( ! (isMale && isX) )
+		    warn( estr("organism ") + org.idDesc() + " at locus " + locus.getName() +
+			    ": haploid genotype data on non-male organism or non-X chromosome" );
+		}
+	    else
+		{
+		if ( isMale && isX )
+		    warn( estr("organism ") + org.idDesc() + " at locus " + locus.getName() +
+			    ": diploid genotype data on male organism's X chromosome" );
+		}
+	    }
+
+	}
+
+
+    // The problem with generating this warning here for pedfiles is that these
+    // are often valid organisms in the context of pedigrees, typically because
+    // they are the parent of an organism that _does_ have observed data; but we
+    // don't know at this stage weather an organism has children since the
+    // pedigree graphs have not yet been connected.
+    if ( (! isPedFile()) && (nNotMissing == 0) )
+	{
+	#if NO_GENOTYPES_FATAL
+	    org.throwError( "no observed genotypes" );
+	#else
+	    warn( estr("organism ") + org.idDesc() + ": has no observed genotypes." );
+	#endif
+	}
+
+    }
+
+
+
+//-----------------------------------------------------------------------------
 // Constructor:
 //-----------------------------------------------------------------------------
 
@@ -324,6 +434,9 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	lexLineStrings( headers );
 
 
+	bool pedHasOutcome = true;
+
+
 	//------------------------------------------------------------------
 	// Check the number of columns and categorize the file format:
 	//------------------------------------------------------------------
@@ -355,13 +468,16 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		std::cout << "format: has-sex genotype file";
 	    #endif
 	    }
-	else if ( nCols == (nLoci + 6) )
+	else if ( (nCols == (nLoci + 5)) || (nCols == (nLoci + 6)) )
 	    {
 	    hasSexFlag = false;
 	    isPedFileFlag = true;
-	    gtypeOffset = 6;
+	    pedHasOutcome = (nCols == (nLoci + 6));
+	    gtypeOffset = nCols - nLoci;
 	    #if STATUS_TO_COUT
 		std::cout << "format: pedigree file";
+		if ( ! pedHasOutcome )
+		    std::cout << " (no outcomes)";
 	    #endif
 	    }
 	else
@@ -445,9 +561,10 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		else
 		    row.depth = Organism::UNKNOWN_DEPTH;
 
-		row.sex = sexFromInt( lexInteger( "sex" ) );
+		row.sex = lexSex();
 
-		row.outcome = lexInteger( "affected-status" );
+		if ( pedHasOutcome )
+		    row.outcome = lexInteger( "affected-status" );
 		}
 	    else
 		{
@@ -463,7 +580,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		    warn( estr("organism-ID ") + row.famId + " is duplicated on line #" + dup->getLineNum() );
 
 		if ( hasSexColumn() )
-		    row.sex = sexFromInt( lexInteger( "sex" ) );
+		    row.sex = lexSex();
 		else
 		    row.sex = Organism::SEX_UNKNOWN;
 		}
@@ -508,6 +625,9 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	    // That should be the last data on the line:
 	    if ( ! lexToken().isType( T_EOL ) )
 		throwError( "spurious garbage at end of line (i.e. too many fields)" );
+
+
+	    validateOrg( row );
 
 
 	    // Add the newly-parsed row to the container of organisms.  If we
@@ -595,6 +715,92 @@ const Organism * GenotypeParser::
 	}
 
     return 0;
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// Check the input data for some basic validation.
+//-----------------------------------------------------------------------------
+
+void GenotypeParser::validate() const
+    {
+
+    const SimpleLocusArray & sLoci = getSLoci();
+
+    #define KEEP_LIST_OF_PLOID_ERRS 0
+    #if KEEP_LIST_OF_PLOID_ERRS
+	cvector< const SimpleLocusArray * > diploidShouldBeHaploid;
+	cvector< const SimpleLocusArray * > haploidShouldBeDiploid;
+    #endif
+
+    for ( RowsType::const_iterator it = rows.begin() ; it != rows.end() ; ++it )
+	{
+
+	const Organism & org = *it;
+
+	// Some counts:
+	int nMissing	= 0;
+	int nNotMissing = 0;
+
+	#if KEEP_LIST_OF_PLOID_ERRS
+	    diploidShouldBeHaploid.clear();
+	    haploidShouldBeDiploid.clear();
+	#endif
+
+	for ( SLocIdxType locIdx = sLoci.size() ; locIdx-- != 0 ; )
+	    {
+
+	    // Male X-chromosome must be haploid; everything else must be diploid.
+
+	    const SimpleLocus & locus	= sLoci[ locIdx ];
+	    const bool		isX	= locus.isXChrom();
+	    const Genotype &	gType	= org.getGType( locIdx );
+	    const bool		isMale	= org.isMale();
+
+	    if ( gType.isMissing2() )
+		++nMissing;
+	    else
+		{
+		++nNotMissing;
+
+		if ( gType.isHaploid() )
+		    {
+		    if ( ! (isMale && isX) )
+			#if KEEP_LIST_OF_PLOID_ERRS
+			    haploidShouldBeDiploid.push_back( &locus );
+			#else
+			    warn( org.inLineDesc() + ": " + org.idDesc() +
+				    ": haploid genotype data on non-male organism or non-X chromosome" );
+			#endif
+		    }
+		else
+		    {
+		    if ( isMale && isX )
+			#if KEEP_LIST_OF_PLOID_ERRS
+			    diploidShouldBeHaploid.push_back( &locus );
+			#else
+			    warn( org.inLineDesc() + ": " + org.idDesc() +
+				    ": diploid genotype data on male organism's X chromosome" );
+			#endif
+		    }
+		}
+
+	    }
+
+
+	if ( nNotMissing == 0 )
+	    {
+	    #if NO_GENOTYPES_FATAL
+		org.throwError( "no observed genotypes" );
+	    #else
+		warn( org.inLineDesc() + ": " + org.idDesc()
+			+ ": has no observed genotypes." );
+	    #endif
+	    }
+
+	} // End organism loop
+
     }
 
 

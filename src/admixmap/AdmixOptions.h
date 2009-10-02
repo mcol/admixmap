@@ -24,10 +24,15 @@ using namespace::std;
 /// Class to hold program options
 class AdmixOptions : public Options
 {
+private:
+  bool noConjugateUpdate;
+  bool printPedSummary;
+  int  excludePedsOver;
+
 public:
   AdmixOptions(int, char**);
   ~AdmixOptions();
-  
+
   int checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals);
   void PrintUserOptions(const char* filename);
   bool SetOptions();
@@ -50,12 +55,12 @@ public:
   double getRhobetaRate()const;
   double getRhoPriorMean()const;
 
-  const std::vector<double> & getInitAlpha(int) const;
-  const genepi::cvector<std::vector<double> > & getInitAlpha()const;
+  const genepi::cvector<double> & getInitAlpha(int) const;
+  const genepi::cvector<genepi::cvector<double> > & getInitAlpha() const;
   int sizeInitAlpha() const;
   double getEtaMean() const;
   double getEtaVar() const;
-  const genepi::cvector<float>& getPopAdmixSamplerParams()const;
+  const genepi::cvector<float>& getPopAdmixSamplerParams() const;
 
   //indicators and model options
   bool getCorrelatedAlleleFreqs() const;
@@ -73,6 +78,10 @@ public:
   bool getFixedAlleleFreqs() const;
   bool getLocusAncestryProbsIndicator() const;
   const string& getPopLabelString()const;
+
+  bool getNoConjugateUpdate() const { return noConjugateUpdate; }
+  bool getPrintPedSummary  () const { return printPedSummary  ; }
+  int  getExcludePedsOver  () const { return excludePedsOver  ; }
 
   //score test indicators 
   bool getScoreTestIndicator() const;
@@ -94,6 +103,16 @@ public:
   bool getLocusForTestIndicator() const;
   int getLocusForTest() const;
   
+
+  /// Aggregate: are any association tests requested?
+  bool hasAnyAssociationTests() const
+    {
+    return (getTestForHaplotypeAssociation  () ||
+	    getTestForAdmixtureAssociation  () ||
+	    getTestForAllelicAssociation    () ||
+	    getTestForResidualAllelicAssoc  () );
+    }
+
 private:
   int Populations;
   bool locusForTestIndicator;
@@ -129,7 +148,7 @@ private:
   genepi::cvector<double> rhoPrior;
   genepi::cvector<double> alpha0;
   genepi::cvector<double> alpha1;
-  genepi::cvector< std::vector<double> > initalpha;
+  genepi::cvector< genepi::cvector<double> > initalpha;
   double etamean, etavar;//gamma parameters for dispersion parameter
 
   genepi::cvector<float> popAdmixSamplerParams;//parameters for sampler of population admixture
@@ -138,16 +157,16 @@ private:
   string EtaOutputFilename;
   string IndAdmixtureFilename;
   string IndAdmixModeFilename;
-  string alleleFreqFilename;  
+  string alleleFreqFilename;
   string HistoricalAlleleFreqFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;
   string PopLabels;
-  
-  void SetDefaultValues();  
+
+  void SetDefaultValues();
   void DefineOptions();
   void setInitAlpha(bclib::LogWriter &Log);
-  bool CheckInitAlpha( const std::vector<double> & alphatemp )const;
+  bool CheckInitAlpha( const genepi::cvector<double> & alphatemp )const;
   void AddFilenamesToUserOptions();
 
   // UNIMPLEMENTED: to avoid use

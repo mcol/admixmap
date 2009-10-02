@@ -57,7 +57,7 @@ public:
   static int SampleFromDiscrete( const double probs[] , int numberofelements);
   ///Dirichlet
   template<typename ConstVecType, typename VecType> \
-	static void gendirichlet( size_t K, ConstVecType & alpha, VecType & theta );
+	static void gendirichlet( size_t K, const ConstVecType & alpha, VecType & theta );
   static void gendirichlet( size_t K, const double * alpha, double * theta )
       { gendirichlet<const double *, double *>( K, alpha, theta ); }
 

@@ -30,7 +30,6 @@
 
 #include "AncestryVector.h"
 #include "HiddenStateSpace.h"
-#include "HiddenStateSpace.h"
 #include "InheritanceVector.h"
 
 
@@ -169,7 +168,11 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 	    ped.getSLoci()[sLocIdx].getName() << ") received a zero emission-probability.\n";
 
     // stateProbs is mutable, so we don't need to const_cast<> here:
-    ped.stateProbs[sLocIdx].getEProb( av, iv ) += emProb;
+    #if 0 // addToEProbAt() tracks the number of non-zero e-probs
+	ped.stateProbs[sLocIdx].getEProb( av, iv ) += emProb;
+    #else
+	ped.stateProbs[sLocIdx].addToEProbAt( av, iv, emProb );
+    #endif
 
     #if DEBUG_EMISSION_PROBS
 	if ( dEmission )
@@ -180,6 +183,7 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 	    output_hs( std::cout, founderHapState, ped, true )
 		<< " is " << emProb
 		<< " total so far: " << ped.getStateProbs(sLocIdx).getEProb(av,iv)
+		<< "; number of non-zero so far: " << ped.getStateProbs(sLocIdx).getNNon0()
 		<< '\n';
 	    }
     #else
@@ -516,13 +520,15 @@ void Pedigree::genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alPro
 	{
 	const size_t nLoc = getSLoci().size();
 
-	// We want this, but ISO C++ forbids it:
-	//stateProbs = new HiddenStateSpace[ nLoc ]( *this, K );
-
-	// So, instead we have this:
-	stateProbs = new HiddenStateSpace[ nLoc ];
-	for ( size_t sLocIdx = 0 ; sLocIdx < nLoc ; ++sLocIdx )
-	    stateProbs[ sLocIdx ] . init( *this, K );
+	#if 0
+	    // We want this, but ISO C++ forbids it:
+	    stateProbs = new HiddenStateSpace[ nLoc ]( *this, K );
+	#else
+	    // So, instead we have this:
+	    stateProbs = new HiddenStateSpace[ nLoc ];
+	    for ( size_t sLocIdx = 0 ; sLocIdx < nLoc ; ++sLocIdx )
+		stateProbs[ sLocIdx ] . init( *this, K );
+	#endif
 	}
 
     for ( size_t sLocIdx = 0 ; sLocIdx < getSLoci().size() ; ++sLocIdx )

@@ -216,7 +216,7 @@ protected:
       genepi::Pedigree &		  getPed( size_t idx )	{ return peds[idx] ; }
     public:
       const genepi::cvector<genepi::Pedigree> & getPeds() const { return peds; }
-  const genepi::Pedigree &			getPed( size_t idx ) const { return peds[idx] ; }
+      const genepi::Pedigree &			getPed( size_t idx ) const { return peds[idx] ; }
       bool isPedFile() const { return genotypeLoader->isPedFile(); }
     protected:
   #else

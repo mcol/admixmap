@@ -19,6 +19,12 @@
 #endif
 #include <fstream>
 
+#if defined(_OPENMP)
+    #include <omp.h>
+    #include "HiddenMarkovModel.new.h"		// For HMM_PARALLELIZE_FWD_BKWD
+    #include "AdmixIndividualCollection.h"	// For PARALLELIZE_PEDIGREE_LOOP
+#endif
+
 #define ADMIXMAP_VERSION "3"
 #define SUBVERSION	 "8."
 
@@ -32,36 +38,102 @@ using namespace genepi;
 #define DEBUG_PRINT_EPROBS  0 // **** PRINT EMISSION PROBABILITIES DEBUG-CODE ****
 #define max_print_states    12
 
-
-
 #if DEBUG_PRINT_EPROBS
-
     #include "HiddenStateSpace.h"
-
-    //-----------------------------------------------------------------------------
-    /// Output a summary of a pedigree
-    //-----------------------------------------------------------------------------
-
-    ostream & ped_sum( ostream & os, const Pedigree & ped )
-	{
-	os << "pedigree \""
-		    << ped.getId() << "\" (" << ped.getNMembers() << " members, "
-		    << ped.getNFounders() << " founders, "
-		    << ped.getNNonFndrs() << " non-founders)";
-	return os;
-	}
-
 #endif
 
 
 
+
+//-----------------------------------------------------------------------------
+// startupOMPMessage()
+// Print parallel message
+//-----------------------------------------------------------------------------
+
+static void startupOMPMessage( const AdmixOptions & options )
+    {
+    #if defined(_OPENMP)
+
+	cout << "\n<<< OpenMP version >>>  CPUs: " << omp_get_num_procs() <<
+	    " / max to use: " << omp_get_max_threads() << "\n";
+
+	cout << "  -> pedigree-parallelization "
+	#if PARALLELIZE_PEDIGREE_LOOP
+		    "enabled.\n";
+	    if ( ! options.getUsePedForInd() )
+		cout << "  ***WARNING*** pedigree-parallelization currently not supported without use-pedigree-for-individual.\n";
+	#else
+		    "*not* enabled.\n";
+	#endif
+
+	cout << "  -> forward-backwards parallelization "
+	#if HMM_PARALLELIZE_FWD_BKWD
+		    "enabled.\n";
+	#else
+		    "*not* enabled.\n";
+	#endif
+
+	#if ! (PARALLELIZE_PEDIGREE_LOOP || HMM_PARALLELIZE_FWD_BKWD)
+	    cout << "  -> *** NO parallelization enabled???\n";
+	#endif
+
+	cout << '\n';
+
+
+	#if (PARALLELIZE_PEDIGREE_LOOP && HMM_PARALLELIZE_FWD_BKWD)
+	    omp_set_dynamic( true );
+	#endif
+	#if PARALLELIZE_PEDIGREE_LOOP
+	    omp_set_nested ( true );
+	#endif
+
+    #else
+
+	if ( options.getUsePedForInd() ) {;} // Suppress compiler warning
+	cout << "\n<<< serial-execution version >>>\n\n";
+
+    #endif
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// main()
+//-----------------------------------------------------------------------------
+
 int main( int argc , char** argv ){
   AdmixOptions options(argc, argv);
+
+
+  if ( ! (options.CheckRequiredOptions() && options.SetOptions()) )
+    {
+    bclib::LogWriter LW;
+    PrintCopyrightNotice(LW);
+    startupOMPMessage( options );
+    return 1;
+    }
+
+
+  #if defined(_OPENMP)
+    const int n_cpus = options.getMaxCPUsToUse();
+    if ( n_cpus != 0 )
+	{
+	if ( n_cpus > omp_get_num_procs() )
+	    {
+	    cerr << "admixmap: notice: parallel CPU limit of " << n_cpus <<
+		" exceeds physical number of CPUs (" << omp_get_num_procs() << ")\n";
+	    }
+	else
+	    omp_set_num_threads( n_cpus );
+	}
+  #endif
+
 
   //print version number and copyright info, if requested, and exit
   if(options.getFlag("version")){
     bclib::LogWriter LW;
     PrintCopyrightNotice(LW);
+    startupOMPMessage( options );
     exit(1);
   }
 
@@ -73,8 +145,6 @@ int main( int argc , char** argv ){
     //options.PrintAllOptions(cout);
     exit(1);
   }
-  if(!options.CheckRequiredOptions() || !options.SetOptions())
-    exit(1);
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
 
@@ -87,6 +157,7 @@ int main( int argc , char** argv ){
  
   //if(options.getDisplayLevel()>0 )
   PrintCopyrightNotice(Log);
+  startupOMPMessage( options );
   if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
   Log.StartMessage();
  
@@ -143,8 +214,8 @@ int main( int argc , char** argv ){
 
     #if DEBUG_PRINT_EPROBS // **** PRINT EMISSION PROBABILITIES DEBUG-CODE ****
 
-	const bool   print_eprobs	= true;
-	const bool   print_ssize	= true;
+	const bool print_eprobs	= true;
+	const bool print_ssize	= true;
 
 	const cvector<Pedigree> & peds = const_cast<const InputAdmixData &>( data ) .getPeds();
 	const SimpleLocusArray &  loci = data.getSimpleLoci();
@@ -175,11 +246,18 @@ int main( int argc , char** argv ){
 	    if ( (ped.getNNonFndrs() > 1) || (ped.getNFounders() > 1) )
 		cout << '\n';
 
+	    size_t st_total = 0;
+	    size_t nz_total = 0;
+	    size_t prev_non_zero = 0;
+	    size_t prev_possible = 0;
+	    size_t tot_trans_prob = 0;
+	    size_t tot_trans_prob_nz = 0;
+
 	    for ( SLocIdxType sLocIdx = 0 ; sLocIdx < loci.size() ; ++sLocIdx )
 		{
 		const HiddenStateSpace & space = ped.getStateProbs( sLocIdx );
 
-		if ( print_eprobs || print_ssize )
+		if ( print_eprobs || (print_ssize && (space.getNStates() > 65)) )
 		    cout << (print_eprobs ? "\n" : "  ") << "Simple-locus \"" << loci[ sLocIdx ].getName() << "\":";
 
 		size_t n_states = 0;
@@ -197,12 +275,34 @@ int main( int argc , char** argv ){
 		if ( print_eprobs )
 		    cout << "\n  ";
 
-		if ( print_eprobs || print_ssize )
+		st_total += space.getNStates();
+		nz_total += n_states;
+
+		tot_trans_prob_nz += (n_states * prev_non_zero);
+		prev_non_zero = n_states;
+		tot_trans_prob += (space.getNStates() * prev_possible);
+		prev_possible = space.getNStates();
+
+		if ( print_eprobs || (print_ssize && (space.getNStates() > 65)) ) // && (n_states != space.getNStates())) )
+		    {
+		    const unsigned long percent = ((n_states * 1000) + (space.getNStates()>>1)) / space.getNStates();
 		    cout << ' ' << space.getNStates() << " states, of which "
-			<< n_states << " have non-zero emission probability.\n";
+			<< n_states << " have non-zero emission probability"
+			    " (" << (percent/10) << '.' << (percent % 10) << "%)\n";
+		    }
 
 		if ( print_eprobs )
 		    cout << "\n\n";
+		}
+
+	    if ( print_eprobs || print_ssize )
+		{
+		const unsigned long percent = ((nz_total * 1000) + (st_total>>1)) / st_total;
+		cout << " overall, " << st_total << " states, of which "
+			<< nz_total << " have non-zero emission probability"
+			    " (" << (percent/10) << '.' << (percent % 10) << "%)\n";
+		cout << "  of " << tot_trans_prob << " possible transition-probabilites, "
+			<< tot_trans_prob_nz << " are between existent states.\n";
 		}
 
 	    }
@@ -275,6 +375,3 @@ void PrintCopyrightNotice(bclib::LogWriter& Log){
        << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl
        << "-------------------------------------------------------" << endl;
 }
-
-
-

@@ -47,6 +47,8 @@ protected:
     #if AGGRESSIVE_RANGE_CHECK
 	if ( cIdx >= NumberOfChromosomes )
 	    throwErr( "chromosome range" );
+    #else
+	if ( cIdx ) {;} // Suppress compiler warning
     #endif
     }
 

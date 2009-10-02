@@ -149,11 +149,29 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
       else
 	theta[1] = theta[0];
       
+#define DEBUG_AOTEST 0
+#if DEBUG_AOTEST
+  fprintf( stderr, "AProbs: %zd\n", AProbs.size() );
+  for ( size_t idx1 = 0 ; idx1 < AProbs.size() ; ++idx1 )
+    {
+    const vector<double> & apRow = AProbs[ idx1 ];
+    fprintf( stderr, "%3zd[%zd] ", idx1, apRow.size() );
+    for ( size_t idx2 = 0 ; idx2 < apRow.size() ; ++idx2 )
+	fprintf( stderr, " %.9lf", apRow[idx2] );
+    putc( '\n', stderr );
+    }
+  fprintf(stderr, "AOT-debug-2: t=%d,k=%d,k0=%d mu[0]=%.12lf mu[1]=%.12lf", locus, k, k0, theta[0], theta[1] );
+  fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[locus*K+k] );
+#endif
       //accumulate score, score variance, and info
       AffectedsScore[locus *K + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
       AffectedsVarScore[locus * K + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
       AffectedsInfo[locus * K +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
       
+#if DEBUG_AOTEST
+  fprintf(stderr, " cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n", AffectedsScore[locus*K+k],
+    AffectedsVarScore[locus*K+k], AffectedsInfo[locus*K+k] );
+#endif
       //probs of 0,1,2 copies of Pop k given admixture
       Pi[2] = theta[0] * theta[1];
       Pi[1] = theta[0] * (1.0 - theta[1]) + theta[1] * (1.0 - theta[0]);

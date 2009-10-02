@@ -17,6 +17,11 @@
 #include "DispersionFreqs.h"
 #include "CorrelatedFreqs.h"
 
+#define DEBUG_ITER_TIMES    0
+#if DEBUG_ITER_TIMES
+    #include "CodeTimer.h"
+#endif
+
 using namespace::bclib;
 
 AdmixMapModel::AdmixMapModel(){
@@ -48,11 +53,11 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
   pA = A;//set pointer to AlleleFreqs object
 
   AdmixedIndividuals = new AdmixIndividualCollection( options, data, Loci ); //NB call after A Initialise;//and before L and R Initialise
-  IC = (IndividualCollection*) AdmixedIndividuals;
+  IC = AdmixedIndividuals;
   AdmixedIndividuals->LoadData( options, data );
   AdmixedIndividuals->setGenotypeProbs(&Loci); // sets unannealed probs
 
-  const int numdiploid = IC->getNumDiploidIndividuals();
+  const int numdiploid = AdmixedIndividuals->getNumDiploidIndividuals();
   const int numindivs = data.getNumberOfIndividuals();
   if(numindivs > 1){
     Log.setDisplayMode(Quiet);
@@ -67,7 +72,7 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
 
 
   L = new PopAdmix(options, Loci);
-  L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
+  L->Initialise(AdmixedIndividuals->getSize(), data.GetPopLabels(), Log);
   A->PrintPrior(data.GetPopLabels(), Log);
 
   if( options.getPopulations()>1 && (options.isGlobalRho())) {
@@ -111,6 +116,12 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
   if(!AnnealedRun) cout << endl;
 
   for( int iteration = 0; iteration <= samples; iteration++ ) {
+
+    #if DEBUG_ITER_TIMES
+	genepi::CodeTimer ct;
+	fprintf( stderr, "\nIteration-%d: 1 %s\n", iteration, ct.local_started().c_str() );
+    #endif
+
     if( iteration > burnin) {
       if( options.getTestOneIndivIndicator() ) {
 	AdmixedIndividuals->accumulateEnergyArrays(options);
@@ -118,16 +129,20 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
       AccumulateEnergy(Coolnesses, coolness, options, SumEnergy, SumEnergySq, AISz, AnnealedRun, iteration );
     }
 
-
     //Write Iteration Number to screen
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
+    else
+      fputs( ". ", stderr ); fflush( stderr );
 
     //Sample Parameters
     UpdateParameters(iteration, options, Log, data.GetHiddenStateLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
     SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
 	       AnnealedRun);
+    #if DEBUG_ITER_TIMES
+	fprintf( stderr, "Iteration-%d: end %s\n", iteration, ct.local_elapsed().c_str() );
+    #endif
 
   }// end loop over iterations
   //use Annealed Importance Sampling to calculate marginal likelihood
@@ -137,13 +152,12 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
 
 void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, LogWriter& Log,
 		      const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal){
-    //cast Options pointer to AdmixOptions pointer for access to ADMIXMAP options
-  //TODO: change pointer to reference
-  const AdmixOptions& options = (const AdmixOptions&) _options;
+
+  const AdmixOptions & options = dynamic_cast<const AdmixOptions &>( _options );
 
   // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
-  if(anneal || options.getTestOneIndivIndicator())
-    AdmixedIndividuals->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses);
+  if ( anneal || options.getTestOneIndivIndicator() )
+    AdmixedIndividuals->annealGenotypeProbs( Loci.GetNumberOfChromosomes(), coolness, Coolnesses );
 
 
   A->ResetAlleleCounts(options.getPopulations());
@@ -182,7 +196,8 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
 				   Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
 
   // loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
-  AdmixedIndividuals->SampleHapPairs(options, A, &Loci, true, anneal, true);
+  if ( options.hasAnyAssociationTests() )
+    AdmixedIndividuals->SampleHapPairs(options, A, &Loci, true, anneal, true);
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if( !anneal && iteration > options.getBurnIn() ){
@@ -263,7 +278,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
       if( iteration == options.getBurnIn() ){
 
 	if(options.getTestForHaplotypeAssociation())
-	  Scoretests.MergeRareHaplotypes(L->getalpha0());
+	  Scoretests.MergeRareHaplotypes(L->getalpha0().getVector_unsafe());
 
 	if( options.getStratificationTest() )
 	  StratTest.Initialize( &options, Loci, IC, Log);

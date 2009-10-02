@@ -93,6 +93,8 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 		    throw std::out_of_range( estr("cvector-index ") + el +
 			" out of range (" + size() + ')' );
 		}
+	#else
+	    void range_check( size_t /*el*/ ) const {}
 	#endif
 
     public:
@@ -100,6 +102,7 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 	// Constructors:
 	cvector() {}
 	cvector( size_t init_size ) : v( init_size ) {}
+	cvector( size_t init_size, const T & init_val ) : v( init_size, init_val ) {}
 	cvector( const cvector & rhs ) : v( rhs.v ) {}
 	cvector( const std::vector<T,Alloc> & rhs ) : v( rhs ) {}
 
@@ -125,6 +128,9 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 
 	T &	  at( size_t el )	{ return operator[]( el ); }
 	const T & at( size_t el ) const { return operator[]( el ); }
+
+	T &	  at_unsafe( size_t el )       { return v[el]; }
+	const T & at_unsafe( size_t el ) const { return v[el]; }
 
 	void push_back ( const T & el ) { v.push_back( el ); }
 	void pop_back  ( const T & el ) { v.pop_back ( el ); }

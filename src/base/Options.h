@@ -31,6 +31,18 @@
 /// Class to hold program options
 class Options: public bclib::OptionReader
 {
+private:
+  bool usePedForInd	; ///< Use Pedigree rather than Individual objects for individuals (single-member pedigrees).
+  bool warningsAreErrors; ///< Abort execution without running model if input data contains warnings.
+  int  maxCPUsToUse	; ///< Maximum CPUs (cores) to use in parallel.  0 (default) for all available.
+
+  /// When parsing pedigree files, turn parent-IDs that refer to non-existent
+  /// individuals into unknown-parent.  Otherwise there are errors.
+  bool ignoreInvalidParents;
+
+  bool excludeMendelError;
+  bool excludeUnaffectedSibs;
+
 public:
   virtual ~Options();
   virtual bool SetOptions();
@@ -135,8 +147,6 @@ protected:
   bool ReadUserOptions(int, char**, const char* fileargIndicator = 0);
 private:
 
-  bool usePedForInd; ///< Use Pedigree rather than Individual objects for individuals (single-member pedigrees).
-
   // UNIMPLEMENTED: to avoid use
   Options(const Options&);
   Options& operator=(const Options&);
@@ -144,7 +154,22 @@ private:
 
   public:
 
-    bool getUsePedForInd() const { return usePedForInd; } ///< Use Pedigree rather than Individual objects for individuals (single-member pedigrees).
+    bool getUsePedForInd     () const { return usePedForInd	; } ///< Use Pedigree rather than Individual objects for
+								    ///< unrelated individuals (i.e. single-member pedigrees).
+    bool getWarningsAreErrors() const { return warningsAreErrors; } ///< Abort execution without running model if
+								    ///< the input data generates and warnings.
+    int	 getMaxCPUsToUse     () const { return maxCPUsToUse	; } ///< Maximum CPUs (cores) to use in parallel.
+								    ///< 0 (default) for all available.
+
+    /// When parsing pedigree files, turn parent-IDs that refer to non-existent
+    /// individuals into unknown-parent.  Otherwise there are errors.
+    bool getIgnoreInvalidParents() const { return ignoreInvalidParents; }
+
+    /// Should pedigrees with Mendelian inconsistencies be excluded from the input dataset?
+    bool getExcludeMendelError() const { return excludeMendelError; }
+
+    /// Should exclude unaffected non-founders?
+    bool getExcludeUnaffectedSibs() const { return excludeUnaffectedSibs; }
 
 };
 

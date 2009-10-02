@@ -80,6 +80,7 @@ HiddenStateSpace::HiddenStateSpace( const Pedigree & _ped, PopIdx _K ) :
 	K     ( _K			 ) ,
 	N_IVs ( 1U << _ped.getNMeiosis() ) , // 2^M
 	N_AVs ( k_pow_f( _K, _ped )	 ) , // K^F
+	nNon0 ( 0			 ) ,
 	probs ( new ProbType [ aSize() ] )
     {
     }
@@ -97,6 +98,7 @@ void HiddenStateSpace::init( const Pedigree & _ped, PopIdx _K )
     K	  = _K			     ;
     N_IVs = 1U << _ped.getNMeiosis() ; // 2^M
     N_AVs = k_pow_f( _K, _ped )	     ; // K^F
+    nNon0 = 0			     ;
     probs = new ProbType [ aSize() ] ;
     #if DEBUG_DENSITY
 	if ( aSize() > 70000 )
@@ -143,14 +145,15 @@ HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp ) :
 	space	 ( sp ) ,
 	av	 ( sp.getPed(), sp.getK() ) ,
 	iv	 ( sp.getPed() ) ,
-	idx	 ( 0 ) ,
+	sIdx	 ( 0 ) ,
+	non0Idx  ( 0 ) ,
 	finished ( false )
     {
     for ( size_t aIdx = av.size() ; aIdx-- != 0 ; )
 	av.setAt( aIdx, 0 );
     iv.set_ulong( 0 );
 
-    if ( sp.getEProb(idx) == 0.0 )
+    if ( sp.getEProb( sIdx ) == 0.0 )
 	advance();
     }
 
@@ -163,6 +166,10 @@ bool HiddenStateSpace::Iterator::advance()
 	#error Must reimplement HiddenSpaceState::Iterator::advance() for IV-most-significant order
     #endif
 
+
+    if ( (! finished) && (space.getEProb( sIdx ) != 0.0) )
+	if ( ++non0Idx == space.getNNon0() ) // Saves skipping past the last segment of 0-EPs
+	    return (finished = true); // **** RETURN HERE ****
 
     do
 	{
@@ -194,18 +201,19 @@ bool HiddenStateSpace::Iterator::advance()
 
 	    if ( ! finished )
 		{
-		++idx;
-		gp_assert( idx == (av.to_ulong() * space.N_IVs) );
+		++sIdx;
+		gp_assert( sIdx == (av.to_ulong() * space.N_IVs) );
 		}
 	    }
 	else
 	    {
 	    iv.set_ulong( nextIV );
-	    ++idx;
+	    ++sIdx;
 	    //gp_assert( idx == (av.to_ulong() * space.N_IVs) + nextIV );
 	    }
 
-	} while ( (! finished) && (space.getEProb(idx) == 0.0) );
+	} while ( (! finished) && (space.getEProb(sIdx) == 0.0) );
+
 
     return finished;
     }
@@ -216,7 +224,7 @@ HiddenStateSpace::State HiddenStateSpace::Iterator::getState() const
     {
     gp_assert( ! finished );
 
-    State rv = { av, iv, space.getEProb(idx) };
+    State rv = { av, iv, space.getEProb(sIdx) };
 
     return rv;
     }
@@ -233,19 +241,6 @@ HiddenStateSpace::State HiddenStateSpace::stateAtIdx( StateIdxType idx ) const
     gp_assert( rv.av.size() != 0 );
     rv.iv.set_ulong( iv_idx );
     return rv;
-    }
-
-
-
-//-----------------------------------------------------------------------------
-// Compatibility methods for "old" (individual-based) HMM:
-//-----------------------------------------------------------------------------
-
-void HiddenStateSpace::lambdaAsArrayOfDouble( double * lambda ) const
-    {
-    StateIdxType limit = getNStates();
-    for ( StateIdxType idx = 0 ; idx < limit ; ++idx )
-	lambda[ idx ] = getEProb( idx );
     }
 
 

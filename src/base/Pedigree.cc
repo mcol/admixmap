@@ -77,10 +77,12 @@
 // We really must find a way to auto-box with STL:
 #if 0
     #define PED_PB(rv, organisms, firstInd, lastInd ) \
-	rv.push_back( organisms, firstInd, lastInd )
+	rv.push_back( organisms, firstInd, lastInd ) , \
+	rv.back().myNumber = rv.size()
 #else
     #define PED_PB(rv, organisms, firstInd, lastInd ) \
-	rv.push_back( Pedigree( organisms, firstInd, lastInd ) )
+	rv.push_back( Pedigree( organisms, firstInd, lastInd ) ) , \
+	rv.back().myNumber = rv.size()
 #endif
 
 
@@ -190,6 +192,7 @@ Pedigree::Pedigree( const OrganismArray & pool,
 	nMendelErrs	( 0			   ) ,
 	mendelErrsByLocus( 0			   ) ,
 	stateProbs	( 0			   ) ,
+	nAffected	( 0			   ) ,
 	step		( 0.3			   ) ,
 	NumberOfUpdates ( 0			   ) ,
 	w		( 1			   ) ,
@@ -212,6 +215,22 @@ Pedigree::Pedigree( const OrganismArray & pool,
 	    ++nFounders;
 	    traverseChildTree( m );
 	    }
+
+	if ( m.getOutcome() != 0 )
+	    ++nAffected;
+#if 0
+	else
+	    {
+	    // If requested, exclude unaffected siblings.  This should probably take
+	    // place earlier, in GenotypeParser.
+	    if ( getOptions().getExcludeUnaffectedSibs() && (! m.isFounder()) && m.getChildren().empty() )
+		{
+		++firstM;
+		continue;
+		}
+	    }
+#endif
+
 	++firstM;
 	++mPtr;
 	}
@@ -223,11 +242,11 @@ Pedigree::Pedigree( const OrganismArray & pool,
     // allocated until much later anyhow.
     bclib::pvector<double> Kzero;
     Kzero.resize( getK(), 0.0 );
-    Theta	    .resize( getNTheta() );
-    ThetaProposal   .resize( getNTheta() );
-    SumSoftmaxTheta .resize( getNTheta() );
+    Theta	    .resize( getNTheta()	);
+    ThetaProposal   .resize( getNTheta()	);
+    SumSoftmaxTheta .resize( getNTheta(), Kzero );
     thetahat	    .resize( getNTheta(), Kzero );
-    dirparams	    .resize( getK()	 );
+    dirparams	    .resize( getK()		);
 
 
     // Set the initial values for Theta:
@@ -311,17 +330,22 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	nMendelErrs	    ( rhs.nMendelErrs	    ) ,
 	mendelErrsByLocus   ( rhs.mendelErrsByLocus ) ,
 	stateProbs	    ( rhs.stateProbs	    ) ,
+	nAffected	    ( rhs.nAffected	    ) ,
 	Theta		    ( rhs.Theta		    ) , // See NOTE *2*
 	ThetaProposal	    ( rhs.ThetaProposal	    ) , // See NOTE *2*
 	SumSoftmaxTheta	    ( rhs.SumSoftmaxTheta   ) , // See NOTE *2*
 	thetahat	    ( rhs.thetahat	    ) , // See NOTE *2*
 	dirparams	    ( rhs.dirparams	    ) , // See NOTE *2*
+	_rho		    ( rhs._rho		    ) , // See NOTE *2*
+	sumlogrho	    ( rhs.sumlogrho	    ) , // See NOTE *2*
+	rhohat		    ( rhs.rhohat	    ) , // See NOTE *2*
 	logLikelihood	    ( rhs.logLikelihood	    ) , // See NOTE *2*
 	step		    ( rhs.step		    ) , // See NOTE *2*
 	NumberOfUpdates	    ( rhs.NumberOfUpdates   ) , // See NOTE *2*
 	w		    ( rhs.w		    ) , // See NOTE *2*
 	ThetaTuner	    ( rhs.ThetaTuner	    ) , // See NOTE *2*
 	NumGametes	    ( rhs.NumGametes	    ) , // See NOTE *2*
+	myNumber	    ( rhs.myNumber	    ) , // See NOTE *2*
 	tpCache		    ( rhs.tpCache	    ) , // See NOTE *2*
 	hmm		    ( rhs.hmm		    )	// See NOTE *2*
     {
@@ -344,19 +368,26 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     nMendelErrs		= rhs.nMendelErrs	;
     mendelErrsByLocus	= rhs.mendelErrsByLocus ;
     stateProbs		= rhs.stateProbs	;
+    nAffected		= rhs.nAffected		;
+
+    // See NOTE *2*:
     Theta		= rhs.Theta		;
     ThetaProposal	= rhs.ThetaProposal	;
     SumSoftmaxTheta	= rhs.SumSoftmaxTheta	;
     thetahat		= rhs.thetahat		;
     dirparams		= rhs.dirparams		;
-
-    // See NOTE *2*:
+    _rho		= rhs._rho		;
+    sumlogrho		= rhs.sumlogrho		;
+    rhohat		= rhs.rhohat		;
     logLikelihood	= rhs.logLikelihood	;
     step		= rhs.step		;
     NumberOfUpdates	= rhs.NumberOfUpdates	;
     w			= rhs.w			;
     ThetaTuner		= rhs.ThetaTuner	;
     NumGametes		= rhs.NumGametes	;
+    myNumber		= rhs.myNumber		;
+
+
     tpCache		= rhs.tpCache		;
     hmm			= rhs.hmm		;
 
@@ -418,12 +449,11 @@ void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedig
 
     gp_assert( ! curFamId.empty() );
 
-    // Ugly data-type but pretty method-call:
+    // Ugly data-type but pretty method-call (no "output"/"reference" parameters):
     const std::pair<OrganismArray::ConstPedIter,OrganismArray::ConstPedIter> &
 	interval = organisms.findOrgsInPed( curFamId );
 
     PED_PB( rv, organisms, interval.first, interval.second );
-    rv.back().myNumber = rv.size();
     }
 
 
@@ -453,9 +483,9 @@ void Pedigree::throwMRange( size_t mIdx ) const
 bool Pedigree::haveMendelErrAt( SLocIdxType t ) const
     {
     #if AGGRESSIVE_RANGE_CHECK
-    if ( t >= getNSLoci() )
-	throw std::out_of_range( estr("Simple-locus-index ") + t +
-		" out of range (" + getNSLoci() + ')' );
+	if ( t >= getNSLoci() )
+	    throw std::out_of_range( estr("Simple-locus-index ") + t +
+		    " out of range (" + getNSLoci() + ')' );
     #endif
 
     return (nMendelErrs != 0) && mendelErrsByLocus[t];

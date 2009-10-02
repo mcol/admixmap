@@ -134,7 +134,7 @@ unsigned int PedBase::getIndex() const { not_implemented( "getIndex()", typeid(*
 
 // Methods from AdmixedIndividual:
 
-void PedBase::drawInitialAdmixtureProps(const vector<vector<double> > & /*alpha*/) { not_implemented( "drawInitialAdmixtureProps()", typeid(*this) ); }
+void PedBase::drawInitialAdmixtureProps(const AlphaType & /*alpha*/) { not_implemented( "drawInitialAdmixtureProps()", typeid(*this) ); }
 
 
 void PedBase::SetGenotypeProbs(int /*j*/, int /*jj*/, unsigned /*locus*/, bool /*chibindicator*/) { not_implemented( "SetGenotypeProbs()", typeid(*this) ); }
@@ -151,8 +151,8 @@ void PedBase::SampleJumpIndicators(bool /*sampleArrivals*/) { not_implemented( "
 
 void PedBase::SampleTheta( int /*iteration*/, double * /*SumLogTheta*/, const bclib::DataMatrix * /*Outcome*/,
 	const DataType * /*OutcomeType*/, const std::vector<double> & /*lambda*/, int /*NumCovariates*/,
-	bclib::DataMatrix * /*Covariates*/, const std::vector<const double*> & /*beta*/, const double * /*poptheta*/,
-	const AdmixOptions & /*options*/, const vector<vector<double> > & /*alpha*/,
+	bclib::DataMatrix * /*Covariates*/, const std::vector<const double*> & /*beta*/, const PopThetaType & /*poptheta*/,
+	const AdmixOptions & /*options*/, const AlphaType & /*alpha*/,
 	double /*DInvLink*/, double /*dispersion*/, CopyNumberAssocTest & /*ancestryAssocTest*/, bool /*RW*/, bool /*anneal*/) { not_implemented( "SampleTheta()", typeid(*this) ); }
 
 
@@ -160,7 +160,7 @@ void PedBase::SampleRho(const AdmixOptions& /*options*/, double /*rhoalpha*/,
 	double /*rhobeta*/, bool /*updateSumLogRho*/) { not_implemented( "SampleRho()", typeid(*this) ); }
 
 
-void PedBase::FindPosteriorModes(const AdmixOptions & /*options*/, const vector<vector<double> > &/*alpha*/,
+void PedBase::FindPosteriorModes(const AdmixOptions & /*options*/, const AlphaType &/*alpha*/,
 	  double /*rhoalpha*/, double /*rhobeta*/, AlleleFreqs* /*A*/, ofstream &/*modefile*/) { not_implemented( "FindPosteriorModes()", typeid(*this) ); }
 
 
@@ -175,11 +175,11 @@ void PedBase::UpdateScores(const AdmixOptions& /*options*/, bclib::DataMatrix * 
     CopyNumberAssocTest & /*ancestryAssocTest*/ ) { not_implemented( "UpdateScores()", typeid(*this) ); }
 
 
-void PedBase::setChibNumerator(const AdmixOptions& /*options*/, const vector<vector<double> > & /*alpha*/, double /*rhoalpha*/,
+void PedBase::setChibNumerator(const AdmixOptions& /*options*/, const AlphaType & /*alpha*/, double /*rhoalpha*/,
 	double /*rhobeta*/, chib * /*MargLikelihood*/, AlleleFreqs */*A*/) { not_implemented( "setChibNumerator()", typeid(*this) ); }
 
 
-void PedBase::updateChib(const AdmixOptions& /*options*/, const vector<vector<double> > & /*alpha*/, double /*rhoalpha*/,
+void PedBase::updateChib(const AdmixOptions& /*options*/, const AlphaType & /*alpha*/, double /*rhoalpha*/,
 	double /*rhobeta*/, chib * /*MargLikelihood*/, AlleleFreqs */*A*/) { not_implemented( "updateChib()", typeid(*this) ); }
 
 
@@ -202,6 +202,9 @@ void PedBase::WritePosteriorMeans(ostream& /*os*/, unsigned /*samples*/, bool /*
 
 
 void PedBase::WritePosteriorMeansLoci(ostream& /*os*/) const { not_implemented( "WritePosteriorMeansLoci()", typeid(*this) ); }
+
+
+void PedBase::setRho( double /*nv*/ ) {}
 
 
 

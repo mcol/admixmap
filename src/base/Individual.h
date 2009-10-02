@@ -95,6 +95,7 @@ protected:
   static unsigned int	    numChromosomes   ;
   static int		    NumHiddenStates  ; ///< Number of hidden states in the hidden Markov model.
 					       ///< Or perhaps sometimes the square-root of that number.
+					       ///< Who named it "NumHiddenStates" if that's not what it is?
   static Genome *	    Loci	     ;
   static bool		    Xdata	     ; ///< indicates if there is an X chromosome
   static unsigned int	    X_posn	     ; ///< number of X chromosome
@@ -142,6 +143,12 @@ protected:
 
   public:
     const genepi::RhoType & getRho() const;
+
+
+    // ====== DEBUGGING METHODS (overridden from PedBase) ======
+    #if PEDBASE_DEBUG_METHODS
+	virtual void dumpTheta( const char * prefix ) const;
+    #endif
 };
 
 

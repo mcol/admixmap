@@ -30,8 +30,12 @@
 #include <iostream>
 #include <iomanip>
 
+#include "HiddenStateSpace.h"
+
+
 
 using namespace std;
+
 
 
 namespace genepi { // ----
@@ -107,6 +111,49 @@ ostream & print_aggregate_summary( ostream & os, const vector<Pedigree> & peds )
     return os;
     }
 
+
+
+//-----------------------------------------------------------------------------
+/// Output a summary of a pedigree.
+//-----------------------------------------------------------------------------
+
+ostream & ped_sum( ostream & os, const Pedigree & ped )
+    {
+    os << "pedigree "
+		<< ped.getId() << " (" << ped.getNMembers() << " members, "
+		<< ped.getNFounders() << " founders, "
+		<< ped.getNNonFndrs() << " non-founders, "
+		<< ped.getNAffected() << " affected)";
+    return os;
+    }
+
+
+
+//-----------------------------------------------------------------------------
+/// Output a summary of a pedigree, with hidden-state-space details.
+//-----------------------------------------------------------------------------
+
+ostream & ped_sum_hss( ostream & os, const Pedigree & ped )
+    {
+    HiddenStateSpace::StateIdxType tot_ns = 0;
+    HiddenStateSpace::StateIdxType tot_nz = 0;
+
+    for ( SLocIdxType sloc = ped.getSLoci().size() ; sloc-- != 0 ; )
+	{
+	const HiddenStateSpace & hss = ped.getStateProbs( sloc );
+	tot_ns += hss.getNStates();
+	tot_nz += hss.getNNon0();
+	}
+
+    gp_assert( tot_ns != 0 );
+
+    return ped_sum( os, ped ) << " ("
+	<< ped.getNMendelErrs() << " Mendelian errors; "
+	<< tot_ns << " total states; "
+	<< tot_nz << " non-zero; "
+	<< (((tot_nz * 10 / ped.getSLoci().size()) + 5) / 10) << " average size; "
+	<< fixed << setprecision(1) << (double(tot_nz) * 100 / tot_ns) << "% average fill-factor)";
+    }
 
 
 

@@ -236,6 +236,7 @@ class GFileLexer
 	int		 lineNum	;
 	int		 lastTokenLine	; ///< the line # on which the last token was parsed
 	mutable int	 nWarnings	;
+	mutable int	 nErrors	;
 	std::list<char>  pb_cstack	;
 	std::list<Token> pb_tstack	;
 	char		 gtypeDelim	;
@@ -275,11 +276,16 @@ class GFileLexer
 	/// Throw a syntax-error exception.  This should probably be public if
 	/// the upper-level parsing classes instantiate and use this class
 	/// rather than deriving from it.  The error message will contain the
-	/// current filename and line number.
-	void throwError( const string & msg ) const throw(ParseError) GP_NO_RETURN;
+	/// current filename and line number.  If @a atLastTokenLine is true,
+	/// the line-number is that of the previous token rather than the
+	/// current position (e.g. after parsing the last token on a line, the
+	/// current line number is likely the following line, yet typically
+	/// during processing of that token, error messages would pertain to the
+	/// previous line).
+	void throwError( const string & msg, bool atLastTokenLine = true ) const throw(ParseError) GP_NO_RETURN;
 	void assert_type( TokenType t, const Token & tok, const char * fieldName = 0 ) const throw(ParseError);
 
-	/// Issue a warning message and increase the number of warnings
+	/// Issue a warning message and increase the number of warnings.
 	void warn( const string & msg ) const;
 
 

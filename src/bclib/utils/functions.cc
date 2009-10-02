@@ -189,9 +189,15 @@ double AverageOfLogs(const std::vector<double>& vec, double max)
 
   return log(sum) + max;
 }
+
+
+
+//-------------------------------------------------------------------------
 ///inverse softmax transformation.
-/// Transforms proportions mu to numbers a on real line.  
+/// Transforms proportions mu to numbers a on real line.
 /// elements of a sum to 0
+//-------------------------------------------------------------------------
+
 void inv_softmax(size_t K, const double* const mu, double *a){
   double logz = 0.0;
   gsl_sf_result result;
@@ -216,9 +222,14 @@ void inv_softmax(size_t K, const double* const mu, double *a){
   gsl_set_error_handler (old_handler);//restore gsl error handler 
 }
 
+
+
+//-------------------------------------------------------------------------
 /// softmax transformation
 /// Inverse of inv_softmax transformation. 
 /// elements of array a need not sum to zero 
+//-------------------------------------------------------------------------
+
 void softmax(size_t K, double *mu, const double* a){
   double z = 0.0;
   double amax = a[0];
@@ -247,8 +258,14 @@ void softmax(size_t K, double *mu, const double* a){
   gsl_set_error_handler (old_handler);//restore gsl error handler 
   for(unsigned k = 0; k < K; ++k) mu[k] /= z;
 }
+
+
+
+//-------------------------------------------------------------------------
 ///partial inverse-softmax transformation.
 ///transformation is applied only to elements with b=true
+//-------------------------------------------------------------------------
+
 void inv_softmax(size_t K, const double* const mu, double *a, const bool* const b){
   double logz = 0.0;
   for(unsigned k = 0; k < K; ++k) {
@@ -261,8 +278,13 @@ void inv_softmax(size_t K, const double* const mu, double *a, const bool* const 
   for(unsigned k = 0; k< K; ++k) if(b[k]) a[k] += logz;
 }
 
+
+
+//-------------------------------------------------------------------------
 ///partial softmax transformation
 ///transformation is applied only to elements with b=true
+//-------------------------------------------------------------------------
+
 void softmax(size_t K, double *mu, const double* a, const bool* const b){
   double z = 0.0;
   double amax = a[0];
@@ -277,7 +299,11 @@ void softmax(size_t K, double *mu, const double* a, const bool* const b){
   for(unsigned k = 0; k < K; ++k) if(b[k]) mu[k] /= z;
 }
 
+
+
+//-------------------------------------------------------------------------
 // ************* Matrix Algebra **************************************
+//-------------------------------------------------------------------------
 
 ///Caller for gsl_linalg_HH_solve.
 ///This function solves the system A x = b directly using Householder transformations. 

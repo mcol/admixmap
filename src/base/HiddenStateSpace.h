@@ -71,9 +71,10 @@ class HiddenStateSpace
     {
     public:
 	typedef float ProbType;
-	typedef size_t AncestryIdxType;
-	typedef size_t InheritanceIdxType;
-	typedef size_t StateIdxType;
+	typedef size_t AncestryIdxType	    ;
+	typedef size_t InheritanceIdxType   ;
+	typedef size_t StateIdxType	    ; ///< Indexes all (including 0-EP states)
+	typedef size_t Non0IdxType	    ; ///< Indexes only existent (non-0-EP) states
 
     private:
 
@@ -88,10 +89,11 @@ class HiddenStateSpace
 	/// Number of IVs = 2^M where M is the number of meioses in the pedigree
 	/// Number of AVs = K^F where K is the number of populations and F is the
 	///	number of founder gametes in the pedigree.
-	size_t N_IVs;
-	size_t N_AVs; ///< @see { N_IVs }
+	size_t	    N_IVs;
+	size_t	    N_AVs; ///< @see { N_IVs }
+	Non0IdxType nNon0;
 
-	ProbType * probs;
+	ProbType *  probs;
 
 	StateIdxType aSize() const { return (N_IVs * N_AVs); }
 
@@ -115,7 +117,8 @@ class HiddenStateSpace
 
 	/// Get the number of states, including those with 0 probability.  See
 	/// also stateAtIdx().
-	StateIdxType getNStates() const { return aSize(); }
+	StateIdxType getNStates () const { return aSize() ; }
+	Non0IdxType getNNon0	() const { return nNon0	  ; }
 
 
 	/// Set all emission-probabilities to zero.
@@ -150,14 +153,28 @@ class HiddenStateSpace
 	    #endif
 	    }
 
+	/// Add @a amt to the e-prob at @a idx
+	void addToEProbAt( StateIdxType idx, double amt )
+	    {
+	    ProbType & rv = probs[ idx ];
+	    #if TRACK_UNVISITED_STATES
+		if ( rv == State::NOT_VISITED )
+		    rv = 0.0;
+	    #endif
+
+	    if ( rv == 0.0 )
+		++nNon0;
+
+	    rv += amt;
+	    }
+
 	#if TRACK_UNVISITED_STATES
 	    bool nodeIsVisited( StateIdxType idx ) { return (probs[idx] != State::NOT_VISITED); }
 	#endif
 
 
-	/// Get the emission probability for the state defined by @a av and @a iv.
-	/// See also getEProb(StateIdxType).
-	ProbType & getEProb( const AncestryVector & av, const InheritanceVector & iv )
+	/// Translate an ancestry-vector and an inheritance-vector into a StateIdxType.
+	StateIdxType idxOf( const AncestryVector & av, const InheritanceVector & iv ) const
 	    {
 	    const unsigned long iv_idx = iv.to_ulong();
 	    const unsigned long av_idx = av.to_ulong();
@@ -168,17 +185,30 @@ class HiddenStateSpace
 	    // We can use either arrangement scheme; if this is changed,
 	    // Iterator::advance() must be reimplemented:
 	    #if HSS_AV_MOST_SIG
-		return getEProb( (av_idx * N_IVs) + iv_idx );
+		return (av_idx * N_IVs) + iv_idx;
 	    #else
-		return getEProb( (iv_idx * N_AVs) + av_idx );
+		return (iv_idx * N_AVs) + av_idx;
 	    #endif
 	    }
 
+	/// Get the emission probability for the state defined by @a av and @a iv.
+	/// See also getEProb(StateIdxType).
+	ProbType & getEProb( const AncestryVector & av, const InheritanceVector & iv )
+	    {
+	    return getEProb( idxOf( av, iv ) );
+	    }
 
 	/// Const version; result is not a modifiable reference
 	ProbType getEProb( const AncestryVector & av, const InheritanceVector & iv ) const
 	    {
-	    return const_cast<HiddenStateSpace*>(this)->getEProb( av, iv );
+	    return getEProb( idxOf( av, iv ) );
+	    }
+
+	/// Add @a amt to the e-prob at the state defined by @a av and @a iv.
+	/// See also addToEProbAt(StateIdxTyoe).
+	void addToEProbAt( const AncestryVector & av, const InheritanceVector & iv, double amt )
+	    {
+	    addToEProbAt( idxOf(av,iv), amt );
 	    }
 
 
@@ -253,7 +283,8 @@ class HiddenStateSpace
 		const HiddenStateSpace & space;
 		AncestryVector		 av;
 		InheritanceVector	 iv;
-		StateIdxType		 idx;
+		StateIdxType		 sIdx;
+		Non0IdxType		 non0Idx;
 
 		/// Can avoid keeping this finished flag by implementing
 		/// isFinished() as "return (idx < space.aSize())";
@@ -262,7 +293,7 @@ class HiddenStateSpace
 	    public:
 
 		Iterator( const HiddenStateSpace & sp );
-		Iterator( const HiddenStateSpace & sp, StateIdxType idx );
+		//Iterator( const HiddenStateSpace & sp, StateIdxType idx );
 
 		const HiddenStateSpace & getSpace() const { return space; }
 
@@ -289,21 +320,36 @@ class HiddenStateSpace
 		/// typically more efficient than getState()/operator*():
 		const AncestryVector &	  getAV	  () const { return av; }
 		const InheritanceVector & getIV   () const { return iv; }
-		double			  getEProb() const { return space.getEProb(idx); }
+		double			  getEProb() const { return space.getEProb(sIdx); }
 
 
 		/// Provide access to the "index" of the state currently
-		/// "pointed to".  This is an inelegant exposure of the internal
-		/// implementation of the iterator, but because we @b do use the
-		/// index-style access (in part because it enables us to keep
-		/// "parallel arrays"), providing this bridge between the two
-		/// methods of access allows us to iterate with Iterator at
-		/// times when we need the index for access to external parallel
-		/// arrays; otherwise would have to do all iteration via
-		/// integral indices.  The value returned here can be passed to
+		/// "pointed to".  This is the index based on the overall
+		/// potential number of states at this locus for this pedigree,
+		/// *not* index on the states the IV of which is consistent with
+		/// the genotyped data (for that, see getNon0Index()).  This is
+		/// an inelegant exposure of the internal implementation of the
+		/// iterator, but because we @b do use the index-style access
+		/// (in part because it enables us to keep "parallel arrays"),
+		/// providing this bridge between the two methods of access
+		/// allows us to iterate with Iterator at times when we need the
+		/// index for access to external parallel arrays; otherwise
+		/// would have to do all iteration via integral indices.  The
+		/// value returned here can be passed to
 		/// HiddenStateSpace::stateAtIdx(), although
 		/// getState()/operator*() does the same, but more efficiently.
-		StateIdxType getIndex() const { return idx; }
+		StateIdxType getOverallIndex() const { return sIdx; }
+
+		/// Provide access to the "index" of the state currently
+		/// "pointed to".  This is the index based on only those states
+		/// at this locus for this pedigree the IV of which is
+		/// consistent with the genotyped data, *not* indexed on the
+		/// potential number of states (for that, see
+		/// getOverallIndex()).  This index is really only useful
+		/// outside of this class, (e.g. for indexing into the
+		/// transition-probability matrix); all of the indexes that are
+		/// passed back into this class are StateIdxType.
+		Non0IdxType getNon0Index() const { return non0Idx; }
 	    };
 
 
@@ -315,16 +361,10 @@ class HiddenStateSpace
 	AncestryVector	  avFromIdx( AncestryIdxType	aIdx ) const;
 	InheritanceVector ivFromIdx( InheritanceIdxType iIdx ) const;
 
-	/// Indexed-based access to states.  See also getNStates().
+	/// Indexed-based access to states.  See also getNStates().  Consider
+	/// using Iterator instead.
 	State stateAtIdx( StateIdxType ) const;
 
-
-
-	//-----------------------------------------------------------------------------
-	// Compatibility methods for "old" (individual-based) HMM:
-	//-----------------------------------------------------------------------------
-
-	void lambdaAsArrayOfDouble( double * lambda ) const;
     };
 
 

@@ -50,14 +50,8 @@ void pvector<T>::snapToZero(){
  for(typename pvector<T>::iterator i = this->begin(); i != this->end(); ++i){
   if(*i < threshold) *i = 0;
  } 
- snapToZero(threshold);
+ //snapToZero(threshold); // DDF: WTF: This appears to cause infinite recursion, so I commented it out.
  this->normalize();
-}
-
-template <class T>
-void pvector<T>::snapToZero(const T t_threshold){
-  threshold = t_threshold;
-  snapToZero();
 }
 
 
@@ -70,8 +64,8 @@ template < typename T > template< typename DestIter > void pvector<T>::inv_softm
     {
     gsl_sf_result result;
 
-    gsl_error_handler_t * old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-    // Can't just use this? gsl_set_error_handler(&GSLErrorHandler);
+    // Disable default gsl error handler:
+    gsl_error_handler_t * const old_handler = gsl_set_error_handler_off();
 
     T logz = 0.0;
 
@@ -104,12 +98,13 @@ template < typename T > template< typename DestIter > void pvector<T>::inv_softm
 
 
 
-template < typename T > template< typename DestIter, typename QualFunctor > void pvector<T>::inv_softmax( DestIter dest, QualFunctor qualifies ) const
+template < typename T > template< typename DestIter, typename QualFunctor > void pvector<T>::inv_softmax( DestIter dest, QualFunctor qualifies, const T & defVal ) const
     {
+
     gsl_sf_result result;
 
-    gsl_error_handler_t * old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-    // Can't just use this? gsl_set_error_handler(&GSLErrorHandler);
+    // Disable default gsl error handler:
+    gsl_error_handler_t * const old_handler = gsl_set_error_handler_off();
 
     bool qualArray[ size() ];
 
@@ -135,7 +130,7 @@ template < typename T > template< typename DestIter, typename QualFunctor > void
 	    logz -= result.val;
 	    }
 	else
-	    *destPtr = 0.0;
+	    *destPtr = defVal;
 	}
 
     // Perhaps this should divide by the number of _qualifying_ elements?
@@ -152,11 +147,12 @@ template < typename T > template< typename DestIter, typename QualFunctor > void
 	    }
 
     gsl_set_error_handler( old_handler ); //restore gsl error handler
+
     }
 
 
 
-template < typename T > template< typename DestIter, typename QualFunctor > void pvector<T>::softmax( DestIter dest, QualFunctor qualifies ) const
+template < typename T > template< typename DestIter, typename QualFunctor > void pvector<T>::softmax( DestIter dest, QualFunctor qualifies, const T & defVal ) const
     {
     bool qualArray[ size() ];
 
@@ -180,10 +176,12 @@ template < typename T > template< typename DestIter, typename QualFunctor > void
     for ( const_iterator it = begin(); it != end(); ++it, ++destPtr )
 	if ( *qualPtr++ )
 	    {
-	    const double val = exp( *it - amax );
+	    const T val = exp( *it - amax );
 	    total += val;
 	    *destPtr = val;
 	    }
+	else
+	    *destPtr = defVal;
 
     qualPtr = qualArray;
     for ( const_iterator it = begin(); it != end(); ++it, ++dest )
@@ -201,27 +199,25 @@ template bool pvector<double>::is_normalized();
 template void pvector<double>::normalize();
 template bool pvector<double>::verify();
 template void pvector<double>::snapToZero();
-template void pvector<double>::snapToZero(double);
 
 template bool pvector<float>::is_normalized();
 template void pvector<float>::normalize();
 template bool pvector<float>::verify();
 template void pvector<float>::snapToZero();
-template void pvector<float>::snapToZero(float);
 
 
 template void pvector<double>::inv_softmax<double*>( double* ) const;
-template void pvector<double>::inv_softmax<pvector<double>::iterator>( pvector<double>::iterator ) const;
+template void pvector<double>::inv_softmax<genepi::cvector<double>::iterator>( pvector<double>::iterator ) const;
 
 typedef bool (* DoubleTester)(double);
-template void pvector<double>::inv_softmax<double*,DoubleTester>( double*, DoubleTester ) const;
-template void pvector<double>::inv_softmax<pvector<double>::iterator,DoubleTester>( pvector<double>::iterator, DoubleTester ) const;
+template void pvector<double>::inv_softmax<double*,DoubleTester>( double*, DoubleTester, const double& ) const;
+template void pvector<double>::inv_softmax<genepi::cvector<double>::iterator,DoubleTester>( pvector<double>::iterator, DoubleTester, const double& ) const;
 
-template void pvector<double>::inv_softmax_gt0<double*>( double* ) const;
-template void pvector<double>::inv_softmax_gt0<pvector<double>::iterator>( pvector<double>::iterator ) const;
+template void pvector<double>::inv_softmax_gt0<double*>( double*, const double& ) const;
+template void pvector<double>::inv_softmax_gt0<genepi::cvector<double>::iterator>( pvector<double>::iterator, const double& ) const;
 
-template void pvector<double>::softmax<pvector<double>::iterator,DoubleTester>( pvector<double>::iterator, DoubleTester ) const;
-template void pvector<double>::softmax<double*,DoubleTester>( double*, DoubleTester ) const;
+template void pvector<double>::softmax<pvector<double>::iterator,DoubleTester>( genepi::cvector<double>::iterator, DoubleTester, const double& ) const;
+template void pvector<double>::softmax<double*,DoubleTester>( double*, DoubleTester, const double & ) const;
 
 
 

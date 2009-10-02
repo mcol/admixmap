@@ -59,7 +59,7 @@ Gaussian::Gaussian( int NewDimension, const double* const NewMean, const double*
 Gaussian::~Gaussian()
 {
   delete[] Mean;
-  delete Covariance;
+  delete[] Covariance;
 }
 
 // *************** Setup *************************************************

@@ -49,6 +49,7 @@ static const size_t ES_BSIZE = 28;
 	{ \
 	char buf[ES_BSIZE]; \
 	const int rc = snprintf( buf, sizeof(buf), "%" #FMT, x ); \
+	if ( rc ) {;} /*Suppress compiler warning when gp_assert() is turned off*/ \
 	gp_assert( (rc>=0) && (rc<int(sizeof(buf))) ); \
 	std::string::operator=( buf ); \
 	}
