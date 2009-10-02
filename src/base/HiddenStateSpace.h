@@ -281,7 +281,7 @@ class HiddenStateSpace
 	    {
 	    private:
 		const HiddenStateSpace & space;
-		AncestryVector		 av;
+		AncestryVector::Iterator av_it;
 		InheritanceVector	 iv;
 		StateIdxType		 sIdx;
 		Non0IdxType		 non0Idx;
@@ -318,7 +318,7 @@ class HiddenStateSpace
 
 		/// Get components of the state currently "pointed to";
 		/// typically more efficient than getState()/operator*():
-		const AncestryVector &	  getAV	  () const { return av; }
+		const AncestryVector &	  getAV	  () const { return av_it.getAV(); }
 		const InheritanceVector & getIV   () const { return iv; }
 		double			  getEProb() const { return space.getEProb(sIdx); }
 

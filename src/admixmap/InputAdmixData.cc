@@ -27,6 +27,7 @@
 #include "AdmixOptions.h"
 #include "CodeTimer.h"
 #include "PedigreeAddl.h"
+#include "AncestryVector.h" // For set_parms() [initialization]
 
 #if USE_GENOTYPE_PARSER
     #include "AdmixmapGenotypeConverter.h"
@@ -35,7 +36,6 @@
 #if defined(_OPENMP)
     #include <omp.h>
     #include "AdmixIndividualCollection.h"	// For PARALLELIZE_EPROB_COMPS
-    #include "AncestryVector.h"
 #endif
 
 using bclib::LogWriter;
@@ -105,13 +105,11 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
     if ( isPedFile() || options.getUsePedForInd() )
 	{
 
-	#if defined(_OPENMP)
-	    // Big hack, we need the concept of 'context'.  We could determine
-	    // the maximum number of founder gametes that actually occurs in the
-	    // dataset, but it does not consume too much resources to just
-	    // use the maximum allowable constant here.
-	    AncestryVector::set_parms( options.getPopulations(), AV_MAX_FOUNDER_GAMETES );
-	#endif
+	// Big hack, we need the concept of 'context'.	We could determine
+	// the maximum number of founder gametes that actually occurs in the
+	// dataset, but it does not consume too much resources to just
+	// use the maximum allowable constant here.
+	AncestryVector::set_parms( options.getPopulations(), AV_MAX_FOUNDER_GAMETES );
 
 
 	int n_peds_excl = 0;

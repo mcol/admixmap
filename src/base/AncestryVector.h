@@ -70,7 +70,7 @@ namespace genepi { // ----
 //
 //-----------------------------------------------------------------------------
 
-//template < size_t MAX_FNDR_GAMETES > class AncestryVectorT
+//template < size_t MAX_FNDR_GAMETES >
 class AncestryVector
     {
     public:
@@ -271,12 +271,47 @@ class AncestryVector
 	    }
 
 
-	#if defined(_OPENMP)
-	    /// Hack!  Must be called prior to first call to set_ulong().
-	    /// Number of populations and maximum number of founder-gametes.
-	    static void set_parms( PopIdx K, Pedigree::FounderIdx maxF );
-	#endif
 
+	//-------------------------------------------------------------------------
+	/// AncestryVector iterator class -- while there is no "container", it
+	/// behooves us to have a class that iterates over a "space" defined as
+	/// all AncestryVectors possible for @a numFndr founders, @a K populations.
+	//-------------------------------------------------------------------------
+
+	class Iterator;
+
+
+	/// Hack!  Must be called prior to first call to set_ulong().
+	/// Number of populations and maximum number of founder-gametes.
+	static void set_parms( PopIdx K, Pedigree::FounderIdx maxF );
+
+    };
+
+
+// C++ bizarrely forbids defining this nested class within the surrounding class.
+class AncestryVector::Iterator
+    {
+    private:
+	unsigned long  idx;
+	unsigned long  idxLimit;
+	AncestryVector av;
+
+    public:
+
+	Iterator( const Pedigree & _ped );
+
+	/// Returns true if did _not_ advance _past_ the end of the
+	/// space.  If returns false, the iterator is _no_longer_ valid.
+	bool advance();
+	bool isValid() const { return (idx < idxLimit); }
+
+	unsigned long to_ulong() const { gp_assert(isValid()); return idx; }
+
+	const AncestryVector & getAV() const
+	    {
+	    gp_assert( isValid() );
+	    return av;
+	    }
     };
 
 

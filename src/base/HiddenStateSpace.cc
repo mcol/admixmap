@@ -142,15 +142,13 @@ void HiddenStateSpace::resetEmProbsToZero()
 
 
 HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp ) :
-	space	 ( sp ) ,
-	av	 ( sp.getPed(), sp.getK() ) ,
+	space	 ( sp	       ) ,
+	av_it	 ( sp.getPed() ) ,
 	iv	 ( sp.getPed() ) ,
-	sIdx	 ( 0 ) ,
-	non0Idx  ( 0 ) ,
-	finished ( false )
+	sIdx	 ( 0	       ) ,
+	non0Idx	 ( 0	       ) ,
+	finished ( false       )
     {
-    for ( size_t aIdx = av.size() ; aIdx-- != 0 ; )
-	av.setAt( aIdx, 0 );
     iv.set_ulong( 0 );
 
     if ( sp.getEProb( sIdx ) == 0.0 )
@@ -183,26 +181,12 @@ bool HiddenStateSpace::Iterator::advance()
 	    finished = true;
 	    iv.set_ulong( 0 );
 
-	    for ( size_t aIdx = 0 ; aIdx < av.size() ; ++aIdx )
-		{
-		PopIdx p = av[aIdx] + 1;
-		if ( p == space.getK() )
-		    {
-		    p = 0;
-		    av.setAt( aIdx, p );
-		    }
-		else
-		    {
-		    av.setAt( aIdx, p );
-		    finished = false;
-		    break;
-		    }
-		}
+	    finished = ! av_it.advance();
 
 	    if ( ! finished )
 		{
 		++sIdx;
-		gp_assert( sIdx == (av.to_ulong() * space.N_IVs) );
+		gp_assert( sIdx == (av_it.to_ulong() * space.N_IVs) );
 		}
 	    }
 	else
@@ -223,9 +207,7 @@ bool HiddenStateSpace::Iterator::advance()
 HiddenStateSpace::State HiddenStateSpace::Iterator::getState() const
     {
     gp_assert( ! finished );
-
-    State rv = { av, iv, space.getEProb(sIdx) };
-
+    State rv = { av_it.getAV(), iv, space.getEProb(sIdx) };
     return rv;
     }
 

@@ -52,7 +52,7 @@ namespace genepi { // ----
 // Index cache:
 //-----------------------------------------------------------------------------
 
-static unsigned long K_to_the_F( unsigned int K, unsigned int F )
+static inline unsigned long K_to_the_F( unsigned int K, unsigned int F )
     {
     if	    ( K == 2 )
 	return (1U << F);
@@ -114,10 +114,15 @@ class IdxCache
 		{
 		el.generate( _K, max_F );
 		}
+
+	    /// Reverse-lookup:
+	    const DType & getByIndex( size_t idx ) const { return el.val[idx]; }
 	#endif
 
 
-	const DType & lookup( PopIdx _K, size_t F, unsigned long index );
+	PopIdx getK() const { return K; }
+
+	const DType & lookup( PopIdx _K, size_t F, unsigned long index ) const;
     };
 
 
@@ -165,7 +170,7 @@ void IdxCache::El::generate( size_t _K, size_t _F )
 
 #if MULTIPLE_PARMS
 
-    const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long index )
+    const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long index ) const
 	{
 	gp_assert_eq( _K, K );
 
@@ -222,7 +227,7 @@ void IdxCache::El::generate( size_t _K, size_t _F )
 
 #else
 
-    const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long index )
+    const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long index ) const
 	{
 
 	#if AGGRESSIVE_RANGE_CHECK
@@ -250,51 +255,49 @@ void IdxCache::El::generate( size_t _K, size_t _F )
 // set_ulong()
 //-----------------------------------------------------------------------------
 
-#if defined(_OPENMP)
+#if THREAD_PRIVATE_CACHE
 
-    #if THREAD_PRIVATE_CACHE
+    void AncestryVector::set_parms( PopIdx /*K*/, size_t /*maxF*/ )
+	{
+	// Explicitly turn off dynamic threads (to preserve the value of
+	// cache within a thread from one parallel task to another) (is this
+	// required?)
+	omp_set_dynamic( false );
+	}
 
-	void AncestryVector::set_parms( PopIdx /*K*/, size_t /*maxF*/ )
-	    {
-	    // Explicitly turn off dynamic threads (to preserve the value of
-	    // cache within a thread from one parallel task to another) (is this
-	    // required?)
-	    omp_set_dynamic( false );
-	    }
+#else
 
-    #else
+    static IdxCache * cache = 0;
 
-	static IdxCache * cache = 0;
-
-	void AncestryVector::set_parms( PopIdx K, size_t maxF )
-	    {
-	    gp_assert( cache == 0 );
-	    cache = new IdxCache( K, maxF ); // Could use AV_MAX_FOUNDER_GAMETES
-	    #if ! THREAD_PRIVATE_CACHE
-		#if MULTIPLE_PARMS
-		    for ( size_t F = 1 ; F < 6 ; ++F )
-			cache->lookup( K, F, 0 );
-		#endif
+    void AncestryVector::set_parms( PopIdx K, size_t maxF )
+	{
+	gp_assert( cache == 0 );
+	cache = new IdxCache( K, maxF ); // Could use AV_MAX_FOUNDER_GAMETES
+	#if ! THREAD_PRIVATE_CACHE
+	    #if MULTIPLE_PARMS
+		for ( size_t F = 1 ; F < 6 ; ++F )
+		    cache->lookup( K, F, 0 );
 	    #endif
-	    }
-
-    #endif
+	#endif
+	}
 
 #endif
 
 
-void AncestryVector::set_ulong( unsigned long nv )
+static const IdxCache & get_cache()
     {
-    #if ! defined(_OPENMP)
-	static IdxCache _cache( K, AV_MAX_FOUNDER_GAMETES );
-	#define cache (&_cache)
-    #elif THREAD_PRIVATE_CACHE
+    #if THREAD_PRIVATE_CACHE
 	#pragma omp threadprivate( cache )
 	if ( cache == 0 )
 	    cache = new IdxCache( K );
     #endif
 
-    memcpy( data.bytes, cache->lookup(K, ped.getNFounderGametes(), nv).bytes, AV_MC_BYTES() );
+    return *cache;
+    }
+
+void AncestryVector::set_ulong( unsigned long nv )
+    {
+    memcpy( data.bytes, get_cache().lookup(K, ped.getNFounderGametes(), nv).bytes, AV_MC_BYTES() );
     }
 
 
@@ -323,6 +326,31 @@ unsigned long AncestryVector::to_ulong() const
     // We need to cache the limit here:
     //gp_assert_lt( rv, K^F );
 
+
+    return rv;
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// Iterator
+//-----------------------------------------------------------------------------
+
+AncestryVector::Iterator::Iterator( const Pedigree & _ped ) :
+	idx	 ( 0 ) ,
+	idxLimit ( K_to_the_F( get_cache().getK(), _ped.getNFounderGametes() ) ) ,
+	av	 ( _ped, get_cache().getK(), get_cache().getByIndex(0) )
+    {
+    gp_assert( ! MULTIPLE_PARMS );
+    }
+
+
+bool AncestryVector::Iterator::advance()
+    {
+    const bool rv = (++idx < idxLimit);
+
+    if ( rv )
+	memcpy( av.data.bytes, get_cache().getByIndex(idx).bytes, AV_MC_BYTES() );
 
     return rv;
     }
