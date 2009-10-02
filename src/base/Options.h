@@ -36,10 +36,6 @@ private:
   bool warningsAreErrors; ///< Abort execution without running model if input data contains warnings.
   int  maxCPUsToUse	; ///< Maximum CPUs (cores) to use in parallel.  0 (default) for all available.
 
-  /// When parsing pedigree files, turn parent-IDs that refer to non-existent
-  /// individuals into unknown-parent.  Otherwise there are errors.
-  bool ignoreInvalidParents;
-
   bool excludeMendelError;
   bool excludeUnaffectedSibs;
 
@@ -160,10 +156,6 @@ private:
 								    ///< the input data generates and warnings.
     int	 getMaxCPUsToUse     () const { return maxCPUsToUse	; } ///< Maximum CPUs (cores) to use in parallel.
 								    ///< 0 (default) for all available.
-
-    /// When parsing pedigree files, turn parent-IDs that refer to non-existent
-    /// individuals into unknown-parent.  Otherwise there are errors.
-    bool getIgnoreInvalidParents() const { return ignoreInvalidParents; }
 
     /// Should pedigrees with Mendelian inconsistencies be excluded from the input dataset?
     bool getExcludeMendelError() const { return excludeMendelError; }
