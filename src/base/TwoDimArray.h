@@ -88,7 +88,7 @@ template < typename T, typename I1 = size_t, typename I2 = size_t > class TwoDim
 	    return (i2 * i1size) + i1;
 	    }
 
-	size_t n_els() { return (i1size * i2size); }
+	size_t n_els() const { return (i1size * i2size); }
 
 
 
@@ -190,6 +190,7 @@ template < typename T, typename I1 = size_t, typename I2 = size_t > class TwoDim
 		Iterator( TwoDimArray & _array ) : array( _array ), idx( _array.n_els() - 1 ) {}
 		bool hasNext() const { return (idx != 0); }
 		void advance() { gp_assert(hasNext()); --idx; }
+		Iterator & operator++() { advance(); return *this; }
 		T & operator*() { return array.storage[ idx ]; }
 	    };
 
@@ -202,6 +203,7 @@ template < typename T, typename I1 = size_t, typename I2 = size_t > class TwoDim
 		ConstIterator( const TwoDimArray & _array ) : array( _array ), idx( _array.n_els() - 1 ) {}
 		bool hasNext() const { return (idx != 0); }
 		void advance() { gp_assert(hasNext()); --idx; }
+		ConstIterator & operator++() { advance(); return *this; }
 		const T & operator*() { return array.storage[ idx ]; }
 	    };
 
@@ -217,15 +219,25 @@ template < typename T, typename I1 = size_t, typename I2 = size_t > class TwoDim
 	    };
 
 
+
 	//------------------------------------------------------------------
 	// A few simple aggregate functions:
 	//------------------------------------------------------------------
+
+	/// Sum of all elements.
 	T sum() const
 	    {
 	    T rv = 0;
 	    for ( ConstIterator it( *this ) ; it.hasNext() ; it.advance() )
 		rv += *it;
 	    return rv;
+	    }
+
+	/// Assign value @a x to all elements.
+	void assign( const T & x )
+	    {
+	    for ( Iterator it( *this ) ; it.hasNext() ; it.advance() )
+		*it = x;
 	    }
     };
 
