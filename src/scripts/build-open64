@@ -1,0 +1,14 @@
+#!/bin/bash
+export CC="opencc"
+export CXX="openCC"
+export LDFLAGS=""
+export CPPFLAGS=""
+export CXXFLAGS="\
+-O3 \
+-fomit-frame-pointer \
+-pipe \
+"
+
+USER_CONFIG_OPTS="--disable-cxx-flags-preset"
+
+source "$(pwd)/src/scripts/build-common"
