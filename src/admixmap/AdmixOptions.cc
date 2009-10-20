@@ -441,10 +441,10 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
   }
   
   if(chibIndicator){
-    Log << " with marginal likelihood calculation ";
-    if(NumberOfIndividuals >1 )Log << "for first individual";
+    Log << " with marginal likelihood calculation";
+    if(NumberOfIndividuals > 1)Log << " for first individual";
   }
-  Log << "\n";
+  Log << ".\n";
 
   if(TestOneIndivIndicator && RegType != None){
     badOptions = true;
