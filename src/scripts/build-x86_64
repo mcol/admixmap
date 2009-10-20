@@ -1,14 +1,13 @@
 #!/bin/bash
-export LDFLAGS="-L/home/marco/usr/lib"
+export LDFLAGS=""
 export CPPFLAGS=""
 # -ffast-math was removed because of problem with the score test
 # http://actin.ucd.ie/trac/genepi/ticket/52
 export CXXFLAGS="\
--march=core2 \
+-march=k8 \
 -O3 \
 -pipe \
 -fomit-frame-pointer \
--I/home/marco/usr/include \
 "
 
 # Option -ftree-vectorize is disabled. It's apparently not a safe flag
@@ -17,5 +16,5 @@ export CXXFLAGS="\
 #
 # -ftree-vectorize -ftree-vectorizer-verbose=3
 
-USER_CONFIG_OPTS="--disable-cxx-flags-preset --enable-range-check"
+USER_CONFIG_OPTS="--disable-cxx-flags-preset"
 source "$(pwd)/src/scripts/build-common"
