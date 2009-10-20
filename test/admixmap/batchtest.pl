@@ -119,6 +119,7 @@ sub doAnalysis
 	}
     elsif ( $status != 0 )
 	{
+	print STDERR "Test failed: $run_desc\n";
 	print STDERR PROG . ": $command exited with non-zero status: $status\n";
 	}
     else
