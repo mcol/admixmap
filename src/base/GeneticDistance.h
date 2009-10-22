@@ -28,6 +28,7 @@
 
 
 #include "GeneticDistanceUnit.h"
+#include <bclib/exceptions.h>
 
 
 
@@ -79,11 +80,15 @@ class GeneticDistance
 
 	void set( GeneticDistanceUnit unit, double val );
 
-	double inMorgans     () const { return isBP ? (distance / MB_PER_MGN) : distance; }
+	double inMorgans     () const { gp_assert( ! isUnlinked	    () );
+					gp_assert( ! isNewChromosome() );
+					return isBP ? (distance / MB_PER_MGN) : distance; }
 	double inCentimorgans() const { return (inMorgans() * 100.0); }
 	double inBasepairs   () const { return (inMegabases() * 1e6); }
 	double inKilobases   () const { return (inMegabases() * 1e3); }
-	double inMegabases   () const { return isBP ? distance : (distance * MB_PER_MGN); }
+	double inMegabases   () const { gp_assert( distance != UNLINKED_DIST  );
+					gp_assert( distance != NEW_CHROM_DIST );
+					return isBP ? distance : (distance * MB_PER_MGN); }
 
 	bool isUnlinked	    () const { return (distance == UNLINKED_DIST ); }
 	bool isNewChromosome() const { return (distance == NEW_CHROM_DIST); }

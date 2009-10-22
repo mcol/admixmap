@@ -113,7 +113,8 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
     //retrieve first row of this comp locus from locusfile
     #if USE_GENOTYPE_PARSER
       const SimpleLocus & sLoc = simpleLoci[row];
-      Distances[ i ] = sLoc.getDistance().inMorgans();
+      if ( ! sLoc.startsNewChromosome() )
+	Distances[ i ] = sLoc.getDistance().inMorgans();
     #else
       const Vector_s& m = data_->getLocusData()[row+1];//+1 because LocusData has a header, LocusMatrix doesn't
       //get chromosome labels from col 4 of locusfile, if there is one   
@@ -196,6 +197,7 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 #if USE_GENOTYPE_PARSER
   void Genome::InitialiseChromosomes(const std::vector<unsigned> & cstart, const std::vector<size_t> & sstart, int populations, const SimpleLocusArray & sLoci )
     {
+    simpleLoci = &sLoci;
 #else
   void Genome::InitialiseChromosomes(const std::vector<unsigned> cstart, int populations ){
 #endif
@@ -369,14 +371,31 @@ const unsigned int *Genome::GetSizesOfChromosomes()const{
 unsigned Genome::GetSizeOfChromosome(unsigned j)const{
   return SizesOfChromosomes[j];
 }
-/// returns the vector of distances between loci
-const double *Genome::GetDistances()const
-{
-  return( Distances );
-}
+
+#if ALLOW_UNSAFE_DISTANCE_ACCESS
+    /// returns the vector of distances between loci
+    const double *Genome::GetDistances()const
+    {
+      return( Distances );
+    }
+#endif
+
 ///returns distance between a given locus and the previous one
-double Genome::GetDistance( int locus )const
+double Genome::GetDistance( int locus ) const
 {
+  #if AGGRESSIVE_RANGE_CHECK
+
+      #if USE_GENOTYPE_PARSER
+	if ( (*simpleLoci).size() == (*simpleLoci).getNComposite() )
+	    gp_assert( ! (*simpleLoci)[locus].startsNewChromosome() );
+      #endif
+
+      if ( (locus < 0) || (unsigned(locus) > NumberOfCompositeLoci) )
+	  throw runtime_error( estr("Access of out-of-bounds distance[") +
+				locus + "] (max " + NumberOfCompositeLoci + ')' );
+
+  #endif
+
   return( Distances[ locus ] );
 }
 

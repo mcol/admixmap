@@ -32,6 +32,10 @@ namespace bclib{
 }
 
 
+/// This allows unsafe access to the distance between chromosomes, off the end of
+/// the array, etc.
+#define ALLOW_UNSAFE_DISTANCE_ACCESS	0
+
 
 /** \addtogroup base
  * @{ */
@@ -78,7 +82,10 @@ public:
 
   void SetLabels(const std::vector<std::string> &labels, const std::vector<double> &distances);
 
-  const double *GetDistances()const;
+  #if ALLOW_UNSAFE_DISTANCE_ACCESS
+    const double * GetDistances() const;
+  #endif
+  double GetDistance( int ) const;
 
   unsigned int GetNumberOfCompositeLoci()const;
 
@@ -94,8 +101,6 @@ public:
   unsigned getFirstXLocus()const;
   unsigned isXChromosome(unsigned)const;
   bool isXLocus(unsigned j)const;
-
-  double GetDistance(int)const;
 
   void GetChromosomes(int);
   const Chromosome* const* getChromosomes()const;
@@ -123,9 +128,10 @@ public:
 
   void SetLocusCorrelation(double rho);
 
+private:
+  double *Distances;
 protected:
   Chromosome **C;
-  double *Distances;
   unsigned int NumberOfCompositeLoci;
   CompositeLocus *LocusArray; 
   double LengthOfGenome;
@@ -154,7 +160,8 @@ private:
   #endif
 
   #if USE_GENOTYPE_PARSER
-  void InitialiseChromosomes(const std::vector<unsigned> & cstart, const std::vector<size_t> & sstart,
+    const SimpleLocusArray * simpleLoci;
+    void InitialiseChromosomes(const std::vector<unsigned> & cstart, const std::vector<size_t> & sstart,
 			     int populations, const SimpleLocusArray & sLoci );
 
   #else

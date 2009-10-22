@@ -373,6 +373,9 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
     #endif
 
 
+    if ( getSLoci().size() != getSLoci().getNComposite() )
+	throw std::runtime_error( "Sorry, pedigrees are not (yet) compatible with composite loci." );
+
 
     // This was AdmixedIndividual::InitialiseSumIntensities():
     double init;
