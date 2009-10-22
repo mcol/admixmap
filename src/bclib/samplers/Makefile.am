@@ -4,7 +4,11 @@ SUFFIXES=.cc .o
 OPTFLAGS=
 AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
-all_SOURCES = AdaptiveRejection.cc DirichletParamSampler.cc DispersionSampler.cc Gaussian.cc GaussianProposalMH.cc HamiltonianMonteCarlo.cc ModeFinder.cc MuSampler.cc rand.cc StepSizeTuner.cc 
+if USE_OPENMP
+    AM_CXXFLAGS+=-fopenmp
+endif
+
+all_SOURCES = AdaptiveRejection.cc DirichletParamSampler.cc DispersionSampler.cc Gaussian.cc GaussianProposalMH.cc HamiltonianMonteCarlo.cc ModeFinder.cc MuSampler.cc rand.cc StepSizeTuner.cc NRand.cc
 
 if PARALLEL
 noinst_LTLIBRARIES = libsampler-para.la

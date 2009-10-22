@@ -63,14 +63,14 @@ static void startupOMPMessage( const AdmixOptions & options )
 	    if ( ! options.getUsePedForInd() )
 		cout << "  ***WARNING*** pedigree-parallelization currently not supported without use-pedigree-for-individual.\n";
 	#else
-		    "*not* enabled.\n";
+		    "not enabled.\n";
 	#endif
 
 	cout << "  -> forward-backwards parallelization "
 	#if HMM_PARALLELIZE_FWD_BKWD
 		    "enabled.\n";
 	#else
-		    "*not* enabled.\n";
+		    "not enabled.\n";
 	#endif
 
 	#if ! (PARALLELIZE_PEDIGREE_LOOP || HMM_PARALLELIZE_FWD_BKWD)
@@ -83,7 +83,7 @@ static void startupOMPMessage( const AdmixOptions & options )
 	#if (PARALLELIZE_PEDIGREE_LOOP && HMM_PARALLELIZE_FWD_BKWD)
 	    omp_set_dynamic( true );
 	#endif
-	#if PARALLELIZE_PEDIGREE_LOOP
+	#if (PARALLELIZE_PEDIGREE_LOOP && HMM_PARALLELIZE_FWD_BKWD)
 	    omp_set_nested ( true );
 	#endif
 
@@ -168,7 +168,7 @@ int main( int argc , char** argv ){
   
     //read data files and check
     //also sets 'numberofoutcomes' and 'populations' options
-    InputAdmixData data(&options, Log); 
+    InputAdmixData data( options, Log );
 
     // "check user options"
     // DDF: well, actually finish constructing them also.  They can't be used
@@ -178,8 +178,8 @@ int main( int argc , char** argv ){
       exit(1);
     }
 
-    // DDF: What can one say?  This shouldn't be required, but circular
-    // dependencies (AdmixOptions/InputAdmixData) do that to you.
+    // DDF: This shouldn't be required, but circular dependencies
+    //	(AdmixOptions/InputAdmixData) do that to you.
     data.finishConstructing( options );
 
     //print user options to args.txt; must be done after all options are set
@@ -340,18 +340,18 @@ int main( int argc , char** argv ){
     }
 #endif
 
-  catch (const string& msg) {//catch any stray error messages thrown upwards
+  catch (const string & msg) {//catch any stray error messages thrown upwards
     ThrowException(msg, Log);
   }
   catch (const char* msg) {//in case error messages thrown as char arrays instead of strings
     ThrowException(string(msg), Log);
   }
-  catch (const exception& e){
+  catch ( const exception& e){
     ThrowException(e.what(), Log);
   }
 
   catch(...){
-    cout << "Unknown exception occurred. Contact the program authors for assistance" << endl;
+    cerr << "Unknown exception occurred. Contact the program authors for assistance." << endl;
     exit(1);
   }
   cout << "Finished" << endl

@@ -204,9 +204,5 @@ void PedBase::WritePosteriorMeans(ostream& /*os*/, unsigned /*samples*/, bool /*
 void PedBase::WritePosteriorMeansLoci(ostream& /*os*/) const { not_implemented( "WritePosteriorMeansLoci()", typeid(*this) ); }
 
 
-void PedBase::setRho( double /*nv*/ ) {}
-
-
-
 
 } // ---- end namespace genepi

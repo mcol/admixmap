@@ -4,7 +4,7 @@
  *   AdmixIndividualCollection.h
  *   header file for Admixed IndividualCollection class
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- *   Copyright (C) 2009 David Favro
+ *   Portions Copyright (C) 2009 David Favro
  *
  * This program is free software distributed WITHOUT ANY WARRANTY.
  * You can redistribute it and/or modify it under the terms of the GNU General Public License,
@@ -28,6 +28,9 @@ class IndAdmixOutputter;
 /// options, and if the runtime option use-pedigree-for-individual
 /// [getUsePedForInd()] is enabled.
 #define PARALLELIZE_PEDIGREE_LOOP	1
+#define PED_LOOP_OMP_SCHED		schedule(dynamic,1)
+#define SAMPLE_THETA_CALL_CRITICAL	0
+
 
 /// This only takes place if OpenMP is also enabled in the configuration
 /// options, and is only meaningful for pedigrees.  It also requires further

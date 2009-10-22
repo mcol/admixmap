@@ -33,7 +33,7 @@ public:
 
   static void SetStaticMembers( Genome & pLoci, const Options & options );
   static void DeleteStaticMembers();
-  void drawInitialAdmixtureProps(const /*vector<vector<double> >*/ AlphaType &alpha);
+  void drawInitialAdmixtureProps( const AlphaType & alpha );
   void SetMissingGenotypes();
 
   double getSumrho()const;
@@ -51,15 +51,15 @@ public:
   void SampleTheta( int iteration, double * SumLogTheta, const bclib::DataMatrix * Outcome,
 		    const DataType * OutcomeType, const std::vector<double> & lambda, int NumCovariates,
 		    bclib::DataMatrix * Covariates, const std::vector<const double*> & beta, const PopAdmix::PopThetaType & poptheta,
-		    const AdmixOptions & options, const /*vector<vector<double> >*/ AlphaType & alpha,
+		    const AdmixOptions & options, const AlphaType & alpha,
 		    double DInvLink, double dispersion, CopyNumberAssocTest & ancestryAssocTest, bool RW, bool anneal);
 
-  void FindPosteriorModes(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
+  void FindPosteriorModes(const AdmixOptions& options, const AlphaType &alpha,
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);
   void resetStepSizeApproximator(int k);
-  void setChibNumerator(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha, double rhoalpha,
+  void setChibNumerator(const AdmixOptions& options, const AlphaType &alpha, double rhoalpha,
 			double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
-  void updateChib(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha, double rhoalpha,
+  void updateChib(const AdmixOptions& options, const AlphaType &alpha, double rhoalpha,
 		  double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
 
   double getLogPosteriorTheta()const;
@@ -113,15 +113,15 @@ private:
 					       const double Outcome, const PopAdmix::PopThetaType & poptheta, double lambda);
   void UpdateHMMInputs(unsigned int j, const Options& options,
 		       const double * theta, const genepi::RhoType & rho );
-  void ProposeTheta(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
+  void ProposeTheta(const AdmixOptions& options, const AlphaType &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
-  double ProposeThetaWithRandomWalk( const AdmixOptions & options, const /*vector<vector<double> >*/ AlphaType & alpha );
+  double ProposeThetaWithRandomWalk( const AdmixOptions & options, const AlphaType & alpha );
   double LogPriorTheta_Softmax(const double* const theta,
-			       const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha) const ;
+			       const AdmixOptions& options, const AlphaType &alpha) const ;
   double LogPriorRho_LogBasis( const genepi::RhoType & rho, const AdmixOptions& options,
 			      double rhoalpha, double rhobeta) const;
   double LogPosteriorTheta_Softmax(const AdmixOptions& options, const double* const theta,
-				   const /*vector<vector<double> >*/ AlphaType &alpha)const;
+				   const AlphaType & alpha )const;
   double LogPosteriorRho_LogBasis(const AdmixOptions& options, const genepi::RhoType & rho,
 				  double rhoalpha, double rhobeta)const;
 
@@ -132,6 +132,11 @@ private:
 			  const double* const theta, const genepi::RhoType & rho, bool updateHMM);
   void getPosteriorMeans( double * ThetaMean, genepi::RhoType & rhoMean /* output parameter? */, unsigned samples ) const;
 
+
+    // ====== DEBUGGING METHODS (overridden from PedBase) ======
+    #if PEDBASE_DEBUG_METHODS
+	virtual void dumpTheta( const char * prefix ) const;
+    #endif
 };
 
 #endif /* ADMIXED_INDIVIDUAL_H */

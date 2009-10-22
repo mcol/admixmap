@@ -37,6 +37,7 @@
 /** \addtogroup base
  * @{ */
 
+
 //prototypes for miscellaneous functions
 void CreateDirectory(const char* dirname, bool DeleteExistingFiles=true);
 
@@ -46,6 +47,8 @@ void PrintCopyrightNotice(bclib::LogWriter & Log);
 
 void PrintUsage(const char* ProgName);
 
+/// This is wildly mis-named; it actually is called to _handle_ uncaught
+/// exceptions that have been caught at the top level.
 void ThrowException(const string& msg, bclib::LogWriter & Log);
 
 void PrintBuildInfo(bclib::LogWriter& Log);

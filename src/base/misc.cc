@@ -99,26 +99,32 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
   }
 }
 
-void ThrowException(const string& msg, bclib::LogWriter & Log){
-  Log << bclib::On << "\n\n"
-	"UNCAUGHT EXCEPTION: " << msg << "\n"
-	"Exiting...\n\n";
-  Log.ProcessingTime();
-  exit(1);
-}
+
+
+void ThrowException( const string & msg, bclib::LogWriter & Log )
+    {
+    Log << bclib::On << "\n\n"
+	"FATAL ERROR: " << msg << ": aborting.\n\n";
+    Log.ProcessingTime();
+    exit(1);
+    }
+
+
 
 /**
    Writes an iteration number to screen, with newline for verbose output or as a counter for reduced output.
 */
 void WriteIterationNumber(const int iteration, const int width, int displayLevel) {
   if( displayLevel > 2 ) {
-    cout << std::setiosflags( ios::fixed );//causes memory leak/overwrite error
-    cout.width(width );
-    cout << "\n"<< iteration << " ";
+    cout << '\n'
+	 << std::setiosflags( ios::fixed ) //causes memory leak/overwrite error
+	 << setw( width )
+	 << iteration << ' ';
   }
-  else if( displayLevel > 1 && iteration >0) { // display iteration counter only
+  else if ( displayLevel > 1 && iteration > 0 ) { // display iteration counter only
     cout << "\rIterations so far: " << iteration;
   }
+
   cout.flush();
 }
 

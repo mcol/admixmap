@@ -32,19 +32,16 @@
 
 #include <cstddef>  // size_t
 
+#include <bclib/cvector.h>
 #include "Genotype.h"
 #include "OrganismArray.h"
-#include "SimpleLocusArray.h"
-#include <bclib/cvector.h>
 #include "PedBase.h"
+#include "SimpleLocusArray.h"
+#include "ProposalRingBuffer.h"
 
 #include "AlleleArray.h" // AlleleProbTable, AlleleProbVect (for emission probabilities)
 
 #include <vector>
-
-
-// Stages of implementing PedBase methods, ported over from Individual/AdmixedIndividual.
-#define NEEDED_ONLY_FOR_CONJUGATE_UPDATE	0
 
 
 // Need to sort this out:
@@ -78,6 +75,17 @@ namespace bclib { class DataMatrix; }
 #else
     namespace genepi { class HiddenMarkovModel; }
     namespace genepi { class TransProbCache; }
+#endif
+
+/// See getRNG().
+#define PED_HAS_OWN_PRNG 1
+#if PED_HAS_OWN_PRNG
+    #include <bclib/NRand.h>
+    #define RNG_NORMAL(M,S) getRNG().normal(M,S)
+    #define RNG_UNIFORM()   getRNG().standard_uniform()
+#else
+    #define RNG_NORMAL(M,S) Rand::gennor(M,S)
+    #define RNG_UNIFORM()   Rand::myrand()
 #endif
 //------------------------------------------------------------------------
 
@@ -434,10 +442,10 @@ class Pedigree : public PedBase // See NOTE *4*
 
 	void SampleTheta(
 		 int				    iteration	      , // in
-		 double *			    SumLogTheta       , // out (add to existing value)
-		 const bclib::DataMatrix *	    Outcome	      , //
+		 double *			    SumLogTheta       , // out (accumulate with existing value)
+		 const bclib::DataMatrix *	    Outcome	      , // in
 		 const DataType *		    OutcomeType       , // in
-		 const std::vector<double> &	    lambda	      , //
+		 const std::vector<double> &	    lambda	      , // in
 		 int				    NumCovariates     , // in
 		 bclib::DataMatrix *		    Covariates	      , //
 		 const std::vector<const double*> & beta	      , //
@@ -457,39 +465,142 @@ class Pedigree : public PedBase // See NOTE *4*
 
 
     private:
+
 	size_t nAffected;
 
-	/// Returns size of Theta, used to allocate storage for Theta,
-	/// ThetaProposed, SumSoftmaxTheta.  Was: NumGametes --> K*NumGametes
+	/// Returns size of Theta, used to allocate storage for the various
+	/// thetas and SumSoftmaxTheta.  Was: NumGametes --> K*NumGametes
 	typedef FounderIdx ThetaIdx;
 	ThetaIdx getNTheta() const { return getNFounders(); }
 
-	/// Admixture proportions, one vector of size K for each founder (we
-	/// assume that the admixture proportion is the same for both gametes in
-	/// each founder).
-	ThetaType	  Theta;
-	ThetaType	  ThetaProposal;
+
+
+	//---------------------------------------------------------------------
+	/// Admixture proportions, one vector of size K for each founder (in the
+	/// case of pedigrees, we assume that the admixture proportion is the
+	/// same for both gametes in each founder).  Rather than keeping a
+	/// separate "Theta" and "ThetaProposal", and shifting new values from
+	/// the proposed to the current vectors (as in the individual version),
+	/// we'll use pointers and create a sort of ring buffer with ability to
+	/// propose a new theta, run the HMM for it, and if we decide to accept
+	/// it just update the pointer and free up the old "current" vector to
+	/// be re-used for the next proposal, but if we reject it, just free up
+	/// the proposed vector for re-use as the next proposal.  In addition to
+	/// eliminating the shifting around of theta values in memory, it
+	/// _vastly_ simplifies the code, and makes it much more robust.
+	//---------------------------------------------------------------------
+
+	ProposalRingBuffer<ThetaType> thetas;
+	const ThetaType & getCurTheta() const { return thetas.getCurrent(); } ///< Convenience.
+	ThetaType &	  getCurTheta()	      { return thetas.getCurrent(); } ///< Convenience.
+	double getCurThetaVal( FounderIdx f, PopIdx k ) const { return getCurTheta()[f][k]; } ///< Convenience.
+
+
+	//---------------------------------------------------------------------
+	/// Structure to hold the cached values of log-likelihood from the HMM.
+	/// Makes explicit the database concepts of "propose", "reject",
+	/// "accept".  It would be nice if we could integrate this with the
+	/// ProposalRingBuffer used for theta and rho, although it currently
+	/// contains more logic for refreshing the values from the HMM when
+	/// necessary.
+	//---------------------------------------------------------------------
+
+	class LLBuf
+	    {
+	    private:
+
+		// Since the HMM can in theory change (and is also not yet allocated at the time
+		// that the llCache is constructed), we will rather keep a reference to the
+		// pedigree and get the HMM from it.
+		#if 0
+		    genepi::HiddenMarkovModel hmm;
+		    genepi::HiddenMarkovModel & getHMM() { return hmm; }
+		#else
+		    Pedigree & ped;
+		    genepi::HiddenMarkovModel & getHMM() { return ped.getHMM(); }
+		#endif
+
+		double accVal	    ; ///< Last accepted value
+		bool   accValIsValid; ///< Does curVal correspond to the last accepted
+				      ///< {rho,theta} parameters (it should always
+				      ///< be so after the first calculation
+				      ///< if the LogLik is calculated to decide if
+				      ///< the proposed values will be accepted, and new values
+				      ///< are always proposed before being accepted).
+
+		bool   propActive   ; ///< Is a proposal currently active?
+		double propVal	    ; ///< The proposed value, if (propActive && propIsValid)
+
+		bool   propIsValid  ; ///< Does propVal correspond to the current values of
+				      ///< {rho,theta}? (in fact, only if propActive also turned
+				      ///< on).  This is a little hard to track because it
+				      ///< requires that we know when rho and/or theta becomes
+				      ///< dirty, yet not too bad because we can mark it as dirty
+				      ///< when a proposal begins, and once it is computed for a
+				      ///< proposal, we rarely change the parameters before
+				      ///< accepting or rejecting it.  In fact, we rarely ask for
+				      ///< it more than once, so it really doesn't even need to be
+				      ///< cached here.
+
+	    public:
+
+		LLBuf( Pedigree & _ped );
+		LLBuf( Pedigree & _ped, const LLBuf & rhs );
+		LLBuf & operator=( const LLBuf & rhs );
+
+		void startProposal();
+		void acceptProposal();
+		void rejectProposal();
+		double getAcceptedVal() /*const*/;
+		double getProposedVal() /*const*/;
+
+
+		/// Get the log-likelihood of the "current" parameters (rho,theta): if a proposal
+		/// is active, then the proposed value, otherwise the last accepted value.
+		double getCurVal() /*const*/
+		    {
+		    return propActive ? getProposedVal() : getAcceptedVal();
+		    }
+
+
+		/// Is a proposal currently underway?
+		bool isProposalActive() const { return propActive; }
+
+		void parmsChanged();
+	    };
+
+
+
+
 	mutable ThetaType SumSoftmaxTheta; ///< Mutable so that WritePosteriorMeans() can modify it.
-	ThetaType	  thetahat;	   // From AdmixedIndividual
-	cvector<double>	  dirparams;	   ///< Dirichlet parameters of full conditional for conjugate updates
-					   ///< Indexed on <I>?something?</I>.
-					   ///< Taken from AdmixedIndividual, in which it is indexed on K (n-populations)
 
-	RhoType _rho	  ; ///< sum of intensities
+
+	ProposalRingBuffer<RhoType> rhos;
+	const RhoType & getCurRho() const { return rhos.getCurrent(); } ///< Convenience.
+	RhoType &	getCurRho()	  { return rhos.getCurrent(); } ///< Convenience.
+
+
 	RhoType sumlogrho ; ///< foo.
-	RhoType rhohat	  ; ///< bar.
 
+	/// Accessor for global-rho, which is stored in the first element of the rho array.
+	/// NOTE: This may be directly accessed in PopAdmix, we also need to convert it to use this accessor method.
+	/// NOTE: Because it may be important for performance, we implement this
+	///	as an inline method here; but since the "Options" class (which
+	///	is needed to assert that global-rho is turned on) is a forward
+	///	definition, this method is _not_ inline in the case of
+	///	aggressive assertions.
+	#if AGGRESSIVE_RANGE_CHECK
+	    double & getGlobalRhoVal();
+	#else
+	    double & getGlobalRhoVal() { return getCurRho()[0]; }
+	#endif
 
-	mutable struct
-	  {
-	  double value    ; ///< loglikelihood at current parameter values, annealed if coolness < 1.
-			    ///< Valid iff 'ready' is true
-	  double tempvalue; ///< to store values temporarily: holds unnanealed value (-energy),
-			    ///< or value at proposed update
-	  bool   ready    ; ///< true iff value is the loglikelihood at the current parameter values
-	  bool   HMMisOK  ; ///< true iff values in HMM objects correspond to current parameter values
-			    ///< for this individual
-	  } logLikelihood;
+	/// Const version of getGlobalRhoVal()
+	// This is a little scary in that could easily result in infinite
+	///	recursion; perhaps we should give explicitly different names to
+	///	the const and non-const versions rather than relying on
+	///	overloading.
+	double getGlobalRhoVal() const { return const_cast<Pedigree*>(this)->getGlobalRhoVal(); }
 
 
 	double		     step	     ;
@@ -498,6 +609,10 @@ class Pedigree : public PedBase // See NOTE *4*
 	bclib::StepSizeTuner ThetaTuner	     ;
 	unsigned int	     NumGametes	     ;
 	unsigned int	     myNumber	     ;
+
+	#if PED_HAS_OWN_PRNG
+	    genepi::NRand rng; ///< See getRNG().
+	#endif
 
 	// For affected-only test: maintain precomputed factors
 	typedef float AAProbType;
@@ -513,31 +628,70 @@ class Pedigree : public PedBase // See NOTE *4*
 	genepi::HiddenMarkovModel & getHMM() const;
 	void freeHMM() const;
 
+	LLBuf llCache;
+
     public:
-    MemberIdx getNAffected() const { return nAffected; }
-    unsigned int getMyNumber() const { return myNumber	; } ///< "number" of this pedigree, counting from 1
-    unsigned int getIndex   () const { return myNumber-1; } ///< "number" of this pedigree, counting from 0
-    void setMyNumber( unsigned int nv ) { myNumber = nv; }
+
+	MemberIdx    getNAffected() const { return nAffected; }
+	unsigned int getMyNumber () const { return myNumber  ; } ///< "number" of this pedigree, counting from 1
+	unsigned int getIndex    () const { return myNumber-1; } ///< "number" of this pedigree, counting from 0
+	void setMyNumber( unsigned int nv );
+
+	#if PED_HAS_OWN_PRNG
+	    /// This is one way to solve the non-thread-safety of bclib::Rand:
+	    /// keep a separate PRNG for each pedigree.  We really only need one
+	    /// per thread rather than one per pedigree, so we could also try
+	    /// making Rand's global instance threadprivate; yet a PRNG is
+	    /// typically not a large object, so there is little downside to
+	    /// this approach.
+	    NRand & getRNG() { return rng; }
+	#endif
+
+
+
+	//--------------------------------------------------------------------
+	// Combined proposal methods
+	//--------------------------------------------------------------------
+
+	ThetaType & startThetaProposal();
+	void	    rejectThetaProposal();
+	void	    acceptThetaProposal();
+
+
     private:
 
-    double ProposeThetaWithRandomWalk( const AdmixOptions & options, const AlphaType & alpha );
+    double ProposeThetaWithRandomWalk( const AlphaType & alpha );
 
     double LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel,
 					       PopIdx K, int NumCovariates,
 					       const bclib::DataMatrix * Covariates, const double * beta,
 					       double Outcome, const PopThetaType & poptheta, double lambda) const;
-    void Accept_Reject_Theta( double p, int Populations, bool ModelIndicator, bool RW );
-    void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const PopThetaType & poptheta,
+    void Accept_Reject_Theta( double logpratio, bool isRandomMatingModel, bool isRandomWalk );
+    void updateAdmixtureForRegression( int NumCovariates, const PopThetaType & poptheta,
 				     bool ModelIndicator, bclib::DataMatrix * Covariates);
-    double getLogLikelihood( const Options & options, const ThetaType & theta,
-				const RhoType & rho, bool updateHMM ) const;
-  double getLogLikelihood( const Options &, bool forceUpdate, bool store);
-  double getLogLikelihoodAtPosteriorMeans( const Options & options );
-  double getLogLikelihoodOnePop() const;
-  void setAdmixtureProps( const ThetaType & rhs );
-  void storeLogLikelihood( bool setHMMAsOK ); ///< to call if a Metropolis proposal is accepted
 
-  void updateHMMInputs( const Options & options, const ThetaType & theta, const RhoType & rho ) const;
+    public:
+	/// Overridden from PedBase, public method, manages cached values and
+	/// calls calcLogLikelihood() if necessary.
+	double getLogLikelihood( const Options & options, bool forceUpdate, bool store );
+
+	/// Called if a Metropolis proposal is accepted.  The parameter is
+	/// ignored in the case of pedigrees.
+	virtual void storeLogLikelihood( const bool setHMMAsOK );
+
+	//--------------------------------------------------------------------------
+	// Public rho-proposal methods, overridden from PedBase, called from PopAdmix, ignored for individuals.
+	virtual void setRho( double nv );
+	virtual void startRhoProposal();
+	virtual void acceptRhoProposal();
+	virtual void rejectRhoProposal();
+	//--------------------------------------------------------------------------
+
+    private:
+
+    double getLogLikelihoodAtPosteriorMeans( const Options & options );
+    double getLogLikelihoodOnePop() const;
+    void setAdmixtureProps( const ThetaType & rhs );
 
 
 
@@ -548,9 +702,7 @@ class Pedigree : public PedBase // See NOTE *4*
     // ResetSufficientStats() is only needed if we are doing conjugate updates
     // (which we don't do for pedigrees), as well as when we do not do conjugate
     // updates.
-    #if NEEDED_ONLY_FOR_CONJUGATE_UPDATE || (! NEEDED_ONLY_FOR_CONJUGATE_UPDATE)
-	virtual void ResetSufficientStats();
-    #endif
+    virtual void ResetSufficientStats();
 
     void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A,
 			  bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts);
@@ -587,11 +739,8 @@ class Pedigree : public PedBase // See NOTE *4*
     static const AdmixOptions * optionsRef;
     public:
 	/// This is very bad; we need the concept of context.
-	const AdmixOptions & getOptions() const { gp_assert(optionsRef != 0); return *optionsRef; }
-
-
-    public:
-	virtual void setRho( double nv );
+	static const AdmixOptions & getOptions() { gp_assert(optionsRef != 0); return *optionsRef; }
+	static void setOptions( const AdmixOptions & opts );
 
 
     private:

@@ -67,8 +67,9 @@
 #include "InheritanceVector.h"
 #include "HiddenStateSpace.h"
 
-#include "HiddenMarkovModel.new.h"  // See NOTE *2*
-#include "TransProbCache.h"	    // See NOTE *2*
+#include "HiddenMarkovModel.new.h"	// See NOTE *2*
+#include "TransProbCache.h"		// See NOTE *2*
+#include "../admixmap/AdmixOptions.h"	// See NOTE *2* (for --exclude-unaffected-sibs)
 
 
 #define USE_QSORT	1 ///< Whether to use ::qsort() or std::sort() for sorting arrays
@@ -167,13 +168,6 @@ static int depthCompare( Pedigree::Member * const * lhs_ptr, Pedigree::Member * 
     if ( rv == 0 )
 	rv = int(rhs->isGenotyped()) - int(lhs->isGenotyped());
 
-    #if 0 // ****** DEBUG: ******
-	if ( lhs->getFamId() == "10" )
-	    fprintf( stderr, " compare: %p(%d-%s) vs. %p(%d-%s): %d\n",
-		lhs, lhs->getDepth(), lhs->isGenotyped() ? "gtype" : "missing",
-		rhs, rhs->getDepth(), rhs->isGenotyped() ? "gtype" : "missing", rv );
-    #endif
-
     return rv;
     }
 
@@ -198,8 +192,10 @@ Pedigree::Pedigree( const OrganismArray & pool,
 	w		( 1			   ) ,
 	NumGametes	( 2			   ) ,
 	tpCache		( 0			   ) ,
-	hmm		( 0			   )
+	hmm		( 0			   ) ,
+	llCache		( *this			   )
     {
+
     // Initialize the array of pointers-to-members, while simultaneously
     // counting the number of founders and traversing the parent-tree to compute
     // the depth value (maximum depth-to-founder) for each member:
@@ -218,66 +214,29 @@ Pedigree::Pedigree( const OrganismArray & pool,
 
 	if ( m.getOutcome() != 0 )
 	    ++nAffected;
-#if 0
 	else
 	    {
 	    // If requested, exclude unaffected siblings.  This should probably take
 	    // place earlier, in GenotypeParser.
 	    if ( getOptions().getExcludeUnaffectedSibs() && (! m.isFounder()) && m.getChildren().empty() )
 		{
+		std::cerr << "Pedigree " << getId() << ": excluding unaffected sibling " << m.getOrgId() << '\n';
 		++firstM;
+		--nMembers;
 		continue;
 		}
 	    }
-#endif
 
 	++firstM;
 	++mPtr;
 	}
 
 
-    // See NOTE *2*:
-    // We can't allocate these prior to knowing the number of founders.  Of
-    // course they should be in a subclass, in which case they wouldn't be
-    // allocated until much later anyhow.
-    bclib::pvector<double> Kzero;
-    Kzero.resize( getK(), 0.0 );
-    Theta	    .resize( getNTheta()	);
-    ThetaProposal   .resize( getNTheta()	);
-    SumSoftmaxTheta .resize( getNTheta(), Kzero );
-    thetahat	    .resize( getNTheta(), Kzero );
-    dirparams	    .resize( getK()		);
-
-
-    // Set the initial values for Theta:
-    SetUniformAdmixtureProps();
-
-
-    #if 0 // ****** DEBUG: ******
-	if ( id == "10" )
-	    {
-	    fprintf( stderr, "ID: %s  N-members: %lu  N-founders; %lu\n", id.c_str(), getNFounders(), getNMembers() );
-	    for ( size_t idx = 0 ; idx < nMembers ; ++idx )
-		fprintf( stderr, "  %lu %p %hd %s\n", idx, sortedMembers[idx], sortedMembers[idx]->getDepth(),
-		    sortedMembers[idx]->isFounder() ? "founder" : "non-founder" );
-	    }
-    #endif
-
     // Once we've traversed every founder's child-tree, we should have the
     // correct depth for every member of the pedigree since there should be no
     // disjoint connected sub-graphs per the check in OrganismArray.
 
     SORT( sortedMembers, getNMembers(), depthCompare );
-
-    #if 0 // ****** DEBUG: ******
-	if ( id == "10" )
-	    {
-	    fprintf( stderr, "ID: %s  N-members: %lu  N-founders; %lu\n", id.c_str(), getNFounders(), getNMembers() );
-	    for ( size_t idx = 0 ; idx < nMembers ; ++idx )
-		fprintf( stderr, "  %lu %p %hd %s\n", idx, sortedMembers[idx], sortedMembers[idx]->getDepth(),
-		    sortedMembers[idx]->isFounder() ? "founder" : "non-founder" );
-	    }
-    #endif
 
 
     // At this point, the depth field is effectively no longer needed; we now
@@ -322,32 +281,27 @@ Pedigree::Pedigree( const OrganismArray & pool,
 //-----------------------------------------------------------------------------
 
 Pedigree::Pedigree( const Pedigree & rhs ) :
-	memberPool	    ( rhs.memberPool	    ) ,
-	id		    ( rhs.id		    ) ,
-	nMembers	    ( rhs.nMembers	    ) ,
-	nFounders	    ( rhs.nFounders	    ) ,
-	sortedMembers	    ( rhs.sortedMembers	    ) ,
-	nMendelErrs	    ( rhs.nMendelErrs	    ) ,
-	mendelErrsByLocus   ( rhs.mendelErrsByLocus ) ,
-	stateProbs	    ( rhs.stateProbs	    ) ,
-	nAffected	    ( rhs.nAffected	    ) ,
-	Theta		    ( rhs.Theta		    ) , // See NOTE *2*
-	ThetaProposal	    ( rhs.ThetaProposal	    ) , // See NOTE *2*
-	SumSoftmaxTheta	    ( rhs.SumSoftmaxTheta   ) , // See NOTE *2*
-	thetahat	    ( rhs.thetahat	    ) , // See NOTE *2*
-	dirparams	    ( rhs.dirparams	    ) , // See NOTE *2*
-	_rho		    ( rhs._rho		    ) , // See NOTE *2*
-	sumlogrho	    ( rhs.sumlogrho	    ) , // See NOTE *2*
-	rhohat		    ( rhs.rhohat	    ) , // See NOTE *2*
-	logLikelihood	    ( rhs.logLikelihood	    ) , // See NOTE *2*
-	step		    ( rhs.step		    ) , // See NOTE *2*
-	NumberOfUpdates	    ( rhs.NumberOfUpdates   ) , // See NOTE *2*
-	w		    ( rhs.w		    ) , // See NOTE *2*
-	ThetaTuner	    ( rhs.ThetaTuner	    ) , // See NOTE *2*
-	NumGametes	    ( rhs.NumGametes	    ) , // See NOTE *2*
-	myNumber	    ( rhs.myNumber	    ) , // See NOTE *2*
-	tpCache		    ( rhs.tpCache	    ) , // See NOTE *2*
-	hmm		    ( rhs.hmm		    )	// See NOTE *2*
+	memberPool	  ( rhs.memberPool	  ) ,
+	id		  ( rhs.id		  ) ,
+	nMembers	  ( rhs.nMembers	  ) ,
+	nFounders	  ( rhs.nFounders	  ) ,
+	sortedMembers	  ( rhs.sortedMembers	  ) ,
+	nMendelErrs	  ( rhs.nMendelErrs	  ) ,
+	mendelErrsByLocus ( rhs.mendelErrsByLocus ) ,
+	stateProbs	  ( rhs.stateProbs	  ) ,
+	nAffected	  ( rhs.nAffected	  ) ,
+	thetas		  ( rhs.thetas		  ) , // See NOTE *2*
+	SumSoftmaxTheta	  ( rhs.SumSoftmaxTheta	  ) , // See NOTE *2*
+	rhos		  ( rhs.rhos		  ) , // See NOTE *2*
+	sumlogrho	  ( rhs.sumlogrho	  ) , // See NOTE *2*
+	step		  ( rhs.step		  ) , // See NOTE *2*
+	NumberOfUpdates	  ( rhs.NumberOfUpdates	  ) , // See NOTE *2*
+	w		  ( rhs.w		  ) , // See NOTE *2*
+	ThetaTuner	  ( rhs.ThetaTuner	  ) , // See NOTE *2*
+	NumGametes	  ( rhs.NumGametes	  ) , // See NOTE *2*
+	tpCache		  ( rhs.tpCache		  ) , // See NOTE *2*
+	hmm		  ( rhs.hmm		  ) , // See NOTE *2*
+	llCache		  ( *this, rhs.llCache	  )
     {
     // !!!WARNING!!! -- see NOTE *1*
     const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
@@ -355,7 +309,10 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
     const_cast<Pedigree&>(rhs).stateProbs	 = 0;
     const_cast<Pedigree&>(rhs).tpCache		 = 0; // See NOTE *2*
     const_cast<Pedigree&>(rhs).hmm		 = 0; // See NOTE *2*
+
+    setMyNumber( rhs.myNumber ); // See NOTE *2*
     }
+
 
 Pedigree & Pedigree::operator=( const Pedigree & rhs )
     {
@@ -371,25 +328,22 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     nAffected		= rhs.nAffected		;
 
     // See NOTE *2*:
-    Theta		= rhs.Theta		;
-    ThetaProposal	= rhs.ThetaProposal	;
+    thetas		= rhs.thetas		;
     SumSoftmaxTheta	= rhs.SumSoftmaxTheta	;
-    thetahat		= rhs.thetahat		;
-    dirparams		= rhs.dirparams		;
-    _rho		= rhs._rho		;
+    rhos		= rhs.rhos		;
     sumlogrho		= rhs.sumlogrho		;
-    rhohat		= rhs.rhohat		;
-    logLikelihood	= rhs.logLikelihood	;
     step		= rhs.step		;
     NumberOfUpdates	= rhs.NumberOfUpdates	;
     w			= rhs.w			;
     ThetaTuner		= rhs.ThetaTuner	;
     NumGametes		= rhs.NumGametes	;
-    myNumber		= rhs.myNumber		;
+    setMyNumber		( rhs.myNumber		);
 
 
     tpCache		= rhs.tpCache		;
     hmm			= rhs.hmm		;
+
+    llCache		= rhs.llCache		;
 
     // !!!WARNING!!! -- see NOTE *1*
     const_cast<Pedigree&>(rhs).sortedMembers	 = 0;

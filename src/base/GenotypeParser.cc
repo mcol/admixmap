@@ -367,9 +367,16 @@ void GenotypeParser::validateOrg( const Organism & org ) const
 		}
 	    else
 		{
+		// Diploid data on male's X chromosome: if homozygous, just
+		// convert to haploid; otherwise issue a warning.
 		if ( isMale && isX )
-		    warn( estr("organism ") + org.idDesc() + " at locus " + locus.getName() +
-			    ": diploid genotype data on male organism's X chromosome" );
+		    {
+		    if ( gType.isHeterozygous() )
+			warn( estr("organism ") + org.idDesc() + " at locus " + locus.getName() +
+			    ": diploid heterozygous genotype data on male organism's X chromosome" );
+		    else
+			gType.forceHaploid();
+		    }
 		}
 	    }
 

@@ -31,11 +31,9 @@ using namespace std;
 using namespace genepi;
 
 
-#define LOC_NUM_DEBUG 0
-
 
 /// This just exists so that we don't need to include <stdexcept> in the header
-/// for inline methods
+/// to throw exceptions in inline methods.
 void Genome::throwErr( const std::string & msg ) const
     {
     throw runtime_error( msg );
@@ -115,9 +113,6 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
     //retrieve first row of this comp locus from locusfile
     #if USE_GENOTYPE_PARSER
       const SimpleLocus & sLoc = simpleLoci[row];
-#if LOC_NUM_DEBUG
-  fprintf( stderr, "Composite-locus %u starts at simple-locus %u (%s) starts-chrom:%s\n", i, row, sLoc.getName().c_str(), sLoc.startsNewChromosome() ? "yes" : "no" );
-#endif
       Distances[ i ] = sLoc.getDistance().inMorgans();
     #else
       const Vector_s& m = data_->getLocusData()[row+1];//+1 because LocusData has a header, LocusMatrix doesn't
@@ -138,14 +133,8 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
       lnum = 0; 
       cstart.push_back(i  ); // composite-locus index of first locus on new chromosome
       sstart.push_back(row); // simple-locus index of first locus on new chromosome
-#if LOC_NUM_DEBUG
-  fprintf( stderr, "  start chrom: %d\n", cnum );
-#endif
     } else{
       lnum++;//one more locus on chromosome
-#if LOC_NUM_DEBUG
-  fprintf( stderr, "  loci so far on chrom %d: %d\n", cnum, lnum );
-#endif
     }
     LocusTable[i][0] = cnum;//chromosome on which locus i is located
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
@@ -161,11 +150,6 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 		    (nextLoc = &(simpleLoci[row]))->isCompositeWithPrevious() ) {
 	  // Adds locus with number of alleles given as argument:
 	  LocusArray[i].AddLocus( nextLoc->getNumAlleles(), nextLoc->getName() );
-
-#if LOC_NUM_DEBUG
-  fprintf( stderr, "  comp-locus %d has %d simple-loci.\n", i, LocusArray[i].GetNumberOfLoci() );
-#endif
-
 	}
 
     #else
@@ -229,12 +213,6 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 	const SimpleLocus & startLocus	= sLoci[ sStLocIdx ];
 	const bool	    isX		= startLocus.isXChrom();
 	const string &	    label	= startLocus.getChromLabel();
-
-#if LOC_NUM_DEBUG
-  fprintf( stderr, "Making new chromosome index %u (%s) starts at simple-locus index %zu, "
-		    "composite-locus index %zu, number of composite-loci = %zu\n",
-		    i, label.c_str(), sStLocIdx, cStLocIdx, size );
-#endif
 
     #else
 
@@ -528,11 +506,6 @@ void Genome::SetLocusCorrelation(double rho){
 	    {
 	    const string & label	= C[c]->GetLabel();
 	    double	   mapPosition	= 0.0;
-
-#if LOC_NUM_DEBUG
-  fprintf( stderr, "-> Chromosome index %u (%s) has %u composite-loci; first is at index %u (simple-locus-index %u = %s)\n",
-	    c, label.c_str(), SizesOfChromosomes[c], locus, simple_locus, LocusArray[locus].GetLabel(0).c_str() );
-#endif
 
 	    // Print the first locus on chromosome:
 	    non_gcc::print( os, LocusArray[locus], label, mapPosition );

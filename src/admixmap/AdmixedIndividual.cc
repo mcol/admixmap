@@ -230,7 +230,7 @@ void AdmixedIndividual::SetStaticMembers( Genome & pLoci, const Options & option
 }
 
 // draw initial values for admixture proportions theta from Dirichlet prior
-void AdmixedIndividual::drawInitialAdmixtureProps(const /*vector<vector<double> >*/ AlphaType &alpha) {
+void AdmixedIndividual::drawInitialAdmixtureProps( const AlphaType & alpha ) {
   const size_t K = NumHiddenStates;
   for( unsigned g = 0; g < NumGametes; ++g ) {
     double sum = 0.0;
@@ -530,7 +530,7 @@ void AdmixedIndividual::SampleJumpIndicators(bool sampleArrivals){
 
 ///uses an EM algorithm to search for posterior modes of individual parameters theta and rho
 // uses current values of allele freqs
-void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
+void AdmixedIndividual::FindPosteriorModes( const AdmixOptions & options, const AlphaType & alpha,
 				    double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile) {
   if( A->IsRandom() ) {
     // set genotype probs using HapPairProbsMAP and AlleleProbsMAP
@@ -686,7 +686,7 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options, const /*
 void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, const bclib::DataMatrix* const Outcome,
 				     const DataType* const OutcomeType, const vector<double> & lambda, const int NumCovariates,
 				     bclib::DataMatrix * Covariates, const vector<const double*> & beta, const PopAdmix::PopThetaType & poptheta,
-				     const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
+				     const AdmixOptions& options, const AlphaType & alpha,
 				     double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest,
 				     const bool RW, const bool anneal )
 // samples individual admixture proportions
@@ -759,11 +759,9 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
 
 // ****** End Public Interface *******
 
-double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha) {
+double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& options, const AlphaType & alpha ) {
   double LogLikelihoodRatio = 0.0;
   double LogPriorRatio = 0.0;
-
-//fprintf( stderr, "RNG check 2: %20.18lf\n", bclib::Rand::gennor( 20, 10 ) );
 
   //generate proposals
   for( unsigned int g = 0; g < NumGametes; g++ ){
@@ -792,7 +790,8 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& option
 	if( b[k] ) {
 	  // prior densities must be evaluated in softmax basis
 	  LogPriorRatio += alpha[g][k]*(log(ThetaProposal[g*NumHiddenStates+k]) -
-						 log(Theta[g*NumHiddenStates+k]));
+
+					  log(Theta[g*NumHiddenStates+k]));
 	}
       }
       //     //compute contribution of this gamete to log prior ratio
@@ -819,7 +818,7 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& option
 // as conjugate Dirichlet posterior conditional on prior parameter vector alpha and
 // multinomial likelihood given by sampled values of ancestry at loci where jump indicator xi is 1 (SumLocusAncestry)
 // proposes new values for both gametes if random mating model
-void AdmixedIndividual::ProposeTheta(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
+void AdmixedIndividual::ProposeTheta(const AdmixOptions& options, const AlphaType & alpha,
 			      int* sumLocusAncestry, int* sumLocusAncestry_X){
   size_t K = NumHiddenStates;
   if( isHaploid || options.isRandomMatingModel() ){ //random mating model
@@ -849,7 +848,7 @@ void AdmixedIndividual::ProposeTheta(const AdmixOptions& options, const /*vector
 
 double AdmixedIndividual::LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel,
 							 int NumHiddenStates, int NumCovariates,
-							 const bclib::DataMatrix* const Covariates, const double* beta,
+							 const bclib::DataMatrix * Covariates, const double* beta,
 							 const double Outcome, const PopAdmix::PopThetaType & poptheta, const double lambda) {
   // returns log of ratio of likelihoods of new and old values of population admixture
   // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in.
@@ -1091,7 +1090,7 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
 // this function does two things:
 // 1. calculates log-likelihood at thetahat, rhohat, allelefreqsMAP
 // 2. calculates log prior at same values
-void AdmixedIndividual::setChibNumerator(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
+void AdmixedIndividual::setChibNumerator(const AdmixOptions& options, const AlphaType &alpha,
 				  double rhoalpha, double rhobeta, chib *MargLikelihood, AlleleFreqs* A) {
 
   // 1. pass value of log-likelihood at MAP parameter values, calculated after finding posterior modes, to chib
@@ -1112,7 +1111,7 @@ void AdmixedIndividual::setChibNumerator(const AdmixOptions& options, const /*ve
   MargLikelihood->setLogPrior(LogPrior);
 }
 
-void AdmixedIndividual::updateChib(const AdmixOptions& options, const /*vector<vector<double> >*/ AlphaType &alpha,
+void AdmixedIndividual::updateChib(const AdmixOptions& options, const AlphaType &alpha,
 				   double rhoalpha, double rhobeta,
 				   // double *thetahat, vector<double> &rhohat,
 				   chib *MargLikelihood, AlleleFreqs* A){
@@ -1147,7 +1146,7 @@ void AdmixedIndividual::updateChib(const AdmixOptions& options, const /*vector<v
 
 // TODO: fix these two functions to work with assortative mating
 double AdmixedIndividual::LogPriorTheta_Softmax(const double* const theta, const AdmixOptions& options,
-					 const /*vector<vector<double> >*/ AlphaType &alpha) const {
+					 const AlphaType &alpha) const {
   double LogPrior=0.0;
   for(unsigned g = 0; g < NumGametes; ++g) { //loop over gametes
     if( options.isAdmixed(g) ){
@@ -1158,7 +1157,7 @@ double AdmixedIndividual::LogPriorTheta_Softmax(const double* const theta, const
 }
 
 double AdmixedIndividual::LogPosteriorTheta_Softmax(const AdmixOptions& options, const double* const theta,
-					     const /*vector<vector<double> >*/ AlphaType &alpha) const{
+					     const AlphaType &alpha) const{
   // calculates log full conditional at theta, conditional on realized locus ancestry states and jump indicators
   double LogPosterior = 0.0;
   vector<double> alphaparams(NumHiddenStates); // , alphaparams1(NumHiddenStates);  // to be set to alpha + SumLocusAncestry
@@ -1232,3 +1231,25 @@ double AdmixedIndividual::getLogPosteriorAlleleFreqs()const{
   vector<double>::const_iterator max = max_element(logPosterior[2].begin(), logPosterior[2].end());
   return bclib::AverageOfLogs(logPosterior[2], *max);
 }
+
+
+
+// ====== DEBUGGING METHODS (overridden from PedBase) ======
+#if PEDBASE_DEBUG_METHODS
+    void AdmixedIndividual::dumpTheta( const char * prefix ) const
+	{
+	const size_t K = NumHiddenStates;
+	for ( unsigned int g = 0 ; g < NumGametes ; ++g )
+	    {
+	    fprintf( stderr, "%s(%d) theta[%d]: ", prefix, getMyNumber(), g );
+	    for ( size_t x = 0 ; x < K ; ++x )
+		fprintf( stderr, " %18.15lf", Theta[g*K+x] );
+	    fprintf( stderr, "\n" );
+
+	    fprintf( stderr, "	theta-prop: " );
+	    for ( size_t x = 0 ; x < K ; ++x )
+		fprintf( stderr, " %18.15lf", ThetaProposal[g*K+x] );
+	    fprintf( stderr, "\n" );
+	    }
+	}
+#endif

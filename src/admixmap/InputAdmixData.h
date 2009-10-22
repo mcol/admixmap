@@ -26,7 +26,7 @@ public:
   \param options pointer to AdmixOptions, to access filenames
   \param Log LogWriter, for writing messages
   */
-  InputAdmixData(AdmixOptions *options, bclib::LogWriter &Log);
+  InputAdmixData( AdmixOptions & options, bclib::LogWriter & Log );
 
   /// The object is not constructed and cannot be used until this is called, but
   /// it cannot be done from the constructor (see note in source file for why).
@@ -114,11 +114,9 @@ private:
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.
    */
-  ///default ctor, not implemented    
-  InputAdmixData();
-  ///copy ctor, not implemented    
+  /// Copy ctor, not implemented.
   InputAdmixData(const InputAdmixData&);
-  ///assignment operator, not implemented
+  /// Assignment operator, not implemented.
   void operator=(const InputAdmixData&);
 };
 #endif

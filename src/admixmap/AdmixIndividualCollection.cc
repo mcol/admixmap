@@ -15,18 +15,10 @@
 #include "bclib/Regression.h"
 
 
-#define PED_DEBUG	0
-#define DEBUG2		0 // DDF: debug which objects in the collection are of what class
-#define DEBUG_BUILD_CNT 0
-#define DEBUG_OMP	0
+#define DEBUG_DTYPE	0 // DDF: debug which objects in the collection are of which class
 
-#if DEBUG2
+#if DEBUG_DTYPE
     #include <cxxabi.h>
-#endif
-
-#if DEBUG_OMP
-    #include <omp.h>
-    #include "CodeTimer.h"
 #endif
 
 using namespace std;
@@ -89,29 +81,12 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
 
   if ( data.isPedFile() || options.getUsePedForInd() )
       {
-      #if DEBUG_BUILD_CNT
-	  fprintf( stderr, "Building AdmixIndividualCollection, i0=%d, size=%d\n", i0, size );
-      #endif
-
       for ( unsigned int i = 0; i < size; i++ )
 	{
 	_child[i] = const_cast<genepi::Pedigree*>( &data.getPeds()[ i + i0 ] );
-	#if DEBUG_BUILD_CNT
-	    const PedBase &  twg = *(_child[i]);
-	    const Pedigree & ped = data.getPed( i + i0 );
-	    fprintf( stderr, "  twg %u (ped idx %u id=%s myNumber=%u) at %p (ped %p): %zu loci at %p\n",
-			i, i+i0, ped.getId().c_str(), ped.getMyNumber(),
-			&twg, &ped,
-			ped.getSLoci().size(), &(ped.getSLoci()) );
-	#endif
 	++NumDiploidIndividuals;
 	}
       iOwnChildren = false;
-
-      #if DEBUG_BUILD_CNT
-	  fprintf( stderr, "Finished building AdmixIndividualCollection.\n" );
-      #endif
-
       }
   else
       {
@@ -142,17 +117,17 @@ AdmixIndividualCollection::~AdmixIndividualCollection() {
   delete indadmixoutput;
   delete[] SumLogTheta;
 
-#if DEBUG2
-  for ( size_t i = 0 ; i < size ; i++ )
-    {
-    int status;
-    char * const realname = abi::__cxa_demangle( typeid(*(_child[i])).name(), 0, 0, &status );
-    const char * cl = (status == 0) ? realname : typeid(*(_child[i])).name();
-    fprintf( stderr, "Class of %zu: %s\n", i, cl );
-    if ( realname != 0 )
-	free( realname );
-    }
-#endif
+  #if DEBUG_DTYPE
+    for ( size_t i = 0 ; i < size ; i++ )
+      {
+      int status;
+      char * const realname = abi::__cxa_demangle( typeid(*(_child[i])).name(), 0, 0, &status );
+      const char * cl = (status == 0) ? realname : typeid(*(_child[i])).name();
+      fprintf( stderr, "Class of %zu: %s\n", i, cl );
+      if ( realname != 0 )
+	  free( realname );
+      }
+  #endif
 
   if ( iOwnChildren )
     for(unsigned int i = 0; i < size; i++)
@@ -184,35 +159,9 @@ void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Ge
   SumLogTheta = new double[ options.getPopulations() ];
 
   //allocate array of sufficient statistics for update of locus-specific sumintensities
-
-  #if PED_DEBUG // ***** DEBUG *****
-	fprintf( stderr, "N-tests: %d\n" "N-inds: %d\n", sizeTestInd, size );
-	const Genome & gen = Individual::getGenome();
-	for ( unsigned int i = 0; i < size; i++ )
-	    {
-	    fprintf( stderr, "  %d %d: ", i, _child[i]->getMyNumber() );
-	    for ( unsigned int loc = 0; loc < gen.GetNumberOfCompositeLoci(); loc++ )
-		{
-		fprintf( stderr, " %c/", _child[i]->GenotypeIsMissing(loc) ? 'M' : 'n' );
-		const vector<hapPair > & pairs = _child[i]->getPossibleHapPairs( loc );
-		for ( size_t pr = 0 ; pr < pairs.size() ; ++pr )
-		    fprintf( stderr, "(%d,%d)", pairs[pr].haps[0], pairs[pr].haps[1] );
-		}
-	    putc( '\n', stderr );
-	    }
-
-      for ( unsigned c = 0; c < getOutcomeMatrix().nCols(); ++c) {
-	const vector<double> & outc = getOutcome(c);
-	fprintf( stderr, "Initialize-outcome-%u [%lu]", c, outc.size() );
-	for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
-	    fprintf ( stderr, " %lf", outc[idx] );
-	putc( '\n', stderr );
-	}
-  #endif
-
 }
 
-void AdmixIndividualCollection::DrawInitialAdmixture(const /*vector<vector<double> >*/ PedBase::AlphaType &alpha){
+void AdmixIndividualCollection::DrawInitialAdmixture( const PedBase::AlphaType & alpha ){
     //draw initial values for individual admixture proportions
   for(unsigned int i = 0; i < size; i++)
     getElement(i).drawInitialAdmixtureProps(alpha);
@@ -286,7 +235,7 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 */
 // void AdmixIndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
 // 							 const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
-// 							 const /*vector<vector<double> >*/ PedBase::AlphaType &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
+// 							 const PedBase::AlphaType &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
 //   vector<double> lambda;
 //   vector<const double*> beta;
 
@@ -321,25 +270,12 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & options,
 						const vector<bclib::Regression*> &R,
 						const PopAdmix::PopThetaType & poptheta,
-						const /*vector<vector<double> >*/ PedBase::AlphaType & alpha,
+						const PedBase::AlphaType & alpha,
 						AffectedsOnlyTest& affectedsOnlyTest,
 						CopyNumberAssocTest& ancestryAssocTest, bool anneal){
   vector<double> lambda;
   vector<const double*> beta;
   double dispersion = 0.0;
-
-
-#if PED_DEBUG // ***** DEBUG *****
-    fprintf( stderr, "At iteration %d, loglike:\n", iteration );
-    Genome & gen = Individual::getGenome();
-    for ( size_t chr = 0 ; chr < gen.GetNumberOfChromosomes() ; ++chr )
-	{
-	Chromosome & cref = gen.getChromosomeRef( chr );
-	const std::string & name = cref.GetLabel();
-	fprintf( stderr, "\t{%lu(%s): %lf}\n", chr, name.c_str(), cref.getHMM().getLogLikelihood(true/*diploid*/) );
-	}
-#endif
-
 
   const bool even_numbered_iteration = ((iteration & 1) == 0);
   const bool _anneal = (anneal && !options.getTestOneIndivIndicator());
@@ -372,15 +308,11 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
   // Now loop over individuals
   const int ssize = int(size);
   #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
-    #pragma omp parallel for default(shared) if(options.getUsePedForInd())
+    #pragma omp parallel for default(shared) PED_LOOP_OMP_SCHED if(options.getUsePedForInd())
   #endif
   for ( int i = 0 ; i < ssize ; i++ ){
 
     PedBase & el = getElement(i);
-
-      #if DEBUG_OMP
-	  genepi::CodeTimer ct;
-      #endif
 
     // ** set SumLocusAncestry and SumNumArrivals to 0
     el.ResetSufficientStats();
@@ -389,10 +321,16 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
       // ** update theta with random-walk proposal on even-numbered iterations
       if(even_numbered_iteration){
         double DinvLink = 1.0;
-        if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-        el.SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
+	// Accessing global data here, must protect -- let's find a better way?
+	#if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP && SAMPLE_THETA_CALL_CRITICAL
+	    #pragma omp critical
+	#endif
+	    { // BEGIN SCOPE BLOCK
+	    if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
+	    el.SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
                                      &Covariates, beta, poptheta, options, alpha, DinvLink,
                                      dispersion, ancestryAssocTest, true, _anneal);
+	    } // END SCOPE BLOCK
       }
 
 
@@ -400,27 +338,20 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
 	{
 
 	// ** Run HMM forward recursions, if required, and sample locus ancestry
-	_child[i]->SampleHiddenStates(options);
+	el.SampleHiddenStates( options );
 
 	// ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-	el.SampleJumpIndicators(!options.isGlobalRho());
+	el.SampleJumpIndicators( ! options.isGlobalRho() );
 
 	}
 
-      // ** Update score, info and varscore for ancestry score tests
+      // ** Update score, info and varscore for ancestry score tests.
+      // NOTE: The access to the quasi-global test-objects (Outcome, Covariates,
+      //    affectesOblyTest, etc.) here raises concurrency issues, currently
+      //    addressed by marking certain sections as critical _inside_
+      //    Pedigree::UpdateScores().
       if ( updateScoreTests )
         el.UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest, ancestryAssocTest);
-
-      #if DEBUG_OMP
-	  #pragma omp critical
-	    {
-	    if ( i == 0 )
-		cout << "DEBUG-OMP-1: " << omp_get_num_threads() << " threads\n";
-	    std::cout << "DEBUG-OMP-1: ped#" << i << " (" << dynamic_cast<Pedigree&>(el).getId() <<
-		    ") is thread#" << omp_get_thread_num() << " started at: " << ct.local_started()
-		    << "  time: " << ct.local_elapsed() << '\n';
-	    }
-      #endif
     }
 
   }
@@ -428,9 +359,9 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
 
 ///samples individual-level sumintensities and admixture
 void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptions& options,
-						 const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
-					    const /*vector<vector<double> >*/ PedBase::AlphaType &alpha, double rhoalpha, double rhobeta,
-					    CopyNumberAssocTest& ancestryAssocTest, bool anneal=false){
+						const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
+						const PedBase::AlphaType &alpha, double rhoalpha, double rhobeta,
+						CopyNumberAssocTest& ancestryAssocTest, bool anneal=false){
   //sufficient statistics have been stored in Individuals
   // coolness is not passed as argument to this function because annealing has already been implemented by
   // calling annealGenotypeProbs
@@ -479,36 +410,52 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
   // -----------------------------------------------------------------------------------------------------
 
   // ** Non-test individuals - conjugate updates only
-  for(unsigned int i = 0; i < size; i++ ){
+  const int ssize = int(size);
+  #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+    #pragma omp parallel for default(shared) PED_LOOP_OMP_SCHED if(options.getUsePedForInd())
+  #endif
+  for ( int i = 0 ; i < ssize ; i++ ){
+
+    PedBase & el = getElement(i);
+
     // ** Sample individual- or gamete-specific sumintensities
     if(Populations>1 && !options.isGlobalRho() )
-       getElement(i).SampleRho( options, rhoalpha, rhobeta,
+       el.SampleRho( options, rhoalpha, rhobeta,
 				   (!anneal && iteration > options.getBurnIn()));
+
     // ** update admixture props with conjugate proposal on odd-numbered iterations
      if((iteration %2) && Populations >1 ){
            double DinvLink = 1.0;
-       if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-        getElement(i).SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates,
-			       beta, poptheta, options, alpha, DinvLink, dispersion, ancestryAssocTest, options.getNoConjugateUpdate(), anneal);
-            }
+	// Accessing global data here, must protect -- let's find a better way?
+	#if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP && SAMPLE_THETA_CALL_CRITICAL
+	    #pragma omp critical
+	#endif
+	    { // BEGIN SCOPE BLOCK
+	    if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
+	    el.SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates,
+			beta, poptheta, options, alpha, DinvLink, dispersion, ancestryAssocTest,
+			options.getNoConjugateUpdate(), anneal);
+	    } // END SCOPE BLOCK
+     }
+
     // ** Sample missing values of outcome variable
-    _child[i]->SampleMissingOutcomes(&Outcome, R);
+    el.SampleMissingOutcomes(&Outcome, R);
   }
 }
 
-void AdmixIndividualCollection::setChibNumerator(const AdmixOptions& options,const /*vector<vector<double> >*/ PedBase::AlphaType &alpha,
+void AdmixIndividualCollection::setChibNumerator(const AdmixOptions& options, const PedBase::AlphaType & alpha,
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
    getElement(0).setChibNumerator(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat*,*/ &MargLikelihood, A);
 }
 
-void AdmixIndividualCollection::updateChib(const AdmixOptions& options,const /*vector<vector<double> >*/ PedBase::AlphaType &alpha,
+void AdmixIndividualCollection::updateChib(const AdmixOptions& options, const PedBase::AlphaType & alpha,
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
    getElement(0).updateChib(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat,*/ &MargLikelihood, A);
 }
 
 void AdmixIndividualCollection::FindPosteriorModes(const AdmixOptions& options,
 						   const vector<bclib::Regression*> &R,
-					      const /*vector<vector<double> >*/ PedBase::AlphaType &alpha, double rhoalpha, double rhobeta,
+					      const PedBase::AlphaType &alpha, double rhoalpha, double rhobeta,
 					      AlleleFreqs* A,
 					      const Vector_s& PopulationLabels){
   if(options.getDisplayLevel()>1)
@@ -599,14 +546,16 @@ void AdmixIndividualCollection::OutputChibResults(bclib::LogWriter& Log) const {
 
 void AdmixIndividualCollection::getOnePopOneIndLogLikelihood(bclib::LogWriter &Log, const Vector_s& PopulationLabels) {
   Log.setDisplayMode(bclib::On);
-  Log << "Log-likelihood for unadmixed "  << PopulationLabels[0] << ": "
-      <<  getElement(0).getLogLikelihoodOnePop() << "\n";
+  Log << "Log-likelihood for unadmixed " << PopulationLabels[0] << ": "
+      << getElement(0).getLogLikelihoodOnePop() << "\n";
 }
 
 void AdmixIndividualCollection::accumulateEnergyArrays(const Options& options) {
-  double Energy = 0.0;
+  #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+    #pragma omp parallel for default(shared) PED_LOOP_OMP_SCHED if(options.getUsePedForInd())
+  #endif
   for(int i = 0; i < sizeTestInd; ++i){ // loop over coolnesses - one copy of test individual at each coolness
-    Energy = -TestInd[i]->getLogLikelihood(options, true, false); // force HMM update, do not store result
+    const double Energy = -TestInd[i]->getLogLikelihood(options, true, false); // force HMM update, do not store result
     SumEnergy[i] += Energy;
     SumEnergySq[i] += Energy*Energy;
     TestInd[i]->HMMIsBad(true); // HMM is bad, stored loglikelihood bad
@@ -659,17 +608,6 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
   int iterations = options.getTotalSamples()-options.getBurnIn();
 
 
-#if PED_DEBUG // ***** DEBUG *****
-  for ( unsigned c = 0; c < R.size(); ++c) {
-    double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
-    const vector<double> & outc = getOutcome(c);
-    fprintf( stderr, "Before-regression-%u (%d) [%lu]", c, iterations, outc.size() );
-    for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
-	fprintf ( stderr, " %lf", outc[idx] );
-    fprintf( stderr, "  -> %lf\n", RegressionLogL );
-    }
-#endif
-
   // *********************************************************************
   // *********************************************************************
   // *****
@@ -678,7 +616,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
   // ***** This is problematic (i.e. buggy): when this method is called from
   // ***** AdmixMapModel::getDevianceAtPosteriorMean(), which is called from
   // ***** AdmixMapModel::Finalize(), it passes L->getSumLogRho()
-  // ***** (i.e. PopAdmix::sumLogRho) in as SubLogRho.  As nearly as I can tell
+  // ***** (i.e. PopAdmix::sumLogRho) in as SumLogRho.  As nearly as I can tell
   // ***** from examining the PopAdmix code as well as observing it while
   // ***** running, PopAdmix::SumLogRho will never have more than 1 element, yet
   // ***** here we access it past the end of its elements provided the genome
@@ -721,7 +659,11 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates
-  for(unsigned int i = 0; i < size; i++ ){
+  const int signed_size = size;
+  #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+    #pragma omp parallel for reduction(+:Lhat) default(shared) PED_LOOP_OMP_SCHED if(options.getUsePedForInd())
+  #endif
+  for( int i = 0; i < signed_size; i++ ){
     Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
 
@@ -731,14 +673,6 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
     Lhat += RegressionLogL;
     Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
 	<< -2.0*RegressionLogL << "\n";
-
-#if PED_DEBUG // ***** DEBUG *****
-    const vector<double> & outc = getOutcome(c);
-    fprintf( stderr, "After-regression-%u (%d) [%lu]", c, iterations, outc.size() );
-    for ( size_t idx = 0 ; idx < outc.size() ; ++idx )
-	fprintf ( stderr, " %lf", outc[idx] );
-    fprintf( stderr, "  -> %lf\n", RegressionLogL );
-#endif
 
   }
 

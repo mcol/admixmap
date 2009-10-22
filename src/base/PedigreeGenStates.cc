@@ -544,8 +544,8 @@ void Pedigree::genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alPro
 	if ( (mendelErrAt(sLocIdx) = HiddenStateSpace::Iterator(stateProbs[sLocIdx]).isFinished()) )
 	    {
 	    cout << estr("Apparent Mendelian inconsistency in pedigree ") +
-		getId() + " at locus #" + sLocIdx + " (" +
-		getSLoci()[sLocIdx].getDesc() + ")\n";
+		getId() + " at locus #" + sLocIdx + " [" +
+		getSLoci()[sLocIdx].getDesc() + "]\n";
 	    ++nMendelErrs;
 	    }
 

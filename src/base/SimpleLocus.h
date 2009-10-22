@@ -59,14 +59,16 @@ class SimpleLocus
 	int	chromNum   ;
 	bool	inComposite;
 
+	static const int SECRET_X_CHROM_NUM = -2; // Yuck
+
     public:
 	const std::string & getName	  () const { return name	; }
 	size_t		    getNumAlleles () const { return numAlleles	; }
 	const GDist &	    getDistance	  () const { return distance	; } ///< Distance to preceding locus
 	int		    getChromNum	  () const { return chromNum	; }
-	bool		    isXChrom	  () const { return (chromNum==-2); } // Yuck
+	bool		    isXChrom	  () const { return (chromNum==SECRET_X_CHROM_NUM); }
 	std::string	    getChromLabel () const { return isXChrom() ? "X" : estr(chromNum); }
-	bool		    hasChromLabel () const { return (chromNum==-2) || (chromNum>=0); }
+	bool		    hasChromLabel () const { return (chromNum==SECRET_X_CHROM_NUM) || (chromNum>=0); }
 
 	bool isInComposite() const { return inComposite; }
 	void makeInComposite() { inComposite = true; }

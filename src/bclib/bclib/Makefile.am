@@ -8,7 +8,7 @@ sampler_headers = AdaptiveRejection.h DirichletParamSampler.h DispersionSampler.
 
 regression_headers = Regression.h LogisticRegression.h LinearRegression.h CoxRegression.h
 
-utils_headers = ColumnIter.h DataMatrix.h DataReader.h dist.h DelimitedBuf.h Exceptions.h Delimitedostream.h DelimitedFileWriter.h GSLExceptions.h GSLErrorHandler.h linalg.h misc.h LogWriter.h Array.hh OptionReader.h ProbVector.h pvector.h ranker.h RObjectWriter.h StringSplitter.h StringConvertor.h exceptions.h estr.h
+utils_headers = ColumnIter.h DataMatrix.h DataReader.h dist.h DelimitedBuf.h Exceptions.h Delimitedostream.h DelimitedFileWriter.h GSLExceptions.h GSLErrorHandler.h linalg.h misc.h LogWriter.h Array.hh OptionReader.h ProbVector.h pvector.h ranker.h RObjectWriter.h StringSplitter.h StringConvertor.h exceptions.h estr.h NRand.h
 
 #headers to be installed
 include_HEADERS = $(top_headers) $(sampler_headers) $(regression_headers) $(utils_headers)

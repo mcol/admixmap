@@ -46,9 +46,10 @@
 #include <bclib/misc.h>
 #include <bclib/rand.h>
 
-#include "config.h"	// AGGRESSIVE_RANGE_CHECK
+#include "config.h"			// AGGRESSIVE_RANGE_CHECK
 #include "TransProbCache.h"
 #include "HiddenMarkovModel.new.h"
+#include "AdmixIndividualCollection.h"	// PARALLELIZE_PEDIGREE_LOOP, SAMPLE_THETA_CALL_CRITICAL
 
 
 #if 0
@@ -89,6 +90,8 @@ using bclib::pvector;
 
 
 
+// Stages of implementing PedBase methods, ported over from Individual/AdmixedIndividual.
+#define NEEDED_ONLY_FOR_CONJUGATE_UPDATE		    0
 #define NOT_NEEDED_FOR_FIRST_VERSION			    0
 #define THIS_IS_HOW_IT_WAS				    0
 #define USE_SINGLE_POPULATION_SPECIAL_CASE		    0
@@ -115,15 +118,6 @@ namespace genepi { // ----
 
 /// This is bad; we need the concept of context!
 const AdmixOptions * Pedigree::optionsRef = 0;
-
-
-
-#if 0
-    static bool greater_than_zero( double x )
-	{
-	return x > 0.0;
-	}
-#endif
 
 
 
@@ -174,11 +168,153 @@ void Pedigree::setK( PopIdx _K )
 
 
 //-----------------------------------------------------------------------------
+// LLBuf
+//-----------------------------------------------------------------------------
+
+Pedigree::LLBuf::LLBuf( Pedigree & _ped ) :
+	ped	      ( _ped  ) ,
+	accValIsValid ( false ) ,
+	propActive    ( false )
+    {
+    }
+
+
+Pedigree::LLBuf::LLBuf( Pedigree & _ped, const LLBuf & rhs ) :
+	ped	      ( _ped ) ,
+	accVal	      ( rhs.accVal ) ,
+	accValIsValid ( rhs.accValIsValid ) ,
+	propActive    ( false )
+    {
+    gp_assert( ! rhs.propActive );
+    }
+
+
+Pedigree::LLBuf & Pedigree::LLBuf::operator=( const LLBuf & rhs )
+    {
+    accVal	  = rhs.accVal	      ;
+    accValIsValid = rhs.accValIsValid ;
+    propActive	  = false	      ;
+
+    gp_assert( ! rhs.propActive );
+
+    return *this;
+    }
+
+
+/// "Begin"
+void Pedigree::LLBuf::startProposal()
+    {
+    gp_assert( ! propActive );
+    propActive = true;
+    propIsValid = false;
+    }
+
+
+/// "Commit"
+/// It would be very strange if a proposal was accepted without first computing
+/// the LL, but just in case, we'll handle it gracefully, so long as this method
+/// is called prior to the parameters (rho, theta) being accepted.
+void Pedigree::LLBuf::acceptProposal()
+    {
+    gp_assert( propActive );
+    if ( propIsValid )
+	accVal = propVal;
+    else
+	accVal = getHMM().getLogLikelihood();
+    propActive = false;
+    }
+
+
+/// "Rollback"
+void Pedigree::LLBuf::rejectProposal()
+    {
+    gp_assert( propActive );
+    propActive = false;
+    }
+
+
+/// Get the log-likelihood of the last accepted parameters (rho,theta)
+double Pedigree::LLBuf::getAcceptedVal() /*const*/
+    {
+    if ( ! accValIsValid )
+	{
+	gp_assert( ! propActive ); // Maybe not, could the first time be during a proposal?
+	accVal = getHMM().getLogLikelihood();
+	accValIsValid = true;
+	}
+    return accVal;
+    }
+
+
+/// Get the log-likelihood of the proposed parameters (rho,theta)
+double Pedigree::LLBuf::getProposedVal() /*const*/
+    {
+    gp_assert( propActive );
+    if ( ! propIsValid )
+	{
+	propVal = getHMM().getLogLikelihood();
+	propIsValid = true;
+	}
+    return propVal;
+    }
+
+
+
+/// Invalidate the cache (proposed if a proposal is active, otherwise
+/// last-accepted): inform it that the underlying parameters (rho or theta)
+/// changed.  Ordinarily, this need not be called since the proposed cache is
+/// already automatically invalid when a new proposal is started, and once
+/// computed, the value is either accepted or rejected without further changes
+/// to the parameters.
+
+void Pedigree::LLBuf::parmsChanged()
+    {
+    if ( propActive )
+	propIsValid = false;
+    else
+	accValIsValid = false;
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// setMyNumber()
+//-----------------------------------------------------------------------------
+
+void Pedigree::setMyNumber( unsigned int nv )
+    {
+    myNumber = nv;
+    #if PED_HAS_OWN_PRNG
+	rng.seed( getOptions().getSeed() + nv );
+    #endif
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// setOptions(), very bad.
+//-----------------------------------------------------------------------------
+
+void Pedigree::setOptions( const AdmixOptions & opts )
+    {
+    optionsRef = &opts;
+    }
+
+
+//-----------------------------------------------------------------------------
+//
 /// This stuff should be in the constructor, when we have a derived class.
+/// See NOTE *2* in Pedigree.h.
+//
+// We can't allocate these prior to knowing, amongst other things, the number of founders.  Of
+// course they should be in a subclass, in which case they wouldn't be
+// allocated until much later anyhow.
+//
 //-----------------------------------------------------------------------------
 
 void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
     {
+
     // This is bad.  Where is the concept of context?
     if ( optionsRef == 0 )
 	optionsRef = &options;
@@ -186,11 +322,25 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 	gp_assert( optionsRef == &options );
 
 
-    logLikelihood.value = 0.0;
-    logLikelihood.ready = false;
-    logLikelihood.HMMisOK = false;
-    const double step0 = step;
-    ThetaTuner.SetParameters( step0, 0.0001, 10.0, 0.44 );
+    const PopIdx K = getK();
+    for ( ProposalRingBuffer<ThetaType>::Iterator it = thetas.begin() ; it != thetas.end() ; ++it )
+	{
+	it->resize( getNTheta() );
+	for ( ThetaIdx fIdx = getNTheta() ; fIdx-- != 0 ; )
+	    (*it)[ fIdx ].resize( K );
+	}
+
+
+    pvector<double> Kzero;
+    Kzero.resize( getK(), 0.0 );
+    SumSoftmaxTheta.resize( getNTheta(), Kzero );
+
+
+    // Set the initial values for Theta:
+    SetUniformAdmixtureProps();
+
+
+    ThetaTuner.SetParameters( step, 0.0001, 10.0, 0.44 );
 
 
     #if ! NON_GLOBAL_RHO_WORKS
@@ -241,20 +391,38 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 	}
 
 
-    _rho  .assign( NumGametes, 0.0 ); // set to 0 for unadmixed gametes
-    rhohat.assign( NumGametes, 0.0 ); // set to 0 for unadmixed gametes
+    for ( RhoType * it = rhos.begin() ; it != rhos.end() ; ++it )
+	it->resize( options.isGlobalRho() ? 1 : NumGametes );
+
+    // Initialise rho to 0 for unadmixed gametes
+    for ( size_t idx = getCurRho().size() ; idx-- != 0 ; )
+	getCurRho()[idx] = options.isAdmixed(idx) ? init : 0.0;
+
+    sumlogrho.assign( getCurRho().size(), 0.0 );
+
+    }
 
 
-    for( unsigned g = 0; g < NumGametes; ++g)
-	{
-	if ( options.isAdmixed(g) )
-	    {
-	    _rho  [g] = init;
-	    rhohat[g] = init;
-	    }
-	}
 
-    sumlogrho.assign( _rho.size(), 0.0 );
+//-----------------------------------------------------------------------------
+/// Overridden virtual from PedBase, here only for compatibility with the
+/// individual objects.  The arguments are all ignored.  Returns the
+/// log-likelihood of the current parameters (rho,theta) -- i.e. proposed if a
+/// proposal is active, last accepted value otherwise.
+//-----------------------------------------------------------------------------
+
+double Pedigree::getLogLikelihood( const Options & , bool /*forceUpdate*/ , bool /*store*/ )
+    {
+    double rv;
+
+    #if USE_SINGLE_POPULATION_SPECIAL_CASE
+      if ( getK() == 1 )
+	  rv = getLogLikelihoodOnePop();
+      else
+    #endif
+	rv = llCache.getCurVal();
+
+    return rv;
     }
 
 
@@ -267,10 +435,10 @@ int Pedigree::getNInheritedByAffected( FounderIdx fIdx, PopIdx k, const Ancestry
     {
 
     // Is this optimization worth having?  Does it come up in real datasets?
-    #if 0
-	if ( getNAffected() == 0 )
-	    return 0; // *** RETURN HERE ***
-    #endif
+#if 0
+    if ( getNAffected() == 0 )
+	return 0; // *** RETURN HERE ***
+#endif
 
     int rv = 0;
 
@@ -339,25 +507,30 @@ int Pedigree::getNInheritedByAffected( FounderIdx fIdx, PopIdx k, const Ancestry
 	    const Organism & child	= memberAt( cIdx );
 	    Ancestry &	     cAncestry	= ancStack[ cIdx ];
 
-	    const Organism & father	= *child.getFather();
-	    const Ancestry & pAncestry	= ancStack[ father.getPIdx() ];
-
-	    if ( pAncestry.hasAncOfType( iv.paternal(cIdx) ) )
+	    const Organism * const father = child.getFather();
+	    if ( father != 0 )
 		{
-		cAncestry.pAncestry = true;
-		if ( child.getOutcome() != 0 ) // isAffected()
-		    ++rv;
+		const Ancestry & pAncestry = ancStack[ father->getPIdx() ];
+		if ( pAncestry.hasAncOfType( iv.paternal(cIdx) ) )
+		    {
+		    cAncestry.pAncestry = true;
+		    if ( child.getOutcome() != 0 ) // isAffected()
+			++rv;
+		    }
 		}
 
 	    // Even if we already have one inherited k-state, we look for another in
 	    // case of incest-cycle in a multi-generational pedigree
-	    const Organism & mother = *child.getMother();
-	    const Ancestry & mAncestry = ancStack[ mother.getPIdx() ];
-	    if ( mAncestry.hasAncOfType( iv.maternal(cIdx) ) )
+	    const Organism * const mother = child.getMother();
+	    if ( mother != 0 )
 		{
-		cAncestry.mAncestry = true;
-		if ( child.getOutcome() != 0 ) // isAffected()
-		    ++rv;
+		const Ancestry & mAncestry = ancStack[ mother->getPIdx() ];
+		if ( mAncestry.hasAncOfType( iv.maternal(cIdx) ) )
+		    {
+		    cAncestry.mAncestry = true;
+		    if ( child.getOutcome() != 0 ) // isAffected()
+			++rv;
+		    }
 		}
 
 	    }
@@ -424,15 +597,19 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
     // Existing code uses k==1 (not 0), yet treats it within the AffectedsOnlyTest object as "k==0", so:
     const PopIdx k_begin = (getK() == 2) ? 1 : 0;
 
-//    for ( SLocIdxType t = loci.size() ; t-- != 0 ; )
     for ( SLocIdxType t = 0 ; t < loci.size() ; ++t )
 	{
 
 	// If K==2, only evaluate for 1 population, otherwise for all of them.
 	// Existing code uses k==1 (not 0), so:
-	//for ( PopIdx k = (getK() == 2) ? 1 : getK() ; k-- != 0 ; )
 	for ( PopIdx k = k_begin ; k < getK() ; ++k )
 	    {
+
+#define DEBUG_AOTEST 0
+#if DEBUG_AOTEST
+		fprintf( stderr, "ped:%s(%d) t:%zd k:%zd\n", getId().c_str(), getMyNumber(), t, k );
+#endif
+
 	    double scoreAvg   = 0.0;
 	    double scoreSqAvg = 0.0;
 	    double infoAvg    = 0.0;
@@ -451,17 +628,30 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
 		    const int nFromK = stIt.getAV().nCopiesFromKAtFounder( fIdx, k );
 
+#if DEBUG_AOTEST
+		    fprintf( stderr, "  fIdx:%zd st:%zd nFromK:%d hetro:%s nAff:%zd",
+				fIdx, stIt.getNon0Index(), nFromK,
+				stIt.getAV().isHetrozygousForPop(fIdx,k) ? "yes" : "no", nAff );
+#endif
+
 		    if ( stIt.getAV().isHetrozygousForPop( fIdx, k ) )
 			{
 			const int m = getNInheritedByAffected( fIdx, k, stIt.getAV(), stIt.getIV() );
 			stScore += 0.25 * (m - nAffOver2);
 			stInfo += nAffOver16;
+#if DEBUG_AOTEST
+			fprintf( stderr, " hetro-m:%d; score:%.12lf; info:%.12lf", m, stScore, stInfo );
+#endif
 			}
 
-		    const double mu = Theta[ fIdx ][ k ];
+		    const double mu = getCurTheta()[ fIdx ][ k ];
 
 		    stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
 		    stInfo  += aa_info( nFromK, nNPlus3over8, nNPlus3over16, n3over16, mu );
+
+#if DEBUG_AOTEST
+		    fprintf( stderr, " mu:%.12lf; stScore:%.12lf; stInfo:%.12lf\n", mu, stScore, stInfo );
+#endif
 
 		    }
 
@@ -470,14 +660,34 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		scoreAvg += wtScore;
 		scoreSqAvg += wtScore * stScore;
 		infoAvg += stInfo * stWeight;
+#if DEBUG_AOTEST
+		    fprintf( stderr, "-> stWeight=%.12lf wtScore=%.12lf scoreAvg=%.12lf\n", stWeight, wtScore, scoreAvg );
+#endif
 		}
 
 	    const double condVarianceOfU = scoreSqAvg - (scoreAvg * scoreAvg);
 
-	    aoTest.getAffectedsScore	( t, k-k_begin ) += scoreAvg	    ;
-	    aoTest.getAffectedsVarScore ( t, k-k_begin ) += condVarianceOfU ;
-	    aoTest.getAffectedsInfo	( t, k-k_begin ) += infoAvg	    ;
+	    // In practice, the aoTest object that is passed in is effectively a
+	    // shared global object.  We should probably find a way to address
+	    // this more cleanly and efficiently.  We can disable this critical
+	    // section by marking as critical-section the entire call to
+	    // el.UpdateScores() inside the parallelized for-loop in
+	    // AdmixIndividualCollection::HMMUpdates().
+	    #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+		#pragma omp critical
+	    #endif
+		{ // BEGIN SCOPE BLOCK
+		aoTest.getAffectedsScore    ( t, k-k_begin ) += scoreAvg	;
+		aoTest.getAffectedsVarScore ( t, k-k_begin ) += condVarianceOfU ;
+		aoTest.getAffectedsInfo	    ( t, k-k_begin ) += infoAvg		;
+		} // END SCOPE BLOCK
 
+#if DEBUG_AOTEST
+	    fprintf( stderr, "==> cum-score: %.12lf cum-var=%.12lf cum-info=%.12lf\n\n",
+		aoTest.getAffectedsScore(t,k-k_begin)	 ,
+		aoTest.getAffectedsVarScore(t,k-k_begin) ,
+		aoTest.getAffectedsInfo(t,k-k_begin)	 );
+#endif
 	    }
 
 	}
@@ -487,70 +697,50 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
 
 //-----------------------------------------------------------------------------
-// setRho()
-// Virtual, overridden from PedBase.  Only makes sense if each pedigree keeps its own HMM and TPC.
-//-----------------------------------------------------------------------------
-
-void Pedigree::setRho( double nv )
-    {
-    getTPC().setRho( nv );
-    getHMM().thetaChanged();
-    }
-
-
-
-//-----------------------------------------------------------------------------
 // HMMIsBad()
-// What does this mean?  Exposition of internals to the outside world.
+/// Overridden from PedBase, but null implementation because only applies to
+/// one-HMM-per-chromosome.
 //-----------------------------------------------------------------------------
 
 void Pedigree::HMMIsBad( bool /*loglikisbad*/ )
     {
-    #if 0
-	// Copied directly from Individual, could be placed in some base class,
-	// except seems to have no bearing on pedigrees since they track for
-	// themselves whether the HMM is OK.
-	logLikelihood.HMMisOK = false;
-	if ( loglikisbad )
-	    logLikelihood.ready = false;
-    #endif
     }
 
 
 
 //-----------------------------------------------------------------------------
-// getHMM()
+// getTPC(), getHMM()
 //-----------------------------------------------------------------------------
 
 TransProbCache & Pedigree::getTPC() const
-	{
-	#if NON_GLOBAL_RHO_WORKS
-	    #error Which rho to use here?
-	#else
-	    // Assume that _rho[0] is the global rho to use:
-	    if ( tpCache == 0 )
-		tpCache = new TransProbCache( *this, _rho[0], Theta );
-	#endif
-	return *tpCache;
-	}
+    {
+    #if NON_GLOBAL_RHO_WORKS
+	#error Which rho to use here?
+    #else
+	if ( tpCache == 0 )
+	    tpCache = new TransProbCache( *this, getGlobalRhoVal(), getCurTheta() );
+    #endif
+    return *tpCache;
+    }
 
-    /// Allocate the HiddenMarkovModel for the Pedigree object (only if have one HMM
-    /// for each pedigree rather than one per chromosome).
 
-    HiddenMarkovModel & Pedigree::getHMM() const
-	{
-	if ( hmm == 0 )
-	    hmm = new HiddenMarkovModel( *this, getTPC(), &Theta );
-	return *hmm;
-	}
+/// Allocate the HiddenMarkovModel for the Pedigree object (only if have one HMM
+/// for each pedigree rather than one per chromosome).
 
-    void Pedigree::freeHMM() const
-	{
-	delete tpCache;
-	tpCache = 0;
-	delete hmm;
-	hmm = 0;
-	}
+HiddenMarkovModel & Pedigree::getHMM() const
+    {
+    if ( hmm == 0 )
+	hmm = new HiddenMarkovModel( *this, getTPC(), &getCurTheta() );
+    return *hmm;
+    }
+
+void Pedigree::freeHMM() const
+    {
+    delete tpCache;
+    tpCache = 0;
+    delete hmm;
+    hmm = 0;
+    }
 
 
 
@@ -571,7 +761,7 @@ TransProbCache & Pedigree::getTPC() const
 
 void Pedigree::SampleTheta(
 		 int				    iteration		,
-		 double *			    SumLogTheta		,
+		 double *			    SumLogTheta		, ///< Indexed on 0 <= k < K
 		 const bclib::DataMatrix *	    Outcome		,
 		 const DataType *		    OutcomeType		,
 		 const std::vector<double> &	    lambda		,
@@ -587,6 +777,7 @@ void Pedigree::SampleTheta(
 		 bool				    /*RW*/		,
 		 bool				    anneal		)
     {
+
     // NOTE *1*: We ignore the value of RW, use true every time (see comments above):
     #define RW true
 
@@ -598,16 +789,18 @@ void Pedigree::SampleTheta(
 	if ( RW )
 	    {
 	    NumberOfUpdates++;
-	    logpratio += ProposeThetaWithRandomWalk( options, alpha );
+	    logpratio += ProposeThetaWithRandomWalk( alpha );
 	    }
 	  #if NEEDED_ONLY_FOR_CONJUGATE_UPDATE
 	    else
-		ProposeTheta(options, alpha, SumLocusAncestry, SumLocusAncestry_X);
+		ProposeTheta( options, alpha, SumLocusAncestry, SumLocusAncestry_X );
+	    #error this must be converted
 	  #endif
 	}
     catch ( string & s )
 	{
-	throw std::runtime_error( "Error encountered while generating proposal individual admixture proportions:\n  " + s );
+	throw std::runtime_error(
+	    "Errorx generating proposed pedigree admixture proportions:\n  " + s );
 	}
 
     // Calculate Metropolis acceptance probability ratio for proposal theta
@@ -625,22 +818,24 @@ void Pedigree::SampleTheta(
 
     // Accept or reject proposed value - if conjugate update and no regression
     // model, proposal will be accepted because logpratio = 0
-    Accept_Reject_Theta(logpratio, K, options.isRandomMatingModel(), RW );
+    Accept_Reject_Theta( logpratio, options.isRandomMatingModel(), RW );
 
     // Update the value of admixture proportions used in the regression model, but
     // only if pedigree is a single individual:
     if ( (options.getNumberOfOutcomes() > 0) && (getNMembers() == 1) )
-	UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options.isRandomMatingModel(), Covariates);
+	updateAdmixtureForRegression( NumCovariates, poptheta, options.isRandomMatingModel(), Covariates );
 
+
+    // See NOTE *1* in list-of-things-dont-agree here.
     if ( (! anneal) && (iteration > options.getBurnIn()) )
 	{
 	// Accumulate sums in softmax basis for calculation of posterior means
 
-	double a[ K ]; // Or could use: bclib::pvector<double> a;
+	double a[ K ]; // Or could use: pvector<double> a;
 
 	for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
 	    {
-	    Theta[tIdx].inv_softmax_gt0( a ); // Equivalent: Theta[tIdx].inv_softmax( a, gt_0 );
+	    getCurTheta()[tIdx].inv_softmax_gt0( a ); // Equivalent: getCurTheta()[tIdx].inv_softmax( a, gt_0 );
 	    SumSoftmaxTheta[tIdx] += a;
 	    }
 	}
@@ -648,12 +843,30 @@ void Pedigree::SampleTheta(
 
     if ( ! IAmUnderTest )
 	{
+	// See NOTE *1* in list-of-things-dont-agree here.
 	for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
 	    {
-	    //SumLogTheta.addAfterFunction( Theta[tIdx], log );
-	    const pvector<double> & th = Theta[ tIdx ];
-	    for ( size_t k = 0 ; k < th.size() ; ++k )
-		SumLogTheta[k] += log( th[k] );
+	    //SumLogTheta.addAfterFunction( getCurTheta()[tIdx], log );
+	    const ThetaElType & th = getCurTheta()[ tIdx ];
+
+	    // The SumLogTheta object that is passed in is effectively a shared
+	    // global object which gets modified here, so we define a critical
+	    // section.  We should probably find a way to address this more
+	    // cleanly and efficiently, perhaps passing the partial-sum of
+	    // log(theta) for this iteration of pedigree out, and let the
+	    // parallelized loop accumulate the final values, using OpenMP
+	    // reduction().  Alternately, use some combination of
+	    // copyin/copyout/firstprivate/lastprivate.  If the entire call to
+	    // SampleTheta() is inside a critical section (every place that it
+	    // is called from a parallel section), this does not need to be
+	    // protected here.
+	    #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP && (! SAMPLE_THETA_CALL_CRITICAL)
+		#pragma omp critical
+	    #endif
+		{ // BEGIN SCOPE BLOCK
+		for ( size_t k = th.size() ; k-- != 0 ; )
+		    SumLogTheta[k] += log( th[k] );
+		} // END SCOPE BLOCK
 	    }
 
 	#if NOT_NEEDED_FOR_FIRST_VERSION
@@ -705,7 +918,7 @@ double Pedigree::LogAcceptanceRatioForRegressionModel( RegressionType /*RegType*
 	// Resume here...
 	if( RandomMatingModel && NumGametes==2)
 	  for(int k = 1;k < NumHiddenStates; ++k){
-	    avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + NumHiddenStates ])/ 2.0 - poptheta[k];
+	    avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k+NumHiddenStates]) / 2.0 - poptheta[k];
 	    currentavgtheta[k] = (Theta[k] + Theta[k + NumHiddenStates ])/ 2.0 - poptheta[k];
 	  }
 	else
@@ -742,46 +955,62 @@ double Pedigree::LogAcceptanceRatioForRegressionModel( RegressionType /*RegType*
 
 
 //-----------------------------------------------------------------------------
-// UpdateAdmixtureForRegression()
-// Update individual admixture values (mean of both gametes) used in the regression model
+// updateAdmixtureForRegression() [private]
+/// Update individual admixture values (mean of both gametes) used in the
+/// regression model.  Will use the proposed theta if there is an active
+/// proposal, or the last accepted values otherwise.
 //-----------------------------------------------------------------------------
 
-void Pedigree::UpdateAdmixtureForRegression( int NumHiddenStates, int NumCovariates,
+void Pedigree::updateAdmixtureForRegression( int NumCovariates,
                                                const PopThetaType & poptheta, bool /*RandomMatingModel*/,
 					       bclib::DataMatrix * Covariates )
     {
-    cvector<double> avgtheta( NumHiddenStates );
+    double avgtheta[ getNTheta() ];
 
 
     for ( PopIdx k = getK() ; k-- != 0 ; )
 	{
 	double sum = 0.0;
 	for ( ThetaIdx tIdx = getNTheta() ; tIdx-- != 0 ; )
-	    sum += Theta[ tIdx ][ k ];
+	    sum += getCurTheta()[ tIdx ][ k ];
 	avgtheta[ k ] = sum / getNTheta();
 	}
 
 
     const PopIdx K = getK();
     const size_t NumberOfInputCovariates = NumCovariates - K;
-    // Seems strange, why does this loop start at 1?
-    for( PopIdx k = 1 , covIdx = NumberOfInputCovariates ; k < K ; k++, covIdx++ )
-	Covariates->set( getIndex(), covIdx, avgtheta[ k ] - poptheta[ k ] );
+
+
+    // The Covariates object that is passed in is effectively a shared global
+    // object which gets modified here, so we define a critical section.  We
+    // should probably find a way to address this more cleanly and efficiently,
+    // perhaps passing the partial-sum of log(theta) for this iteration of
+    // pedigree out, and let the parallelized loop accumulate the final values,
+    // using OpenMP reduction().  Alternately, use some combination of
+    // copyin/copyout/firstprivate/lastprivate.  If the entire call to
+    // SampleTheta() is inside a critical section (every place that it is called
+    // from a parallel section), this does not need to be protected here.
+    #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP && (! SAMPLE_THETA_CALL_CRITICAL)
+	#pragma omp critical
+    #endif
+	{ // BEGIN SCOPE BLOCK
+	// Seems strange, why does this loop start at 1?
+	for( PopIdx k = 1 , covIdx = NumberOfInputCovariates ; k < K ; k++, covIdx++ )
+	    Covariates->set( getIndex(), covIdx, avgtheta[ k ] - poptheta[ k ] );
+	} // END SCOPE BLOCK
     }
 
 
 
 //-----------------------------------------------------------------------------
-// ProposeThetaWithRandomWalk()
+// ProposeThetaWithRandomWalk() [private]
 //-----------------------------------------------------------------------------
 
-double Pedigree::ProposeThetaWithRandomWalk( const AdmixOptions & options, const AlphaType & alpha )
+double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
     {
     double LogLikelihoodRatio = 0.0;
     double LogPriorRatio      = 0.0;
 
-
-//fprintf( stderr, "RNG check 2: %20.18lf\n", bclib::Rand::gennor( 20, 10 ) );
 
     //-------------------------------------------------------------------------
     // Generate proposals
@@ -792,24 +1021,26 @@ double Pedigree::ProposeThetaWithRandomWalk( const AdmixOptions & options, const
     // NOTE *M1*: Maybe this should be be allocated once for the class?
     pvector<double> a( K );
 
+    ThetaType & theta_proposal = startThetaProposal();
+    ThetaType & theta	       = thetas.getAccepted();
+
     for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
 	{
 
 	if ( IS_ADMIXED() )
 	    {
-	    const pvector<double> & th	    = Theta	   [ tIdx ];
-	    pvector<double> &	    th_prop = ThetaProposal[ tIdx ];
+	    const ThetaElType & th	= theta[ tIdx ];
+	    ThetaElType &	th_prop = theta_proposal[ tIdx ];
 
 	    th.inv_softmax_gt0( a );
 
 	    // Random walk step - on all elements of array a
 	    for ( PopIdx k = 0 ; k < K ; ++k )
 		if ( a[k] != 0.0 )
-		    a[k] = bclib::Rand::gennor( a[k], step );
+		    a[k] = RNG_NORMAL( a[k], step );
 
 	    // Reverse transformation from numbers on real line to proportions
 	    a.softmax_gt0( th_prop );
-
 
 	    // Compute contribution of this founder to log prior ratio
 	    // Prior densities must be evaluated in softmax basis
@@ -818,17 +1049,21 @@ double Pedigree::ProposeThetaWithRandomWalk( const AdmixOptions & options, const
 	    }
 
 	else // IS_ADMIXED()
-	    Theta[ tIdx ] = ThetaProposal[ tIdx ];
+	    {
+	    #if 0
+		Theta[ tIdx ] = ThetaProposal[ tIdx ];
+	    #else
+		throw std::logic_error( "Logic error. Everything should be admixed for pedigrees. What's going on here?" );
+	    #endif
+	    }
 
 	} // End loop over Theta's elements (i.e. founders)
 
     // Get log likelihood at current parameter values - do not force update, store result of update
-    LogLikelihoodRatio -= getLogLikelihood( options, false, true );
+    LogLikelihoodRatio -= llCache.getAcceptedVal();
 
-    // Get log likelihood at proposal theta and current rho - force update
-    // store result in loglikelihood.tempvalue, and accumulate loglikelihood ratio
-    logLikelihood.tempvalue = getLogLikelihood( options, ThetaProposal, _rho, true );
-    LogLikelihoodRatio += logLikelihood.tempvalue;
+    // Get log likelihood at proposal theta and current rho and accumulate
+    LogLikelihoodRatio += llCache.getProposedVal();
 
     return LogLikelihoodRatio + LogPriorRatio; // Log ratio of full conditionals
     }
@@ -845,15 +1080,20 @@ double Pedigree::ProposeThetaWithRandomWalk( const AdmixOptions & options, const
 //
 //-----------------------------------------------------------------------------
 
-void Pedigree::Accept_Reject_Theta( double logpratio, int /*NumHiddenStates*/, bool /*RandomMatingModel*/, bool RW )
+void Pedigree::Accept_Reject_Theta( double logpratio, bool /*isRandomMatingModel*/, bool isRandomWalk )
     {
+
+    const ThetaType & theta	    = thetas.getAccepted();
+    const ThetaType & thetaProposal = thetas.getProposed();
+
+
     // Loop over populations: if any element of proposed Dirichlet parameter
     // vector is too small, reject update without test step
     bool should_do_test = true;
     for ( ThetaIdx tIdx = getNTheta() ; should_do_test && (tIdx-- != 0) ; )
 	{
-	const pvector<double> & th	= Theta	       [ tIdx ];
-	const pvector<double> & th_prop = ThetaProposal[ tIdx ];
+	const ThetaElType & th	    = theta	   [ tIdx ];
+	const ThetaElType & th_prop = thetaProposal[ tIdx ];
 
 	for ( PopIdx k = getK() ; should_do_test && (k-- != 0) ; )
 	    if ( (th[k] > 0.0) && (th_prop[k] < 0.0001) )
@@ -870,7 +1110,7 @@ void Pedigree::Accept_Reject_Theta( double logpratio, int /*NumHiddenStates*/, b
 	if ( logpratio < 0 )
 	    {
 	    AccProb = exp( logpratio );
-	    if ( bclib::Rand::myrand() < AccProb )
+	    if ( RNG_UNIFORM() < AccProb )
 		accept = true;
 	    }
 	else
@@ -881,27 +1121,24 @@ void Pedigree::Accept_Reject_Theta( double logpratio, int /*NumHiddenStates*/, b
     if ( accept )
 	{
 	// Set proposed values as new values
-	setAdmixtureProps( ThetaProposal );
-	if ( RW )
-	    {
-	    // If random-walk update, store the temp log-likelihood and set loglikelihood.HMMisOK to true
-	    storeLogLikelihood( true );
-	    }
-	else
-	    {
-	    // conjugate update of parameters invalidates both HMM forward probs and stored loglikelihood
-	    logLikelihood.HMMisOK = false;
-	    logLikelihood.ready = false;
-	    }
+	acceptThetaProposal();
+
+	gp_assert( isRandomWalk );
+
+	// Copied comment:
+	// Conjugate update of parameters invalidates both HMM forward probs and stored loglikelihood.
 	}
     else
 	{
+	rejectThetaProposal();
+
+	// Copied comment:
 	// If RW proposal is rejected, loglikelihood.HMMisOK is already set to
-	// false, and stored log-likelihood is still valid
+	// false, and stored log-likelihood is still valid.
 	}
 
 
-    if ( RW )
+    if ( isRandomWalk )
 	{
 	// Update step size in tuner object every w updates
 	if ( (NumberOfUpdates % w) == 0 )
@@ -915,39 +1152,96 @@ void Pedigree::Accept_Reject_Theta( double logpratio, int /*NumHiddenStates*/, b
 //-----------------------------------------------------------------------------
 // storeLogLikelihood()
 //
-/// To call if a Metropolis proposal is accepted
+/// Overridden from PedBase; deprecated in the case of pedigrees, which
+/// encapsulate the proposal-caching logic.  We need to preserve it since it is
+/// called externally from PopAdmix.
 //-----------------------------------------------------------------------------
 
-void Pedigree::storeLogLikelihood( bool setHMMAsOK )
+void Pedigree::storeLogLikelihood( bool /*setHMMAsOK*/ )
     {
-    logLikelihood.value = logLikelihood.tempvalue;
-    logLikelihood.ready = true;
-    if ( setHMMAsOK )
-	logLikelihood.HMMisOK = true;
+    llCache.acceptProposal();
+
+    if ( thetas.proposalActive() )
+	thetas.acceptProposal();
+
+    if ( rhos.proposalActive() )
+	rhos.acceptProposal();
     }
 
 
 
-//-----------------------------------------------------------------------------
-/// Set admixture proportions
-//-----------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+// Public rho-proposal methods, overridden from PedBase, called from PopAdmix,
+// ignored for individuals, which store rho in the Loci.
+//--------------------------------------------------------------------------
 
-void Pedigree::setAdmixtureProps( const ThetaType & rhs )
-    {
-    gp_assert( Theta.size() == getNTheta() );
-    gp_assert( rhs  .size() == getNTheta() );
-
-    for ( ThetaIdx tIdx = getNTheta() ; tIdx-- != 0 ; )	
-{
-	pvector<double> &	sub_theta = Theta [ tIdx ];
-	const pvector<double> & sub_rhs	  = rhs	  [ tIdx ];
-
-	gp_assert( sub_theta.size() == getK() );
-	gp_assert( sub_rhs  .size() == getK() );
-
-	for ( PopIdx k = getK() ; k-- != 0 ; )
-	    sub_theta[ k ] = sub_rhs[ k ];
+#if AGGRESSIVE_RANGE_CHECK
+    double & Pedigree::getGlobalRhoVal()
+	{
+	gp_assert( getOptions().isGlobalRho() );
+	return getCurRho()[0];
 	}
+#endif
+
+
+// setRho()
+// Virtual, overridden from PedBase.  Only makes sense if each pedigree keeps its own HMM and TPC.
+void Pedigree::setRho( double nv )
+    {
+    getGlobalRhoVal() = nv;
+    getTPC().setRho( nv );
+    getHMM().transProbsChanged();
+    llCache.parmsChanged();
+    }
+
+void Pedigree::startRhoProposal()
+    {
+    llCache.startProposal();
+    rhos.startNewProposal();
+    }
+
+void Pedigree::acceptRhoProposal()
+    {
+    llCache.acceptProposal();
+    rhos.acceptProposal();
+    }
+
+void Pedigree::rejectRhoProposal()
+    {
+    llCache.rejectProposal();
+    rhos.rejectProposal();
+    getTPC().setRho( getGlobalRhoVal() );
+    getHMM().transProbsChanged();
+    }
+
+
+//--------------------------------------------------------------------
+// Combined Theta-proposal methods
+//--------------------------------------------------------------------
+
+/// Allocates new theta on the ring-buffer for proposal and starts a new
+/// logLikelihood proposal.
+Pedigree::ThetaType & Pedigree::startThetaProposal()
+    {
+    llCache.startProposal();
+    ThetaType & rv = thetas.startNewProposal();
+    getHMM().setTheta( &rv );
+    return rv;
+    }
+
+/// Reject Theta Proposal.
+void Pedigree::rejectThetaProposal()
+    {
+    llCache.rejectProposal();
+    thetas.rejectProposal();
+    getHMM().setTheta( &getCurTheta() );
+    }
+
+/// Accept Theta Proposal.
+void Pedigree::acceptThetaProposal()
+    {
+    llCache.acceptProposal();
+    thetas.acceptProposal();
     }
 
 
@@ -955,96 +1249,6 @@ void Pedigree::setAdmixtureProps( const ThetaType & rhs )
 //*****************************************************************************
 //***************************  Log-Likelihoods  *******************************
 //*****************************************************************************
-
-//-----------------------------------------------------------------------------
-// public function:
-// Calls private function to get log-likelihood at current parameter values, and
-// stores it either as loglikelihood.value or as loglikelihood.tempvalue store
-// should be false when calculating energy for an annealed run, or when
-// evaluating proposal for global sum-intensities
-// **** COPIED FROM AdmixedIndividual, NOT Individual ****
-//-----------------------------------------------------------------------------
-
-double Pedigree::getLogLikelihood( const Options & options, bool forceUpdate, bool store )
-    {
-    if ( (! logLikelihood.ready) || forceUpdate )
-	{
-	logLikelihood.tempvalue = getLogLikelihood( options, Theta, _rho, true );
-	if ( store )
-	    {
-	    logLikelihood.value = logLikelihood.tempvalue;
-	    logLikelihood.ready = false;    //true;
-	    logLikelihood.HMMisOK = false;  //true; //because forward probs now correspond to current parameter values
-	    }					    //and call to UpdateHMM has set this to false
-	return logLikelihood.tempvalue;
-	}
-    else
-	return logLikelihood.value; // nothing was changed
-    }
-
-
-
-//-----------------------------------------------------------------------------
-//
-// Private function: gets log-likelihood at parameter values specified as
-// arguments, but does not update loglikelihoodstruct
-//
-// This is a combination of the AdmixedIndividual:: and Individual:: versions,
-// because the AdmixedIndividual version called the superclass's version
-// internally.
-//
-//-----------------------------------------------------------------------------
-
-double Pedigree::getLogLikelihood(  const Options &	options	  ,
-				    const ThetaType &	theta	  ,
-				    const RhoType &	rho	  ,
-				    bool		updateHMM ) const
-    {
-    double rv;
-
-    #if USE_SINGLE_POPULATION_SPECIAL_CASE
-      if ( getK() == 1 )
-	rv = getLogLikelihoodOnePop();
-      else
-    #endif
-	{
-	// ==== This was the body of the Individual:: version, a superclass-call
-	// ==== from AdmixedIndividual::getLogLikelihood()
-	// ==== rv = Individual::getLogLikelihood(options, theta, rho, updateHMM);
-
-
-	#if SEPARATE_HMM_FOR_EACH_CHROM
-	    rv = 0.0;
-	    for ( ChromIdxType chromIdx = 0 ; chromIdx < getNumChromosomes() ; chromIdx++ )
-		{
-		if ( updateHMM )
-		    {// force update of forward probs
-		    UpdateHMMInputs( chromIdx, options, theta, rho );
-		    }
-
-		// For individuals: is_diploid = !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale)
-		// Should be: getChromosome(j).isDiploid()
-		// But in fact, since we have only one HMM per chromosome, it should
-		// remember its state-space, so not need to have is-diploid passed
-		// into each method-call.
-		rv += getHMM( chromIdx ).getLogLikelihood();
-		}
-	#else
-	    if ( updateHMM )
-		updateHMMInputs( options, theta, rho );
-	    rv = getHMM().getLogLikelihood();
-	#endif
-
-	// FIXME: under what circumstances does this happen?  Throw the proper
-	// exception from within HMM instead.
-	if ( isnan(rv) )
-	    throw std::runtime_error( "HMM returns log-likelihood as nan (not a number)" );
-	}
-
-    return rv;
-    }
-
-
 
 //-----------------------------------------------------------------------------
 // getLogLikelihoodAtPosteriorMeans()
@@ -1066,26 +1270,51 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
       else
     #endif
 	{
-	ThetaType thetabar( getNTheta() );
-	RhoType	  rhobar;
+	ThetaType & thetabar = startThetaProposal();
 
-	rhobar.reserve( sumlogrho.size() );
-	for ( unsigned i = 0 ; i < sumlogrho.size() ; ++i )
-	    rhobar.push_back( exp(sumlogrho[i]/ double(options.getTotalSamples() - options.getBurnIn())) );
+	// AdmixedIndividual's updateHMMInputs() only changes rho if not global-rho -- WHY???
+	#if NON_GLOBAL_RHO_WORKS
+	    if ( ! options.isGlobalRho() )
+		{
+		RhoType & rhobar = rhos.startNewProposal();
+		gp_assert_eq( sumlogrho.size(), rhobar.size() );
+		for ( unsigned int i = sumlogrho.size() ; i-- != 0 ; )
+		    rhobar[i] = exp( sumlogrho[i] / double(options.getTotalSamples() - options.getBurnIn()) );
+		#warning is/should this already done by rhos.rejectProposal()?
+		getTPC().setRho( getGlobalRhoVal() );
+		}
+	#endif
 
 	const double scale_factor = options.getTotalSamples() - options.getBurnIn();
 
-	SumSoftmaxTheta /= scale_factor;
+	ThetaType scaledSSMT( SumSoftmaxTheta );
+	scaledSSMT /= scale_factor;
 
 	// apply softmax transformation to obtain thetabar
 	for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
-	    SumSoftmaxTheta[tIdx].softmax_gt0( thetabar[tIdx] ); // Equivalent: SumSoftmaxTheta[tIdx].softmax( thetabar[tIdx], gt_0 );
+	    scaledSSMT[tIdx].softmax_gt0( thetabar[tIdx] ); // Equivalent: scaledSSMT[tIdx].softmax( thetabar[tIdx], gt_0 );
 
-	// Rescale sumsoftmaxtheta back
-	SumSoftmaxTheta *= scale_factor;
+	// Rescale sumsoftmaxtheta back (no need since we copied it)
+	//SumSoftmaxTheta *= scale_factor;
 
-	updateHMMInputs( options, thetabar, rhobar );
-	rv = getHMM().getLogLikelihood();
+	#if 0
+	    llCache.parmsChanged();	   // No need since starting the proposal automatically invalidates
+	    getHMM().setTheta( thetabar ); // No need since we used a cache-proposal
+	    getHMM().thetaChanged();	   // No need since we used a cache-proposal
+	#endif
+
+	rv = llCache.getProposedVal(); // getHMM().getLogLikelihood(), but caches
+
+	#if NON_GLOBAL_RHO_WORKS
+	    if ( ! options.isGlobalRho() )
+		{
+		rhos.rejectProposal();
+		#warning is/should this already done by rhos.rejectProposal()?
+		getTPC().setRho( getGlobalRhoVal() );
+		}
+	#endif
+
+	rejectThetaProposal(); // We were never going to accept it anyhow.
 	}
 
 #else // POSTERIOR_MEANS_IS_IMPLEMENTED
@@ -1109,6 +1338,9 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 //-----------------------------------------------------------------------------
 
 #if USE_SINGLE_POPULATION_SPECIAL_CASE
+
+    #error This needs, at the very least, to have a look-over, and probably more than that.
+
     double Pedigree::getLogLikelihoodOnePop() const
 	{
 	double rv = 0.0;
@@ -1126,77 +1358,6 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 
 	return rv;
 	}
-#endif
-
-
-
-//-----------------------------------------------------------------------------
-// UpdateHMMInputs()
-//-----------------------------------------------------------------------------
-
-#if SEPARATE_HMM_FOR_EACH_CHROM
-
-    void Pedigree::UpdateHMMInputs(
-	    ChromIdxType	chromIdx,
-	    const Options &	options ,
-	    const ThetaType &	theta	,
-	    const RhoType &	rho	) const
-	{
-	// Updates inputs to HMM for chromosome j also sets Diploid flag in
-	// Chromosome (last arg of SetStateArrivalProbs)
-	const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
-	const bool isRandomMating = options.isRandomMatingModel();
-
-	const Chromosome & chrom = getChromosome( chromIdx );
-
-	C->HMM->SetGenotypeProbs( GenotypeProbs[j], GenotypesMissing[j] );
-	//   if(!SexIsFemale) cout << "chr " << j << " " << X_posn << " ";
-	//   if(!diploid) cout << "haploid GenotypeProbs set for chromosome " << j << "\n";
-
-	if ( ! options.isGlobalRho() )
-	    {
-	    // Set locus correlation, f, if individual- or gamete-specific rho
-	    chrom.SetLocusCorrelation( rho, isRandomMating );
-	    }
-
-	// Set the state-arrival-probabilities in the HMM:
-	// For individuals we do this:
-	//	    "in the haploid case in random mating model, pass pointer to maternal admixture props."
-	// For pedigrees, we will pass the entire Theta array into the HMM, regardless.
-	#if THIS_IS_HOW_IT_WAS
-	    if ( diploid || !isRandomMating )
-		C->HMM->SetStateArrivalProbs(theta, (int)isRandomMating, diploid);
-	    else
-		C->HMM->SetStateArrivalProbs(theta + NumHiddenStates, true, false);
-	#else
-	    C->HMM->SetStateArrivalProbs(theta + NumHiddenStates, true, false);
-	#endif
-
-	logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
-	}
-
-#else
-
-    /// Updates inputs to the HMM (which might seem odd considering the name).
-    void Pedigree::updateHMMInputs( const Options & options, const ThetaType & theta, const RhoType & /*rho*/ ) const
-	{
-
-	// For some reason, rho is not updated here if global-rho is turned on
-	// (it is updated in the Chromosome/TPC from PopAdmix).
-	if ( ! options.isGlobalRho() )
-	    {
-	    #if NON_GLOBAL_RHO_WORKS
-		getTPC().setRho( something else );
-		getHMM().thetaChanged();
-	    #else
-		throw std::runtime_error( "non-global-rho not yet supported." );
-	    #endif
-	    }
-
-	getHMM().setTheta( &theta );
-
-	logLikelihood.HMMisOK = false; // Because forward probs in HMM have been changed
-	}
 
 #endif
 
@@ -1204,16 +1365,22 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 
 //-----------------------------------------------------------------------------
 // SetUniformAdmixtureProps() [protected]
-// Set the initial values of theta.
+/// Set the initial values of theta to a uniform distribution.  Operates on the
+/// "current" theta.
 //-----------------------------------------------------------------------------
 
 void Pedigree::SetUniformAdmixtureProps()
     {
-    bclib::pvector<double> uniform;
-    uniform.resize( getK(), 1.0 / K );
+    const size_t K	    = getK();
+    const double one_over_K = 1.0 / K;
 
-    for ( size_t fIdx = getNTheta() ; fIdx-- != 0 ; )
-	Theta[ fIdx ] = uniform;
+    for ( ThetaIdx fIdx = getNTheta() ; fIdx-- != 0 ; )
+	{
+	ThetaElType & thetaEl = getCurTheta()[ fIdx ];
+	thetaEl.resize( K );
+	for ( PopIdx k = K ; k-- != 0 ; )
+	    thetaEl[ k ] = one_over_K;
+	}
     }
 
 
@@ -1283,9 +1450,9 @@ void Pedigree::SampleMissingOutcomes(bclib::DataMatrix *Outcome, const vector<bc
 	if ( Outcome->isMissing( getIndex(), k ) )
 	    {
 	    if ( R[k]->getRegressionType() == Linear )
-		Outcome->set( getIndex(), k, bclib::Rand::gennor( R[k]->getExpectedOutcome(getIndex()), 1 / sqrt( R[k]->getlambda() ) ) );
+		Outcome->set( getIndex(), k, RNG_NORMAL( R[k]->getExpectedOutcome(getIndex()), 1 / sqrt( R[k]->getlambda() ) ) );
 	    else
-		Outcome->set( getIndex(), k, (bclib::Rand::myrand() * R[k]->getExpectedOutcome(getIndex()) < 1) ? 1 : 0 );
+		Outcome->set( getIndex(), k, (RNG_UNIFORM() * R[k]->getExpectedOutcome(getIndex()) < 1) ? 1 : 0 );
 	    }
     }
 
@@ -1423,36 +1590,72 @@ void Pedigree::SampleHapPair( unsigned /*j*/, unsigned /*jj*/, unsigned /*locus*
 	{
 	for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
 	    {
-	    fprintf( stderr, "%s theta (%d,%zd): ", prefix, getMyNumber(), fIdx );
-	    for ( size_t x = 0 ; x < Theta[fIdx].size() ; ++x )
-		fprintf( stderr, " %18.15lf", Theta[fIdx][x] );
+	    fprintf( stderr, "%s(%d) theta[%zd]: ", prefix, getMyNumber(), fIdx );
+	    for ( size_t x = 0 ; x < thetas.getAccepted()[fIdx].size() ; ++x )
+		fprintf( stderr, " %18.15lf", thetas.getAccepted()[fIdx][x] );
 	    fprintf( stderr, "\n" );
+	    if ( thetas.proposalActive() )
+		{
+		fprintf( stderr, "	theta-prop: " );
+		for ( size_t x = 0 ; x < thetas.getProposed()[fIdx].size() ; ++x )
+		    fprintf( stderr, " %18.15lf", thetas.getProposed()[fIdx][x] );
+		fprintf( stderr, "\n" );
+		}
 	    }
 	}
 #endif
 
 
-// draw initial values for admixture proportions theta from Dirichlet prior
+
+//-----------------------------------------------------------------------------
+//
+// drawInitialAdmixtureProps()
+//
+/// Draw initial values for admixture proportions theta from Dirichlet prior.
+/// Operates on the "current" theta.
+//
+//-----------------------------------------------------------------------------
+
 void Pedigree::drawInitialAdmixtureProps( const AlphaType & alpha )
     {
-      const PopIdx K = getK();
+    const PopIdx K = getK();
 
-      for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
+    #if 0 // DDF: why was alpha copied into dirparams?
+     cvector<double> dirparams(K);///< Dirichlet parameters of full conditional for
+				  ///< conjugate updates.  Taken from
+				  ///< AdmixedIndividual, in which it is a data
+				  ///< member, and indexed on K (n-populations)
+    #endif
+
+    for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
 	{
 
-	double sum = 0.0;
+	const cvector<double> & alphaEl = alpha[ fIdx ];
 
-	for ( PopIdx k = 0 ; k < K ; ++k )
-	    sum += alpha[fIdx][k];
+	#if 0 // DDF: what is thetahat?
+	    double sum = 0.0;
+	    for ( PopIdx k = 0 ; k < K ; ++k )
+		sum += alphaEl[k];
+	    const double recipSum = 1.0 / sum;
+	#endif
 
-	for ( PopIdx k = 0 ; k < K ; ++k )
-	    {
-	    thetahat[fIdx][k] = alpha[fIdx][k] / sum; // set thetahat to prior mean
-	    dirparams[k] = alpha[fIdx][k];
-	    }
 
-	// draw theta from Dirichlet with parameters dirparams
-	bclib::Rand::gendirichlet( K, dirparams.getVector_unsafe(), Theta[fIdx] );
+	#if 0 // DDF: why was alpha copied into dirparams?
+	    for ( PopIdx k = 0 ; k < K ; ++k )
+		{
+		#if 0 // DDF: what is thetahat?
+		    thetahatEl[k] = alphaEl[k] * recipSum; // set thetahat to prior mean
+		#endif
+		dirparams[k] = alphaEl[k];
+		}
+	#endif
+
+	// Draw theta from Dirichlet with parameters dirparams
+	#if 0 // DDF: why was alpha copied into dirparams?
+	    bclib::Rand::gendirichlet( K, dirparams.getVector_unsafe(), getCurTheta()[fIdx] );
+	#else
+	    bclib::Rand::gendirichlet( K, alphaEl.getVector_unsafe(), getCurTheta()[fIdx] );
+	#endif
 
 	}
 
@@ -1547,51 +1750,77 @@ void Pedigree::ResetSufficientStats()
 
 void Pedigree::getPosteriorMeans( ThetaType & thetaBar, RhoType & rhoMean, unsigned int samples ) const
     {
+
     const double dSamples = samples;
 
-    #if 0
-	for ( size_t i = SumSoftmaxTheta.size() ; i-- != 0 ; )
-	    SumSoftmaxTheta[i] /= dSamples;
-    #else
-	for ( ThetaType::iterator it = SumSoftmaxTheta.begin() ; it != SumSoftmaxTheta.end() ; ++it )
-	    *it /= dSamples;
-    #endif
-
-    rhoMean.clear();
+    rhoMean.resize( sumlogrho.size() );
     for ( size_t i = sumlogrho.size() ; i-- != 0 ; )
-	rhoMean.push_back( exp( sumlogrho[i] / dSamples ) );
+	rhoMean[i] = exp( sumlogrho[i] / dSamples );
 
-    thetaBar.reserve( getNTheta() );
+    if ( thetaBar.size() != getNTheta() )
+	thetaBar.resize( getNTheta() );
+
+
+    // NOTE *1*: copy each element of ssmt rather than keep a reference, so the
+    // scaled values can just be thrown away rather than scaled back when
+    // finished.  N is not large.  This could perhaps be done more efficiently
+    // on the stack.
+    ThetaElType ssmtEl;
+
 
     // Apply softmax transformation to obtain thetabar
     for ( FounderIdx fIdx = 0 ; fIdx < getNTheta(); fIdx++ )
 	{
-	const bclib::pvector<double> & thetaEl = Theta[fIdx];
-	if ( thetaBar.size() <= fIdx )
-	    thetaBar.resize( fIdx + 1 );
-	bclib::pvector<double> & thetaBarEl = thetaBar[fIdx];
 
-	#if 0
-	    // Keep track of qualifying elements in boolean array on the stack.
-	    // I believe that this should not be necessary.
-	    bool qualifies[ thetaEl.size() ];
-	    for ( PopIdxType k = getK() ; k-- != 0 ; )
-		qualifies[k] = (thetaEl[k] > 0.0);
-	    thetaEl.softmax_gt0( thetaBarEl );
-	#else
-	    // DDF: It might make more sense if pvector::softmax_gt0() just
-	    // resized the output vector to the number of elements that qualify
-	    // and only pushed those elements onto it.  For now, we will roughly
-	    // replicate the behaviour of
-	    // AdmixedIndividual::getPosteriorMeans(), which leaves the values
-	    // of non-qualifying elements in thetaBar undefined [raw new'd
-	    // contents, indeterminate per ISO C++ 1997-5.3.4(14A)]; instead, we
-	    // will keep slots for them but initialise to 0.
-	    thetaEl.softmax_gt0( thetaBarEl );
-	#endif
+	// Copy ssmt rather than keep a reference, so the scaled values can just
+	// be thrown away rather than scaled back when finished.  N is not
+	// large.  This could perhaps be done more efficiently on the stack.
+	ssmtEl = SumSoftmaxTheta[ fIdx ];
 
-	// Rescale sumsoftmaxtheta back (DDF: why weren't the original values preserved?)
-	SumSoftmaxTheta[ fIdx ] *= dSamples;
+	// Scale sumsoftmaxtheta
+	ssmtEl /= dSamples;
+
+	ThetaElType & thetaBarEl = thetaBar[fIdx];
+	if ( thetaBarEl.size() != K )
+	    thetaBarEl.resize( K );
+
+
+	//---------------------------------------------------------------------
+	// DDF: for some reason, we want to ("want to" = copied logic from
+	// AdmixedIndividual) put the softmax transformation of SumSoftmaxTheta
+	// into thetabar, but only for those elements for which the
+	// corresponding element of the current value of theta is greater than 0.
+	// The simplest way to do this is to set the values of ssmt at those
+	// indexes to 0.0 (since they won't be used anyway), then use
+	// softmax_gt0.
+	//---------------------------------------------------------------------
+
+	const ThetaElType & thetaEl = getCurTheta()[ fIdx ];
+
+	gp_assert_eq( thetaEl.size() , thetaBarEl.size() );
+	gp_assert_eq( thetaEl.size() , ssmtEl.size() );
+
+	ThetaElType::iterator ssmtIt = ssmtEl.begin();
+	for ( ThetaElType::const_iterator tIt = thetaEl.begin() ; tIt != thetaEl.end() ; ++tIt, ++ssmtIt )
+	    if ( *tIt <= 0.0 )
+		*ssmtIt = 0.0;
+
+
+	//---------------------------------------------------------------------
+	// DDF: It might make more sense if pvector::softmax_gt0() just resized
+	// the output vector to the number of elements that qualify and only
+	// pushed those elements onto it.  For now, we will roughly replicate
+	// the behaviour of AdmixedIndividual::getPosteriorMeans(), which leaves
+	// the values of non-qualifying elements in thetaBar undefined [raw
+	// new'd contents, indeterminate per ISO C++ 1997-5.3.4(14A)]; instead,
+	// we will keep slots for them but initialise to 0.
+	//---------------------------------------------------------------------
+	ssmtEl.softmax_gt0( thetaBarEl );
+	//---------------------------------------------------------------------
+
+	// Rescale sumsoftmaxtheta back
+	// (DDF: no longer necessary, we now preserve the original values)
+	//ssmtEl *= dSamples;
 	}
 
     #if SUM_PROBS_IS_IMPLEMENTED

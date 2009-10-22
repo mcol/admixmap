@@ -38,7 +38,7 @@ public:
   
   void InitializeOutputFile(const Vector_s&  PopulationLabels);
   
-  void UpdateGlobalSumIntensities(const AdmixIndividualCollection* const IC, bool sumlogtheta);
+  void UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC, bool sumlogtheta );
 
   void UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const, bclib::LogWriter &Log);
   
@@ -47,14 +47,14 @@ public:
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
   
-  const genepi::cvector<double> &getalpha0()const;
-  const genepi::cvector<genepi::cvector<double> > &getalpha()const;
-  double getrhoalpha()const;
-  double getrhobeta()const;
-  double getglobalrho()const;
-  const genepi::RhoType & getrho() const;
+  const genepi::cvector<double> & getalpha0() const { return alpha[0]; }
+  const genepi::cvector<genepi::cvector<double> > & getalpha() const { return alpha; }
+  double getrhoalpha() const { return rhoalpha; }
+  double getrhobeta() const { return rhobeta; }
+  double getglobalrho() const { return rho[0]; }
+  const genepi::RhoType & getrho() const { return rho; }
 
-  const genepi::RhoType & getSumLogRho() const;
+  const genepi::RhoType & getSumLogRho() const { return SumLogRho; }
   const PopThetaType & getpoptheta() const { return poptheta; }
   
   void printAcceptanceRates(bclib::LogWriter &Log);

@@ -31,10 +31,6 @@
 
 
 
-#define DEBUG_DENSITY	0
-
-
-
 namespace genepi { // ----
 
 
@@ -100,11 +96,6 @@ void HiddenStateSpace::init( const Pedigree & _ped, PopIdx _K )
     N_AVs = k_pow_f( _K, _ped )	     ; // K^F
     nNon0 = 0			     ;
     probs = new ProbType [ aSize() ] ;
-    #if DEBUG_DENSITY
-	if ( aSize() > 70000 )
-	    fprintf( stderr, "Allocate(%s): %lu = %lu\n", _ped.getId().c_str(),
-		aSize(), aSize()*sizeof(ProbType) );
-    #endif
     }
 
 

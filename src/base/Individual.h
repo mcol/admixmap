@@ -68,6 +68,14 @@ public:
   void storeLogLikelihood(const bool setHMMAsOK); ///< to call if a Metropolis proposal is accepted
   virtual double getLogLikelihoodAtPosteriorMeans(const Options& options);
 
+  //--------------------------------------------------------------------------
+  // Public rho-proposal methods, overridden from PedBase, ignored for individuals.
+  virtual void setRho( double nv );
+  virtual void startRhoProposal();
+  virtual void acceptRhoProposal();
+  virtual void rejectRhoProposal();
+  //--------------------------------------------------------------------------
+
   void GetLocusAncestry(int locus, int Ancestry[2])const;
   void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
   int GetLocusAncestry(int, int, int)const;
@@ -144,11 +152,6 @@ protected:
   public:
     const genepi::RhoType & getRho() const;
 
-
-    // ====== DEBUGGING METHODS (overridden from PedBase) ======
-    #if PEDBASE_DEBUG_METHODS
-	virtual void dumpTheta( const char * prefix ) const;
-    #endif
 };
 
 

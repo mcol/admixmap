@@ -84,6 +84,8 @@ class Genotype
 	/// Was the input value a single integer?
 	bool isHaploid () const { return (val2==HAPLOID_VAL); }
 
+	bool isHeterozygous() const { return (hasTwoVals() && (val1 != val2)); }
+
 	/// Is one of the two values missing or 0?
 	bool isMissing1() const { return (val2==MISSING_VAL); }
 
@@ -117,7 +119,7 @@ class Genotype
 
 	/// These somewhat ugly hacks were created especially for the
 	/// male-has-diploid-X-chromosome backwards-compatability hack
-	/// in AdmixmapGenotypeConverter.cc
+	/// in AdmixmapGenotypeConverter.cc (now in GenotypeParser).
 	void forceHaploid() const
 	    {
 	    const_cast<Genotype*>(this)->val2 = HAPLOID_VAL;

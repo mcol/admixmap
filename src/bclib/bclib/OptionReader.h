@@ -52,6 +52,7 @@
 #include <map>
 #include <iostream>
 #include "bclib/bclib.h"
+#include "bclib/cvector.h"
 
 using namespace::std;
 
@@ -93,6 +94,8 @@ public:
   ///add a long option
   void addOption(const string&, OptionType, void*, bool required = false);
 
+
+    //-------------------------------------------------------------------------
     // D. Favro: adding a few type-safe versions here -- above non-type-safe
     //	version should not be public.  Actually, the whole thing needs to be
     //	redesigned from the ground up, but for the moment as a hacked-up
@@ -103,7 +106,18 @@ public:
     void addOption( const string & name, int & value, int defaultValue = 0 );	///< Add a long option of type int (type-safe)
     void addOption( const string & name, int & value, bool required );		///< Add a long option of type int (type-safe)
     void addOption( const string & name, bool & value, bool defaultValue = false ); ///< Add a long option of type bool (type-safe)
-    // And so on...
+
+    /// Add an option of type vector (type-safe).
+    void addOption( const string & name, std::vector<float> & value, bool required = false )
+	{ addOption( name, fvectorOption, &value, required ); }
+
+    /// Add an option of type cvector (type-safe).
+    void addOption( const string & name, genepi::cvector<float> & value, bool required = false )
+	{ addOption( name, value.getVector_unsafe(), required ); }
+
+    // ...and so on...
+    //-------------------------------------------------------------------------
+
 
   void addOption(const char*, OptionType, void*, bool required = false);
   ///add a short option

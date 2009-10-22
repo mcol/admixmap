@@ -116,10 +116,6 @@ double Chromosome::LocusCorrelation(unsigned locus, double drho){
    (2) vector of length 2 containing gamete-specific sumintensities for a single individual
 */
 void Chromosome::SetLocusCorrelation( const genepi::RhoType & vrho, bool RandomMating ){
-#define DEBUG_RHO 0
-#if DEBUG_RHO
- fprintf( stderr, "Chromosome %s set rho to %lf\n", GetLabel().c_str(), vrho[0] );
-#endif
   for( unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
     //first gamete
     f[2*j] = LocusCorrelation(j, vrho[0]);
@@ -132,9 +128,6 @@ void Chromosome::SetLocusCorrelation( const genepi::RhoType & vrho, bool RandomM
   }
 }
 void Chromosome::SetGlobalLocusCorrelation(double drho){
-#if DEBUG_RHO
-  fprintf( stderr, "Chromosome %s set global-rho to %lf\n", GetLabel().c_str(), drho );
-#endif
   for(unsigned j = 1; j < NumberOfCompositeLoci; j++ ){
     f[2*j    ] = LocusCorrelation(j, drho);
     f[2*j + 1] = f[2*j];

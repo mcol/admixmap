@@ -61,22 +61,20 @@ InputData::~InputData(){
   delete genotypeLoader;
 }
 
-void InputData::ReadData(Options *options, LogWriter &Log){
-  Log.setDisplayMode(Quiet);
-  try
+void InputData::ReadData( Options * options, LogWriter & Log )
     {
-      // Read all input files.
+    Log.setDisplayMode(Quiet);
 
-      //read genotype data
-      #if USE_GENOTYPE_PARSER
+    //read genotype data
+    #if USE_GENOTYPE_PARSER
 
 	SimpleLocusParser::parse( options->getLocusFilename(), simpleLoci );
 	genotypeLoader = new GenotypeParser( options->getGenotypesFilename(), simpleLoci );
 
-	// Used to do here, but it turns out the number of populations is not
-	// yet known.  This is now called from InputAdmixData's constructor.
-	// (except that turned out to also be too soon, so it is called from
-	// InputAdmixData::finishConstructing()).
+	// We used to generate the pedigrees here, but it turns out the number
+	// of populations is not yet known.  This is now called from
+	// InputAdmixData's constructor.  (except that turned out to also be too
+	// soon, so it is called from InputAdmixData::finishConstructing()).
 	#if 0
 	    generatePedigrees( options );
 	#endif
@@ -87,49 +85,24 @@ void InputData::ReadData(Options *options, LogWriter &Log){
 	    exit(1);
 	    }
 
-      #else
+    #else
 
-        DataReader::ReadData(options->getLocusFilename(), locusData_, Log);   //locusfile
-        //convert to DataMatrix, dropping header and first col and use only 2 cols
-        DataReader::convertMatrix(locusData_, locusMatrix_, 1, 1,2);
-        genotypeLoader->Read(options->getGenotypesFilename(), locusData_.size() - 1, Log);
+	DataReader::ReadData(options->getLocusFilename(), locusData_, Log);   //locusfile
+	//convert to DataMatrix, dropping header and first col and use only 2 cols
+	DataReader::convertMatrix(locusData_, locusMatrix_, 1, 1,2);
+	genotypeLoader->Read(options->getGenotypesFilename(), locusData_.size() - 1, Log);
 
-      #endif
+    #endif
 
-      DataReader::ReadData(options->getCovariatesFilename(), covariatesData_, covariatesMatrix_,Log);	  //covariates file
-      DataReader::ReadData(options->getOutcomeVarFilename(), outcomeVarData_,outcomeVarMatrix_, Log);//outcomevar file
-      DataReader::ReadData(options->getCoxOutcomeVarFilename(), coxOutcomeVarData_, Log);	     //coxoutcomevar file
-      DataReader::convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 1, 0,0);//drop first row in conversion
+    DataReader::ReadData(options->getCovariatesFilename(), covariatesData_, covariatesMatrix_,Log);	//covariates file
+    DataReader::ReadData(options->getOutcomeVarFilename(), outcomeVarData_,outcomeVarMatrix_, Log);//outcomevar file
+    DataReader::ReadData(options->getCoxOutcomeVarFilename(), coxOutcomeVarData_, Log);		   //coxoutcomevar file
+    DataReader::convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 1, 0,0);//drop first row in conversion
 
-      DataReader::ReadData(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_, Log);
+    DataReader::ReadData(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_, Log);
 
-      Log << "\n";
-    }
-
-  #if USE_GENOTYPE_PARSER
-    // Catch data-validation errors and re-throw, just so that they are not caught
-    // by the other handlers here:
-    catch ( DataValidError & e )
-	{
-	#if 0
-	    cerr << options->getProgramName() << ": input data validation error: " << e.what() << endl;
-	    exit(1);
-	#else
-	    throw;
-	#endif
-	}
-  #endif
-
-  catch (const exception& e) {
-    cerr << "\nException (" << typeid(e).name() << ") occured during parsing of input file:\n" << e.what() << endl;
-    exit(1);
+    Log << "\n";
   }
-  catch(string s){
-    cerr << "\nException (string) occured during parsing of input file:\n" << s << endl;;
-    exit(1);
-  }
-
-}
 
 
 

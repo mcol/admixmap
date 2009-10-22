@@ -1,7 +1,7 @@
 //=============================================================================
 //
 // Copyright (C) 2007 David O'Donnell and Paul McKeigue
-// Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+// Portions Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -20,10 +20,12 @@
 //=============================================================================
 
 //=============================================================================
+//
 /// \file AdmixmapGenotypeConverter.cc
 /// Implementation of the
 /// genepi::convert(const Organism&org,const Genome&loci,std::vector<genotype> &genotypes,bool**missing)
 /// function
+//
 //=============================================================================
 
 

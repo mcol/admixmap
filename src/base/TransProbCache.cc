@@ -27,6 +27,10 @@
 #include "TransProbCache.h"
 
 
+#define DEBUG_PRINT_TP_DETAIL	0
+#define DEBUG_TPC_MEMORY	0
+
+
 #include <cmath> // exp()
 
 
@@ -87,7 +91,6 @@ void TransProbCache::reComputeFactors()
 
     void TransProbCache::recomputeBigCache()
 	{
-
 	const size_t T_minus_1 = loci.size() - 1;
 
 	// Let's try using the same code that caches the F and G factors for the
@@ -103,6 +106,9 @@ void TransProbCache::reComputeFactors()
 		{
 		fa[ t ] = computeF( loci, t, rho );
 		ga[ t ] = computeG( loci, t );
+		#if DEBUG_PRINT_TP_DETAIL
+		    printf( "At locus %lu, f=%lf g=%lf\n", t, fa[t], ga[t] );
+		#endif
 		}
 	#endif
 
@@ -215,6 +221,11 @@ TransProbCache::TransProbCache( const Pedigree & _pedigree, double _rho, const M
 
     #if TPC_CACHE_MODEL == TPC_BIG_CACHE
 
+	#if DEBUG_TPC_MEMORY
+	    size_t tot_nprob = 0;
+	    size_t tot_mem   = 0;
+	#endif
+
 	const SLocIdxType T_minus_1 = loci.size() - 1;
 
 	probs.resize( T_minus_1 );
@@ -229,7 +240,26 @@ TransProbCache::TransProbCache( const Pedigree & _pedigree, double _rho, const M
 
 	    probs[ loc ].init( from_n_states, to_n_states );
 
+	    #if DEBUG_TPC_MEMORY
+		#if 0
+		  if ( pedigree.getId() == "H010007" )
+		     fprintf( stderr, "  TPC for %s fr-loc %zd %s: from-nst=%zd/to-nst=%zd n-tprobs=%zd -> %zd bytes\n",
+			pedigree.getId().c_str(), loc, loci[loc].getName().c_str(),
+			from_n_states, to_n_states, probs[loc].n_probs, probs[loc].n_probs*sizeof(CacheProbType) );
+		#endif
+		tot_nprob += probs[loc].n_probs;
+		tot_mem += probs[loc].n_probs*sizeof(CacheProbType);
+	    #endif
 	    }
+
+	#if DEBUG_TPC_MEMORY
+	    fprintf( stderr, "Construct TPC for %s (%zd members): n-tprobs=%zd -> %zd bytes\n",
+			pedigree.getId().c_str(), pedigree.getNMembers(), tot_nprob, tot_mem );
+	    #if 0 && (_BSD_SOURCE || _SVID_SOURCE || _XOPEN_SOURCE >= 500)
+		const void * const brkVal = sbrk(0);
+		fprintf( stderr, "  break=%p\n", brkVal );
+	    #endif
+	#endif
 
     #endif
 
@@ -334,6 +364,9 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
     gp_assert_eq( frAV.size(), toAV.size() ); // DEBUG
 
     double rv = facts.iv_factors[ frState.getIV().to_ulong() ^ toState.getIV().to_ulong() ];
+    #if DEBUG_PRINT_TP_DETAIL
+	printf( " (%lu,%lu) IV%lu=%d: %lf %lf\n", frIdx, toIdx, ctr, notEqual, (notEqual ? (g + 1) : (1 - g)) * 0.5, rv );
+    #endif
 
     const double f = facts.f;
     const double one_minus_f = 1 - f;
@@ -362,7 +395,15 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
 	    factor += f;
 	rv *= factor;
 
+
+	#if DEBUG_PRINT_TP_DETAIL
+	    printf( " (%lu,%lu) AV%lu = %lu,%lu{%d}: %lf %lf\n", frIdx, toIdx, avIdx, i, j, (i == j), factor, rv );
+	#endif
 	}
+
+    #if DEBUG_PRINT_TP_DETAIL
+	printf( " (%lu,%lu) trans-prob=%lf\n", frIdx, toIdx, rv );
+    #endif
 
     return rv;
     }

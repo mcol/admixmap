@@ -48,6 +48,11 @@ class AffectedsOnlyTest;
 class chib;
 
 
+
+#define PEDBASE_DEBUG_METHODS	1
+
+
+
 namespace genepi { // ----
 
 
@@ -78,7 +83,8 @@ class PedBase
 	// Was: [NumGametes][NumPops]
 	// Now: [NumThetas][NumPops] (???)
 	typedef cvector< cvector<double> >	  AlphaType	;
-	typedef cvector< bclib::pvector<double> > ThetaType	; ///< Alternatively, TwoDimArray<FounderIdxType,PopIdx,double>
+	typedef bclib::pvector<double>		  ThetaElType	;
+	typedef cvector< bclib::pvector<double> > ThetaType	; ///< Alternatively, TwoDimArray<FounderIdx,PopIdx,double>
 								  ///< Size getNTheta() [effectively getNFounders()] by K
 	typedef genepi::cvector< double >	  PopThetaType	;
 
@@ -102,9 +108,22 @@ class PedBase
 	virtual bool isHaploidatLocus(unsigned j)const;
 	virtual bool isHaploidIndividual()const;
 
-	virtual double getLogLikelihood(const Options& , bool forceUpdate, bool store);
-	virtual void storeLogLikelihood(const bool setHMMAsOK); ///< to call if a Metropolis proposal is accepted
+	virtual double getLogLikelihood( const Options & , bool forceUpdate, bool store );
 	virtual double getLogLikelihoodAtPosteriorMeans(const Options& options);
+
+	/// Called if a Metropolis proposal is accepted.  Public so that can be
+	/// called from PopAdmix.  The @A setHMMAsOK parameter is ignored in the
+	/// case of a Pedigree, which tries to map this call into calls to
+	/// acceptRhoProposal(), and other non-public methods.
+	virtual void storeLogLikelihood( const bool setHMMAsOK );
+
+	//--------------------------------------------------------------------------
+	// Public rho-proposal methods.  Called from PopAdmix, ignored for individuals.
+	virtual void setRho( double nv ) = 0;
+	virtual void startRhoProposal () = 0;
+	virtual void acceptRhoProposal() = 0;
+	virtual void rejectRhoProposal() = 0;
+	//--------------------------------------------------------------------------
 
 	virtual void GetLocusAncestry(int locus, int Ancestry[2])const;
 	virtual void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
@@ -157,11 +176,8 @@ class PedBase
 	virtual void WritePosteriorMeansLoci(ostream& os)const;
 
 
-	virtual void setRho( double nv );
-
 
 	// ====== DEBUGGING METHODS: ======
-	#define PEDBASE_DEBUG_METHODS	1
 	#if PEDBASE_DEBUG_METHODS
 	    virtual void dumpTheta( const char * prefix ) const = 0;
 	#endif

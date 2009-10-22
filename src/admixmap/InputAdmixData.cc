@@ -3,7 +3,7 @@
  *   InputAdmixData.cc 
  *   class to read ADMIXMAP data
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
- *   Copyright (C) 2009  David D. Favro  gpl@meta-dynamic.com
+ *   Portions Copyright (C) 2009  David D. Favro
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -46,52 +46,31 @@ using namespace genepi;
 
 
 
-InputAdmixData::InputAdmixData(AdmixOptions *options, LogWriter &Log){
-  using bclib::DataReader;
-
-  #if ! USE_GENOTYPE_PARSER
-    genotypeLoader = new GenotypeLoader;
-  #endif
-
-  Log.setDisplayMode(bclib::Quiet);
-  // Read all input files.
-  try {
-   //read base data files
-    ReadData(options, Log);
-
-    DataReader::ReadData(options->getAlleleFreqFilename(), alleleFreqData_, Log);
-    DataReader::ReadData(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, Log);            
-    DataReader::ReadData(options->getEtaPriorFilename(), etaPriorData_,etaPriorMatrix_,  Log, false);//no header
-    DataReader::ReadData(options->getReportedAncestryFilename(), reportedAncestryData_, reportedAncestryMatrix_, Log);
-    
-    Log << "\n";
-  }
-
-#if USE_GENOTYPE_PARSER
-  // Catch data-validation errors and re-throw, just so that they are not caught
-  // by the other handlers here:
-  catch ( genepi::DataValidError & e )
+InputAdmixData::InputAdmixData( AdmixOptions & options, LogWriter & log )
     {
-    #if 0
-	cerr << options->getProgramName() << ": input data validation error: " << e.what() << endl;
-	exit(1);
-    #else
-	throw;
-    #endif
-    }
-#endif
+    using bclib::DataReader;
 
-  catch (const exception& e) {
-    cerr << "\nException (" << typeid(e).name() << ") occured during parsing of input file:\n" << e.what() << endl;
-    exit(1);
-  }
-  catch(string s){
-    cerr << "\nException (string) occured during parsing of input file:\n" << s << endl;
-    exit(1);
-  }
- 
-  CheckData(options, Log);
-  }
+    #if ! USE_GENOTYPE_PARSER
+      genotypeLoader = new GenotypeLoader;
+    #endif
+
+    log.setDisplayMode( bclib::Quiet );
+
+    // Read all input files.
+    Pedigree::setOptions( options );
+
+    // Read base data files
+    ReadData( &options, log );
+
+    DataReader::ReadData( options.getAlleleFreqFilename(), alleleFreqData_, log );
+    DataReader::ReadData( options.getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, log );
+    DataReader::ReadData( options.getEtaPriorFilename(), etaPriorData_,etaPriorMatrix_, log, false ); // no header
+    DataReader::ReadData( options.getReportedAncestryFilename(), reportedAncestryData_, reportedAncestryMatrix_, log );
+
+    log << "\n";
+
+    CheckData( &options, log );
+    }
 
 
 
@@ -206,10 +185,6 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 
 
 	    ped.genPossibleStatesInternal( K, alProbVect );
-
-	    #if 0 && DEBUG_PED_CONSTRUCTION
-		fprintf( stderr, " of %d possible states, %d are non-zero.\n", 0, 0 );
-	    #endif
 
 
 	    if ( options.getPrintPedSummary() )
@@ -328,58 +303,9 @@ void InputAdmixData::GetGenotype(int i, const Genome &Loci,
 			   std::vector<genotype>* genotypes, bool **Missing) const {
   #if USE_GENOTYPE_PARSER
     convert( (*genotypeLoader)[i-1], Loci, *genotypes, Missing );
-    #if 0 // DEBUG_MY_NUMBER_MAPPING
-      fprintf( stderr, "Individual my-number %d is %s/%d\n", i, (*genotypeLoader)[i-1].getFamId().c_str(), (*genotypeLoader)[i-1].getOrgId() ); // ***DEBUG***
-    #endif
   #else
     genotypeLoader->GetGenotype(i, Loci, genotypes, Missing);
   #endif
-
-  #if 0 // ********* DEBUG *********
-
-      fprintf( stderr, "\n===== GENOTYPES[%d] (size: %lu) =====\n\n", i, genotypes->size() );
-      for ( size_t idx1 = 0; idx1 < genotypes->size(); ++idx1 )
-	{
-	const genotype & gt = (*genotypes)[ idx1 ];
-	fprintf( stderr, "  %lu[%lu]: ", idx1, gt.size() );
-	for ( size_t idx2 = 0 ; idx2 < gt.size(); ++idx2 )
-	    #if USE_GENOTYPE_PARSER
-		fprintf( stderr, " %s", gt[idx2].desc().c_str() );
-	    #else
-		{
-		const vector<unsigned short> & x = gt[idx2];
-		if ( x.size() == 0 )
-		    fprintf( stderr, " |" );
-		else if ( x.size() == 1 )
-		    fprintf( stderr, " %hu", x[0] );
-		else if ( x.size() == 2 )
-		    {
-		    if ( x[0] == 0 )
-			fprintf( stderr, " " );
-		    else
-			fprintf( stderr, " %hu", x[0] );
-		    if ( x[1] == 0 )
-			fprintf( stderr, "," );
-		    else
-			fprintf( stderr, ",%hu", x[1] );
-		    }
-		else
-		    fprintf( stderr, " WTF[%lu]", x.size() );
-		}
-	    #endif
-	fprintf( stderr, "\n" );
-	}
-
-      fprintf( stderr, "\n===== MISSING[%d] =====\n\n", i );
-      for ( size_t chrm = 0; chrm < Loci.GetNumberOfChromosomes(); ++chrm )
-	{
-	fprintf( stderr, "  %lu:", chrm );
-	for ( size_t loc = 0 ; loc < Loci.GetSizeOfChromosome(chrm) ; ++loc )
-	    fprintf( stderr, " %s", Missing[chrm][loc] ? "M" : "-" );
-	fprintf( stderr, "\n" );
-	}
-
-  #endif // ********* DEBUG *********
 }
 
 

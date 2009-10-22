@@ -34,10 +34,16 @@
 #include <bclib/cvector.h>
 
 
+/// Should the state probabilities be normalized "on the fly" (i.e. after each
+/// iteration of the forwards-backwards recursion algorithm?  In practice, they
+/// underflow almost immediately if this is not turned on.
 #define HMM_OTF_RENORM			1
 
-/// Should the forwards and backwards recursions be done in parallel?
-#define HMM_PARALLELIZE_FWD_BKWD	1
+/// Should the forwards and backwards recursions be done in parallel?  When
+/// using the "big cache" model for TransProbCache, this has almost no
+/// advantage, since most of the computation is in computing the transaction
+/// probabilities, which must be done somewhat atomically.
+#define HMM_PARALLELIZE_FWD_BKWD	0
 
 
 
@@ -69,13 +75,6 @@ class HiddenMarkovModel
 	const Pedigree * ped	 ; ///< Ref to ped for hidden state space, etc.
 	TransProbCache * tpCache ; ///< Transition probabilities.  These should perhaps
 				   ///< be retrieved from the Pedigree object itself
-
-	#if 0
-	    // Can operate on a sub-range of the loci (e.g. a single chromosome):
-	    SimpleLocusArray::const_iterator firstLocus ;
-	    SimpleLocusArray::const_iterator lastLocus  ;
-	#endif
-
 
 	/// Theta probabilities for the founder-gametes, indexed on PopIdxType
 	/// AKA Theta
@@ -140,6 +139,8 @@ class HiddenMarkovModel
 	/// Get the number of loci to model.
 	SLocIdxType getNLoci() const { return getPed().getSLoci().size(); }
 
+
+	void transProbsChanged() const;
 
 	/// Set the founder-gamete theta probabilities, indexed on
 	/// PopIdxType (not Pedigree::FounderIdxType).  The model does @b not copy nor take

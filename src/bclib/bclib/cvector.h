@@ -101,10 +101,10 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 
 	// Constructors:
 	cvector() {}
-	cvector( size_t init_size ) : v( init_size ) {}
-	cvector( size_t init_size, const T & init_val ) : v( init_size, init_val ) {}
+	explicit cvector( size_t init_size ) : v( init_size ) {}
+	explicit cvector( size_t init_size, const T & init_val ) : v( init_size, init_val ) {}
 	cvector( const cvector & rhs ) : v( rhs.v ) {}
-	cvector( const std::vector<T,Alloc> & rhs ) : v( rhs ) {}
+	explicit cvector( const std::vector<T,Alloc> & rhs ) : v( rhs ) {}
 
 
 	// Assignment:

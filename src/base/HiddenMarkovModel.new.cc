@@ -30,18 +30,12 @@
 
 #define CHECK_ALL_LIKELIHOODS	0 ///< Validation check that dot-products of all alpha & beta are "equal"
 				  ///< Which only works if we're _not_ renormalizing on-the-fly
-#define DEBUG_OMP		0
-#define DEBUG_PRINT_ALPHA_SUMS	0
 #define USE_LIBOIL		0
 
 
 
 #if USE_LIBOIL
     #include <liboil/liboil.h>
-#endif
-
-#if DEBUG_OMP
-    #include <omp.h>
 #endif
 
 
@@ -54,9 +48,9 @@ namespace genepi { // ----
 // Constructor
 //-----------------------------------------------------------------------------
 
-HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	      _ped	,
-				      TransProbCache &	      _tpCache  ,
-				      const ThetaType *	      _theta	) :
+HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	_ped	 ,
+				      TransProbCache &	_tpCache ,
+				      const ThetaType *	_theta	 ) :
 	ped	      ( &_ped	  ) ,
 	tpCache	      ( &_tpCache ) ,
 	theta	      ( _theta	  ) ,
@@ -92,6 +86,17 @@ void HiddenMarkovModel::setTheta( const ThetaType * nv )
 
 void HiddenMarkovModel::thetaChanged() const
     {
+    transProbsChanged();
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// transProbsChanged()
+//-----------------------------------------------------------------------------
+
+void HiddenMarkovModel::transProbsChanged() const
+    {
     dirtyForwards = true;
     dirtyBackwards = true;
 
@@ -109,14 +114,7 @@ void HiddenMarkovModel::computeForwardsBackwards() const
     {
 
     #if HMM_PARALLELIZE_FWD_BKWD && defined(_OPENMP)
-      //#pragma omp parallel default(shared) num_threads(2)
-      #if DEBUG_OMP
-	int th_id, nthreads;
-	#define PRIV_STORAGE private(th_id)
-      #else
-	#define PRIV_STORAGE
-      #endif
-      #pragma omp parallel default(shared) PRIV_STORAGE num_threads(2)
+      #pragma omp parallel default(shared)
       { // begin parallel
 
       #pragma omp sections
@@ -124,20 +122,6 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 
       #pragma omp section
       { // begin compute-forwards section
-
-
-      #if DEBUG_OMP
-	  th_id = omp_get_thread_num();
-	  std::cout << "DEBUG-OMP: alpha-thread " << th_id << '\n';
-	  #pragma omp barrier
-	  if ( th_id == 0 )
-	      {
-	      nthreads = omp_get_num_threads();
-	      cout << "DEBUG-OMP: " << nthreads << " threads\n";
-	      }
-      #endif
-
-
     #endif
 
 
@@ -150,19 +134,6 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 
       #pragma omp section
       { // begin compute-backwards section
-
-      #if DEBUG_OMP
-	  th_id = omp_get_thread_num();
-	  std::cout << "DEBUG-OMP: beta-thread " << th_id << '\n';
-	  #pragma omp barrier
-	  if ( th_id == 0 )
-	      {
-	      nthreads = omp_get_num_threads();
-	      cout << "DEBUG-OMP: " << nthreads << " threads\n";
-	      }
-      #endif
-
-
     #endif
 
 
@@ -276,7 +247,6 @@ void HiddenMarkovModel::computeForwards() const
 	    #endif
 	    alpha_t[ to_it->getNon0Index() ] = val;
 	    }
-
 	}
 
     dirtyForwards = false;
@@ -390,22 +360,6 @@ double HiddenMarkovModel::getLogLikelihood() const
 	computeForwards();
 
 
-    #if DEBUG_PRINT_ALPHA_SUMS
-	{
-	printf( "\n\n ==== DEBUG ====\n" );
-	for ( size_t t = 0 ; t < getNLoci() ; ++t )
-	    {
-	    double sum = 0.0;
-	    const ProbsAtLocusType & a = alpha[ t ];
-	    for ( HiddenStateSpace::Non0IdxType stIdx = a.size() ; stIdx-- != 0 ; )
-		sum += a[ stIdx ];
-	    printf( "  Alpha-sum at locus %lu = %.16lf\n", t, sum );
-	    }
-	printf( "\n\n" );
-	}
-    #endif
-
-
     SLocIdxType t = getNLoci();
     const ProbsAtLocusType & alpha_Tm1 = alpha[ --t ];
 
@@ -436,11 +390,7 @@ double HiddenMarkovModel::getLogLikelihood() const
     // This is strictly for debugging: consistency check.
     //-----------------------------------------------------------------------------
     #if CHECK_ALL_LIKELIHOODS
-	// This could be parallelized.
-	#if 0 && defined(_OPENMP)
-	    #pragma omp parallel for default(shared)
-	#endif
-	while ( t-- != 0 )
+	while ( t-- != 0 ) // This could be parallelized.
 	    {
 	    double l_at_t = 0.0;
 	    const ProbsAtLocusType & alpha_t = alpha[ t ];
@@ -458,6 +408,13 @@ double HiddenMarkovModel::getLogLikelihood() const
 		gp_assert_lt( error, 0.000001 );
 	    #endif
 	    }
+    #endif
+
+
+    // FIXME: under what circumstances does this happen?  Copied out of AdmixedIndividual.
+    #if AGGRESSIZE_RANGE_CHECK
+	if ( isnan(rv) )
+	    throw std::runtime_error( "HMM returns log-likelihood as nan (not a number)" );
     #endif
 
 

@@ -117,10 +117,10 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
 
   for( int iteration = 0; iteration <= samples; iteration++ ) {
 
-    #if DEBUG_ITER_TIMES
-	genepi::CodeTimer ct;
-	fprintf( stderr, "\nIteration-%d: 1 %s\n", iteration, ct.local_started().c_str() );
-    #endif
+  #if DEBUG_ITER_TIMES
+      genepi::CodeTimer ct;
+      fprintf( stderr, "\nIteration-%d: begin %s\n", iteration, ct.local_started().c_str() );
+  #endif
 
     if( iteration > burnin) {
       if( options.getTestOneIndivIndicator() ) {
@@ -133,8 +133,11 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
-    else
-      fputs( ". ", stderr ); fflush( stderr );
+    else if ( options.getDisplayLevel() > 2 )
+      {
+      putc( '.', stderr );
+      fflush( stderr );
+      }
 
     //Sample Parameters
     UpdateParameters(iteration, options, Log, data.GetHiddenStateLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
@@ -143,7 +146,6 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
     #if DEBUG_ITER_TIMES
 	fprintf( stderr, "Iteration-%d: end %s\n", iteration, ct.local_elapsed().c_str() );
     #endif
-
   }// end loop over iterations
   //use Annealed Importance Sampling to calculate marginal likelihood
   if(coolness>0) AISsumlogz += log(AISz /= (double)(samples-burnin));
@@ -166,10 +168,9 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
   if((options.getPopulations() > 1) && options.getIndAdmixHierIndicator() &&
      (Loci.GetLengthOfGenome() + Loci.GetLengthOfXchrm() > 0.0))
-    L->UpdateGlobalSumIntensities(AdmixedIndividuals, (!anneal && iteration > options.getBurnIn() && options.getPopulations() > 1));
+    L->UpdateGlobalSumIntensities( *AdmixedIndividuals, (!anneal && iteration > options.getBurnIn() && options.getPopulations() > 1));
   // leaves individuals with HMM probs bad, stored likelihood ok
   // this function also sets locus correlations in Chromosomes
-
 
   //find posterior modes of individual admixture at end of burn-in
   //set Chib numerator
@@ -330,6 +331,9 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
   // fix so that params can be output to console
   Log.setDisplayMode(Quiet);
   bclib::Delimitedstdout ScreenWriter(' ');
+
+  if ( options->getDisplayLevel() > 2 )
+    cout << ' ';
 
   if(options->getIndAdmixHierIndicator()  ){
     //output population-level parameters only when there is a hierarchical model on indadmixture

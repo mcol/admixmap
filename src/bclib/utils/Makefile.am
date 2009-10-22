@@ -4,6 +4,9 @@ SUFFIXES=.cc .o
 OPTFLAGS=-fexceptions
 AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
+if USE_OPENMP
+    AM_CXXFLAGS+=-fopenmp
+endif
 
 #sources for the sublibrary
 all_SOURCES = functions.cc DataReader.cc DataMatrix.cc LogWriter.cc OptionReader.cc StringConvertor.cc StringSplitter.cc GSLErrorHandler.cc ProbVector.cc pvector.cc IsNegative.h DelimitedBuf.cc Delimitedostream.cc RObjectWriter.cc exceptions.cc estr.cc

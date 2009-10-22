@@ -32,8 +32,6 @@
 
 #define STATUS_TO_COUT	1
 
-#define LOC_NUM_DEBUG	0
-
 
 #if STATUS_TO_COUT
     #include <iostream>
@@ -70,8 +68,8 @@ SimpleLocusParser::SimpleLocusParser( const char * fileName, SimpleLocusArray & 
 //
 /// If the file contains the optional chromosome labels, they are used.  If not,
 /// they will be assigned default labels (numbered sequentially starting with
-/// 1).  Explicitely-labeled and default-labeled chromosomes (i.e. all loci in
-/// the file) may @b not be mixed in the same locus-file.
+/// 1).  Explicitly-labeled and default-labeled chromosomes may @b not be mixed
+/// in the same locus-file.
 //
 //-----------------------------------------------------------------------------
 
@@ -205,19 +203,13 @@ void SimpleLocusParser::parse()
 		    row.chromNum = tok.getIntVal();
 		else if ( tok.isType( T_STRING ) && (tok.getStrVal().size() == 1) &&
 			    ((tok.getStrVal()[0] == 'x') || (tok.getStrVal()[0] == 'X')) )
-		    row.chromNum = -2; // The X-chromosome code
+		    row.chromNum = SimpleLocus::SECRET_X_CHROM_NUM;
 		else
 		    throwError( estr("invalid chromosome label ") + tok.asString() );
 
 		if ( lexToken().isToken() ) // Not EOL or EOF
 		    throwError( "spurious garbage at end of line (too many fields)" );
 		}
-
-#if LOC_NUM_DEBUG
-  fprintf( stderr, "Locus %zd %s %s %s(%zd) ",
-    loci.size(), row.name.c_str(), row.isCompositeWithPrevious() ? "composite-with-prev" : "",
-    row.startsNewChromosome() ? "starts-new-chrom" : "same-chrom-as-last", loci.nChromosomes );
-#endif
 
 	    // --- A few more validation checks ---
 	    if ( loci.empty() )		// First locus in file:
@@ -266,11 +258,6 @@ void SimpleLocusParser::parse()
 		    ++chromLabelCtr;
 		row.chromNum = chromLabelCtr;
 		}
-
-#if LOC_NUM_DEBUG
-  const std::string & lab = row.getChromLabel();
-  fprintf( stderr, " chr:%s:\n", lab.c_str() );
-#endif
 
 	    // --- Add the newly-parsed row to the container of simple loci. ---
 	    loci.push_back( row );

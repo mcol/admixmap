@@ -327,7 +327,7 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
       alpha[j] = pi[j];
     }
   }
-  
+
   for( int t = 1; t < Transitions; ++t ){
     if(!missingGenotypes[t-1]) {
       Sum = 0.0;
@@ -343,13 +343,13 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
     }
     
     RecursionProbs(p[t], f + 2*t, StateArrivalProbs[0] + t*K, StateArrivalProbs[1] + t*K, alpha + (t-1)*nStates, alpha + t*nStates);
-    
     for(int j = 0; j < nStates; ++j){
       if(!missingGenotypes[t]) {
 	alpha[t*nStates +j] *=  Lambda[t*nStates + j]; //*lam++; 
 	//++lam;
       } //else ++lam;
     }
+
   }
   alphaIsBad = false;
 }
@@ -467,7 +467,8 @@ void HiddenMarkovModel::UpdateBackwardProbsHaploid(){
 void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2], const double* const stateArrivalProbs0, 
 				       const double* const stateArrivalProbs1, 
 				       const double* const oldProbs, double *newProbs) {
-  if(K==2) RecursionProbs2(ff, f2, stateArrivalProbs0, stateArrivalProbs1, oldProbs, newProbs);
+  if (K==2)
+    RecursionProbs2(ff, f2, stateArrivalProbs0, stateArrivalProbs1, oldProbs, newProbs);
   else {
     int j0K = 0;
     for( int j0 = 0; j0 <  K; ++j0 ) {
@@ -516,7 +517,3 @@ void HiddenMarkovModel::RecursionProbs2(const double ff, const double f2[2], con
   newProbs[2] = Exp1 - newProbs[0]; //prob paternal ancestry=0, maternal=1 
   newProbs[3] = 1 - Exp0 - Exp1 + newProbs[0];
 }
-
-
-
-

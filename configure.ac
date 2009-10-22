@@ -36,11 +36,13 @@ else
 fi
 
 
-# --enable-range-check which is used to set or clear AGGRESSIVE_RANGE_CHECK
+# --enable-range-check which will set or clear AGGRESSIVE_RANGE_CHECK
+# Consider enabling by default for --enable-debug:
+#if test "$disable_range_check" = no -o "$enable_debug" = yes ; then
 AC_ARG_ENABLE(range-check,
-	[  --enable-range-check   turn on internal range-checking of array indices;
-			  good for debugging, off to optimize runtime performance])
-if test "$enable_range_check" = yes; then
+	[  --enable-range-check   turn on internal range-checking of array indices
+			  (very useful for debugging)])
+if test "$enable_range_check" = yes ; then
     AC_DEFINE([AGGRESSIVE_RANGE_CHECK],[1],[switch on/off array index range checking])
 else
     AC_DEFINE([AGGRESSIVE_RANGE_CHECK],[0],[switch on/off array index range checking])
