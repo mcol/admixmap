@@ -763,12 +763,13 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& option
   double LogLikelihoodRatio = 0.0;
   double LogPriorRatio = 0.0;
 
+  double* a = new double[NumHiddenStates]; // should be at class scope
+  bool* b = new bool[NumHiddenStates];
+
   //generate proposals
   for( unsigned int g = 0; g < NumGametes; g++ ){
     if(options.isAdmixed(g)){
       // inverse softmax transformation from proportions to numbers on real line that sum to 0
-      bool* b = new bool[NumHiddenStates];
-      double* a = new double[NumHiddenStates]; // should be at class scope
       for(int k = 0; k < NumHiddenStates; ++k) {
 	if(Theta[g*NumHiddenStates + k] > 0.0) {
 	  b[k] = true; //to skip elements set to zero
@@ -797,12 +798,13 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& option
       //     //compute contribution of this gamete to log prior ratio
       //       LogPriorRatio += getDirichletLogDensity_Softmax(alpha[g], ThetaProposal+g*NumHiddenStates) -
       // 	getDirichletLogDensity_Softmax(alpha[g], Theta+g*NumHiddenStates);
-      delete[] a;
-      delete[] b;
     }
     else
       copy(Theta+g*NumHiddenStates, Theta+(g+1)*NumHiddenStates, ThetaProposal+g*NumHiddenStates);
   }// end loop over gametes
+
+  delete[] a;
+  delete[] b;
 
   //get log likelihood at current parameter values - do not force update, store result of update
   LogLikelihoodRatio -= getLogLikelihood(options, false, true);
