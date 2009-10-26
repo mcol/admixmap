@@ -65,14 +65,14 @@ string char2String(char c){
 
 
 //-----------------------------------------------------------------------------
-// D. Favro: slight improvement.  Needs a rewrite from the ground up.
+// D. Favro: some type-safe methods.
 //-----------------------------------------------------------------------------
 
-void OptionReader::addOption( const string & name, unsigned long & value, unsigned long defaultValue )
+void OptionReader::addOption( const string & name, unsigned & value, unsigned defaultValue )
     {
     value = defaultValue;
-    // This is seriously dangerous: this while class should be rewritten with a different design:
-    addOption( name, longOption, (long*)(&value), false );
+    // This is dangerous; the class should be rewritten with a different design.
+    addOption( name, intOption, (int*)(&value), false );
     }
 
 void OptionReader::addOption( const string & optName, long & value, long defaultValue )

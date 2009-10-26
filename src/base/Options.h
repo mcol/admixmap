@@ -35,7 +35,7 @@ private:
   bool usePedForInd	; ///< Use Pedigree rather than Individual objects for individuals (single-member pedigrees).
   bool warningsAreErrors; ///< Abort execution without running model if input data contains warnings.
   int  maxCPUsToUse	; ///< Maximum CPUs (cores) to use in parallel.  0 (default) for all available.
-  size_t maxPedigreeSize; ///< Maximum number of organisms in a pedigree (larger pedigrees will be reduced by removing non-founders).
+  unsigned maxPedigreeSize; ///< Maximum number of organisms in a pedigree (larger pedigrees will be reduced by removing non-founders).
 
   /// When parsing pedigree files, turn parent-IDs that refer to non-existent
   /// individuals into unknown-parent.  Otherwise there are errors.
@@ -161,7 +161,7 @@ private:
 								    ///< the input data generates and warnings.
     int	 getMaxCPUsToUse     () const { return maxCPUsToUse	; } ///< Maximum CPUs (cores) to use in parallel.
 								    ///< 0 (default) for all available.
-    size_t getMaxPedigreeSize() const { return maxPedigreeSize  ; } ///< Maximum number of organisms in a pedigree (larger
+    unsigned getMaxPedigreeSize() const { return maxPedigreeSize  ; } ///< Maximum number of organisms in a pedigree (larger
 								    ///< pedigrees will be reduced by removing non-founders).
 
     /// When parsing pedigree files, turn parent-IDs that refer to non-existent
