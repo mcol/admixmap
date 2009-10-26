@@ -254,9 +254,13 @@ class Pedigree : public PedBase // See NOTE *4*
 
 	/// The constructor is protected; use generatePedigrees() to create the
 	/// Pedigree objects.
-	Pedigree( const OrganismArray &	      pool   ,
-		  OrganismArray::ConstPedIter firstM ,
-		  OrganismArray::ConstPedIter endM   );
+	/// @param max_n If non-0, pedigrees with sizes exceeding max_n with be
+	///	reduced to size max_n by eliminating non-founders; if there are
+	///	more than max_n founders, an exception will be thrown.
+	Pedigree( const OrganismArray &	      pool	,
+		  OrganismArray::ConstPedIter firstM	,
+		  OrganismArray::ConstPedIter endM	,
+		  MemberIdx		      max_n = 0 );
 
 
 	// Range-checking:
@@ -286,15 +290,20 @@ class Pedigree : public PedBase // See NOTE *4*
 
 
 	//---------------------------------------------------------------
+	///
 	/// Create a vector of Pedigree objects from the raw genotype data (as
 	/// read in from a pedfile by GenotypeParser).
 	///
 	/// This is effectively the public "constructor" for Pedigree objects.
 	/// The Pedigree objects are created in @a rv (output parameter).
+	///
+	/// @param max_n See Pedigree::Pedigree()
+	///
 	//---------------------------------------------------------------
 
-	static void generatePedigrees( const OrganismArray & organisms ,
-				       cvector<Pedigree> &   rv	       );
+	static void generatePedigrees( const OrganismArray & organisms	,
+				       cvector<Pedigree> &   rv		,
+				       MemberIdx	     max_n	);
 
 
 	//---------------------------------------------------------------
@@ -316,8 +325,10 @@ class Pedigree : public PedBase // See NOTE *4*
 	const SimpleLocusArray & getSLoci     () const { return memberPool.getSLoci(); } ///< Convenience
 	SLocIdxType		 getNSLoci    () const { return getSLoci().size()    ; } ///< Convenience
 
-	const CompositeLocus & getCLocus( CLocIdxType ) const;
-	CLocIdxType	       getNCLoci() const;
+	#if 0 // Unimplemented; composite-loci do not as yet work with pedigrees
+	    const CompositeLocus & getCLocus( CLocIdxType ) const;
+	    CLocIdxType		   getNCLoci() const;
+	#endif
 
 
 	//---------------------------------------------------------------

@@ -34,10 +34,10 @@
 #include <bclib/cvector.h>
 
 
-#define TPC_NO_CACHE    0 ///< Naive implementation: don't cache anything, compute everything every time
-#define TPC_BIG_CACHE   1 ///< Slightly less naive implementation: cache absolutely everything as separate matrices
+#define TPC_NO_CACHE  0 ///< Naive implementation: don't cache anything, compute everything every time
+#define TPC_BIG_CACHE 1 ///< Slightly less naive implementation: cache absolutely everything as separate matrices
 
-#define TPC_CACHE_MODEL TPC_BIG_CACHE
+#define TPC_CACHE_MODEL TPC_NO_CACHE
 
 
 

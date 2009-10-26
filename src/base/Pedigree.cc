@@ -78,11 +78,11 @@
 // We really must find a way to auto-box with STL:
 #if 0
     #define PED_PB(rv, organisms, firstInd, lastInd ) \
-	rv.push_back( organisms, firstInd, lastInd ) , \
+	rv.push_back( organisms, firstInd, lastInd, max_n ) , \
 	rv.back().myNumber = rv.size()
 #else
-    #define PED_PB(rv, organisms, firstInd, lastInd ) \
-	rv.push_back( Pedigree( organisms, firstInd, lastInd ) ) , \
+    #define PED_PB(rv, organisms, firstInd, lastInd, max_n ) \
+	rv.push_back( Pedigree( organisms, firstInd, lastInd, max_n ) ) , \
 	rv.back().myNumber = rv.size()
 #endif
 
@@ -177,23 +177,25 @@ static int depthCompare( Pedigree::Member * const * lhs_ptr, Pedigree::Member * 
 // Constructor [protected]
 //-----------------------------------------------------------------------------
 
-Pedigree::Pedigree( const OrganismArray & pool,
-		    OrganismArray::ConstPedIter firstM, OrganismArray::ConstPedIter endM ) :
-	memberPool	( pool			   ) ,
-	id		( (*firstM)->getFamId()	   ) ,
-	nMembers	( endM - firstM		   ) ,
-	sortedMembers	( new Member* [ nMembers ] ) ,
-	nMendelErrs	( 0			   ) ,
-	mendelErrsByLocus( 0			   ) ,
-	stateProbs	( 0			   ) ,
-	nAffected	( 0			   ) ,
-	step		( 0.3			   ) ,
-	NumberOfUpdates ( 0			   ) ,
-	w		( 1			   ) ,
-	NumGametes	( 2			   ) ,
-	tpCache		( 0			   ) ,
-	hmm		( 0			   ) ,
-	llCache		( *this			   )
+Pedigree::Pedigree( const OrganismArray &	pool	,
+		    OrganismArray::ConstPedIter firstM	,
+		    OrganismArray::ConstPedIter endM	,
+		    MemberIdx			max_n	) :
+	memberPool	  ( pool		     ) ,
+	id		  ( (*firstM)->getFamId()    ) ,
+	nMembers	  ( endM - firstM	     ) ,
+	sortedMembers	  ( new Member* [ nMembers ] ) ,
+	nMendelErrs	  ( 0			     ) ,
+	mendelErrsByLocus ( 0			     ) ,
+	stateProbs	  ( 0			     ) ,
+	nAffected	  ( 0			     ) ,
+	step		  ( 0.3			     ) ,
+	NumberOfUpdates	  ( 0			     ) ,
+	w		  ( 1			     ) ,
+	NumGametes	  ( 2			     ) ,
+	tpCache		  ( 0			     ) ,
+	hmm		  ( 0			     ) ,
+	llCache		  ( *this		     )
     {
 
     // Initialize the array of pointers-to-members, while simultaneously
@@ -239,6 +241,7 @@ Pedigree::Pedigree( const OrganismArray & pool,
     SORT( sortedMembers, getNMembers(), depthCompare );
 
 
+
     // At this point, the depth field is effectively no longer needed; we now
     // re-use it as the index within the sorted-list (see NOTE *2* in
     // Organism.h):
@@ -252,9 +255,44 @@ Pedigree::Pedigree( const OrganismArray & pool,
 	}
 
 
-    // Cache pointers to the first and ending founders, which should all be at
-    // the start of the sortedMembers array:
+    // If max_n is specified and this pedigree's size exceeds it, remove enough
+    // non-founders to reduce the size to max_n:
+    if ( (max_n != 0) && (getNMembers() > max_n) )
+	{
+
+	if ( getNFounders() > max_n )
+	    throw std::runtime_error( estr("Pedigree ") + getId() + " has " + getNFounders() +
+			" founders, which exceeds the maximum number of members (" +
+			max_n + ')' );
+
+	cout << "Pedigree " << getId() << " size reduced from " << getNMembers() << " to "
+	    << max_n << " per parameters (excluding organism IDs:";
+	for ( Member * * mPtr = sortedMembers + getNMembers() ; mPtr-- != (sortedMembers + max_n) ; )
+	    cout << ' ' << (*mPtr)->getOrgId();
+	cout << ").\n";
+
+	nMembers = max_n;
+
+	// We don't bother to re-allocate sortedMembers; just leave the
+	// abandoned ones hanging on the end of the too-long array.
+
+	// "Traverse" the graph, removing child-pointers to the removed
+	// non-founders.  This is super-hack.
+	for ( Member * * mPtr = sortedMembers + getNMembers() ; mPtr-- != sortedMembers ; )
+	    {
+	    std::list<Organism*> & children = (*mPtr)->getChildren();
+	    for ( std::list<Organism*>::iterator chIter = children.begin() ; chIter != children.end() ; ++chIter )
+		while ( ((*chIter)->getPIdx() >= max_n) &&
+			((chIter = children.erase(chIter)) == children.end()) )
+		    ; // Do nothing
+	    }
+	}
+
+
+
     #if 0
+	// Cache pointers to the first and ending founders, which should all be at
+	// the start of the sortedMembers array:
 	firstFounder = sortedMembers;
 	endFounder = sortedMembers + nFounders;
     #endif
@@ -378,7 +416,7 @@ Pedigree::~Pedigree()
 /// Create Pedigree's from raw genotype data (pedfile)
 //---------------------------------------------------------------
 
-void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedigree> & rv )
+void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedigree> & rv, size_t max_n )
     {
     FamIdType curFamId;
 
@@ -394,7 +432,7 @@ void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedig
 		OrganismArray::ConstPedIter lastInd;
 		organisms.findOrgsInPed( curFamId, firstInd, lastInd );
 
-		PED_PB( rv, organisms, firstInd, lastInd );
+		PED_PB( rv, organisms, firstInd, lastInd, max_n );
 		}
 
 	    curFamId = ind.getFamId();
@@ -407,7 +445,7 @@ void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedig
     const std::pair<OrganismArray::ConstPedIter,OrganismArray::ConstPedIter> &
 	interval = organisms.findOrgsInPed( curFamId );
 
-    PED_PB( rv, organisms, interval.first, interval.second );
+    PED_PB( rv, organisms, interval.first, interval.second, max_n );
     }
 
 

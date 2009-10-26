@@ -113,7 +113,7 @@ void InputData::ReadData( Options * options, LogWriter & Log )
 void InputData::generatePedigrees( const Options & options )
     {
     if ( isPedFile() || options.getUsePedForInd() )
-	genepi::Pedigree::generatePedigrees( *genotypeLoader, peds );
+	genepi::Pedigree::generatePedigrees( *genotypeLoader, peds, options.getMaxPedigreeSize() );
     }
 
 

@@ -240,6 +240,7 @@ void Options::DefineOptions(){
   addOption( "warnings-are-errors"	  , warningsAreErrors	 , false );
   addOption( "ignore-invalid-parents"	  , ignoreInvalidParents , false );
   addOption( "max-cpus"			  , maxCPUsToUse	 , 0	 );
+  addOption( "max-pedigree-size"	  , maxPedigreeSize	 , 0	 );
   addOption( "exclude-mendelian-errors"	  , excludeMendelError	 , true  );
   addOption( "exclude-unaffected-sibs"	  , excludeUnaffectedSibs, false );
 

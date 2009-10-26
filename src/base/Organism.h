@@ -214,11 +214,14 @@ class Organism
 	bool isFounder() const { return ((father == 0) && (mother == 0)); }
 
 	static const short UNKNOWN_DEPTH = SHRT_MAX;
-	void setDepth( short nv ) { depth = nv; } ///< See <A HREF="#note-1">NOTE *1*</A>
-	short getDepth() const { return depth; }  ///< See <A HREF="#note-1">NOTE *1*</A>
-	short getPIdx () const { return depth; }  ///< Index within pedigree (see <A HREF="#note-1">NOTE *2*</A>)
+	void  setDepth( short nv ) { depth = nv; }  ///< See <A HREF="#note-1">NOTE *1*</A>
+	short getDepth() const { return depth; }    ///< See <A HREF="#note-1">NOTE *1*</A>
+	void  setPIdx( short nv ) { depth = nv; }   ///< See <A HREF="#note-1">NOTE *1*</A>
+	size_t getPIdx() const { return depth; }    ///< Index within pedigree (see <A HREF="#note-1">NOTE *2*</A>)
+	//^^^^ really Pedigree::MemberIdx
 
 	const std::list<Organism*> & getChildren() const { return children; }
+	std::list<Organism*> &	     getChildren()	 { return children; }
 	typedef std::list<Organism*>::const_iterator ChConstIter;
 	ChConstIter childrenBegin() const { return children.begin(); }
 	ChConstIter childrenEnd	 () const { return children.end	 (); }

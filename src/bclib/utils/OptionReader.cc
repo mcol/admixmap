@@ -65,8 +65,15 @@ string char2String(char c){
 
 
 //-----------------------------------------------------------------------------
-// D. Favro: slight improvement.  Needs a lot more work.
+// D. Favro: slight improvement.  Needs a rewrite from the ground up.
 //-----------------------------------------------------------------------------
+
+void OptionReader::addOption( const string & name, unsigned long & value, unsigned long defaultValue )
+    {
+    value = defaultValue;
+    // This is seriously dangerous: this while class should be rewritten with a different design:
+    addOption( name, longOption, (long*)(&value), false );
+    }
 
 void OptionReader::addOption( const string & optName, long & value, long defaultValue )
     {

@@ -101,6 +101,9 @@ public:
     //	redesigned from the ground up, but for the moment as a hacked-up
     //	workaround, these will help.
 
+    /// Add a long option of type unsigned long (type-safe).
+    void addOption( const string & name, unsigned long & value, unsigned long defaultValue = 0 );
+
     void addOption( const string & name, long & value, long defaultValue = 0 ); ///< Add a long option of type long (type-safe)
     void addOption( const string & name, long & value, bool required ); 	///< Add a long option of type long (type-safe)
     void addOption( const string & name, int & value, int defaultValue = 0 );	///< Add a long option of type int (type-safe)

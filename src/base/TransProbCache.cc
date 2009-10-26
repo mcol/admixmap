@@ -284,7 +284,9 @@ void TransProbCache::setRho( double nv )
 	{
 	rho = nv;
 	reComputeFactors();
-	cacheIsDirty = true;
+	#if (TPC_CACHE_MODEL == TPC_BIG_CACHE)
+	    cacheIsDirty = true;
+	#endif
 	}
     }
 
@@ -300,7 +302,9 @@ void TransProbCache::muChanged()
     {
     gp_assert_eq( pedigree.getNFounders(), getMu().size() );
     gp_assert_eq( pedigree.getK(), getMu()[0].size() );
-    cacheIsDirty = true;
+    #if (TPC_CACHE_MODEL == TPC_BIG_CACHE)
+	cacheIsDirty = true;
+    #endif
     }
 
 
