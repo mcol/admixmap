@@ -154,6 +154,14 @@ sub getArguments
       print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
     close OPTIONFILE;
+
+    if ( $echo_cmds )
+	{
+	print "\n\n\n======== OPTIONS FILE: ========\n";
+	system( "cat " . " $filename" );
+	print "===============================\n";
+	}
+
     return " ".$filename;
 }
 
@@ -239,6 +247,8 @@ my $arg_hash = {
     outcomevarfile             => "$datadir/outcomevars.txt",
     covariatesfile             => "$datadir/covariates3std.txt",
     displaylevel             => 2,
+    "use-pedigree-for-individual" => 1,
+    "no-conjugate-update"	  => 1,
 
 # output files
     logfile                    => 'logfile.txt',

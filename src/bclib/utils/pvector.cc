@@ -98,7 +98,8 @@ template < typename T > template< typename DestIter > void pvector<T>::inv_softm
 
 
 
-template < typename T > template< typename DestIter, typename QualFunctor > void pvector<T>::inv_softmax( DestIter dest, QualFunctor qualifies, const T & defVal ) const
+template < typename T > template< typename DestIter, typename QualFunctor >
+		void pvector<T>::inv_softmax( DestIter dest, QualFunctor qualifies, const T & defVal ) const
     {
 
     gsl_sf_result result;
@@ -114,7 +115,7 @@ template < typename T > template< typename DestIter, typename QualFunctor > void
     bool *   qualPtr = qualArray;
     for ( const_iterator it = begin(); it != end(); ++it, ++destPtr )
 	{
-	const T val = *it;
+	const T	   val = *it;
 	const bool qual = qualifies( val );
 	*qualPtr++ = qual;
 	if ( qual )
@@ -152,8 +153,15 @@ template < typename T > template< typename DestIter, typename QualFunctor > void
 
 
 
-template < typename T > template< typename DestIter, typename QualFunctor > void pvector<T>::softmax( DestIter dest, QualFunctor qualifies, const T & defVal ) const
+template < typename T > template< typename DestIter, typename QualFunctor >
+		void pvector<T>::softmax( DestIter dest, QualFunctor qualifies, const T & defVal ) const
     {
+
+    // Check for null input array, which will cause a singularity:
+    if ( size() == 0 )
+	throw std::runtime_error( "Null input to softmax()" );
+
+
     bool qualArray[ size() ];
 
     bool * qualPtr = qualArray;
@@ -183,10 +191,12 @@ template < typename T > template< typename DestIter, typename QualFunctor > void
 	else
 	    *destPtr = defVal;
 
+
     qualPtr = qualArray;
     for ( const_iterator it = begin(); it != end(); ++it, ++dest )
 	if ( *qualPtr++ )
 	    *dest /= total;
+
     }
 
 
