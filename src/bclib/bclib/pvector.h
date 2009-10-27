@@ -85,17 +85,41 @@ public:
   iterator	 end  ()       { return SUPER::end  (); }
   //-------------------------------------------------------------------------
 
+
+
+  //-----------------------------------------------------------------------------
+  // Functors for use with "qualified" transformations:
+  //-----------------------------------------------------------------------------
+
   static bool greater_than_0( T x ) { return x > 0.0; }
   static bool not_equal_to_0( T x ) { return x != 0.0; }
+  class not_equal_to
+    {
+    private:
+	const T val;
+    public:
+	not_equal_to( const T & _val ) : val( _val ) {}
+	bool operator()( const T & arg ) const { return arg != val; }
+    };
 
+
+
+  //-----------------------------------------------------------------------------
+  // Softmax and Inverse-Softmax Transformations:
+  //-----------------------------------------------------------------------------
+
+  /// Compute the inverse-softmax transformation from this vector, placing the results in @a dest.
   template< typename DestIter			    > void inv_softmax( DestIter dest ) const;
   template< typename DestIter, typename QualFunctor > void inv_softmax( DestIter dest, QualFunctor qualifies, const T & defVal = 0 ) const;
-  ///< Only peforms the tranformation on those elements which return true from
-  ///< @a qualifies; all other elements of the @a dest array are set to @a
-  ///< defVal.
+  ///< Compute the inverse-softmax transformation from this vector, placing the
+  ///< results in @a dest.  This version only peforms the tranformation on those
+  ///< elements which return true from @a qualifies; all other elements of the
+  ///< @a dest array (those that don't qualify) are set to @a defVal.
+
 
   /// DDF: problem: how to make these specialized versions get chosen in preference to above
   ///	template-methods for arguments derived from cvector, such as pvector?
+  /// Compute the inverse-softmax transformation from this vector, placing the results in @a dest.
   void inv_softmax( pvector & dest ) const
 	{
 	if ( dest.size() < size() )
@@ -103,8 +127,10 @@ public:
 	inv_softmax( dest.begin() );
 	}
 
-  /// Only peforms the tranformation on those elements which return true from @a
-  /// qualifies; all other elements of the @a dest array are set to @a defVal.
+  /// Compute the inverse-softmax transformation from this vector, placing the
+  /// results in @a dest.  This version only peforms the tranformation on those
+  /// elements which return true from @a qualifies; all other elements of the
+  /// @a dest array (those that don't qualify) are set to @a defVal.
   template< typename QualFunctor > void inv_softmax( pvector & dest, QualFunctor qualifies, const T & defVal = 0 ) const
 	{
 	if ( dest.size() < size() )
@@ -179,8 +205,10 @@ private:
 };
 
 
+
 /** @} */
 
 END_BCLIB_NAMESPACE
 
-#endif /*PVECTOR_H_*/
+
+#endif /* PVECTOR_H_ */

@@ -41,7 +41,8 @@
 #include "Pedigree.h"
 
 
-#include <cmath> // exp(), log()
+#include <cmath>    // exp(), log()
+#include <limits>   // numeric_limits<>
 
 #include <bclib/misc.h>
 #include <bclib/rand.h>
@@ -52,12 +53,13 @@
 #include "AdmixIndividualCollection.h"	// PARALLELIZE_PEDIGREE_LOOP, SAMPLE_THETA_CALL_CRITICAL
 
 
-#if 0
-    /// The way it was for individuals.
-    #define IS_ADMIXED()  options.isAdmixed( this_gamete )
-#else
+#define ALL_FOUNDERS_ARE_ADMIXED    1
+#if ALL_FOUNDERS_ARE_ADMIXED
     /// For pedigrees, we assume that all founders are admixed.
     #define IS_ADMIXED()  true
+#else
+    /// The way it was for individuals.
+    #define IS_ADMIXED()  options.isAdmixed( this_gamete )
 #endif
 
 
@@ -87,6 +89,10 @@
 
 
 using bclib::pvector;
+typedef pvector<double> pvectord;
+
+
+static const double SOFTMAX_0_FLAG = std::numeric_limits<double>::quiet_NaN();
 
 
 
@@ -102,7 +108,6 @@ using bclib::pvector;
 #define IMPLEMENTED_AFFECTED_ONLY_SCORE_TEST_FOR_PEDIGREES  0
 #define TRACK_PEDIGREE_MISSING				    0
 #define PEDIGREES_HAVE_PLOIDINESS			    0
-#define POSTERIOR_MEANS_IS_IMPLEMENTED			    1
 #define SUM_PROBS_IS_IMPLEMENTED			    0
 
 
@@ -331,7 +336,7 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 	}
 
 
-    pvector<double> Kzero;
+    pvectord Kzero;
     Kzero.resize( getK(), 0.0 );
     SumSoftmaxTheta.resize( getNTheta(), Kzero );
 
@@ -834,11 +839,11 @@ void Pedigree::SampleTheta(
 	{
 	// Accumulate sums in softmax basis for calculation of posterior means
 
-	double a[ K ]; // Or could use: pvector<double> a;
+	double a[ K ]; // Or could use: pvectord a( K );
 
 	for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
 	    {
-	    getCurTheta()[tIdx].inv_softmax_gt0( a ); // Equivalent: getCurTheta()[tIdx].inv_softmax( a, gt_0 );
+	    getCurTheta()[tIdx].inv_softmax_gt0( a, 0.0 ); // Equivalent: getCurTheta()[tIdx].inv_softmax( a, gt_0 );
 	    SumSoftmaxTheta[tIdx] += a;
 	    }
 	}
@@ -1022,7 +1027,7 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
     const PopIdx K = getK();
 
     // NOTE *M1*: Maybe this should be be allocated once for the class?
-    pvector<double> a( K );
+    pvectord a( K );
 
     ThetaType & theta_proposal = startThetaProposal();
     ThetaType & theta	       = thetas.getAccepted();
@@ -1035,28 +1040,29 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 	    const ThetaElType & th	= theta[ tIdx ];
 	    ThetaElType &	th_prop = theta_proposal[ tIdx ];
 
-	    th.inv_softmax_gt0( a );
+	    th.inv_softmax_gt0( a, SOFTMAX_0_FLAG );
 
 	    // Random walk step - on all elements of array a
 	    for ( PopIdx k = 0 ; k < K ; ++k )
-		if ( a[k] != 0.0 )
+		if ( a[k] != SOFTMAX_0_FLAG ) // Equivalent: if ( th[k] > 0.0 )
 		    a[k] = RNG_NORMAL( a[k], step );
 
 	    // Reverse transformation from numbers on real line to proportions
-	    a.softmax_gt0( th_prop );
+	    a.softmax( th_prop, pvectord::not_equal_to(SOFTMAX_0_FLAG), 0.0 );
 
 	    // Compute contribution of this founder to log prior ratio
 	    // Prior densities must be evaluated in softmax basis
 	    for ( PopIdx k = 0; k < K; ++k )
-		LogPriorRatio += alpha[tIdx][k] * (log(th_prop[k]) - log(th[k]));
+		if ( th[k] > 0.0 ) // Equivalent: if (a[k] != SOFTMAX_0_FLAG)
+		    LogPriorRatio += alpha[tIdx][k] * (log(th_prop[k]) - log(th[k])); // Equivalent: log(th_prop[k]/th[k])
 	    }
 
 	else // IS_ADMIXED()
 	    {
-	    #if 0
-		Theta[ tIdx ] = ThetaProposal[ tIdx ];
+	    #if ALL_FOUNDERS_ARE_ADMIXED
+		throw std::logic_error( "Logic error. All founders are admixed." );
 	    #else
-		throw std::logic_error( "Logic error. Everything should be admixed for pedigrees. What's going on here?" );
+		Theta[tIdx] = ThetaProposal[tIdx];
 	    #endif
 	    }
 
@@ -1260,8 +1266,6 @@ void Pedigree::acceptThetaProposal()
 double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
     {
 
-#if POSTERIOR_MEANS_IS_IMPLEMENTED
-
     double rv;
 
     // Should set allele freqs also to posterior means, and recalculate prob
@@ -1293,12 +1297,9 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 	ThetaType scaledSSMT( SumSoftmaxTheta );
 	scaledSSMT /= scale_factor;
 
-	// apply softmax transformation to obtain thetabar
+	// Apply softmax transformation to obtain thetabar
 	for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
-	    scaledSSMT[tIdx].softmax_gt0( thetabar[tIdx] ); // Equivalent: scaledSSMT[tIdx].softmax( thetabar[tIdx], gt_0 );
-
-	// Rescale sumsoftmaxtheta back (no need since we copied it)
-	//SumSoftmaxTheta *= scale_factor;
+	    scaledSSMT[tIdx].softmax_gt0( thetabar[tIdx], 0.0 ); // Equivalent: scaledSSMT[tIdx].softmax( thetabar[tIdx], gt_0 );
 
 	#if 0
 	    llCache.parmsChanged();	   // No need since starting the proposal automatically invalidates
@@ -1319,13 +1320,6 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 
 	rejectThetaProposal(); // We were never going to accept it anyhow.
 	}
-
-#else // POSTERIOR_MEANS_IS_IMPLEMENTED
-
-    if ( &options == 0 ) {;} // Suppress compiler warning
-    const double rv = 0.0;
-
-#endif // ! POSTERIOR_MEANS_IS_IMPLEMENTED
 
     return rv;
     }
@@ -1744,8 +1738,6 @@ void Pedigree::ResetSufficientStats()
 
 
 
-#if POSTERIOR_MEANS_IS_IMPLEMENTED
-
 //-----------------------------------------------------------------------------
 // getPosteriorMeans() [private helper for WritePosteriorMeans()
 // DDF: code is adapted from code copied from AdmixedIndividual::getPosteriorMeans().
@@ -1818,12 +1810,8 @@ void Pedigree::getPosteriorMeans( ThetaType & thetaBar, RhoType & rhoMean, unsig
 	// new'd contents, indeterminate per ISO C++ 1997-5.3.4(14A)]; instead,
 	// we will keep slots for them but initialise to 0.
 	//---------------------------------------------------------------------
-	ssmtEl.softmax_gt0( thetaBarEl );
-	//---------------------------------------------------------------------
+	ssmtEl.softmax_gt0( thetaBarEl, 0.0 );
 
-	// Rescale sumsoftmaxtheta back
-	// (DDF: no longer necessary, we now preserve the original values)
-	//ssmtEl *= dSamples;
 	}
 
     #if SUM_PROBS_IS_IMPLEMENTED
@@ -1832,8 +1820,6 @@ void Pedigree::getPosteriorMeans( ThetaType & thetaBar, RhoType & rhoMean, unsig
     #endif
 
     }
-
-#endif // ! POSTERIOR_MEANS_IS_IMPLEMENTED
 
 
 
@@ -1844,8 +1830,6 @@ void Pedigree::getPosteriorMeans( ThetaType & thetaBar, RhoType & rhoMean, unsig
 
 void Pedigree::WritePosteriorMeans( ostream& os, unsigned int samples, bool globalrho ) const
     {
-
-#if POSTERIOR_MEANS_IS_IMPLEMENTED
 
     ThetaType thetaBar	;
     RhoType   rhobar	;
@@ -1860,15 +1844,6 @@ void Pedigree::WritePosteriorMeans( ostream& os, unsigned int samples, bool glob
 
     if ( ! globalrho )
 	copy( rhobar.begin(), rhobar.end(), ostream_iterator<double>(os, "\t") );
-
-#else // POSTERIOR_MEANS_IS_IMPLEMENTED
-
-    //fprintf( stderr, "Warning: posterior-means is not implemented.\n" );
-    if ( os	   ) {;} // Suppress compiler warning
-    if ( samples   ) {;} // Suppress compiler warning
-    if ( globalrho ) {;} // Suppress compiler warning
-
-#endif // ! POSTERIOR_MEANS_IS_IMPLEMENTED
 
     }
 

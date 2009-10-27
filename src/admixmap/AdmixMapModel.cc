@@ -133,7 +133,7 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
-    else if ( options.getDisplayLevel() > 2 )
+    else if ( options.getDisplayLevel() >= 3 )
       {
       putc( '.', stderr );
       fflush( stderr );

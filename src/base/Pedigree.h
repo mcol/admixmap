@@ -23,6 +23,7 @@
 /// Definition of the Pedigree class
 //=============================================================================
 
+
 #ifndef __base_Pedigree_h
 #define __base_Pedigree_h
 
@@ -56,7 +57,6 @@ namespace genepi
 
 
 // For admix-model:
-#include <bclib/pvector.h>
 //------------------------------------------------------------------------
 // See NOTE *4*:
 // Used for the additional methods to run the admixmap model.  These should be

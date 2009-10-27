@@ -60,6 +60,10 @@ void pvector<T>::snapToZero(){
 // Copy-result-out (not in-place) transformations
 //=============================================================================
 
+//-----------------------------------------------------------------------------
+// inv_softmax()
+//-----------------------------------------------------------------------------
+
 template < typename T > template< typename DestIter > void pvector<T>::inv_softmax( DestIter dest ) const
     {
     gsl_sf_result result;
@@ -97,6 +101,10 @@ template < typename T > template< typename DestIter > void pvector<T>::inv_softm
     }
 
 
+
+//-----------------------------------------------------------------------------
+// inv_softmax() qualified by a predicate functor.
+//-----------------------------------------------------------------------------
 
 template < typename T > template< typename DestIter, typename QualFunctor >
 		void pvector<T>::inv_softmax( DestIter dest, QualFunctor qualifies, const T & defVal ) const
@@ -153,6 +161,10 @@ template < typename T > template< typename DestIter, typename QualFunctor >
 
 
 
+//-----------------------------------------------------------------------------
+// softmax() qualified by a predicate functor.
+//-----------------------------------------------------------------------------
+
 template < typename T > template< typename DestIter, typename QualFunctor >
 		void pvector<T>::softmax( DestIter dest, QualFunctor qualifies, const T & defVal ) const
     {
@@ -203,6 +215,7 @@ template < typename T > template< typename DestIter, typename QualFunctor >
 
 //=============================================================================
 // Providing explicit template instantiation to avoid linkage errors.
+// There must be a better way to do this...
 //=============================================================================
 
 template bool pvector<double>::is_normalized();
@@ -228,6 +241,11 @@ template void pvector<double>::inv_softmax_gt0<genepi::cvector<double>::iterator
 
 template void pvector<double>::softmax<pvector<double>::iterator,DoubleTester>( genepi::cvector<double>::iterator, DoubleTester, const double& ) const;
 template void pvector<double>::softmax<double*,DoubleTester>( double*, DoubleTester, const double & ) const;
+
+
+template void pvector<double>::softmax<genepi::cvector<double>::iterator, bclib::pvector<double>::not_equal_to>
+		( pvector<double>::iterator, bclib::pvector<double>::not_equal_to, const double &) const;
+
 
 
 
