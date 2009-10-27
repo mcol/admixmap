@@ -233,6 +233,7 @@ int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
 // Instantiate templates:
 template void Rand::gendirichlet<double *,double *>( size_t K, double * const & alpha, double * & theta );
 template void Rand::gendirichlet<const double *,double *>( size_t K, const double * const & alpha, double * & theta );
+template void Rand::gendirichlet<double *, bclib::pvector<double> >( size_t K, double * const & alpha, pvector<double> & theta );
 template void Rand::gendirichlet< std::vector<double>, std::vector<double> >( size_t K, const std::vector<double> & alpha, std::vector<double> & theta );
 template void Rand::gendirichlet< std::vector<double>, bclib::pvector<double> >( size_t K, const std::vector<double> & alpha, pvector<double> & theta );
 

@@ -27,6 +27,7 @@
 #include "GenotypeProbOutputter.h"
 #include "bclib/Regression.h"
 #include "PedBase.h"
+#include "AdmixtureProportions.h"
 
 
 using namespace std;
@@ -119,7 +120,7 @@ protected:
   bool *		    missingGenotypes ; ///< indicators for missing genotypes at simple loci
   std::vector<hapPair>	    sampledHapPairs  ;
 
-  double *		    Theta	     ; ///< admixture proportions
+  AdmixtureProportions	    Theta	     ; ///< admixture proportions
 
   int **		    LocusAncestry    ;
   genepi::RhoType	    _rho	     ; ///< sum of intensities
@@ -144,11 +145,13 @@ protected:
   /// getLogLikelihood(); it is currently making a copy on every call.  Requires
   /// changing derived classes also.
   virtual void UpdateHMMInputs(unsigned int j, const Options& options,
-			       const double* const theta, const genepi::RhoType & rho) = 0;
+                               const AdmixtureProportions& theta,
+                               const genepi::RhoType& rho) = 0;
 
   /// See UpdateHMMInputs() for rho-reference
   virtual double getLogLikelihood(const Options& options,
-				  const double * theta, const genepi::RhoType & rho, bool updateHMM );
+                                  const AdmixtureProportions& theta,
+                                  const genepi::RhoType& rho, bool updateHMM);
 
   public:
     const genepi::RhoType & getRho() const;

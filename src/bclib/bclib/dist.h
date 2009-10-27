@@ -14,6 +14,7 @@
 #define DIST_H 1
 
 #include "bclib/bclib.h"
+#include "bclib/pvector.h"
 #include <vector>
 
 BEGIN_BCLIB_NAMESPACE
@@ -37,6 +38,7 @@ double getDirichletLogDensity(const std::vector<double>& a, const double* const 
 double getDirichletLogDensity(const std::vector<double>& a, const std::vector<double>& x);
 /// log of Dirichlet density of dimension K with parameters a, where a softmax transformation has been applied to x
 double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double* const x);
+double getDirichletLogDensity_Softmax(const std::vector<double>& a, const bclib::pvector<double>& x);
 /// multinomial density qith probabilities r
 double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta );
 double getGammaGammaLogDensity_LogBasis(const double a, const double a0, const double nu, 

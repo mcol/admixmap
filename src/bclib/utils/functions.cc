@@ -14,6 +14,7 @@
 #include "bclib/misc.h"
 #include "bclib/dist.h"
 #include "bclib/linalg.h"
+#include "bclib/pvector.h"
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include "gsl/gsl_sf_exp.h"
@@ -140,6 +141,25 @@ double getDirichletLogDensity(const std::vector<double>& a, const std::vector<do
 }
 
 double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double* const x) {
+  // version with parameters as std vector, proportions as array
+  size_t K = a.size();
+  vector<double> theta(K);
+  theta[K-1] = 1.0;
+  for(size_t k = 0; k < K-1; ++k) {
+    theta[k] = x[k];
+    theta[K-1] -= x[k];
+  }
+  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
+  double f = gsl_sf_lngamma( sum );
+  for( unsigned i = 0; i < K; ++i ) {
+    if( a[i] > 0.0 ) {
+      f += ( a[i] ) * log( theta[i] ) - gsl_sf_lngamma( a[i] );
+    }
+  }
+  return f;
+}
+
+double getDirichletLogDensity_Softmax(const std::vector<double>& a, const bclib::pvector<double>& x) {
   // version with parameters as std vector, proportions as array
   size_t K = a.size();
   vector<double> theta(K);

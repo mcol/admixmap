@@ -136,11 +136,7 @@ Individual::~Individual() {
 }
 
 void Individual::SetUniformAdmixtureProps() {
-  size_t K = NumHiddenStates;
-  for( unsigned g = 0; g < NumGametes; ++g ) {
-    for(size_t k = 0; k < K; ++k)
-      Theta[g*K+k] = 1.0 / K;
-  }
+  Theta.setTo(1.0 / NumHiddenStates);
 }
 
 void Individual::setOutcome(double* Y){
@@ -207,7 +203,7 @@ void Individual::HMMIsBad(bool loglikisbad) {
 
 //******************** Accessors ***********************************************************
 const double* Individual::getAdmixtureProps()const {
-  return Theta;
+  return Theta.flat();
 }
 
 const std::vector<hapPair > &Individual::getPossibleHapPairs( unsigned int locus ) const {
@@ -284,7 +280,8 @@ double Individual::getLogLikelihood( const Options& options, const bool forceUpd
 }
 
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
-double Individual::getLogLikelihood(const Options& options, const double* const theta,
+double Individual::getLogLikelihood(const Options& options,
+                                    const AdmixtureProportions& theta,
 				    const RhoType & rho, bool updateHMM) {
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {

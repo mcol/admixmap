@@ -17,6 +17,7 @@ endif
 noinst_LIBRARIES = libbase.a
 
 libbase_a_SOURCES = \
+AdmixtureProportions.cc AdmixtureProportions.h \
 AlleleFreqs.cc AlleleFreqs.h \
 AlleleFreqSampler.cc AlleleFreqSampler.h \
 Annealer.cc Annealer.h \

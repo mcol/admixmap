@@ -76,10 +76,10 @@ private:
   const bool IAmUnderTest; //true if not in Individual array
   bool AncestryProbs; // option LocusAncestryProbsIndicator
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
-  double *thetahat;
+  AdmixtureProportions thetahat;
   double loglikhat;///< loglikelihood at posterior mode
   double *SumSoftmaxTheta;
-  double *ThetaProposal;// proposal admixture proportions
+  AdmixtureProportions ThetaProposal; ///< proposal admixture proportions
   int *SumLocusAncestry, *SumLocusAncestry_X;
   std::vector<unsigned> SumNumArrivals;
   genepi::RhoType rhohat;
@@ -95,7 +95,7 @@ private:
 
   AdmixedIndividual();
   void InitialiseSumIntensities(const AdmixOptions* const options);
-  void setAdmixtureProps(const double* const, size_t);
+  void setAdmixtureProps(const AdmixtureProportions& rhs);
   ///set possible happairs, SNPs only.
   void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
   //void setAdmixturePropsX(const double* const, size_t);
@@ -112,16 +112,19 @@ private:
 					       const bclib::DataMatrix * Covariates, const double * beta,
 					       const double Outcome, const PopAdmix::PopThetaType & poptheta, double lambda);
   void UpdateHMMInputs(unsigned int j, const Options& options,
-		       const double * theta, const genepi::RhoType & rho );
+                       const AdmixtureProportions& theta,
+                       const genepi::RhoType& rho);
   void ProposeTheta(const AdmixOptions& options, const AlphaType &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
   double ProposeThetaWithRandomWalk( const AdmixOptions & options, const AlphaType & alpha );
-  double LogPriorTheta_Softmax(const double* const theta,
-			       const AdmixOptions& options, const AlphaType &alpha) const ;
+  double LogPriorTheta_Softmax(const AdmixtureProportions& theta,
+			       const AdmixOptions& options,
+                               const AlphaType &alpha) const;
   double LogPriorRho_LogBasis( const genepi::RhoType & rho, const AdmixOptions& options,
 			      double rhoalpha, double rhobeta) const;
-  double LogPosteriorTheta_Softmax(const AdmixOptions& options, const double* const theta,
-				   const AlphaType & alpha )const;
+  double LogPosteriorTheta_Softmax(const AdmixOptions& options,
+                                   const AdmixtureProportions& theta,
+                                   const AlphaType& alpha) const;
   double LogPosteriorRho_LogBasis(const AdmixOptions& options, const genepi::RhoType & rho,
 				  double rhoalpha, double rhobeta)const;
 
@@ -129,7 +132,8 @@ private:
 			Chromosome* chrm, const vector<bclib::Regression*> R, AffectedsOnlyTest& affectedsOnlyTest,
 			CopyNumberAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options& options,
-			  const double* const theta, const genepi::RhoType & rho, bool updateHMM);
+                          const AdmixtureProportions& theta,
+                          const genepi::RhoType& rho, bool updateHMM);
   void getPosteriorMeans( double * ThetaMean, genepi::RhoType & rhoMean /* output parameter? */, unsigned samples ) const;
 
 
