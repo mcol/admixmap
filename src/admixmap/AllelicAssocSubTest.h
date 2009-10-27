@@ -27,8 +27,9 @@ public:
   virtual ~AllelicAssocSubTest();
   virtual void Reset();
   virtual void Resize(unsigned){};
-  virtual void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
-			    double YMinusEY, double phi, double DInvLink) = 0;
+  virtual void Update(const int* const happair, CompositeLocus* const Locus,
+                      const double* const covariates,
+                      double YMinusEY, double phi, double DInvLink) = 0;
   virtual void Accumulate() = 0;
   virtual void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 		      bool final, unsigned numUpdates) = 0;
@@ -43,8 +44,8 @@ protected:
 
   AllelicAssocSubTest();
 
-  void Update(const std::vector<int> Counts, const double* covariates,  
-	      double YMinusEY, double phi, double DInvLink);
+  void Update(const std::vector<int> Counts, const double* const covariates,
+              double YMinusEY, double phi, double DInvLink);
   static void CentreAndSum(unsigned dim, double *score, double* info, 
 			   double *sumscore, double* sumscoresq, double* suminfo);
 
@@ -63,8 +64,9 @@ class SNPTest : public AllelicAssocSubTest{
 public:
   SNPTest();
   ~SNPTest();
-  void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
-	      double YMinusEY, double phi, double DInvLink);
+  void Update(const int* const happair, CompositeLocus* const Locus,
+              const double* const covariates,
+              double YMinusEY, double phi, double DInvLink);
   void Accumulate();
   void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 	      bool final, unsigned numUpdates);
@@ -80,8 +82,9 @@ class MultiAllelicLocusTest : public AllelicAssocSubTest{
 public:
   MultiAllelicLocusTest(unsigned d);
   ~MultiAllelicLocusTest();
-  virtual void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
-		      double YMinusEY, double phi, double DInvLink);
+  virtual void Update(const int* const happair, CompositeLocus* const Locus,
+                      const double* const covariates,
+                      double YMinusEY, double phi, double DInvLink);
   virtual void Accumulate();
   virtual void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const, 
 		      bool final, unsigned numUpdates);
@@ -100,8 +103,9 @@ public:
   HaplotypeTest(unsigned d);
   ~HaplotypeTest();
   void Resize(unsigned d);
-  void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
-	      double YMinusEY, double phi, double DInvLink);
+  void Update(const int* const happair, CompositeLocus* const Locus,
+              const double* const covariates,
+              double YMinusEY, double phi, double DInvLink);
   void Accumulate();
   void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const, 
 	      bool final, unsigned numUpdates);
@@ -116,8 +120,9 @@ public:
   ~WithinHaplotypeTest();
   void Reset();
   void Resize(unsigned){};
-  void Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
-	      double YMinusEY, double phi, double DInvLink);
+  void Update(const int* const happair, CompositeLocus* const Locus,
+              const double* const covariates,
+              double YMinusEY, double phi, double DInvLink);
   void Accumulate();
   void Output(bclib::DelimitedFileWriter& outfile, const CompositeLocus* const Locus, 
 	      bool final, unsigned numUpdates);
@@ -130,8 +135,9 @@ private:
   double* SumWithinHaplotypeInfo;
 
   WithinHaplotypeTest();
-  void UpdateWithinHaplotypeAssociationTest( const double* covariates, const std::vector<int> allele2Counts, 
-					     double YMinusEY, double phi, double DInvLink);
+  void UpdateWithinHaplotypeAssociationTest(const double* const covariates,
+                                            const std::vector<int> allele2Counts,
+                                            double YMinusEY, double phi, double DInvLink);
 
 };
 

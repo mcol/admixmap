@@ -43,9 +43,9 @@ void AllelicAssocSubTest::Reset(){
   fill(Info, Info+(dim+NumCovars)*(dim+NumCovars), 0.0);
 }
 
-void AllelicAssocSubTest::Update(const vector<int> Counts, const double* covariates,  
-				 double YMinusEY, double phi, double DInvLink)
-{
+void AllelicAssocSubTest::Update(const vector<int> Counts,
+                                 const double* const covariates,
+                                 double YMinusEY, double phi, double DInvLink){
   double* x = new double[ NumCovars + dim ];
 
   // ** Set x co-ordinate for regression parameter under test
@@ -211,8 +211,9 @@ SNPTest::SNPTest() : AllelicAssocSubTest(1){
 SNPTest::~SNPTest(){
 }
 
-void SNPTest::Update(const int* const happair, CompositeLocus* const, const double* covariates,  
-		    double YMinusEY, double phi, double DInvLink){
+void SNPTest::Update(const int* const happair, CompositeLocus* const,
+                     const double* covariates,
+                     double YMinusEY, double phi, double DInvLink){
   vector<int> allele2counts;
   allele2counts.push_back( (happair[0]==1) + (happair[1]==1) );
   // Locus->getAlleleCounts(2, happair)[0];
@@ -250,8 +251,9 @@ MultiAllelicLocusTest::~MultiAllelicLocusTest(){
   delete[] SumInfo;
 }
 
-void MultiAllelicLocusTest::Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
-				   double YMinusEY, double phi, double DInvLink){
+void MultiAllelicLocusTest::Update(const int* const happair, CompositeLocus* const Locus,
+                                   const double* const covariates,
+                                   double YMinusEY, double phi, double DInvLink){
   // count alleles / haplotypes      
   vector<int> counts;
   for( unsigned k = 0; k < dim; k++ ){
@@ -307,8 +309,9 @@ void HaplotypeTest::Resize(unsigned d){
 HaplotypeTest::~HaplotypeTest(){
 }
 
-void HaplotypeTest::Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
-				double YMinusEY, double phi, double DInvLink){
+void HaplotypeTest::Update(const int* const happair, CompositeLocus* const Locus,
+                           const double* const covariates,
+                           double YMinusEY, double phi, double DInvLink){
   //count numbers of each haplotype
   vector<int> counts = Locus->getHaplotypeCounts(happair);
   
@@ -387,8 +390,9 @@ void WithinHaplotypeTest::Reset(){
   }
 }
 
-void WithinHaplotypeTest::Update(const int* const happair, CompositeLocus* const Locus, const double* covariates,  
-				double YMinusEY, double phi, double DInvLink){
+void WithinHaplotypeTest::Update(const int* const happair, CompositeLocus* const Locus,
+                                 const double* const covariates,
+                                 double YMinusEY, double phi, double DInvLink){
   //update score and info for each simple locus within a compound locus
   // 	for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
   // 	  vector<int> a(1, allele2Counts[0]);
@@ -403,7 +407,7 @@ void WithinHaplotypeTest::Update(const int* const happair, CompositeLocus* const
 }
 
 // This function calculates score for allelic association at each simple locus within a compound locus
-void WithinHaplotypeTest::UpdateWithinHaplotypeAssociationTest( const double* covariates, 
+void WithinHaplotypeTest::UpdateWithinHaplotypeAssociationTest(const double* const covariates,
 							  const vector<int> allele2Counts, 
 							  double YMinusEY, double phi, double DInvLink)
 {
