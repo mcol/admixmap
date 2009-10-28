@@ -195,7 +195,7 @@ rho <- 6 # sum-of-intensities
 eta <- 5 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmparams Di(1,2)
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(8, 2) # population admixture params for pop1, pop2
-psi <- c(1, 0.165) # ratio of odds of female lineage given ancestry from pop k to
+psi <- c(1, 0.185) # ratio of odds of female lineage given ancestry from pop k to
 ## odds of female lineage given ancestry from pop 1:  c(1, 1) if gene flow was sex-equal
 
 ## simulate mean allele freqs from beta (2, 2) distribution,
