@@ -133,7 +133,7 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
-    else if ( options.getDisplayLevel() >= 3 )
+    else if ( options.getDisplayLevel() > 3 )
       {
       putc( '.', stderr );
       fflush( stderr );
@@ -332,7 +332,7 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
   Log.setDisplayMode(Quiet);
   bclib::Delimitedstdout ScreenWriter(' ');
 
-  if ( options->getDisplayLevel() > 2 )
+  if ( options->getDisplayLevel() > 3 )
     cout << ' ';
 
   if(options->getIndAdmixHierIndicator()  ){

@@ -4,7 +4,7 @@
  */
 /*
  * Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
- * Copyright (C) 2009  David D. Favro
+ * Portions copyright (C) 2009  David D. Favro
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -244,10 +244,8 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
     CreateChromosome(i, size, isX, cStLocIdx, populations);
     C[i]->SetLabel(label);
 
-    for( size_t j = 0; j < size; j++){//loop over loci on chromosome
-      C[i]->SetDistance(j,GetDistance(cStLocIdx+j));
-      
-      if( j != 0 ){
+    for( size_t j = 1; j < size; j++ ){//loop over loci on chromosome
+        C[i]->SetDistance(j,GetDistance(cStLocIdx+j));
 	if( !isX ){
 	  LengthOfGenome += GetDistance(cStLocIdx+j);
 	  //              cout << i << " " << j << " " << GetDistance(cStLocIdx+j) << endl;
@@ -257,9 +255,8 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 	else{
 	  LengthOfXchrm += GetDistance(cStLocIdx+j);
 	}
-      }
     }
-    
+
   }
 }
 

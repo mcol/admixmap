@@ -44,51 +44,41 @@ Chromosome::~Chromosome()
   delete HMM;
 }
 
+
 // ******** Chromosome information **********************************
 bool Chromosome::isXChromosome()const
-{
-  return isX;
-}
-///sets label for this chromosome, usually "1", "2", etc or "X"
+    {
+    return isX;
+    }
+
+
+/// Sets label for this chromosome, usually "1", "2", etc or "X"
 void Chromosome::SetLabel( std::string label )
-{
-   _Label = label;
-}
+    {
+    _Label = label;
+    }
+
 
 const string Chromosome::GetLabel( )const
-{
-   return _Label;
-}
+    {
+    return _Label;
+    }
 
-void Chromosome::SetDistance( int locus, double distance )
-{
-  Distances[ locus ] = distance;
-}
-const double *Chromosome::GetDistances()const
-{
-  return( Distances );
-}
-///returns distance between a locus and the previous locus
-double Chromosome::GetDistance( int locus )const
-{
-  return( Distances[ locus ] );
-}
 
-/// Returns the number of the num'th compositelocus on this chromosome
-/// eg if chromosome 2 consists of compositeloci 5, 6, 7 and 8,
-/// GetLocus(i) returns 5 + i
+void Chromosome::SetDistance( unsigned int locus, double distance )
+    {
+    gp_assert_gt( locus, 0			    );
+    gp_assert_lt( locus, GetNumberOfCompositeLoci() );
+
+    Distances[ locus ] = distance;
+    }
+
+
 int Chromosome::GetLocus(int num)const{
   return _startLocus + num;
 }
-//??: remove either of these functions
-///returns number of composite loci in the chromosome
-unsigned int Chromosome::GetSize()const{
-  return NumberOfCompositeLoci;
-}
-unsigned int Chromosome::GetNumberOfCompositeLoci()const
-{
-  return NumberOfCompositeLoci;
-}
+
+
 
 // ****************** Setting of locus correlation, f *************************
 
