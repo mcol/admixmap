@@ -3,6 +3,34 @@ library(R.utils)
 ## script to simulate test data for admixmap
 #######################################################################
 
+oddsratios2xKtocolratios <- function(psi, P, Q) {
+  # psi <- vector of odds ratios of length K: first element is 1
+  # P <- pvector of row frequencies of length K
+  # Q <- pvector of col frequencies of length 2
+  # returns vector r: ratios of cell probs in col 2 to cell probs in col 1
+  theta.old <- 0
+  diff <- 1
+  while(abs(diff) > 1e-9) { # iterate
+    r1 <- exp(theta.old)
+    y <- sum(P / (1 + psi * r1)) - Q[1] # target is to find r1 such that y = 0
+    slope <- -r1 * sum(psi * P / (1 + psi * r1)^2) # gradient w.r.t log r1
+    theta.new <- theta.old - y / slope
+    diff <- theta.new - theta.old
+    #cat("mu", P, "theta.new", theta.new, "difference", diff, "\n")
+    theta.old <- theta.new
+  }
+  r1 <- exp(theta.new)
+  r <- r1 * psi
+  #cat("rvector", r, "\n")
+  return(r)
+}
+
+setXchrAdmixture <- function(psi, mu) {
+  r <- oddsratios2xKtocolratios(psi, mu, c(0.5, 0.5))
+  muX <- 2 * mu * (1 + 2 * r) / (3 * (1 + r))
+  return(muX)
+}
+
 simulateMeiosis <- function(x, T) {
   ## returns vector of segregation indicators at loci 1 to T in a single meiosis
   seg <- integer(T) # takes values 0 or 1
@@ -72,10 +100,14 @@ simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
   return(simAlleles)
 }
 
-simulateGenotypes <- function(sex, M1, M2, rho, x, L, Xchr.L, alleleFreqs) {
-  # returns a vector of genotypes for a single diploid individual
-  maternalGamete <- simulateHaploidAlleles(M2,rho,x,L+Xchr.L, alleleFreqs)  
-  paternalGamete <- simulateHaploidAlleles(M1,rho, x, L+Xchr.L, alleleFreqs)
+simulateGenotypes <- function(sex, M1, M2, M1X, M2X, rho, x, L, Xchr.L, alleleFreqs) {
+  ## returns a vector of genotypes for a single diploid individual
+  ## set admixture proportions on X chromosome
+  maternalGamete <- c(simulateHaploidAlleles(M2, rho, x, L,alleleFreqs[1:(2*L), ]),
+                      simulateHaploidAlleles(M2X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
+  paternalGamete <- c(simulateHaploidAlleles(M1, rho, x, L,alleleFreqs[1:(2*L), ]),
+                      simulateHaploidAlleles(M1X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
+  
   diploidAlleles <- paste(paternalGamete, maternalGamete, sep=",")
   if(Xchr.L > 0 & sex==1) { ## haploid at X chr loci - code as homozygous for maternal allele
     diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("([12]),([12])", "\\1,\\1", diploidAlleles[(L+1):(L+Xchr.L)])
@@ -83,13 +115,13 @@ simulateGenotypes <- function(sex, M1, M2, rho, x, L, Xchr.L, alleleFreqs) {
   return(diploidAlleles)
 }
 
-simulateSibPair <- function(sex2, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs) {
+simulateSibPair <- function(sex2, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs) {
   ## simulate sib-pair
   ## simulate founder gametes (parental genotypes)
-  ind <- simulateIndividual(1, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
+  ind <- simulateIndividual(1, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
   father.genotypes  <- ind$genotypes
   father.avM <- ind$avM
-  ind <- simulateIndividual(2, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
+  ind <- simulateIndividual(2, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
   mother.genotypes  <- ind$genotypes
   mother.avM <- ind$avM
   ## simulate offspring gametes from founder gametes
@@ -109,11 +141,19 @@ distanceFromLast <- function(v.Chr, v.Position) {
   return(v.DistanceFromLast)
 }
 
-simulateIndividual <- function(sex, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs) {
+simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs) {
   M1 <- 1 - rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
   M2 <- M1 #assortative mating
   avM <- 1 - 0.5*(M1 + M2)
-  genotypes <- simulateGenotypes(sex, M1, M2, rho, dist, L, Xchr.L, alleleFreqs)
+  ## now set X chr admixture proportions using psi, sex, M1, M2
+  if(sex==1) {
+    M1X <- NA
+  } else {
+    M1X <- setXchrAdmixture(psi, c(1 - M1, M1))[2]
+  }
+  M2X <- setXchrAdmixture(psi, c(1 - M2, M2))[2]
+  
+  genotypes <- simulateGenotypes(sex, M1, M2, M1X, M2X, rho, dist, L, Xchr.L, alleleFreqs)
   ##make some genotypes missing
   ##for(locus in 1:L) if(runif(n=1) < 0.1)
   ##    obs[locus]<-"0,0"
@@ -142,14 +182,24 @@ chrnum <- chr
 chrnum[chr=="X"] <- "23"
 dist <- distanceFromLast(as.integer(chrnum), x)
 Xchr.L <- length(positions) # number of X chr loci
+
+## alternatively, read marker positions from file
+# locustable <- read.table("loci.txt", header=TRUE)
+
+
 L <- length(x) - Xchr.L # number of autosomal loci
 
+##########################################
+## specify population-level parameters
 rho <- 6 # sum-of-intensities
 eta <- 5 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmparams Di(1,2)
 NumSubPops <- 2 # num subpopulations
-popadmixparams <- c(2, 6) # population admixture params for pop1, pop2
+popadmixparams <- c(8, 2) # population admixture params for pop1, pop2
+psi <- c(1, 0.165) # ratio of odds of female lineage given ancestry from pop k to
+## odds of female lineage given ancestry from pop 1:  c(1, 1) if gene flow was sex-equal
 
-## simulate allele freqs
+## simulate mean allele freqs from beta (2, 2) distribution,
+## then ancestry-specific allele freqs from mean, 1-mean 
 mu <- numeric(L+Xchr.L) # ancestral freqs allele 1
 alleleFreqs <- matrix(data=NA, nrow=2*(L+Xchr.L), ncol=NumSubPops)
 for(locus in 1:(L+Xchr.L)) {
@@ -162,9 +212,11 @@ for(locus in 1:(L+Xchr.L)) {
 ## set allele freqs as required for testing purposes
 ## use 0, 1, and 1, 0 to make all markers informative
 ## use 0.5, 0.5 and 0.5, 0.5 to make all markers uninformative
-
 alleleFreqs[,1] <- c(0.8, 0.2)
 alleleFreqs[,2] <- c(0.2, 0.8)
+
+## alternatively, read prior allele freqs from file
+
 
 ##############################################################
 popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
@@ -172,8 +224,8 @@ beta <- 2 # regression slope for effect of admixture
 alpha <- -beta*popM 
 logistic <- TRUE # logistic or linear
 
-N.ind <- 5
-N.sibpairs <- 5
+N.ind <- 100
+N.sibpairs <- 0
 
 ####################################################################
 N <- N.ind + 4*N.sibpairs
@@ -187,13 +239,14 @@ ped6.sibpair[, 1] <- N.ind + rep(1:N.sibpairs, each=4) # 4 members of each pedig
 ped6.sibpair[, 2] <- seq((N.ind+1):N)
 
 ## simulate unrelated individuals
+cat("Simulating", N.ind, "unrelated individuals\n")
 sex.ind <- 2 - rbinom(N.ind, 1,  0.5)
 ## simulate genotypes 
 genotypes.ind <- matrix(data="0,0", nrow=N.ind, ncol=L+Xchr.L)
 outcome.ind <- integer(N.ind)
 avM <- numeric(N.ind)
 for(i in 1:N.ind) {
-  ind <- simulateIndividual(sex.ind[i], popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
+  ind <- simulateIndividual(sex.ind[i], popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
   genotypes.ind[i, ]  <- ind$genotypes
   avM[i] <- ind$avM
 }
@@ -207,27 +260,30 @@ ped6.ind[1:N.ind, 5] <- sex.ind
 ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
 
 ## simulate sibpairs
-genotypes.sibpair <- matrix(data="0,0", nrow=4*N.sibpairs, ncol=L+Xchr.L)
-for(i in 1:N.sibpairs) {
-  sex2 <- 1 + rbinom(2, 1, 0.5)
-  sibpair <- simulateSibPair(sex2, popadmixparams, rho, dist, L, Xchr.L, alleleFreqs)
-  genotypes.sibpair[4*i - 1, ] <- sibpair$sib1
-  genotypes.sibpair[4*i, ] <- sibpair$sib2
-  ped6.sibpair[4*i-1, 3] <- ped6.sibpair[4*i-3, 2] 
-  ped6.sibpair[4*i-1, 4] <- ped6.sibpair[4*i-2, 2]
-  ped6.sibpair[4*i, 3] <- ped6.sibpair[4*i-3, 2] 
-  ped6.sibpair[4*i, 4] <- ped6.sibpair[4*i-2, 2]
-  ped6.sibpair[(4*i-3):(4*i), 5] <- c(1, 2, sex2)  
+cat("Simulating", N.sibpairs, "sibpairs\n")
+if(N.sibpairs > 0) {
+  genotypes.sibpair <- matrix(data="0,0", nrow=4*N.sibpairs, ncol=L+Xchr.L)
+  for(i in 1:N.sibpairs) {
+    sex2 <- 1 + rbinom(2, 1, 0.5)
+    sibpair <- simulateSibPair(sex2, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
+    genotypes.sibpair[4*i - 1, ] <- sibpair$sib1
+    genotypes.sibpair[4*i, ] <- sibpair$sib2
+    ped6.sibpair[4*i-1, 3] <- ped6.sibpair[4*i-3, 2] 
+    ped6.sibpair[4*i-1, 4] <- ped6.sibpair[4*i-2, 2]
+    ped6.sibpair[4*i, 3] <- ped6.sibpair[4*i-3, 2] 
+    ped6.sibpair[4*i, 4] <- ped6.sibpair[4*i-2, 2]
+    ped6.sibpair[(4*i-3):(4*i), 5] <- c(1, 2, sex2)  
+  }
+  genotypes <- data.frame(rbind(genotypes.ind, genotypes.sibpair))
+  ped6.sibpair[, 6] <- 2 ## affected sib-pairs
+  ped6 <- rbind(ped6.ind, ped6.sibpair)
+} else {
+  genotypes <- genotypes.ind
+  ped6 <- ped6.ind
 }
 
-genotypes <- data.frame(rbind(genotypes.ind, genotypes.sibpair))
-locusnames <- dimnames(genotypes)[[2]]
-
-ped6.sibpair[, 6] <- 2 ## affected sib-pairs
-
-ped6 <- rbind(ped6.ind, ped6.sibpair)
+locusnames <- as.character(1:(L + Xchr.L))
 colnames(ped6) <- c("famid", "individ", "patid", "matid", "sex", "outcome")
-
 ped <- data.frame(ped6, genotypes)
   
 ###############################################################################
