@@ -65,6 +65,11 @@
 
 #define SEPARATE_HMM_FOR_EACH_CHROM 0
 
+#if 0
+    #define DEBUG_TH_PROP(X) X
+#else
+    #define DEBUG_TH_PROP(X)
+#endif
 
 #if AGGRESSIVE_RANGE_CHECK
     #define AGGRESSIVE_ONLY(X)	X
@@ -92,7 +97,7 @@ using bclib::pvector;
 typedef pvector<double> pvectord;
 
 
-static const double SOFTMAX_0_FLAG = std::numeric_limits<double>::quiet_NaN();
+static const double SOFTMAX_0_FLAG = std::numeric_limits<double>::infinity();
 
 
 
@@ -1068,11 +1073,16 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 
 	} // End loop over Theta's elements (i.e. founders)
 
+    DEBUG_TH_PROP( dumpTheta( "New proposed theta" ); )
+
     // Get log likelihood at current parameter values - do not force update, store result of update
     LogLikelihoodRatio -= llCache.getAcceptedVal();
 
     // Get log likelihood at proposal theta and current rho and accumulate
     LogLikelihoodRatio += llCache.getProposedVal();
+
+    DEBUG_TH_PROP( fprintf( stderr, "Accept-LLR: %.9lf  Propose-LLR: %.9lf  Ratio: %.9lf  PriorRat: %.9lf\n",
+	llCache.getAcceptedVal(), llCache.getProposedVal(), LogLikelihoodRatio, LogPriorRatio ); )
 
     return LogLikelihoodRatio + LogPriorRatio; // Log ratio of full conditionals
     }
@@ -1126,6 +1136,8 @@ void Pedigree::Accept_Reject_Theta( double logpratio, bool /*isRandomMatingModel
 	    accept = true;
 	}
 
+
+    DEBUG_TH_PROP( fprintf( stderr, "Accept: %s\n", accept ? "yes" : "no" ); )
 
     if ( accept )
 	{
@@ -1222,6 +1234,7 @@ void Pedigree::rejectRhoProposal()
     getTPC().setRho( getGlobalRhoVal() );
     getHMM().transProbsChanged();
     }
+
 
 
 //--------------------------------------------------------------------
