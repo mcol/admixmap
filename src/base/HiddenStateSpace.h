@@ -98,6 +98,27 @@ class HiddenStateSpace
 	StateIdxType aSize() const { return (N_IVs * N_AVs); }
 
 
+    protected:
+
+	/// Translate an ancestry-vector and an inheritance-vector into a StateIdxType.
+	StateIdxType idxOf( const AncestryVector & av, const InheritanceVector & iv ) const
+	    {
+	    const unsigned long iv_idx = iv.to_ulong();
+	    const unsigned long av_idx = av.to_ulong();
+
+	    gp_assert_lt( iv_idx, N_IVs );
+	    gp_assert_lt( av_idx, N_AVs );
+
+	    // We can use either arrangement scheme; if this is changed,
+	    // Iterator::advance() must be reimplemented:
+	    #if HSS_AV_MOST_SIG
+		return (av_idx * N_IVs) + iv_idx;
+	    #else
+		return (iv_idx * N_AVs) + av_idx;
+	    #endif
+	    }
+
+
     public:
 
 	HiddenStateSpace( const Pedigree & _ped, PopIdx _K );
@@ -118,7 +139,7 @@ class HiddenStateSpace
 	/// Get the number of states, including those with 0 probability.  See
 	/// also stateAtIdx().
 	StateIdxType getNStates () const { return aSize() ; }
-	Non0IdxType getNNon0	() const { return nNon0	  ; }
+	Non0IdxType  getNNon0	() const { return nNon0   ; }
 
 
 	/// Set all emission-probabilities to zero.
@@ -172,24 +193,6 @@ class HiddenStateSpace
 	    bool nodeIsVisited( StateIdxType idx ) { return (probs[idx] != State::NOT_VISITED); }
 	#endif
 
-
-	/// Translate an ancestry-vector and an inheritance-vector into a StateIdxType.
-	StateIdxType idxOf( const AncestryVector & av, const InheritanceVector & iv ) const
-	    {
-	    const unsigned long iv_idx = iv.to_ulong();
-	    const unsigned long av_idx = av.to_ulong();
-
-	    gp_assert_lt( iv_idx, N_IVs );
-	    gp_assert_lt( av_idx, N_AVs );
-
-	    // We can use either arrangement scheme; if this is changed,
-	    // Iterator::advance() must be reimplemented:
-	    #if HSS_AV_MOST_SIG
-		return (av_idx * N_IVs) + iv_idx;
-	    #else
-		return (iv_idx * N_AVs) + av_idx;
-	    #endif
-	    }
 
 	/// Get the emission probability for the state defined by @a av and @a iv.
 	/// See also getEProb(StateIdxType).
@@ -280,11 +283,11 @@ class HiddenStateSpace
 	class Iterator
 	    {
 	    private:
-		const HiddenStateSpace & space;
-		AncestryVector::Iterator av_it;
-		InheritanceVector	 iv;
-		StateIdxType		 sIdx;
-		Non0IdxType		 non0Idx;
+		const HiddenStateSpace &    space;
+		AncestryVector::Iterator    av_it;
+		InheritanceVector::Iterator iv_it;
+		StateIdxType		    sIdx;
+		Non0IdxType		    non0Idx;
 
 		/// Can avoid keeping this finished flag by implementing
 		/// isFinished() as "return (idx < space.aSize())";
@@ -293,7 +296,6 @@ class HiddenStateSpace
 	    public:
 
 		Iterator( const HiddenStateSpace & sp );
-		//Iterator( const HiddenStateSpace & sp, StateIdxType idx );
 
 		const HiddenStateSpace & getSpace() const { return space; }
 
@@ -316,10 +318,12 @@ class HiddenStateSpace
 		Iterator *	 operator->()	    { return this; }
 		const Iterator * operator->() const { return this; }
 
-		/// Get components of the state currently "pointed to";
-		/// typically more efficient than getState()/operator*():
+		/// Get the AncestryVector of the state currently "pointed to";
+		/// this is typically more efficient than extracting the
+		/// components from the State returned by
+		/// getState()/operator*().
 		const AncestryVector &	  getAV	  () const { return av_it.getAV(); }
-		const InheritanceVector & getIV   () const { return iv; }
+		const InheritanceVector & getIV   () const { return iv_it.getIV(); }
 		double			  getEProb() const { return space.getEProb(sIdx); }
 
 

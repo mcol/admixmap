@@ -54,7 +54,7 @@
 /// to be recomputed when rho/theta changes.  Should memory prove to be a
 /// problem, there are a variety of strategies to reduce it including: (A)
 /// merging loci with equal values of 'x'; (B) using float rather than double to
-/// store the pre-computed values; (C) using a second level of redirection in
+/// store the pre-computed values; (C) using a second level of indirection in
 /// which a small (e.g. 8-bit or maybe even 4-bit) value representing the number
 /// of non-zero bits is stored in one table (which is global overall and does
 /// not vary by locus), indexed on the XOR values, the value from which is then
@@ -70,6 +70,7 @@
 /// To-do: at present the table size (max non-founders) is set at compile-time;
 ///	we should find the maximum value from the input dataset and set it
 ///	prior to allocating and computing the tables.
+/// See also: InheritanceVector::operator^()
 //
 //-----------------------------------------------------------------------------
 

@@ -151,6 +151,15 @@ class InheritanceVector
 	std::bitset<IV_MAX_BITS> bits;
 
 
+    protected:
+	// Access as unsigned long: use with caution.  We befriend
+	// HiddenStateSpace only so it can use these methods.
+	friend class HiddenStateSpace;
+	unsigned long to_ulong  () const { return bits.to_ulong(); }
+	void	      set_ulong ( unsigned long nv ) { bits = nv; }
+
+	size_t getNNonFndrs() const { return (getNMembers() - getNFounders()); }
+
     public:
 
 	#if IV_KEEP_PED_REF
@@ -162,7 +171,10 @@ class InheritanceVector
 	    size_t getNMembers () const { return nMembers ; }
 	#endif
 
-	size_t getNNonFndrs() const { return (getNMembers() - getNFounders()); }
+
+	/// Return the number of meiosis (i.e. the number of bits) in this vector.
+	size_t n_meiosis() const { return (getNNonFndrs() << 1); }
+
 
 	#if IV_KEEP_PED_REF
 	    InheritanceVector( const Pedigree & p ) :
@@ -252,10 +264,75 @@ class InheritanceVector
 	#endif
 
 
-	// Access as unsigned long: use with caution:
-	size_t n_meiosis() const { return (getNNonFndrs() << 1); }
-	unsigned long to_ulong() const { return bits.to_ulong(); }
-	void set_ulong( unsigned long nv ) { bits = nv; }
+
+	//-----------------------------------------------------------------------
+	/// How many meiosis differ between two InheritanceVector's?  This turns
+	/// out to be useful for computation of transition-probabilities, so we
+	/// would like a convenient and efficient way to compute it.  The two
+	/// IVs must come from the same space (i.e. be for the same Pedigree).
+	/// At present, this returns the raw XOR of the two IVs when treated as
+	/// bitmaps (rather than the number of non-zero bits in that number),
+	/// and thus is a highly specialized method that links the internal
+	/// representation of InheritanceVector and the internal algorithms of
+	/// TransProbCache.  This could be made cleaner and more generic by
+	/// implementing option (C) of the note at TPC_PRE_CALC_IV_FACTORS in
+	/// TransProbCache.h and thus returning the true number of differing
+	/// meiosis, resulting in a slight runtime/memory tradeoff.
+	///
+	/// See also: TransProbCache.h
+	//-----------------------------------------------------------------------
+	unsigned long operator^( const InheritanceVector & rhs ) const
+	    {
+	    return to_ulong() ^ rhs.to_ulong();
+	    }
+
+
+	// The Iterator class must be forward-defined because it contains a
+	// reference to InheritanceVector.
+	class Iterator;
+    };
+
+
+
+//-----------------------------------------------------------------------------
+// Iterator
+/// Allow iteration across the "space" of all possible inheritance vectors for a
+/// given pedigree.  In fact, this space is the same for all pedigrees sharing a
+/// common graph; except that it also differs for human males at loci on the X
+/// chromosome.  As currently implemented, it is instantiated for a given
+/// Pedigree.  No particular ordering of the space is guaranteed.  Note that in
+/// the special case of a pedigree with no meiosis (typically a single unrelated
+/// individual), we create a "null" inheritance vector and thus a space of size 1.
+//-----------------------------------------------------------------------------
+
+class InheritanceVector::Iterator
+    {
+    private:
+	// For efficiency, keep a copy of the inheritance vector that
+	// will be used when dereferencing the iterator.
+	InheritanceVector pattern;
+
+	unsigned long cur_val;
+	unsigned long max_val;
+
+    public:
+	Iterator( const Pedigree & _ped );
+
+	bool is_on_last_el() const { return (cur_val == max_val); }
+
+	/// Advances to the next IV in the space.  Returns true if did advanced;
+	/// returns false if was _already_ on the last element before the call.
+	bool advance() { if ( is_on_last_el() ) return false; pattern.set_ulong( ++cur_val ); return true; }
+
+	const InheritanceVector & getIV	    () const { return pattern; }
+	const InheritanceVector & operator* () const { return getIV(); }
+	const Iterator *	  operator->() const { return this; }
+
+
+	/// For efficiency and convenience, we will allow an iterator to be
+	/// reset to the the beginning of the space, starting a new complete
+	/// iteration, rather than forcing the construction of a new iterator.
+	void reset();
     };
 
 

@@ -38,13 +38,14 @@ sub usage
 		"	-s			 [report results matching the last run (not just differences)]\n" .
 		"	-e			 [prints commands to stdout before executing]\n" .
 		"	-a			 [abort after error]\n" .
+		"	-p			 [use Pedigree objects for unrelated individuals]\n" .
 	    "The -o option likely will not work on MS-Windows.\n\n";
     exit 1
     }
 
 
 my %args;
-getopts( "hx:r:d:o:ECsea", \%args ) or usage;
+getopts( "hx:r:d:o:ECseap", \%args ) or usage;
 
 
 usage if defined $args{"h"};
@@ -59,6 +60,7 @@ my $cmp_out    = defined $args{"C"};
 my $diff_cmd   = defined $args{"s"} ? DIFFS_CMD : DIFF_CMD;
 my $echo_cmds  = defined $args{"e"};
 my $abort_err  = defined $args{"a"};
+my $ped_ind    = defined $args{"p"};
 
 print	"\n\n**** BATCH TEST ****\n" .
 	"\tOS: $^O\n" .
@@ -246,9 +248,8 @@ my $arg_hash = {
     genotypesfile              => "$datadir/genotypes.txt",
     outcomevarfile             => "$datadir/outcomevars.txt",
     covariatesfile             => "$datadir/covariates3std.txt",
-    displaylevel             => 2,
-    "use-pedigree-for-individual" => 1,
-    "no-conjugate-update"	  => 1,
+    displaylevel	       => 2,
+    "no-conjugate-update"      => 1,
 
 # output files
     logfile                    => 'logfile.txt',
@@ -262,6 +263,12 @@ my $arg_hash = {
     allelicassociationtest    => 1,
     allelefreqoutputfile      => 'allelefreqoutput.txt'
 };
+
+
+if ( $ped_ind ) {
+   $arg_hash->{"use-pedigree-for-individual"} = 1;
+}
+
 
 # single population, thermodynamic
 $arg_hash->{thermo} = 1;

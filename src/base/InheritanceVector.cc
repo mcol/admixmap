@@ -57,6 +57,26 @@ const size_t InheritanceVector::MAX_ORGANISMS;
 
 
 //-----------------------------------------------------------------------------
+// Iterator
+//-----------------------------------------------------------------------------
+
+void InheritanceVector::Iterator::reset()
+    {
+    cur_val = 0;
+    pattern.set_ulong( cur_val );
+    }
+
+
+InheritanceVector::Iterator::Iterator( const Pedigree & _ped ) :
+	pattern( _ped ),
+	max_val( (1UL << pattern.n_meiosis()) - 1 )
+    {
+    reset();
+    }
+
+
+
+//-----------------------------------------------------------------------------
 // Print an InheritanceVector to an ostream
 //-----------------------------------------------------------------------------
 
@@ -91,7 +111,7 @@ const size_t InheritanceVector::MAX_ORGANISMS;
 	{
 	os << "IV(";
 
-	if ( iv.getNNonFndrs() == 0 )
+	if ( iv.n_meiosis() == 0 )
 	    os << "-no-child-)";
 	else
 	    {

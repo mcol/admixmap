@@ -135,13 +135,11 @@ void HiddenStateSpace::resetEmProbsToZero()
 HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp ) :
 	space	 ( sp	       ) ,
 	av_it	 ( sp.getPed() ) ,
-	iv	 ( sp.getPed() ) ,
+	iv_it	 ( sp.getPed() ) ,
 	sIdx	 ( 0	       ) ,
 	non0Idx	 ( 0	       ) ,
 	finished ( false       )
     {
-    iv.set_ulong( 0 );
-
     if ( sp.getEProb( sIdx ) == 0.0 )
 	advance();
     }
@@ -162,15 +160,11 @@ bool HiddenStateSpace::Iterator::advance()
 
     do
 	{
-	// In theory this is vulnerable to overflow, but in practice we would use a
-	// different (sparse) implementation of HiddenStateSpace for any pedigree
-	// with enough members to even get close:
-	const unsigned long nextIV = iv.to_ulong() + 1;
 
-	if ( nextIV == space.N_IVs )
+	if ( iv_it.is_on_last_el() )
 	    {
 	    finished = true;
-	    iv.set_ulong( 0 );
+	    iv_it.reset();
 
 	    finished = ! av_it.advance();
 
@@ -182,9 +176,8 @@ bool HiddenStateSpace::Iterator::advance()
 	    }
 	else
 	    {
-	    iv.set_ulong( nextIV );
+	    iv_it.advance();
 	    ++sIdx;
-	    //gp_assert( idx == (av.to_ulong() * space.N_IVs) + nextIV );
 	    }
 
 	} while ( (! finished) && (space.getEProb(sIdx) == 0.0) );
@@ -198,7 +191,7 @@ bool HiddenStateSpace::Iterator::advance()
 HiddenStateSpace::State HiddenStateSpace::Iterator::getState() const
     {
     gp_assert( ! finished );
-    State rv = { av_it.getAV(), iv, space.getEProb(sIdx) };
+    State rv = { av_it.getAV(), iv_it.getIV(), space.getEProb(sIdx) };
     return rv;
     }
 

@@ -367,7 +367,7 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
 
     gp_assert_eq( frAV.size(), toAV.size() ); // DEBUG
 
-    double rv = facts.iv_factors[ frState.getIV().to_ulong() ^ toState.getIV().to_ulong() ];
+    double rv = facts.iv_factors[ frState.getIV() ^ toState.getIV() ];
     #if DEBUG_PRINT_TP_DETAIL
 	printf( " (%lu,%lu) IV%lu=%d: %lf %lf\n", frIdx, toIdx, ctr, notEqual, (notEqual ? (g + 1) : (1 - g)) * 0.5, rv );
     #endif
