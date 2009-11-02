@@ -90,11 +90,11 @@ simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
                             M - M*f[locus], 1-M + M*f[locus] ),
                           nrow=2, ncol=2))
     }
-    ## simulate ancestry at locus
+    ## simulate ancestry at locus: pop 1 or 2
     gameteAncestry[locus] <- ifelse(randAnc[locus] < Tmatrix[gameteAncestry[locus-1], 1], 1, 2)
   }
   for(locus in 1:L) {
-    ## simulate allele conditional on ancestry at locus
+    ## simulate allele conditional on ancestry at locus : allele 1 if freq allele 1 > rand 0-1
     simAlleles[locus] <- ifelse(runif(1) < alleleFreqs[2*locus - 1, gameteAncestry[locus]], 1, 2)
   }
   return(simAlleles)
@@ -110,7 +110,7 @@ simulateGenotypes <- function(sex, M1, M2, M1X, M2X, rho, x, L, Xchr.L, alleleFr
   
   diploidAlleles <- paste(paternalGamete, maternalGamete, sep=",")
   if(Xchr.L > 0 & sex==1) { ## haploid at X chr loci - code as homozygous for maternal allele
-    diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("([12]),([12])", "\\1,\\1", diploidAlleles[(L+1):(L+Xchr.L)])
+    diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("NA,([12])", "\\1,\\1", diploidAlleles[(L+1):(L+Xchr.L)])
   }
   return(diploidAlleles)
 }
@@ -172,7 +172,7 @@ x <- numeric(0)
 chr <- numeric(0)
 length <- sum(chr.L)
 chr.labels <- c(as.character(1:22), "X")
-spacing <- 40 # 40 cM spacing gives 99 autosomal loci
+spacing <- 20 # 40 cM spacing gives 99 autosomal loci
 for(chromosome in 1:23) {
   positions <- seq(0, chr.L[chromosome], spacing)
   x <- c( x, positions) 
@@ -212,11 +212,10 @@ for(locus in 1:(L+Xchr.L)) {
 ## set allele freqs as required for testing purposes
 ## use 0, 1, and 1, 0 to make all markers informative
 ## use 0.5, 0.5 and 0.5, 0.5 to make all markers uninformative
-alleleFreqs[,1] <- c(0.8, 0.2)
-alleleFreqs[,2] <- c(0.2, 0.8)
+alleleFreqs[,1] <- c(1, 0) # column 1
+alleleFreqs[,2] <- c(0, 1) # column 2
 
 ## alternatively, read prior allele freqs from file
-
 
 ##############################################################
 popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
@@ -249,12 +248,13 @@ for(i in 1:N.ind) {
   ind <- simulateIndividual(sex.ind[i], popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
   genotypes.ind[i, ]  <- ind$genotypes
   avM[i] <- ind$avM
-}
-## simulate outcome
-if(logistic) { # logistic regression with approx equal numbers of cases and controls
-  outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
-} else { # linear regression
-  outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
+  
+  ## simulate outcome
+  if(logistic) { # logistic regression with approx equal numbers of cases and controls
+    outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
+  } else { # linear regression
+    outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
+  }
 }
 ped6.ind[1:N.ind, 5] <- sex.ind
 ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
@@ -293,23 +293,32 @@ mkdirs("data") # returns FALSE if directory already exists
 ## write pedfile format: 
 write.table(ped, file="data/genotypes.ped", sep="\t", quote=FALSE,
             row.names=FALSE, col.names=TRUE)
-## write in standard ADMIXMAP format for unrelated individuals
-write.table(ped[, -c(1, 3:4, 6)], file="data/genotypes.txt", quote=FALSE,
+
+## write all rows in ADMIXMAP format: 
+write.table(ped[, -c(1, 3:4, 6)], file="data/genotypes.txt", sep="\t", quote=FALSE,
             row.names=FALSE, col.names=TRUE)
-            
+
+
+## write odd-numbered rows in standard ADMIXMAP format for unrelated individuals
+write.table(ped[seq(1, N, by=2), -c(1, 3:4, 6)], file="data/genotypes1.txt", quote=FALSE,
+            row.names=FALSE, col.names=TRUE)
+## write even-numbered rows in standard ADMIXMAP format for unrelated individuals
+write.table(ped[seq(2, N, by=2), -c(1, 3:4, 6)], file="data/genotypes2.txt", quote=FALSE,
+            row.names=FALSE, col.names=TRUE)
+
+
 ## write outcome variable to file
 outcome.table <- data.frame(ped6[, 6] - 1, row.names=NULL) 
 write.table(outcome.table, file="data/outcome.txt", row.names=FALSE, col.names="outcome")
+write.table(outcome.table[seq(1, N, by=2), ], file="data/outcome1.txt", row.names=FALSE,
+            col.names="outcome")
+write.table(outcome.table[seq(1, N, by=2), ], file="data/outcome2.txt", row.names=FALSE,
+            col.names="outcome")
+
 ## write true admixture proportions to file
 Mvector.table <- data.frame(avM, row.names=NULL)
 write.table(Mvector.table, file="data/Mvalues.txt", row.names=FALSE,
             col.names=TRUE)
-
-## write locus file
-x[is.na(x)] <- NA
-loci <- data.frame(locusnames, rep(2, L + Xchr.L),  dist, chr, row.names=NULL)
-dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "cM", "chr")
-write.table(loci, file="data/loci.txt", row.names=FALSE, quote=FALSE)
 
 ## write allelefreqs files
 trueallelefreqs <- data.frame(rep(loci[,1], each=2), alleleFreqs)
@@ -317,12 +326,13 @@ dimnames(trueallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
 write.table(trueallelefreqs, file="data/trueallelefreqs.txt",
             row.names=FALSE, quote=FALSE)                               
 
+N.unadmixed <- 60
 ## draw allele counts given true values
 alleleCounts <- array(data=NA, dim=c(L+Xchr.L, 2, 2)) # 2nd dim indexes subpops, 3rd dim indexes alleles
 for(locus in 1:(L+Xchr.L)) {
-  alleleCounts[locus,1,1] <- rbinom(1, 2*N, alleleFreqs[2*locus-1, 1])
-  alleleCounts[locus,2,1] <- rbinom(1, 2*N, alleleFreqs[2*locus-1, 2])
-  alleleCounts[locus,,2] <- 2*N - alleleCounts[locus,,1]
+  alleleCounts[locus,1,1] <- rbinom(1, 2*N.unadmixed, alleleFreqs[2*locus-1, 1])
+  alleleCounts[locus,2,1] <- rbinom(1, 2*N.unadmixed, alleleFreqs[2*locus-1, 2])
+  alleleCounts[locus,,2] <- 2*N.unadmixed - alleleCounts[locus,,1]
 }
 
 priorallelefreqs <- as.data.frame(0.5+array(as.vector(aperm(alleleCounts, c(3,1,2))),
@@ -332,5 +342,10 @@ priorallelefreqs <- data.frame(locusnames, priorallelefreqs)
 write.table(priorallelefreqs, file="data/priorallelefreqs.txt", row.names=FALSE, sep="\t",
             quote=FALSE)
 
-
+## write locus file
+x[is.na(x)] <- NA
+loci <- data.frame(locusnames, rep(2, L + Xchr.L),  dist, chr, row.names=NULL)
+dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "cM", "chr")
+write.table(loci, file="data/loci.txt", row.names=FALSE, quote=FALSE)
+cat("locus file written\n")
   
