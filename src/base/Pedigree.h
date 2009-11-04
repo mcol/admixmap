@@ -78,7 +78,7 @@ namespace bclib { class DataMatrix; }
 #endif
 
 /// See getRNG().
-#define PED_HAS_OWN_PRNG 1
+#define PED_HAS_OWN_PRNG defined(_OPENMP)
 #if PED_HAS_OWN_PRNG
     #include <bclib/NRand.h>
     #define RNG_NORMAL(M,S) getRNG().normal(M,S)

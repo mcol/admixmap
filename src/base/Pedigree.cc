@@ -79,11 +79,11 @@
 #if 0
     #define PED_PB(rv, organisms, firstInd, lastInd ) \
 	rv.push_back( organisms, firstInd, lastInd, max_n ) , \
-	rv.back().myNumber = rv.size()
+	rv.back().setMyNumber( rv.size() );
 #else
     #define PED_PB(rv, organisms, firstInd, lastInd, max_n ) \
 	rv.push_back( Pedigree( organisms, firstInd, lastInd, max_n ) ) , \
-	rv.back().myNumber = rv.size()
+	rv.back().setMyNumber( rv.size() );
 #endif
 
 

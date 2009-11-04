@@ -96,6 +96,10 @@
 using bclib::pvector;
 typedef pvector<double> pvectord;
 
+#if ! PED_HAS_OWN_PRNG
+    using bclib::Rand;
+#endif
+
 
 static const double SOFTMAX_0_FLAG = std::numeric_limits<double>::infinity();
 
