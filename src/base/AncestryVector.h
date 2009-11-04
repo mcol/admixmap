@@ -166,8 +166,8 @@ class AncestryVector
 	    }
 
 	AncestryVector( const Pedigree & _ped, PopIdx _K, const DType & val ) :
-		ped   ( _ped ) ,
-		K     ( _K   )
+		ped ( _ped ) ,
+		K   ( _K   )
 	    {
 	    memcpy( data.bytes, val.bytes, AV_MC_BYTES() );
 	    }
@@ -272,12 +272,8 @@ class AncestryVector
 
 
 
-	//-------------------------------------------------------------------------
-	/// AncestryVector iterator class -- while there is no "container", it
-	/// behooves us to have a class that iterates over a "space" defined as
-	/// all AncestryVectors possible for @a numFndr founders, @a K populations.
-	//-------------------------------------------------------------------------
-
+	// The nested Iterator class must be forward-defined because it contains
+	// a reference to AncestryVector.
 	class Iterator;
 
 
@@ -288,7 +284,13 @@ class AncestryVector
     };
 
 
-// C++ bizarrely forbids defining this nested class within the surrounding class.
+
+//-------------------------------------------------------------------------
+/// AncestryVector iterator class -- while there is no "container", it
+/// behooves us to have a class that iterates over a "space" defined as
+/// all AncestryVectors possible for @a numFndr founders, @a K populations.
+//-------------------------------------------------------------------------
+
 class AncestryVector::Iterator
     {
     private:

@@ -287,8 +287,8 @@ class InheritanceVector
 	    }
 
 
-	// The Iterator class must be forward-defined because it contains a
-	// reference to InheritanceVector.
+	// The nested Iterator class must be forward-defined because it contains
+	// a reference to InheritanceVector.
 	class Iterator;
     };
 

@@ -232,6 +232,7 @@ class Organism
 	/// for the organism.
 	bool isGenotyped() const { return gtypedFlg; }
 	bool isMissing() const { return ! isGenotyped(); }
+	///< Convenience: true if no genotyped data at all, i.e. &equiv; <CODE>!isGenotyped()</CODE>.
 
 	const GenotypeParser & getInFile() const { return inFile; }
 

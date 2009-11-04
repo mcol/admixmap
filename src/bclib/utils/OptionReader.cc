@@ -416,8 +416,8 @@ bool OptionReader::SetOptions(){
     }
     else{
       if(Verbose){
-	cerr << "Unknown option: " << i->first
-	     << " with arg: " << i->second
+	cerr << "ERROR: unknown option \"" << i->first
+	     << "\" with argument \"" << i->second << '"'
 	     << endl;
       }
       badOptions = true;

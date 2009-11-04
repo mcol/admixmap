@@ -739,8 +739,9 @@ class Pedigree : public PedBase // See NOTE *4*
     void WritePosteriorMeans( ostream& os, unsigned samples, bool globalrho ) const;
 
 
-    /// Supports affected-only test computations.
-    int getNInheritedByAffected( FounderIdx fIdx, PopIdx k, const AncestryVector & av, const InheritanceVector & iv ) const;
+    /// Helper method for affected-only test computations.
+    int getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const;
+
 
     /// Supports affected-only test computations.
     void accumAOScore( AffectedsOnlyTest & aoTest ) const;

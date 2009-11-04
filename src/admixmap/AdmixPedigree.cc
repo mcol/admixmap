@@ -441,10 +441,20 @@ double Pedigree::getLogLikelihood( const Options & , bool /*forceUpdate*/ , bool
 
 
 //-----------------------------------------------------------------------------
-// getNInheritedByAffected()
+// getNInheritedByAffected() [private]
+//
+// Helper method for affected-only test computations [accumAOScore()].
+//
+/// Given a particular hidden-state (i.e. an AncestryVector and
+/// InheritanceVector for the pedigree), compute the number of affected
+/// offspring of a given founder (@a fIdx) who inherit ancestry in population
+/// @a k from founder @a fIdx.
+///
+/// Since our current assumption is that a two-gamete founder's ancestry is the
+/// same for both gametes, XXX.
 //-----------------------------------------------------------------------------
 
-int Pedigree::getNInheritedByAffected( FounderIdx fIdx, PopIdx k, const AncestryVector & av, const InheritanceVector & iv ) const
+int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const
     {
 
     // Is this optimization worth having?  Does it come up in real datasets?
@@ -585,7 +595,7 @@ static inline double aa_info( int nFromK, double nNPlus3over8, double nNPlus3ove
     }
 
 
-// Method:
+// The method:
 void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
     {
 
@@ -618,10 +628,10 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	for ( PopIdx k = k_begin ; k < getK() ; ++k )
 	    {
 
-#define DEBUG_AOTEST 0
-#if DEBUG_AOTEST
+	    #define DEBUG_AOTEST 0
+	    #if DEBUG_AOTEST
 		fprintf( stderr, "ped:%s(%d) t:%zd k:%zd\n", getId().c_str(), getMyNumber(), t, k );
-#endif
+	    #endif
 
 	    double scoreAvg   = 0.0;
 	    double scoreSqAvg = 0.0;
@@ -633,49 +643,84 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	    for ( HiddenStateSpace::Iterator stIt( hss ) ; stIt ; ++stIt )
 		{
 
-		double stScore = 0.0;
-		double stInfo  = 0.0;
+		double stScore;
+		double stInfo;
 
-		for ( FounderIdx fIdx = getNFounders() ; fIdx-- != 0 ; )
+		// Special case for a single unrelated individual: this can be
+		// removed when we correctly model it as two single-gamete
+		// parents.
+		if ( getNMembers() == 1 )
+		    {
+		    const double mu = getCurTheta()[ 0 ][ k ]; // Could move outside the inner HSS loop.
+
+		    stScore = -mu;
+
+		    //gp_assert( stId->getIV() == InheritanceVector::null_IV() );
+		    const AncestryVector & av = stIt.getAV();
+
+		    PopIdx mat_anc;
+		    const PopIdx pat_anc = av.getBoth( 0, mat_anc );
+
+		    if ( pat_anc == k )
+			stScore += 0.5;
+
+		    if ( mat_anc == k )
+			stScore += 0.5;
+
+		    stInfo = 0.5 * (1 - mu) * mu;
+		    }
+
+		else
 		    {
 
-		    const int nFromK = stIt.getAV().nCopiesFromKAtFounder( fIdx, k );
+		    stScore = 0.0;
+		    stInfo  = 0.0;
 
-#if DEBUG_AOTEST
-		    fprintf( stderr, "  fIdx:%zd st:%zd nFromK:%d hetro:%s nAff:%zd",
-				fIdx, stIt.getNon0Index(), nFromK,
-				stIt.getAV().isHetrozygousForPop(fIdx,k) ? "yes" : "no", nAff );
-#endif
-
-		    if ( stIt.getAV().isHetrozygousForPop( fIdx, k ) )
+		    for ( FounderIdx fIdx = getNFounders() ; fIdx-- != 0 ; )
 			{
-			const int m = getNInheritedByAffected( fIdx, k, stIt.getAV(), stIt.getIV() );
-			stScore += 0.25 * (m - nAffOver2);
-			stInfo += nAffOver16;
-#if DEBUG_AOTEST
-			fprintf( stderr, " hetro-m:%d; score:%.12lf; info:%.12lf", m, stScore, stInfo );
-#endif
+
+			const int nFromK = stIt.getAV().nCopiesFromKAtFounder( fIdx, k );
+
+			#if DEBUG_AOTEST
+			    fprintf( stderr, "	fIdx:%zd st:%zd nFromK:%d hetro:%s nAff:%zd",
+				    fIdx, stIt.getNon0Index(), nFromK,
+				    stIt.getAV().isHetrozygousForPop(fIdx,k) ? "yes" : "no", nAff );
+			#endif
+
+			if ( stIt.getAV().isHetrozygousForPop( fIdx, k ) )
+			    {
+			    const int m = getNInheritedByAffected( k, fIdx, stIt.getAV(), stIt.getIV() );
+			    stScore += 0.25 * (m - nAffOver2);
+			    stInfo += nAffOver16;
+			    #if DEBUG_AOTEST
+				fprintf( stderr, " hetro-m:%d; score:%.12lf; info:%.12lf", m, stScore, stInfo );
+			    #endif
+			    }
+
+			const double mu = getCurTheta()[ fIdx ][ k ];
+
+			stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
+			stInfo	+= aa_info( nFromK, nNPlus3over8, nNPlus3over16, n3over16, mu );
+
+			#if DEBUG_AOTEST
+			    fprintf( stderr, " mu:%.12lf; stScore:%.12lf; stInfo:%.12lf\n", mu, stScore, stInfo );
+			#endif
+
 			}
 
-		    const double mu = getCurTheta()[ fIdx ][ k ];
-
-		    stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
-		    stInfo  += aa_info( nFromK, nNPlus3over8, nNPlus3over16, n3over16, mu );
-
-#if DEBUG_AOTEST
-		    fprintf( stderr, " mu:%.12lf; stScore:%.12lf; stInfo:%.12lf\n", mu, stScore, stInfo );
-#endif
-
 		    }
+
 
 		const double stWeight = condStateProbs[ stIt.getNon0Index() ];
 		const double wtScore = stScore * stWeight;
 		scoreAvg += wtScore;
 		scoreSqAvg += wtScore * stScore;
 		infoAvg += stInfo * stWeight;
-#if DEBUG_AOTEST
+
+		#if DEBUG_AOTEST
 		    fprintf( stderr, "-> stWeight=%.12lf wtScore=%.12lf scoreAvg=%.12lf\n", stWeight, wtScore, scoreAvg );
-#endif
+		#endif
+
 		}
 
 	    const double condVarianceOfU = scoreSqAvg - (scoreAvg * scoreAvg);
@@ -695,12 +740,12 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		aoTest.getAffectedsInfo	    ( t, k-k_begin ) += infoAvg		;
 		} // END SCOPE BLOCK
 
-#if DEBUG_AOTEST
-	    fprintf( stderr, "==> cum-score: %.12lf cum-var=%.12lf cum-info=%.12lf\n\n",
-		aoTest.getAffectedsScore(t,k-k_begin)	 ,
-		aoTest.getAffectedsVarScore(t,k-k_begin) ,
-		aoTest.getAffectedsInfo(t,k-k_begin)	 );
-#endif
+	    #if DEBUG_AOTEST
+		fprintf( stderr, "==> cum-score: %.12lf cum-var=%.12lf cum-info=%.12lf\n\n",
+		    aoTest.getAffectedsScore(t,k-k_begin)	 ,
+		    aoTest.getAffectedsVarScore(t,k-k_begin) ,
+		    aoTest.getAffectedsInfo(t,k-k_begin)	 );
+	    #endif
 	    }
 
 	}
