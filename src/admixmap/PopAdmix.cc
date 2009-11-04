@@ -182,6 +182,8 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
 
   using bclib::Rand;
 
+  const int IC_size = IC.getSize();
+
   if( options.isGlobalRho() ) {
 
     double LogLikelihood = 0.0;
@@ -189,8 +191,6 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
     double logrho0 = log( rho[0] );
     double logrhoprop = Rand::gennor( logrho0, step );
     double rhoprop = exp( logrhoprop ); // propose log rho from normal distribution with SD step
-
-    const int IC_size = IC.getSize();
 
     NumberOfUpdates++;
 
@@ -213,7 +213,7 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
     // set ancestry correlations using proposed value of sum-intensities
     // value for X chromosome set to half the autosomal value
     Loci.SetLocusCorrelation( rhoprop );	  // For individuals
-    for ( int idx = IC.getSize() ; idx-- != 0 ; ) // For pedigrees
+    for ( int idx = IC_size ; idx-- != 0 ; ) // For pedigrees
 	{
 	IC.getElement( idx ).startRhoProposal();
 	IC.getElement( idx ).setRho( rhoprop );
@@ -224,7 +224,7 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
     #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
       #pragma omp parallel for reduction(+:LogLikelihoodAtProposal) default(shared) PED_LOOP_OMP_SCHED if(options.getUsePedForInd())
     #endif
-    for (int i = 0; i < IC.getSize(); i++) {
+    for (int i = 0; i < IC_size; i++) {
       PedBase & ind = IC.getElement(i);
 
       LogLikelihoodAtProposal += ind.getLogLikelihood( options, true, false ); // force update, do not store result
@@ -256,7 +256,7 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
     if ( sumlogrho ) SumLogRho[0] += logrho0;
 
     if ( accept ) {
-      for(int i = 0; i < IC.getSize(); i++) {
+      for (int i = 0; i < IC_size; i++) {
 	// Old-style:
 	IC.getElement(i).storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK
 	// New-style:
@@ -265,20 +265,20 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
     } else {
       // restore ancestry correlations in Chromosomes using original value of sum-intensities
       Loci.SetLocusCorrelation( rho );		    // For individuals
-      for ( int idx = IC.getSize() ; idx-- != 0 ; ) // For pedigrees
+      for ( int idx = IC_size ; idx-- != 0 ; ) // For pedigrees
 	  IC.getElement( idx ).rejectRhoProposal(); // was: IC.getElement(idx).setRho( rho[0] );
     } // stored loglikelihoods are still ok
   }//end if global rho model
 
   else { //individual- or gamete-specific rho model
-    if(IC.getSize()>1 && options.getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
+    if (IC_size > 1 && options.getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
       double sumrho = IC.GetSumrho();
 
       // update scale parameter of gamma distribution of sumintensities in population
       if( options.isRandomMatingModel() )
-	rhobeta = Rand::gengam( 2*rhoalpha * IC.getSize() + rhobeta0, sumrho + rhobeta1 );
+	rhobeta = Rand::gengam( 2*rhoalpha * IC_size + rhobeta0, sumrho + rhobeta1 );
       else
-	rhobeta = Rand::gengam( rhoalpha* IC.getSize() + rhobeta0, sumrho + rhobeta1 );
+	rhobeta = Rand::gengam( rhoalpha * IC_size + rhobeta0, sumrho + rhobeta1 );
 
     } // otherwise do not update rhobeta
 
