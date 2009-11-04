@@ -33,6 +33,13 @@ using genepi::RhoType;
 using std::vector;
 
 
+#if 0
+    #define DEBUG_TH_PROP(X) X
+#else
+    #define DEBUG_TH_PROP(X)
+#endif
+
+
 
 //******** Constructors **********
 // AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
@@ -798,13 +805,18 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& option
   delete[] a;
   delete[] b;
 
+  DEBUG_TH_PROP( dumpTheta( "New proposed theta" ); )
+
   //get log likelihood at current parameter values - do not force update, store result of update
   LogLikelihoodRatio -= getLogLikelihood(options, false, true);
+  DEBUG_TH_PROP( fprintf( stderr, "Accept-LLR: %.9lf", getLogLikelihood(options, false, true) ); )
 
   //get log likelihood at proposal theta and current rho - force update
   // store result in loglikelihood.tempvalue, and accumulate loglikelihood ratio
   logLikelihood.tempvalue = getLogLikelihood(options, ThetaProposal, _rho, true);
   LogLikelihoodRatio += logLikelihood.tempvalue;
+  DEBUG_TH_PROP( fprintf( stderr, "  Propose-LLR: %.9lf  Ratio: %.9lf  PriorRat: %.9lf\n",
+			llCache.getProposedVal(), LogLikelihoodRatio, LogPriorRatio ); )
   return LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
 }
 

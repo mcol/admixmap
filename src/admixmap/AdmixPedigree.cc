@@ -299,6 +299,7 @@ void Pedigree::setMyNumber( unsigned int nv )
     {
     myNumber = nv;
     #if PED_HAS_OWN_PRNG
+	//fprintf( stderr, "Seed %u (%s) -> %ld\n", nv, getId().c_str(), getOptions().getSeed()+nv ); //DEBUG
 	rng.seed( getOptions().getSeed() + nv );
     #endif
     }
@@ -445,27 +446,13 @@ double Pedigree::getLogLikelihood( const Options & , bool /*forceUpdate*/ , bool
 
 
 //-----------------------------------------------------------------------------
-// getNInheritedByAffected() [private]
+// calcNInheritedByAffected() [private]
 //
-// Helper method for affected-only test computations [accumAOScore()].
-//
-/// Given a particular hidden-state (i.e. an AncestryVector and
-/// InheritanceVector for the pedigree), compute the number of affected
-/// offspring of a given founder (@a fIdx) who inherit ancestry in population
-/// @a k from founder @a fIdx.
-///
-/// Since our current assumption is that a two-gamete founder's ancestry is the
-/// same for both gametes, XXX.
+// Helper method for affected-only test computations [getNInheritedByAffected()].
 //-----------------------------------------------------------------------------
 
-int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const
+inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const
     {
-
-    // Is this optimization worth having?  Does it come up in real datasets?
-#if 0
-    if ( getNAffected() == 0 )
-	return 0; // *** RETURN HERE ***
-#endif
 
     int rv = 0;
 
@@ -571,6 +558,48 @@ int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const Ancestry
 
 
 //-----------------------------------------------------------------------------
+// getNInheritedByAffected() [private]
+//
+// Helper method for affected-only test computations [accumAOScore()].
+//
+/// Given a particular hidden-state (i.e. an AncestryVector and
+/// InheritanceVector for the pedigree), compute the number of affected
+/// offspring of a given founder (@a fIdx) who inherit ancestry in population
+/// @a k from founder @a fIdx.
+///
+/// Since our current assumption is that a two-gamete founder's ancestry is the
+/// same for both gametes, XXX.
+//-----------------------------------------------------------------------------
+
+inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const
+    {
+
+    // Is this optimization worth having?  Does it come up in real datasets?
+    #if 0
+	if ( getNAffected() == 0 )
+	    return 0; // *** RETURN HERE ***
+    #endif
+
+
+    if ( aoCache == 0 )
+	{
+
+	aoCache = new TwoDimArray<short,PopIdx,FounderIdx>( getK(), getNFounders() );
+
+	for ( PopIdx i_k = getK() ; i_k-- != 0 ; )
+	    for ( FounderIdx i_f = getNFounders() ; i_f-- != 0 ; )
+		(*aoCache).get(i_k,i_f) = calcNInheritedByAffected( i_k, i_f, av, iv );
+
+	}
+
+
+    return (*aoCache).get( k, fIdx );
+
+    }
+
+
+
+//-----------------------------------------------------------------------------
 // accumAAScore()
 //-----------------------------------------------------------------------------
 
@@ -582,9 +611,11 @@ static inline double aa_score( int nFromK, double nAffOver2, double negNAffOver2
 	return (mu * negNAffOver2);
     else if ( nFromK == 1 )
 	return nAffOver4 + (negNAffOver2 * mu);
-    else AGGRESSIVE_ONLY( if ( nFromK == 2 ) )
+    else
+	{
+	AGGRESSIVE_ONLY( if ( nFromK != 2 ) throw std::logic_error( "invalid nFromK" ); )
 	return nAffOver2 * (1.0 - mu);
-    AGGRESSIVE_ONLY( else throw std::logic_error( "invalid nFromK" ); )
+	}
     }
 
 
@@ -1096,13 +1127,40 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 
 	    th.inv_softmax_gt0( a, SOFTMAX_0_FLAG );
 
+	    DEBUG_TH_PROP(
+		fprintf( stderr, "DBG-TH-PR-1: %d %s %zu", getMyNumber(), getId().c_str(), tIdx );
+		for ( PopIdx k = 0 ; k < K ; ++k )
+		    fprintf( stderr, " %.7lf", th[k] );
+		putc( '\n', stderr );
+		fprintf( stderr, "DBG-TH-PR-2: %d %s %zu", getMyNumber(), getId().c_str(), tIdx );
+		for ( PopIdx k = 0 ; k < K ; ++k )
+		    fprintf( stderr, " %.7lf", a[k] );
+		putc( '\n', stderr );
+
+		fprintf( stderr, "PRNG POISON TEST: %.12lf\n", RNG_UNIFORM() );
+	    ) // end DEBUG_TH_PROP()
+
 	    // Random walk step - on all elements of array a
 	    for ( PopIdx k = 0 ; k < K ; ++k )
 		if ( a[k] != SOFTMAX_0_FLAG ) // Equivalent: if ( th[k] > 0.0 )
 		    a[k] = RNG_NORMAL( a[k], step );
 
+	    DEBUG_TH_PROP(
+		fprintf( stderr, "DBG-TH-PR-3: %d %s %zu", getMyNumber(), getId().c_str(), tIdx );
+		for ( PopIdx k = 0 ; k < K ; ++k )
+		    fprintf( stderr, " %.7lf", a[k] );
+		putc( '\n', stderr );
+	    ) // end DEBUG_TH_PROP()
+
 	    // Reverse transformation from numbers on real line to proportions
 	    a.softmax( th_prop, pvectord::not_equal_to(SOFTMAX_0_FLAG), 0.0 );
+
+	    DEBUG_TH_PROP(
+		fprintf( stderr, "DBG-TH-PR-4: %d %s %zu", getMyNumber(), getId().c_str(), tIdx );
+		for ( PopIdx k = 0 ; k < K ; ++k )
+		    fprintf( stderr, " %.7lf", th_prop[k] );
+		putc( '\n', stderr );
+	    ) // end DEBUG_TH_PROP()
 
 	    // Compute contribution of this founder to log prior ratio
 	    // Prior densities must be evaluated in softmax basis

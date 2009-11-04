@@ -66,6 +66,7 @@ class Options;
 class CopyNumberAssocTest;
 class AdmixOptions;
 class AffectedsOnlyTest;
+#include "TwoDimArray.h" // aoCache
 namespace bclib { class DataMatrix; }
 #include "common.h" // for DataType
 #include <bclib/StepSizeTuner.h>
@@ -739,6 +740,10 @@ class Pedigree : public PedBase // See NOTE *4*
     void WritePosteriorMeans( ostream& os, unsigned samples, bool globalrho ) const;
 
 
+    /// Cache for getNInheritedByAffected()
+    mutable TwoDimArray<short,PopIdx,FounderIdx> * aoCache;
+    /// Helper method for getNInheritedByAffected (affected-only test computations).
+    short calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const;
     /// Helper method for affected-only test computations.
     int getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const;
 

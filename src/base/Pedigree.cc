@@ -195,7 +195,8 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	NumGametes	  ( 2			     ) ,
 	tpCache		  ( 0			     ) ,
 	hmm		  ( 0			     ) ,
-	llCache		  ( *this		     )
+	llCache		  ( *this		     ) ,
+	aoCache		  ( 0			     )
     {
 
     // Initialize the array of pointers-to-members, while simultaneously
@@ -339,7 +340,8 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	NumGametes	  ( rhs.NumGametes	  ) , // See NOTE *2*
 	tpCache		  ( rhs.tpCache		  ) , // See NOTE *2*
 	hmm		  ( rhs.hmm		  ) , // See NOTE *2*
-	llCache		  ( *this, rhs.llCache	  )
+	llCache		  ( *this, rhs.llCache	  ) ,
+	aoCache		  ( rhs.aoCache		  )
     {
     // !!!WARNING!!! -- see NOTE *1*
     const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
@@ -382,6 +384,9 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     hmm			= rhs.hmm		;
 
     llCache		= rhs.llCache		;
+
+    aoCache		= rhs.aoCache		;
+
 
     // !!!WARNING!!! -- see NOTE *1*
     const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
