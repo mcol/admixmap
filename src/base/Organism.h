@@ -202,6 +202,8 @@ class Organism
 	/// Returns reference to the genotype at locus locIdx.
 	const Genotype & getGType( SLocIdxType sLocIdx ) const;
 
+	/// Is the organism modeled by a single gamete?
+	bool isHaploid( bool /*onXChromosome*/ ) const { return false; }
 
 	/// Returns pointer to the father's record, or null if none/unknown.
 	const Organism * getFather() const { return father; }

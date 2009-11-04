@@ -287,6 +287,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 			((chIter = children.erase(chIter)) == children.end()) )
 		    ; // Do nothing
 	    }
+
 	}
 
 
@@ -308,6 +309,8 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
     if ( getEndFounder() != getEndMember() ) // If we have any non-founders at all
 	gp_assert( ! (*getEndFounder())->isFounder() );
 
+    ivSpace = new InheritanceSpace( *this );
+
     }
 
 
@@ -325,6 +328,7 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	nMembers	  ( rhs.nMembers	  ) ,
 	nFounders	  ( rhs.nFounders	  ) ,
 	sortedMembers	  ( rhs.sortedMembers	  ) ,
+	ivSpace		  ( rhs.ivSpace		  ) ,
 	nMendelErrs	  ( rhs.nMendelErrs	  ) ,
 	mendelErrsByLocus ( rhs.mendelErrsByLocus ) ,
 	stateProbs	  ( rhs.stateProbs	  ) ,
@@ -345,6 +349,7 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
     {
     // !!!WARNING!!! -- see NOTE *1*
     const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
+    const_cast<Pedigree&>(rhs).ivSpace		 = 0;
     const_cast<Pedigree&>(rhs).mendelErrsByLocus = 0;
     const_cast<Pedigree&>(rhs).stateProbs	 = 0;
     const_cast<Pedigree&>(rhs).tpCache		 = 0; // See NOTE *2*
@@ -362,6 +367,7 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     nMembers		= rhs.nMembers		;
     nFounders		= rhs.nFounders		;
     sortedMembers	= rhs.sortedMembers	;
+    ivSpace		= rhs.ivSpace		;
     nMendelErrs		= rhs.nMendelErrs	;
     mendelErrsByLocus	= rhs.mendelErrsByLocus ;
     stateProbs		= rhs.stateProbs	;
@@ -390,6 +396,7 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
 
     // !!!WARNING!!! -- see NOTE *1*
     const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
+    const_cast<Pedigree&>(rhs).ivSpace		 = 0;
     const_cast<Pedigree&>(rhs).mendelErrsByLocus = 0;
     const_cast<Pedigree&>(rhs).stateProbs	 = 0;
     const_cast<Pedigree&>(rhs).tpCache		 = 0; // See NOTE *2*
@@ -407,10 +414,11 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
 Pedigree::~Pedigree()
     {
     delete[] sortedMembers;
+    delete ivSpace;
     delete[] stateProbs;
     delete[] mendelErrsByLocus;
-    delete tpCache ; // See NOTE *2*
-    delete hmm	   ; // See NOTE *2*
+    delete tpCache; // See NOTE *2*
+    delete hmm;	    // See NOTE *2*
     }
 
 

@@ -151,10 +151,6 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	    fprintf( stderr, "\n\"Finishing\" intialize-peds, %zu pedigrees, %zu loci\n",
 		getPeds().size(), getSimpleLoci().size() );
 
-	    // Turn on if desired:
-	    Pedigree::dbgRecursion( false );
-	    Pedigree::dbgEmission( false );
-
 	    #if 1 // Turn on to print allele-frequency table
 		cerr << "\n\n==== Allele-Probabilities ====\n\n";
 		for ( SLocIdxType sLocIdx = 0 ; sLocIdx < getSimpleLoci().size() ; ++sLocIdx )

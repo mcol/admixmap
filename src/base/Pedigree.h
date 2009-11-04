@@ -35,10 +35,11 @@
 
 #include <bclib/cvector.h>
 #include "Genotype.h"
+#include "InheritanceVector.h"
 #include "OrganismArray.h"
 #include "PedBase.h"
-#include "SimpleLocusArray.h"
 #include "ProposalRingBuffer.h"
+#include "SimpleLocusArray.h"
 
 #include "AlleleArray.h" // AlleleProbTable, AlleleProbVect (for emission probabilities)
 
@@ -100,7 +101,6 @@ namespace genepi { // ----
 
 // Needed for emission probability computation:
 class AncestryVector;
-class InheritanceVector;
 class HiddenStateSpace;
 
 
@@ -221,6 +221,8 @@ class Pedigree : public PedBase // See NOTE *4*
 	FounderIdx nFounders	 ;
 	Member * * sortedMembers ;
 
+	InheritanceSpace * ivSpace;
+
 	// Mendelian error detection and tracking:
 	mutable int    nMendelErrs;
 	mutable bool * mendelErrsByLocus; ///< Array, indexed on SLocIdxType
@@ -233,13 +235,13 @@ class Pedigree : public PedBase // See NOTE *4*
 	mutable HiddenStateSpace * stateProbs;
 
 
-	void recurseSib(   SLocIdxType		sLocIdx		,
-			   Haplotype *		memberHapState	,
-			   const AncestryVector&ancestry	,
-			   InheritanceVector &	iv		,
-			   MemberIdx		memDepth	,
-			   double		emProbTerm	,
-			   StateReceiver	receiver	) const;
+	void recurseSib( SLocIdxType		sLocIdx		,
+			 Haplotype *		memberHapState	,
+			 const AncestryVector & ancestry	,
+			 InheritanceVector &	iv		,
+			 MemberIdx		memDepth	,
+			 double			emProbTerm	,
+			 StateReceiver		receiver	) const;
 
 	void recurseFounder(	SLocIdxType		sLocIdx		,
 				PopIdx			K		,
@@ -354,9 +356,11 @@ class Pedigree : public PedBase // See NOTE *4*
 	size_t getNFounders() const { return nFounders; }		///< Number of founders
 	size_t getNNonFndrs() const { return (nMembers - nFounders); }	///< Number of non-founders
 
+	const InheritanceSpace & getIVSpace() const { return *ivSpace; }
 	size_t getNFounderGametes() const { return (nFounders << 1   ); } ///< Number of founder gametes
 	size_t getNMeiosis	 () const { return (getNNonFndrs()<<1); } ///< Number of meiosis
 							///< NB: see haploid note in recurseSib().
+
 
 
 	/// Array-style access: @a mIdx must be between 0 and getNMembers()-1.
@@ -746,7 +750,6 @@ class Pedigree : public PedBase // See NOTE *4*
     short calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const;
     /// Helper method for affected-only test computations.
     int getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const;
-
 
     /// Supports affected-only test computations.
     void accumAOScore( AffectedsOnlyTest & aoTest ) const;

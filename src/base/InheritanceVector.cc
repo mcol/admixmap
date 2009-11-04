@@ -35,6 +35,10 @@
 
 
 
+#define DEBUG_PRINT_SPACES	0
+
+
+
 namespace genepi { // ----
 
 
@@ -46,8 +50,7 @@ const size_t InheritanceVector::MAX_ORGANISMS;
 #if (! IV_KEEP_PED_REF) && IV_PEDIGREE_FORWARD
 
     InheritanceVector::InheritanceVector( const Pedigree & p ) :
-	    nFounders( p.getNFounders() ) ,
-	    nMembers ( p.getNMembers () )
+	    space( p.getIVSpace() )
 	{
 	gp_assert_le( p.getNNonFndrs(), MAX_ORGANISMS );
 	}
@@ -55,6 +58,72 @@ const size_t InheritanceVector::MAX_ORGANISMS;
 #endif
 
 
+
+//=============================================================================
+// InheritanceSpace
+//=============================================================================
+
+InheritanceSpace::InheritanceSpace( const Pedigree & _ped ) :
+	non_x_vals ( _ped.getNNonFndrs() ) ,
+	x_vals	   ( _ped.getNNonFndrs() ) ,
+	nFounders  ( _ped.getNFounders() ) ,
+	nMembers   ( _ped.getNMembers () )
+    {
+
+    const size_t n_nonf = _ped.getNNonFndrs();
+
+    size_t cur_offset = 0;
+
+    for ( NonFounderIdx idx = 0; idx < n_nonf; ++idx )
+	{
+	const Organism & org = _ped.memberAt( idx + nFounders );
+
+	gp_assert( org.getFather() != 0 );
+	gp_assert( org.getMother() != 0 );
+
+	Entry & entry = non_x_vals[ idx ];
+
+	entry.wm.haveMaternalMeiosis = ! org.getMother()->isHaploid( false ); // NOT_X_CHROM
+	entry.wm.havePaternalMeiosis = ! org.getFather()->isHaploid( false ); // NOT_X_CHROM
+
+	entry.p_bit = entry.wm.havePaternalMeiosis ? cur_offset++ : Entry::HAPLOID_PARENT;
+	entry.m_bit = entry.wm.haveMaternalMeiosis ? cur_offset++ : Entry::HAPLOID_PARENT;
+
+	Entry & x_entry = x_vals[ idx ];
+
+	x_entry.wm.haveMaternalMeiosis = ! org.getMother()->isHaploid( true ); // IS_X_CHROM
+	x_entry.wm.havePaternalMeiosis = ! org.getFather()->isHaploid( true ); // IS_X_CHROM
+
+	x_entry.p_bit = x_entry.wm.havePaternalMeiosis ? cur_offset++ : Entry::HAPLOID_PARENT;
+	x_entry.m_bit = x_entry.wm.haveMaternalMeiosis ? cur_offset++ : Entry::HAPLOID_PARENT;
+	}
+
+
+    #if DEBUG_PRINT_SPACES
+	fprintf( stderr, "Ped %s (%d) space:\n", _ped.getId().c_str(), _ped.getMyNumber() );
+	for ( NonFounderIdx idx = 0; idx < n_nonf; ++idx )
+	    {
+	    const Organism & org = _ped.memberAt( idx + nFounders );
+	    const Entry & entry = non_x_vals[ idx ];
+	    fprintf( stderr, "  Non-founder %zu (member %zu), id=%d, father=%s, mother=%s: "
+		    "non-X: which-meiosis(%s,%s); p_bit=%zu; m_bit=%zu\n",
+		idx, idx+nFounders, org.getOrgId(),
+		    (org.hasFather() ? "has-father" : "founder"),
+		    (org.hasMother() ? "has-mother" : "mother" ),
+		    (entry.wm.havePaternalMeiosis ? "have-pat" : "no-pat"),
+		    (entry.wm.haveMaternalMeiosis ? "have-mat" : "no-mat"),
+		    entry.p_bit, entry.m_bit );
+	    }
+    #endif
+
+    }
+
+
+
+
+//=============================================================================
+// InheritanceVector
+//=============================================================================
 
 //-----------------------------------------------------------------------------
 // Iterator
@@ -91,12 +160,12 @@ InheritanceVector::Iterator::Iterator( const Pedigree & _ped ) :
 
     inline static char si2char( const InheritanceVector::SegInd & si )
 	{
-	return (si == InheritanceVector::SI_PATERNAL) ? 'p' : 'm';
+	return (si == InheritanceVector::SI_NONE) ? 'h' : ((si == InheritanceVector::SI_PATERNAL) ? 'p' : 'm');
 	}
 
     inline static char si2digit( const InheritanceVector::SegInd & si )
 	{
-	return (si == InheritanceVector::SI_PATERNAL) ? '0' : '1';
+	return (si == InheritanceVector::SI_NONE) ? 'h' : ((si == InheritanceVector::SI_PATERNAL) ? '0' : '1');
 	}
 
     inline static std::ostream & operator<<( std::ostream & os, const InheritanceVector::Bits & b )

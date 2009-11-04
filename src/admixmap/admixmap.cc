@@ -35,8 +35,9 @@ using namespace genepi;
 
 
 
-#define DEBUG_PRINT_EPROBS  0 // **** PRINT EMISSION PROBABILITIES DEBUG-CODE ****
-#define max_print_states    12
+#define DEBUG_INHERITANCE	0
+#define DEBUG_PRINT_EPROBS	0
+#define max_print_states	12
 
 #if DEBUG_PRINT_EPROBS
     #include "HiddenStateSpace.h"
@@ -80,11 +81,15 @@ static void startupOMPMessage( const AdmixOptions & options )
 	cout << '\n';
 
 
-	#if (PARALLELIZE_PEDIGREE_LOOP && HMM_PARALLELIZE_FWD_BKWD)
-	    omp_set_dynamic( true );
-	#endif
+	// "Nested" parallel sections may require some extra options:
 	#if (PARALLELIZE_PEDIGREE_LOOP && HMM_PARALLELIZE_FWD_BKWD)
 	    omp_set_nested ( true );
+
+	    // DDF: Presumably dynamic thread creation is _not_ needed for nested
+	    // parallel sections?  OpenMP spec is unclear on how it is implemented.
+	    #if 0
+		omp_set_dynamic( true );
+	    #endif
 	#endif
 
     #else
@@ -161,6 +166,12 @@ int main( int argc , char** argv ){
   if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
   Log.StartMessage();
  
+
+  #if DEBUG_INHERITANCE
+      Pedigree::dbgRecursion( true );
+      Pedigree::dbgEmission( true );
+  #endif
+
 
   try{  
     bclib::Rand RNG;//allocate random number generator

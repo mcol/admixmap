@@ -246,7 +246,7 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
     #if DEBUG_RECURSION
 	if ( dRecursion )
 	    std::cout << "Recurse sib sloc(" << sLocIdx << ") memDepth(" << memDepth
-		<< ") " << av << " ep-term(" << emProbTerm << ")\n";
+		<< ") " << av << " iv-so-far(" << iv << " ep-term(" << emProbTerm << ")\n";
     #endif
 
 
@@ -343,6 +343,13 @@ void Pedigree::recurseFounder(	SLocIdxType		sLocIdx		,
 				double			probProdSoFar	,
 				StateReceiver		receiver	) const
     {
+
+    #if DEBUG_RECURSION
+	if ( dRecursion )
+	    std::cout << "Recurse fndr sloc(" << sLocIdx << ") memDepth(" << memDepth
+		<< ") " << ancestry << " prob-prod-so-far(" << probProdSoFar << ")\n";
+    #endif
+
 
     // If we recurse over founder _gametes_ rather than _haplotypes_, we can
     // save some run time by just getting each of these probability factors from

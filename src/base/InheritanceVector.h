@@ -30,11 +30,11 @@
 #include <bitset>
 
 #include "bclib/exceptions.h"
+#include "bclib/cvector.h"
 
 
 #define IV_OSTREAM		1 /// Should we compile ostream support for IVs?
 
-#define IV_KEEP_PED_REF		0
 #define IV_PEDIGREE_FORWARD	1
 //#define IV_MAX_BITS		128 /// 64 max non-founders
 #define IV_MAX_BITS		32  /// 16 max non-founders
@@ -59,6 +59,8 @@ namespace genepi { // ----
 #if IV_PEDIGREE_FORWARD
     class Pedigree;
 #endif
+
+class InheritanceSpace;
 
 
 
@@ -100,12 +102,14 @@ namespace genepi { // ----
 
 class InheritanceVector
     {
+
     public:
 	// Segregation Indicator for one meosis:
 	enum SegInd
 	    {
 	    SI_PATERNAL ,
-	    SI_MATERNAL
+	    SI_MATERNAL ,
+	    SI_NONE	  // No meiosis: parent had haploid genotype or we only model one gamete
 	    };
 
 	// Complete segregation indicator (both maternal and paternal) for
@@ -141,85 +145,50 @@ class InheritanceVector
 	static const size_t MAX_ORGANISMS = (IV_MAX_BITS >> 1);
 
     private:
-	#if IV_KEEP_PED_REF
-	    const Pedigree & pedigree ;
-	#else
-	    unsigned short nFounders;
-	    unsigned short nMembers ;
-	#endif
 
+	const InheritanceSpace & space;
 	std::bitset<IV_MAX_BITS> bits;
 
 
     protected:
 	// Access as unsigned long: use with caution.  We befriend
-	// HiddenStateSpace only so it can use these methods.
+	// HiddenStateSpace only so that it can use these methods.
 	friend class HiddenStateSpace;
 	unsigned long to_ulong  () const { return bits.to_ulong(); }
 	void	      set_ulong ( unsigned long nv ) { bits = nv; }
 
-	size_t getNNonFndrs() const { return (getNMembers() - getNFounders()); }
-
     public:
 
-	#if IV_KEEP_PED_REF
-	    const Pedigree & getPedigree() const { return pedigree; }
-	    size_t getNFounders() const { return pedigree.getNFounders(); }
-	    size_t getNMembers () const { return pedigree.getNMembers (); }
-	#else
-	    size_t getNFounders() const { return nFounders; }
-	    size_t getNMembers () const { return nMembers ; }
-	#endif
+	const InheritanceSpace & getSpace() const { return space; }
+
+	size_t getNFounders() const;
+	size_t getNMembers () const;
+	size_t getNNonFndrs() const { return (getNMembers() - getNFounders()); }
 
 
 	/// Return the number of meiosis (i.e. the number of bits) in this vector.
 	size_t n_meiosis() const { return (getNNonFndrs() << 1); }
 
 
-	#if IV_KEEP_PED_REF
-	    InheritanceVector( const Pedigree & p ) :
-		pedigree( p ) {}
+	InheritanceVector( const Pedigree & p );
 
-	    InheritanceVector( const InheritanceVector & rhs ) :
-		pedigree( rhs.pedigree ) ,
-		bits	( rhs.bits     ) {}
-
-	    InheritanceVector & operator=( const InheritanceVector & rhs )
-		{
-		gp_assert( &rhs.pedigree == &pedigree );
-		bits = rhs.bits;
-		return *this;
-		}
-	#else
-	    InheritanceVector( const Pedigree & p );
-
-	    InheritanceVector( const InheritanceVector & rhs ) :
-		    nFounders( rhs.nFounders ) ,
-		    nMembers ( rhs.nMembers  ) ,
+	InheritanceVector( const InheritanceVector & rhs ) :
+		    space    ( rhs.space     ) ,
 		    bits     ( rhs.bits	     )
-		{
-		gp_assert_lt( getNNonFndrs(), MAX_ORGANISMS );
-		}
+	    {
+	    gp_assert_lt( getNNonFndrs(), MAX_ORGANISMS );
+	    }
 
-	    InheritanceVector & operator=( const InheritanceVector & rhs )
-		{
-		nFounders = rhs.nFounders ;
-		nMembers  = rhs.nMembers  ;
-		bits	  = rhs.bits	  ;
-		return *this;
-		}
-	#endif
+	InheritanceVector & operator=( const InheritanceVector & rhs )
+	    {
+	    gp_assert( &space == &rhs.space );
+	    bits = rhs.bits;
+	    return *this;
+	    }
 
 
 	/// Extract both inheritance bits for a given member of the pedigree
-	Bits getMember( SibIdx mIdx ) const
-	    {
-	    gp_assert_lt( mIdx, getNMembers () );
-	    gp_assert_ge( mIdx, getNFounders() );
-	    const size_t shift = ((mIdx - getNFounders()) << 1);
-	    return Bits( bits[shift    ] ? SI_MATERNAL : SI_PATERNAL ,
-			 bits[shift + 1] ? SI_MATERNAL : SI_PATERNAL );
-	    }
+	Bits getMember( SibIdx mIdx ) const;
 
 
 	#if ! IV_PEDIGREE_FORWARD
@@ -235,14 +204,7 @@ class InheritanceVector
 
 
 	/// Set both inheritance bits for a given member of the pedigree:
-	void setMember( SibIdx mIdx, const Bits & nv )
-	    {
-	    gp_assert_lt( mIdx, getNMembers () );
-	    gp_assert_ge( mIdx, getNFounders() );
-	    const size_t bit_shift = ((mIdx - getNFounders()) << 1);
-	    bits[ bit_shift	] = nv.paternal() == SI_PATERNAL ? 0 : 1;
-	    bits[ bit_shift + 1 ] = nv.maternal() == SI_PATERNAL ? 0 : 1;
-	    }
+	void setMember( SibIdx mIdx, const Bits & nv );
 
 	// Would be nice to make a member-reference type so we can implement this:
 	// BitsReference & operator[]( SibIdx mIdx );
@@ -250,18 +212,9 @@ class InheritanceVector
 
 	/// Convenience: did father contribute his father's or his mother's?
 	SegInd paternal( SibIdx n ) const { return getMember(n).paternal(); }
-	#if ! IV_PEDIGREE_FORWARD
-	  SegInd paternal( const Pedigree::Member & organism ) const
-			{ return getMember(organism).paternal(); }
-	#endif
-
 
 	/// Convenience: did mother contribute her father's or her mother's?
 	SegInd maternal( SibIdx n ) const { return getMember(n).maternal(); }
-	#if ! IV_PEDIGREE_FORWARD
-	  SegInd maternal( const Pedigree::Member & organism ) const
-			{ return getMember(organism).maternal(); }
-	#endif
 
 
 
@@ -290,6 +243,7 @@ class InheritanceVector
 	// The nested Iterator class must be forward-defined because it contains
 	// a reference to InheritanceVector.
 	class Iterator;
+
     };
 
 
@@ -337,17 +291,143 @@ class InheritanceVector::Iterator
 
 
 
-#if (! IV_KEEP_PED_REF) && (! IV_PEDIGREE_FORWARD)
 
-    inline InheritanceVector::InheritanceVector( const Pedigree & p ) :
-	    nFounders( p.getNFounders() ) ,
-	    nMembers ( p.getNMembers () )
+//-----------------------------------------------------------------------------
+// InheritanceSpace
+//-----------------------------------------------------------------------------
+
+class InheritanceSpace
+    {
+
+    public:
+
+	enum IsXChrom
+	    {
+	    IS_X_CHROM	= 0 ,
+	    NOT_X_CHROM = 1
+	    };
+	typedef size_t NonFounderIdx;
+
+	struct WhichMeiosis
+	    {
+	    bool haveMaternalMeiosis;
+	    bool havePaternalMeiosis;
+	    };
+
+
+    private:
+
+	friend class InheritanceVector;
+
+	struct Entry
+	    {
+	    static const size_t HAPLOID_PARENT = size_t(-1);
+
+	    WhichMeiosis wm;
+	    size_t	 p_bit;
+	    size_t	 m_bit;
+	    };
+
+	cvector<Entry>	non_x_vals;
+	cvector<Entry>	x_vals;
+	size_t		nFounders;
+	size_t		nMembers;
+
+	// Used by friend InheritanceVector.
+	const Entry & getEntry( InheritanceVector::SibIdx mIdx, IsXChrom isX = NOT_X_CHROM ) const
+	    {
+	    gp_assert_ge( mIdx, nFounders );
+	    gp_assert_lt( mIdx, nMembers  );
+	    const size_t ent_idx = mIdx - nFounders;
+	    return (isX == IS_X_CHROM) ? x_vals[ent_idx] : non_x_vals[ent_idx];
+	    }
+
+    public:
+	InheritanceSpace( const Pedigree & _ped );
+
+	size_t getNFounders() const { return nFounders; }
+	size_t getNMembers () const { return nMembers ; }
+
+	/// Given a member of a pedigree, report which meiosis contributed to its genotype.
+	WhichMeiosis getWhichMeiosis( NonFounderIdx nonFounderIdx, IsXChrom x_chrom ) const;
+
+    };
+
+
+
+//-----------------------------------------------------------------------------
+// Inline InheritanceVector methods that use InheritanceSpace's methods:
+//-----------------------------------------------------------------------------
+
+
+inline size_t InheritanceVector::getNFounders() const
+    {
+    return space.getNFounders();
+    }
+
+
+inline size_t InheritanceVector::getNMembers() const
+    {
+    return space.getNMembers();
+    }
+
+
+inline InheritanceVector::Bits InheritanceVector::getMember( SibIdx mIdx ) const
+    {
+    gp_assert_lt( mIdx, getNMembers() );
+    gp_assert_ge( mIdx, getNFounders() );
+
+    const InheritanceSpace::Entry & entry = space.getEntry( mIdx );
+
+    SegInd patSI;
+    if ( entry.p_bit == InheritanceSpace::Entry::HAPLOID_PARENT )
+	patSI = SI_NONE;
+    else
+	patSI = bits[ entry.p_bit ] ? SI_MATERNAL : SI_PATERNAL;
+
+    SegInd matSI;
+    if ( entry.m_bit == InheritanceSpace::Entry::HAPLOID_PARENT )
+	matSI = SI_NONE;
+    else
+	matSI = bits[ entry.m_bit ] ? SI_MATERNAL : SI_PATERNAL;
+
+    return Bits( patSI, matSI );
+    }
+
+
+inline void InheritanceVector::setMember( SibIdx mIdx, const Bits & nv )
+    {
+    gp_assert_lt( mIdx, getNMembers()  );
+    gp_assert_ge( mIdx, getNFounders() );
+
+    const InheritanceSpace::Entry & entry = space.getEntry( mIdx );
+
+    if ( nv.paternal() == SI_NONE )
 	{
-	gp_assert_le( p.getNNonFndrs(), MAX_ORGANISMS );
+	gp_assert( entry.p_bit == InheritanceSpace::Entry::HAPLOID_PARENT );
+	}
+    else
+	{
+	gp_assert( entry.p_bit != InheritanceSpace::Entry::HAPLOID_PARENT );
+	bits[ entry.p_bit ] = (nv.paternal() == SI_PATERNAL) ? 0 : 1;
 	}
 
-#endif
+    if ( nv.maternal() == SI_NONE )
+	{
+	gp_assert( entry.m_bit == InheritanceSpace::Entry::HAPLOID_PARENT );
+	}
+    else
+	{
+	gp_assert( entry.m_bit != InheritanceSpace::Entry::HAPLOID_PARENT );
+	bits[ entry.m_bit ] = (nv.maternal() == SI_PATERNAL) ? 0 : 1;
+	}
+    }
 
+
+
+//-----------------------------------------------------------------------------
+// Other inline methods:
+//-----------------------------------------------------------------------------
 
 
 #if IV_OSTREAM
