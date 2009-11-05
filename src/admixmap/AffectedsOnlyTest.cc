@@ -44,6 +44,8 @@ AffectedsOnlyTest::~AffectedsOnlyTest(){
     delete[] AffectedsInfo;
     delete[] LikRatio1;
     delete[] LikRatio2;
+    delete[] SumLikRatio1;
+    delete[] SumLikRatio2;
 
     std::vector<std::vector<std::string> > labels(1);
     labels[0].push_back("Locus");
@@ -80,8 +82,12 @@ void AffectedsOnlyTest::Initialise(const char* filename, const int NumPopulation
   AffectedsInfo = new double[dim];
   LikRatio1 = new double[dim];
   LikRatio2 = new double[dim];
-  fill(LikRatio1, LikRatio1+dim, 0.0);
-  fill(LikRatio2, LikRatio2+dim, 0.0);
+  SumLikRatio1 = new double[dim];
+  SumLikRatio2 = new double[dim];
+  fill(LikRatio1, LikRatio1+dim, 1.0);
+  fill(LikRatio2, LikRatio2+dim, 1.0);
+  fill(SumLikRatio1, SumLikRatio1+dim, 0.0);
+  fill(SumLikRatio2, SumLikRatio2+dim, 0.0);
 
   SumAffectedsScore2 = new double[dim];
   SumAffectedsScore = new double[dim];
@@ -100,6 +106,14 @@ void AffectedsOnlyTest::Reset(){
       AffectedsScore[j] = 0.0;
       AffectedsVarScore[j] = 0.0;
       AffectedsInfo[j] = 0.0;
+
+      // accumulate the total sums
+      SumLikRatio1[j] += LikRatio1[j];
+      SumLikRatio2[j] += LikRatio2[j];
+
+      // reset the likelihood ratios so that new products can be computed
+      LikRatio1[j] = 1.0;
+      LikRatio2[j] = 1.0;
     }
   }
 }
@@ -185,9 +199,9 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
       Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
       
       //compute contribution to likelihood ratio
-      LikRatio1[locus *K + k] += (AProbs[0][k+k0] + sqrt(r1)*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) / 
+      LikRatio1[locus *K + k] *= (AProbs[0][k+k0] + sqrt(r1)*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) /
 	(Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
-      LikRatio2[locus *K + k] += (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) / 
+      LikRatio2[locus *K + k] *= (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) /
 	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
     }
   } else { // haploid - effect of one extra copy from pop k0 is equivalent to two extra copies in diploid case
@@ -207,8 +221,8 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
       Pi[0] = 1.0 - theta;
       
       //compute contribution to likelihood ratio - check this formula
-      LikRatio1[locus *K + k] += (AProbs[0][k+k0] + r1*AProbs[1][k+k0]) / (Pi[0] + r1*Pi[1]);
-      LikRatio2[locus *K + k] += (AProbs[0][k+k0] + r2*AProbs[1][k+k0]) / (Pi[0] + r2*Pi[1]);
+      LikRatio1[locus *K + k] *= (AProbs[0][k+k0] + r1*AProbs[1][k+k0]) / (Pi[0] + r1*Pi[1]);
+      LikRatio2[locus *K + k] *= (AProbs[0][k+k0] + r2*AProbs[1][k+k0]) / (Pi[0] + r2*Pi[1]);
     }
   }
 }
@@ -241,11 +255,11 @@ void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector
       likratiostream << locuslabel
 		     << poplabel; //need offset to get second poplabel for 2pops
       
-      L1 = LikRatio1[ j*K + k] / ( numUpdates );
-      L2 = LikRatio2[ j*K + k] / ( numUpdates );
+      L1 = SumLikRatio1[j*K + k] / numUpdates;
+      L2 = SumLikRatio2[j*K + k] / numUpdates;
       
-      likratiostream << double2R(L1)
-		     << double2R(L2)<< bclib::newline;
+      likratiostream << double2R(log(L1))
+                     << double2R(log(L2)) << bclib::newline;
     }
   }
   

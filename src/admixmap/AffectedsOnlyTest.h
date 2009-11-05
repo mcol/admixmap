@@ -100,6 +100,8 @@ private:
 
   double *LikRatio1;
   double *LikRatio2;
+  double *SumLikRatio1;
+  double *SumLikRatio2;
 
   bclib::RObjectWriter R;
 
