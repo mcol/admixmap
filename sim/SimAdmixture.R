@@ -104,9 +104,9 @@ simulateGenotypes <- function(sex, M1, M2, M1X, M2X, rho, x, L, Xchr.L, alleleFr
   ## returns a vector of genotypes for a single diploid individual
   ## set admixture proportions on X chromosome
   maternalGamete <- c(simulateHaploidAlleles(M2, rho, x, L,alleleFreqs[1:(2*L), ]),
-                      simulateHaploidAlleles(M2X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
+                      simulateHaploidAlleles(M2X, 0.5*rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))
   paternalGamete <- c(simulateHaploidAlleles(M1, rho, x, L,alleleFreqs[1:(2*L), ]),
-                      simulateHaploidAlleles(M1X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
+                      simulateHaploidAlleles(M1X, 0.5*rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))
   
   diploidAlleles <- paste(paternalGamete, maternalGamete, sep=",")
   if(Xchr.L > 0 & sex==1) { ## haploid at X chr loci - code as homozygous for maternal allele
@@ -321,6 +321,9 @@ write.table(Mvector.table, file="data/Mvalues.txt", row.names=FALSE,
             col.names=TRUE)
 
 ## write allelefreqs files
+x[is.na(x)] <- NA
+loci <- data.frame(locusnames, rep(2, L + Xchr.L),  dist, chr, row.names=NULL)
+dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "cM", "chr")
 trueallelefreqs <- data.frame(rep(loci[,1], each=2), alleleFreqs)
 dimnames(trueallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
 write.table(trueallelefreqs, file="data/trueallelefreqs.txt",
@@ -343,9 +346,6 @@ write.table(priorallelefreqs, file="data/priorallelefreqs.txt", row.names=FALSE,
             quote=FALSE)
 
 ## write locus file
-x[is.na(x)] <- NA
-loci <- data.frame(locusnames, rep(2, L + Xchr.L),  dist, chr, row.names=NULL)
-dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "cM", "chr")
 write.table(loci, file="data/loci.txt", row.names=FALSE, quote=FALSE)
 cat("locus file written\n")
   
