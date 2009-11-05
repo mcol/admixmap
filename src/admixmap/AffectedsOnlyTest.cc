@@ -130,7 +130,7 @@ void AffectedsOnlyTest::OutputAffectedsOnlyTest(bclib::DelimitedFileWriter& outf
 */
 void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const Theta, 
 			       bool RandomMatingModel, bool diploid, 
-			       const vector<vector<double> > AProbs){
+			       const vector<vector<double> >& AProbs){
   // k0 should be passed as 1 if K==1 
   // values of ancestry risk ratio at which likelihood ratio is evaluated
   double r1 = 0.5;

@@ -47,7 +47,8 @@ public:
 
   void Reset();
   void Update(unsigned int locus, int k0, const double* const Theta, 
-	      bool RandomMatingModel, bool diploid, const std::vector<std::vector<double> > AProbs);
+              bool RandomMatingModel, bool diploid,
+              const std::vector<std::vector<double> >& AProbs);
 
   void Accumulate();
 
