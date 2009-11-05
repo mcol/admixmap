@@ -140,15 +140,10 @@ protected:
   Individual();
   void SetUniformAdmixtureProps();
 
-
-  /// DDF: change rho to be passed by reference into UpdateHMMInputs() and
-  /// getLogLikelihood(); it is currently making a copy on every call.  Requires
-  /// changing derived classes also.
   virtual void UpdateHMMInputs(unsigned int j, const Options& options,
                                const AdmixtureProportions& theta,
                                const genepi::RhoType& rho) = 0;
 
-  /// See UpdateHMMInputs() for rho-reference
   virtual double getLogLikelihood(const Options& options,
                                   const AdmixtureProportions& theta,
                                   const genepi::RhoType& rho, bool updateHMM);
