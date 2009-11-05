@@ -38,6 +38,13 @@ AffectedsOnlyTest::~AffectedsOnlyTest(){
   delete[] SumAffectedsVarScore;
 
   if (test){
+
+    delete[] AffectedsScore;
+    delete[] AffectedsVarScore;
+    delete[] AffectedsInfo;
+    delete[] LikRatio1;
+    delete[] LikRatio2;
+
     std::vector<std::vector<std::string> > labels(1);
     labels[0].push_back("Locus");
     labels[0].push_back("Population");
