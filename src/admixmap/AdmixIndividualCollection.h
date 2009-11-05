@@ -23,6 +23,9 @@ class InputAdmixData;
 class IndAdmixOutputter;
 
 
+/** \addtogroup admixmap
+ * @{ */
+
 
 /// This only takes place if OpenMP is also enabled in the configuration
 /// options, and if the runtime option use-pedigree-for-individual
@@ -130,5 +133,9 @@ private:
   void SetNullValues();
   void LoadRepAncestry(const InputAdmixData* const);
 };
+
+
+/** @} */
+
 
 #endif /* !defined ADMIX_INDIVIDUAL_COLLECTION_H */

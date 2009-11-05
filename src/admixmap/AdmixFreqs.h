@@ -22,6 +22,11 @@
 class AdmixOptions;
 class InputAdmixData;
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 /// Class to hold allele/haplotype frequencies and their priors in a dispersion model.
 class AdmixFreqs : public AlleleFreqs{
 
@@ -45,5 +50,9 @@ protected:
 
   static double convertValueFromFile(const string s);
 };
+
+
+/** @} */
+
 
 #endif

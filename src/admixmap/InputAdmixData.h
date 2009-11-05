@@ -18,6 +18,11 @@
 
 class AdmixOptions;
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///class to read ADMIXMAP data
 class InputAdmixData : public InputData{
 
@@ -119,4 +124,9 @@ private:
   /// Assignment operator, not implemented.
   void operator=(const InputAdmixData&);
 };
+
+
+/** @} */
+
+
 #endif

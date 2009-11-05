@@ -25,6 +25,12 @@ class FreqArray;
 namespace bclib{
   class LogWriter;
 }
+
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///Class to implement a test for residual population stratification
 class StratificationTest
 {
@@ -59,5 +65,9 @@ private:
 
   std::vector<unsigned short> SampleHeterozygotePhase( const double*, const int ancestry[2] );
 };
+
+
+/** @} */
+
 
 #endif /* !defined STRATIFICATIONTEST_H */

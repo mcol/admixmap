@@ -29,6 +29,11 @@ namespace bclib{
   class LogWriter;
 }
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 /**
    Class to implement affecteds-only score test for linkage with locus ancestry
  */
@@ -102,8 +107,7 @@ private:
 };
 
 
-
-
+/** @} */
 
 
 #endif /* !defined SCORETESTS_H */

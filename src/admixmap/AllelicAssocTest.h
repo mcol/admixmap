@@ -20,6 +20,11 @@
 #include "AllelicAssocSubTest.h"
 #include "bclib/RObjectWriter.h"
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 /**
  *  Class to implement 
  *   (1) Score test for allelic association
@@ -68,5 +73,9 @@ private:
   unsigned NumOutputs;//counts calls to output function for dimensions of R objects
   void ROutput();
 };
+
+
+/** @} */
+
 
 #endif /* !defined ALLELICASSOCTEST_H */

@@ -20,6 +20,11 @@ namespace bclib{
   class DelimitedFileWriter;
 }
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///base class for tests in the AllelicAssocTest class
 class AllelicAssocSubTest{
 public:
@@ -140,6 +145,9 @@ private:
                                             double YMinusEY, double phi, double DInvLink);
 
 };
+
+
+/** @} */
 
 
 #endif /* !defined ALLELICASSOCSUBTEST_H */

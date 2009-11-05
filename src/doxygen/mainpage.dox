@@ -13,7 +13,7 @@
  *  - \ref base "Base"
  *    This is a library containing those objects that are common to both the
  *    admixmap and hapmixmap programs.
- *  - <B>ADMIXMAP</B>
+ *  - \ref admixmap "ADMIXMAP"
  *    A program to model admixture using marker genotype data
  *  - <B>HAPMIXMAP</B>
  *    A program to model HapMap haplotypes in genetic association studies using tag SNP genotypes
@@ -34,5 +34,13 @@
  *
  * <B>This library contains those objects that are common to both the
  * admixmap and hapmixmap programs.</B>
+ *
+ */
+
+
+/*!
+ * \defgroup admixmap ADMIXMAP: A program to model admixture using marker genotype data
+ *
+ * See also http://homepages.ed.ac.uk/pmckeigu/admixmap/
  *
  */

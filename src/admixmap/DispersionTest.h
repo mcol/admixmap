@@ -29,6 +29,11 @@ namespace bclib{
   class LogWriter;
 }
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///Class to implement test for dispersion of allele frequencies between unadmixed populations sampled and the corresponding ancestry-specific allele frequencies in the admixed population under study
 class DispersionTest{
 public:
@@ -47,13 +52,7 @@ private:
 };
 
 
-
-
-
-
-
-
-
+/** @} */
 
 
 #endif /* !defined DISPTEST_H */

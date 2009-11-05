@@ -21,6 +21,10 @@ using namespace::std;
 #include "bclib/cvector.h"
 
 
+/** \addtogroup admixmap
+ * @{ */
+
+
 /// Class to hold program options
 class AdmixOptions : public Options
 {
@@ -174,5 +178,9 @@ private:
   AdmixOptions(const AdmixOptions&);
   AdmixOptions& operator=(const AdmixOptions&);
 };
+
+
+/** @} */
+
 
 #endif /* ADMIX_OPTIONS_H */

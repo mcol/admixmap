@@ -24,6 +24,11 @@
 class AdmixOptions;
 class InputAdmixData;
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///Class to represent an individual in an admixture model
 class AdmixedIndividual : public Individual
 {
@@ -142,5 +147,9 @@ private:
 	virtual void dumpTheta( const char * prefix ) const;
     #endif
 };
+
+
+/** @} */
+
 
 #endif /* ADMIXED_INDIVIDUAL_H */

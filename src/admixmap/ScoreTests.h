@@ -25,6 +25,11 @@
 
 class FreqArray;
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 /**
  * Class acts as a container for the following tests:
  *   (1) Score test for allelic association
@@ -70,8 +75,7 @@ private:
 };
 
 
-
-
+/** @} */
 
 
 #endif /* !defined SCORETESTS_H */

@@ -19,6 +19,11 @@
 #include "AdmixFreqs.h"
 #include "bclib/DispersionSampler.h"
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///class to implement a dispersion model for allele frequencies
 class DispersionFreqs : public AdmixFreqs{
 public:
@@ -102,5 +107,9 @@ private:
 double fMu( double alpha, const void* const args );
 double dfMu( double alpha, const void* const args );
 double ddfMu( double alpha, const void* const args );
+
+
+/** @} */
+
 
 #endif

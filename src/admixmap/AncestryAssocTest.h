@@ -19,6 +19,11 @@ namespace bclib{
   class LogWriter;
 }
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 class AncestryAssocTest : public CopyNumberAssocTest{
 
 public:
@@ -32,5 +37,9 @@ private:
   unsigned firstpoplabel;
 
 };
+
+
+/** @} */
+
 
 #endif

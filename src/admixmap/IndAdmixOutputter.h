@@ -24,6 +24,10 @@
 class AdmixIndividualCollection;
 
 
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///Class to output individual admixture proportions and sumintensities to file
 class IndAdmixOutputter
 {
@@ -53,5 +57,9 @@ private:
   IndAdmixOutputter& operator=(const IndAdmixOutputter&);
 
 };
+
+
+/** @} */
+
 
 #endif /* !defined IND_ADMIX_OUTPUTTER */

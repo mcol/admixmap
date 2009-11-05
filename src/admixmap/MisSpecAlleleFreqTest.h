@@ -28,6 +28,11 @@
 class AlleleFreqs;
 class Genome;
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///a scalar test for SNPs only
 class MisSpecifiedAlleleFreqTest : public ScoreTestBase{
 public:
@@ -100,6 +105,10 @@ private:
   MisSpecifiedAlleleFreqTest2 Test2;
 
 };
+
+
+/** @} */
+
 
 #endif
 

@@ -19,6 +19,11 @@
 #define ETASAMPLER 1 //1 = RANDOM WALK METROPOLIS
                      //2 = HAMILTONIAN
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///class to implement a correlated allele frequency model
 class CorrelatedFreqs : public AdmixFreqs{
 public:
@@ -69,5 +74,9 @@ private:
   float getEtaSamplerAcceptanceRate()const;
   float getEtaSamplerStepsize()const;
 };
+
+
+/** @} */
+
 
 #endif

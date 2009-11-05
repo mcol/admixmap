@@ -29,6 +29,11 @@
 
 class InputAdmixData;
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 class AdmixMapModel : public Model{
 public:
   AdmixMapModel();
@@ -70,4 +75,9 @@ private:
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
   void WriteParamsAsRObjectDimensions(const AdmixOptions& options, const InputData& data);
 };
+
+
+/** @} */
+
+
 #endif /* MODEL_TOP_H */

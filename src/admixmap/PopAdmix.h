@@ -24,6 +24,11 @@
 class InputData;
 class AdmixIndividualCollection;
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 ///Class to hold and update population admixture and sumintensities parameters and their priors
 class PopAdmix
 {
@@ -103,5 +108,9 @@ private:
   PopAdmix& operator=(const PopAdmix&);
 
 };
+
+
+/** @} */
+
 
 #endif /* !defined POPADMIX_H */

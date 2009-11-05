@@ -21,6 +21,11 @@ namespace bclib{
   class LogWriter;
 }
 
+
+/** \addtogroup admixmap
+ * @{ */
+
+
 /**
    Class to implement score test for admixture association (admixturescoretest)
  */
@@ -51,5 +56,9 @@ private:
 
   void InitialiseAssocScoreFile(const Vector_s&);
 };
+
+
+/** @} */
+
 
 #endif /* !defined ADMIXTUREASSOCTEST_H */
