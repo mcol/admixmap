@@ -320,6 +320,15 @@ Mvector.table <- data.frame(avM, row.names=NULL)
 write.table(Mvector.table, file="data/Mvalues.txt", row.names=FALSE,
             col.names=TRUE)
 
+## write true X chromosome admixture proportions to file
+avMX <- avM
+for(i in 1:length(avM)) {
+  avMX[i] <- setXchrAdmixture(psi, c(1 - avM[i], avM[i]))[2]
+}
+MXvector.table <- data.frame(avMX, row.names=NULL)
+write.table(MXvector.table, file="data/MXvalues.txt", row.names=FALSE,
+            col.names=TRUE)
+
 ## write allelefreqs files
 x[is.na(x)] <- NA
 loci <- data.frame(locusnames, rep(2, L + Xchr.L),  dist, chr, row.names=NULL)
