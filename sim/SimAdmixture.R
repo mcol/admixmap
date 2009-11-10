@@ -73,9 +73,10 @@ simulateOffspringFromParents <- function(sex, parent1.genotypes, parent2.genotyp
   return(offspring.genotypes)
 }
 
-simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
+simulateHaploidAlleles <- function(M1, rho, x, L, alleleFreqs) {
   ## returns vector of simulated alleles on one admixed gamete
-  ## M is proportionate admixture from pop 1 
+  ## M1 is proportionate admixture from pop 1
+  M <- 1 - M1
   gameteAncestry <- integer(L) # takes values 1 or 2
   simAlleles <- integer(L)
   randAnc <- runif(L)  
@@ -142,7 +143,7 @@ distanceFromLast <- function(v.Chr, v.Position) {
 }
 
 simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs) {
-  M1 <- 1 - rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
+  M1 <- 1 - rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 2
   M2 <- M1 #assortative mating
   avM <- 1 - 0.5*(M1 + M2)
   ## now set X chr admixture proportions using psi, sex, M1, M2
@@ -212,6 +213,8 @@ for(locus in 1:(L+Xchr.L)) {
 ## set allele freqs as required for testing purposes
 ## use 0, 1, and 1, 0 to make all markers informative
 ## use 0.5, 0.5 and 0.5, 0.5 to make all markers uninformative
+
+## in this version, allele 2 is fixed in population 2
 alleleFreqs[,1] <- c(1, 0) # column 1
 alleleFreqs[,2] <- c(0, 1) # column 2
 
