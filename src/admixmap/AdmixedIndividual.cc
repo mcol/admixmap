@@ -139,14 +139,6 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   ThetaTuner.SetParameters( step0, 0.0001, 10.0, 0.44);
 }
 
-// void AdmixedIndividual::SetUniformAdmixtureProps() {
-//   size_t K = NumHiddenStates;
-//   for( unsigned g = 0; g < NumGametes; ++g ) {
-//     for(size_t k = 0; k < K; ++k)
-//       Theta[g*K+k] = 1.0 / K;
-//   }
-// }
-
 void AdmixedIndividual::InitialiseSumIntensities(const AdmixOptions* const options){
   double init=0.0;
   if( !options->isGlobalRho() && options->getIndAdmixHierIndicator()) {//model with individual- or gamete-specific sumintensities
