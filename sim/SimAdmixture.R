@@ -73,10 +73,9 @@ simulateOffspringFromParents <- function(sex, parent1.genotypes, parent2.genotyp
   return(offspring.genotypes)
 }
 
-simulateHaploidAlleles <- function(M1, rho, x, L, alleleFreqs) {
+simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
   ## returns vector of simulated alleles on one admixed gamete
-  ## M1 is proportionate admixture from pop 1
-  M <- 1 - M1
+  ## M is proportionate admixture from pop 1
   gameteAncestry <- integer(L) # takes values 1 or 2
   simAlleles <- integer(L)
   randAnc <- runif(L)  
@@ -143,9 +142,9 @@ distanceFromLast <- function(v.Chr, v.Position) {
 }
 
 simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs) {
-  M1 <- 1 - rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 2
+  M1 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
   M2 <- M1 #assortative mating
-  avM <- 1 - 0.5*(M1 + M2)
+  avM <- 0.5*(M1 + M2)
   ## now set X chr admixture proportions using psi, sex, M1, M2
   if(sex==1) {
     M1X <- NA
@@ -326,7 +325,7 @@ write.table(Mvector.table, file="data/Mvalues.txt", row.names=FALSE,
 ## write true X chromosome admixture proportions to file
 avMX <- avM
 for(i in 1:length(avM)) {
-  avMX[i] <- setXchrAdmixture(psi, c(1 - avM[i], avM[i]))[2]
+  avMX[i] <- setXchrAdmixture(psi, c(avM[i], 1 - avM[i]))[1]
 }
 MXvector.table <- data.frame(avMX, row.names=NULL)
 write.table(MXvector.table, file="data/MXvalues.txt", row.names=FALSE,
