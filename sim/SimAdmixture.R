@@ -16,18 +16,19 @@ oddsratios2xKtocolratios <- function(psi, P, Q) {
     slope <- -r1 * sum(psi * P / (1 + psi * r1)^2) # gradient w.r.t log r1
     theta.new <- theta.old - y / slope
     diff <- theta.new - theta.old
-    #cat("mu", P, "theta.new", theta.new, "difference", diff, "\n")
+    # cat("mu", P, "theta.new", theta.new, "difference", diff, "\n")
     theta.old <- theta.new
   }
   r1 <- exp(theta.new)
   r <- r1 * psi
-  #cat("rvector", r, "\n")
+  # cat("rvector", r, "\n")
   return(r)
 }
 
 setXchrAdmixture <- function(psi, mu) {
   r <- oddsratios2xKtocolratios(psi, mu, c(0.5, 0.5))
   muX <- 2 * mu * (1 + 2 * r) / (3 * (1 + r))
+  # cat("muX", muX, "\n")
   return(muX)
 }
 
@@ -75,7 +76,7 @@ simulateOffspringFromParents <- function(sex, parent1.genotypes, parent2.genotyp
 
 simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
   ## returns vector of simulated alleles on one admixed gamete
-  ## M is proportionate admixture from pop 1
+  ## M is proportionate admixture from pop 1 
   gameteAncestry <- integer(L) # takes values 1 or 2
   simAlleles <- integer(L)
   randAnc <- runif(L)  
@@ -90,11 +91,11 @@ simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
                             M - M*f[locus], 1-M + M*f[locus] ),
                           nrow=2, ncol=2))
     }
-    ## simulate ancestry at locus: pop 1 or 2
+    ## simulate ancestry at locus
     gameteAncestry[locus] <- ifelse(randAnc[locus] < Tmatrix[gameteAncestry[locus-1], 1], 1, 2)
   }
   for(locus in 1:L) {
-    ## simulate allele conditional on ancestry at locus : allele 1 if freq allele 1 > rand 0-1
+    ## simulate allele conditional on ancestry at locus
     simAlleles[locus] <- ifelse(runif(1) < alleleFreqs[2*locus - 1, gameteAncestry[locus]], 1, 2)
   }
   return(simAlleles)
@@ -104,13 +105,13 @@ simulateGenotypes <- function(sex, M1, M2, M1X, M2X, rho, x, L, Xchr.L, alleleFr
   ## returns a vector of genotypes for a single diploid individual
   ## set admixture proportions on X chromosome
   maternalGamete <- c(simulateHaploidAlleles(M2, rho, x, L,alleleFreqs[1:(2*L), ]),
-                      simulateHaploidAlleles(M2X, 0.5*rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))
+                      simulateHaploidAlleles(M2X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
   paternalGamete <- c(simulateHaploidAlleles(M1, rho, x, L,alleleFreqs[1:(2*L), ]),
-                      simulateHaploidAlleles(M1X, 0.5*rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))
+                      simulateHaploidAlleles(M1X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
   
   diploidAlleles <- paste(paternalGamete, maternalGamete, sep=",")
   if(Xchr.L > 0 & sex==1) { ## haploid at X chr loci - code as homozygous for maternal allele
-    diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("NA,([12])", "\\1,\\1", diploidAlleles[(L+1):(L+Xchr.L)])
+    diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("([12]),([12])", "\\1,\\1", diploidAlleles[(L+1):(L+Xchr.L)])
   }
   return(diploidAlleles)
 }
@@ -144,15 +145,15 @@ distanceFromLast <- function(v.Chr, v.Position) {
 simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs) {
   M1 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
   M2 <- M1 #assortative mating
-  avM <- 0.5*(M1 + M2)
+  avM <- 1 - 0.5*(M1 + M2)
   ## now set X chr admixture proportions using psi, sex, M1, M2
   if(sex==1) {
     M1X <- NA
   } else {
-    M1X <- setXchrAdmixture(psi, c(1 - M1, M1))[2]
+    M1X <- setXchrAdmixture(psi, c(M1, 1 - M1))[1]
   }
-  M2X <- setXchrAdmixture(psi, c(1 - M2, M2))[2]
-  
+  M2X <- setXchrAdmixture(psi, c(M2, 1 - M2))[1]
+  #cat("popadmixparams", popadmixparams, "M1", M1, "M2X", M2X, "\n")
   genotypes <- simulateGenotypes(sex, M1, M2, M1X, M2X, rho, dist, L, Xchr.L, alleleFreqs)
   ##make some genotypes missing
   ##for(locus in 1:L) if(runif(n=1) < 0.1)
@@ -172,7 +173,7 @@ x <- numeric(0)
 chr <- numeric(0)
 length <- sum(chr.L)
 chr.labels <- c(as.character(1:22), "X")
-spacing <- 20 # 40 cM spacing gives 99 autosomal loci
+spacing <- 40 # 40 cM spacing gives 99 autosomal loci
 for(chromosome in 1:23) {
   positions <- seq(0, chr.L[chromosome], spacing)
   x <- c( x, positions) 
@@ -195,7 +196,7 @@ rho <- 6 # sum-of-intensities
 eta <- 5 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmparams Di(1,2)
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(8, 2) # population admixture params for pop1, pop2
-psi <- c(1, 0.185) # ratio of odds of female lineage given ancestry from pop k to
+psi <- c(1, 0.165) # ratio of odds of female lineage given ancestry from pop k to
 ## odds of female lineage given ancestry from pop 1:  c(1, 1) if gene flow was sex-equal
 
 ## simulate mean allele freqs from beta (2, 2) distribution,
@@ -212,12 +213,11 @@ for(locus in 1:(L+Xchr.L)) {
 ## set allele freqs as required for testing purposes
 ## use 0, 1, and 1, 0 to make all markers informative
 ## use 0.5, 0.5 and 0.5, 0.5 to make all markers uninformative
-
-## in this version, allele 2 is fixed in population 2
-alleleFreqs[,1] <- c(1, 0) # column 1
-alleleFreqs[,2] <- c(0, 1) # column 2
+alleleFreqs[,1] <- c(0.8, 0.2)
+alleleFreqs[,2] <- c(0.2, 0.8)
 
 ## alternatively, read prior allele freqs from file
+
 
 ##############################################################
 popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
@@ -250,13 +250,12 @@ for(i in 1:N.ind) {
   ind <- simulateIndividual(sex.ind[i], popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
   genotypes.ind[i, ]  <- ind$genotypes
   avM[i] <- ind$avM
-  
-  ## simulate outcome
-  if(logistic) { # logistic regression with approx equal numbers of cases and controls
-    outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
-  } else { # linear regression
-    outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
-  }
+}
+## simulate outcome
+if(logistic) { # logistic regression with approx equal numbers of cases and controls
+  outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
+} else { # linear regression
+  outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
 }
 ped6.ind[1:N.ind, 5] <- sex.ind
 ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
@@ -295,58 +294,36 @@ mkdirs("data") # returns FALSE if directory already exists
 ## write pedfile format: 
 write.table(ped, file="data/genotypes.ped", sep="\t", quote=FALSE,
             row.names=FALSE, col.names=TRUE)
-
-## write all rows in ADMIXMAP format: 
-write.table(ped[, -c(1, 3:4, 6)], file="data/genotypes.txt", sep="\t", quote=FALSE,
+## write in standard ADMIXMAP format for unrelated individuals
+write.table(ped[, -c(1, 3:4, 6)], file="data/genotypes.txt", quote=FALSE,
             row.names=FALSE, col.names=TRUE)
-
-
-## write odd-numbered rows in standard ADMIXMAP format for unrelated individuals
-write.table(ped[seq(1, N, by=2), -c(1, 3:4, 6)], file="data/genotypes1.txt", quote=FALSE,
-            row.names=FALSE, col.names=TRUE)
-## write even-numbered rows in standard ADMIXMAP format for unrelated individuals
-write.table(ped[seq(2, N, by=2), -c(1, 3:4, 6)], file="data/genotypes2.txt", quote=FALSE,
-            row.names=FALSE, col.names=TRUE)
-
-
+            
 ## write outcome variable to file
 outcome.table <- data.frame(ped6[, 6] - 1, row.names=NULL) 
 write.table(outcome.table, file="data/outcome.txt", row.names=FALSE, col.names="outcome")
-write.table(outcome.table[seq(1, N, by=2), ], file="data/outcome1.txt", row.names=FALSE,
-            col.names="outcome")
-write.table(outcome.table[seq(1, N, by=2), ], file="data/outcome2.txt", row.names=FALSE,
-            col.names="outcome")
-
 ## write true admixture proportions to file
 Mvector.table <- data.frame(avM, row.names=NULL)
 write.table(Mvector.table, file="data/Mvalues.txt", row.names=FALSE,
             col.names=TRUE)
 
-## write true X chromosome admixture proportions to file
-avMX <- avM
-for(i in 1:length(avM)) {
-  avMX[i] <- setXchrAdmixture(psi, c(avM[i], 1 - avM[i]))[1]
-}
-MXvector.table <- data.frame(avMX, row.names=NULL)
-write.table(MXvector.table, file="data/MXvalues.txt", row.names=FALSE,
-            col.names=TRUE)
-
-## write allelefreqs files
+## write locus file
 x[is.na(x)] <- NA
 loci <- data.frame(locusnames, rep(2, L + Xchr.L),  dist, chr, row.names=NULL)
 dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "cM", "chr")
+write.table(loci, file="data/loci.txt", row.names=FALSE, quote=FALSE)
+
+## write allelefreqs files
 trueallelefreqs <- data.frame(rep(loci[,1], each=2), alleleFreqs)
 dimnames(trueallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
 write.table(trueallelefreqs, file="data/trueallelefreqs.txt",
             row.names=FALSE, quote=FALSE)                               
 
-N.unadmixed <- 60
 ## draw allele counts given true values
 alleleCounts <- array(data=NA, dim=c(L+Xchr.L, 2, 2)) # 2nd dim indexes subpops, 3rd dim indexes alleles
 for(locus in 1:(L+Xchr.L)) {
-  alleleCounts[locus,1,1] <- rbinom(1, 2*N.unadmixed, alleleFreqs[2*locus-1, 1])
-  alleleCounts[locus,2,1] <- rbinom(1, 2*N.unadmixed, alleleFreqs[2*locus-1, 2])
-  alleleCounts[locus,,2] <- 2*N.unadmixed - alleleCounts[locus,,1]
+  alleleCounts[locus,1,1] <- rbinom(1, 2*N, alleleFreqs[2*locus-1, 1])
+  alleleCounts[locus,2,1] <- rbinom(1, 2*N, alleleFreqs[2*locus-1, 2])
+  alleleCounts[locus,,2] <- 2*N - alleleCounts[locus,,1]
 }
 
 priorallelefreqs <- as.data.frame(0.5+array(as.vector(aperm(alleleCounts, c(3,1,2))),
@@ -356,7 +333,5 @@ priorallelefreqs <- data.frame(locusnames, priorallelefreqs)
 write.table(priorallelefreqs, file="data/priorallelefreqs.txt", row.names=FALSE, sep="\t",
             quote=FALSE)
 
-## write locus file
-write.table(loci, file="data/loci.txt", row.names=FALSE, quote=FALSE)
-cat("locus file written\n")
+
   
