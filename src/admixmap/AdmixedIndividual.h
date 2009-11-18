@@ -76,6 +76,7 @@ public:
   void AnnealGenotypeProbs(int j, const double coolness);
 
   void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
+  void WritePosteriorMeansXChr(ostream& os, unsigned samples) const;
   void WritePosteriorMeansLoci(ostream& os)const;
 private:
   const bool IAmUnderTest; //true if not in Individual array

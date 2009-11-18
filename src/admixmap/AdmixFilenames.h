@@ -1,8 +1,10 @@
 // *-*-C++-*-*
+
 /**
-   /file AdmixFilenames.h
-   /brief default output filenames for ADMIXMAP
-*/
+ *  @file AdmixFilenames.h
+ *  Default output filenames for ADMIXMAP
+ */
+
 #define ANCESTRYASSOCTEST_PVALUES "TestAncestryAssocPValues.txt"
 #define ANCESTRYASSOCTEST_FINAL   "TestAncestryAssocFinal.txt"
 
@@ -33,4 +35,5 @@
 #define FST_OUTPUT_FILE         "FST.txt"
 
 #define IND_ADMIXTURE_POSTERIOR_MEANS "IndAdmixPosteriorMeans.txt"
+#define IND_ADMIXTURE_POSTERIOR_MEANS_XCHR "IndAdmixPosteriorMeansXChr.txt"
 #define LOCUS_ANCESTRY_POSTERIOR_PROBS "LocusAncestryPosteriorProbs.txt"

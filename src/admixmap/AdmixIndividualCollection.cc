@@ -717,6 +717,39 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
   }
   meanfile.close();
 
+  // report the admixtures for the X chromosome
+  if (Loci->isX_data()) {
+
+    ofstream xmeanfile((options.getResultsDir() + "/" +
+                        IND_ADMIXTURE_POSTERIOR_MEANS_XCHR).c_str());
+
+    // set 3 decimal places
+    xmeanfile << std::setfill(' ');
+    xmeanfile.setf(std::ios::fixed);
+    xmeanfile.precision(3);
+    xmeanfile.width(3);
+
+    // write header
+    for(int k = 0; k < options.getPopulations(); ++k) {
+      xmeanfile << PopLabels[k];
+      if(options.isRandomMatingModel())
+        xmeanfile << "1";
+      xmeanfile << "\t";
+    }
+    if (options.isRandomMatingModel()) {
+      for (int k = 0; k < options.getPopulations(); ++k)
+        xmeanfile << PopLabels[k] << "2\t";
+    }
+    xmeanfile << endl;
+
+    // write the values
+    for(unsigned int i = 0; i < size; i++ ) {
+      getElement(i).WritePosteriorMeansXChr(xmeanfile, samples);
+      xmeanfile << endl;
+    }
+    xmeanfile.close();
+  }
+
   if(options.getLocusAncestryProbsIndicator()) {
     // write posterior probs locus ancestry to file
     ofstream locifile((options.getResultsDir() + "/" + LOCUS_ANCESTRY_POSTERIOR_PROBS).c_str());

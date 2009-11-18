@@ -202,6 +202,7 @@ double PedBase::getLogPosteriorAlleleFreqs()const { not_implemented( "getLogPost
 
 void PedBase::WritePosteriorMeans(ostream& /*os*/, unsigned /*samples*/, bool /*globalrho*/) const { not_implemented( "WritePosteriorMeans()", typeid(*this) ); }
 
+void PedBase::WritePosteriorMeansXChr(ostream& /*os*/, unsigned /*samples*/) const { not_implemented( "WritePosteriorMeansXChr()", typeid(*this) ); }
 
 void PedBase::WritePosteriorMeansLoci(ostream& /*os*/) const { not_implemented( "WritePosteriorMeansLoci()", typeid(*this) ); }
 

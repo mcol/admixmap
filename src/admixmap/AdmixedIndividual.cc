@@ -487,6 +487,32 @@ void AdmixedIndividual::WritePosteriorMeans(ostream& os, unsigned samples, bool 
 
 }
 
+void AdmixedIndividual::WritePosteriorMeansXChr(ostream& os, unsigned samples) const {
+
+  // We do not explicitly store the X chromosome admixtures, but they are
+  // computed from the autosomal admixtures. Therefore, to get the posterior
+  // means for the X chromosome admixtures, we first have to get the autosomal
+  // posterior means, store them in an AdmixtureProportions object and then
+  // ask it to compute the X chromosome admixtures.
+
+  const unsigned size = NumGametes * NumHiddenStates;
+  AdmixtureProportions ThetaPosteriorMeans(NumGametes, NumHiddenStates);
+  double *ThetaMean = new double[size];
+  cvector<double> rhobar;
+
+  // get the autosomal posterior means and store them
+  getPosteriorMeans(ThetaMean, rhobar, samples);
+  for (unsigned int g = 0; g < NumGametes; ++g)
+    for (int k = 0; k < NumHiddenStates; ++k)
+      ThetaPosteriorMeans[g][k] = ThetaMean[NumHiddenStates * g + k];
+
+  // get the X chromosome posterior means
+  const double *ThetaMeanX = ThetaPosteriorMeans.flatXChromosome(psi);
+  copy(ThetaMeanX, ThetaMeanX + size, ostream_iterator<double>(os, "\t"));
+
+  delete[] ThetaMean;
+}
+
 void AdmixedIndividual::WritePosteriorMeansLoci(ostream& os)const{
   //getPosteriorMeans(ThetaBar, rhobar, samples);
   int NumCompositeLoci = Loci->GetNumberOfCompositeLoci();

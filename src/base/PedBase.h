@@ -174,6 +174,7 @@ class PedBase
 	virtual double getLogPosteriorRho()const;
 	virtual double getLogPosteriorAlleleFreqs()const;
 	virtual void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
+	virtual void WritePosteriorMeansXChr(ostream& os, unsigned samples) const;
 	virtual void WritePosteriorMeansLoci(ostream& os)const;
 	virtual void setOddsRatios(genepi::cvector<double>& psi);
 
