@@ -66,6 +66,8 @@ public:
   bool isHaploidIndividual()const;
 
   virtual double getLogLikelihood(const Options& , bool forceUpdate, bool store);
+  virtual double getLogLikelihoodXChr(const Options&, bool forceUpdate,
+                                      bool store);
   void storeLogLikelihood(const bool setHMMAsOK); ///< to call if a Metropolis proposal is accepted
   virtual double getLogLikelihoodAtPosteriorMeans(const Options& options);
 
@@ -137,6 +139,8 @@ protected:
                       ///< for this individual
   } logLikelihood;
 
+  static genepi::cvector<double> psi; ///< Odds ratios for the X chromosome admixtures
+
   Individual();
   void SetUniformAdmixtureProps();
 
@@ -148,8 +152,14 @@ protected:
                                   const AdmixtureProportions& theta,
                                   const genepi::RhoType& rho, bool updateHMM);
 
+  virtual double getLogLikelihoodXChr(const Options& options,
+                                      const AdmixtureProportions& theta,
+                                      const genepi::RhoType& rho, bool updateHMM);
+
   public:
     const genepi::RhoType & getRho() const;
+
+  void setOddsRatios(genepi::cvector<double>& psi);
 
 };
 

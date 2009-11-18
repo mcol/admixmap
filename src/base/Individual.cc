@@ -28,6 +28,7 @@ unsigned Individual::X_posn;
 unsigned int Individual::numChromosomes;
 Genome * Individual::Loci;
 int Individual::NumHiddenStates;
+genepi::cvector<double> Individual::psi;
 
 
 
@@ -175,7 +176,10 @@ void Individual::SetStaticMembers( Genome & pLoci, const Options & options ) {
   NumHiddenStates = options.getPopulations();
   Xdata = Loci->isX_data();
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
-  if(Xdata) X_posn = Loci->GetChrNumOfLocus(Loci->getFirstXLocus());//too clunky, should simplify
+  if(Xdata) {
+    X_posn = Loci->GetChrNumOfLocus(Loci->getFirstXLocus());//too clunky, should simplify
+    psi.resize(NumHiddenStates, 1.0);
+  }
 }
 
 
@@ -297,6 +301,44 @@ double Individual::getLogLikelihood(const Options& options,
   return LogLikelihood;
 }
 
+// public function:
+// calls private function to get log-likelihood at current parameter values
+// only for the X chromosome
+double Individual::getLogLikelihoodXChr(const Options& options,
+                                        const bool forceUpdate,
+                                        const bool /* store */) {
+
+  return getLogLikelihoodXChr(options, Theta, _rho,
+                              forceUpdate || !logLikelihood.ready);
+}
+
+// private function: gets log-likelihood for the X chromosome only
+// at parameter values specified as arguments
+double Individual::getLogLikelihoodXChr(const Options& options,
+                                        const AdmixtureProportions& theta,
+                                        const RhoType& rho, bool updateHMM) {
+
+  double LogLikelihood = 0.0;
+  for (unsigned int j = 0; j < numChromosomes; ++j) {
+
+    // skip the autosomes
+    if (!Loci->isXChromosome(j))
+      continue;
+
+    if (updateHMM) // force update of forward probs
+      UpdateHMMInputs(j, options, theta, rho);
+
+    LogLikelihood = Loci->getChromosome(j)->HMM->getLogLikelihood(!isHaploid && SexIsFemale);
+    if (isnan(LogLikelihood)) {
+      throw string("HMM returns log-likelihoodXChr as nan (not a number)\n");
+    }
+
+    break;
+  }
+
+  return LogLikelihood;
+}
+
 void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Metropolis proposal is accepted
     logLikelihood.value = logLikelihood.tempvalue;
     logLikelihood.ready = true;
@@ -366,4 +408,8 @@ void Individual::SampleMissingOutcomes(bclib::DataMatrix *Outcome, const vector<
       }
     }
   }
+}
+
+void Individual::setOddsRatios(genepi::cvector<double>& _psi) {
+  psi = _psi;
 }

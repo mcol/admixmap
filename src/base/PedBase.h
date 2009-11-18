@@ -109,6 +109,7 @@ class PedBase
 	virtual bool isHaploidIndividual()const;
 
 	virtual double getLogLikelihood( const Options & , bool forceUpdate, bool store );
+	virtual double getLogLikelihoodXChr(const Options&, bool forceUpdate, bool store);
 	virtual double getLogLikelihoodAtPosteriorMeans(const Options& options);
 
 	/// Called if a Metropolis proposal is accepted.  Public so that can be
@@ -174,6 +175,7 @@ class PedBase
 	virtual double getLogPosteriorAlleleFreqs()const;
 	virtual void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
 	virtual void WritePosteriorMeansLoci(ostream& os)const;
+	virtual void setOddsRatios(genepi::cvector<double>& psi);
 
 
 

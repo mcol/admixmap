@@ -101,6 +101,8 @@ bool PedBase::isHaploidIndividual()const { not_implemented( "isHaploidIndividual
 
 double PedBase::getLogLikelihood(const Options& , const bool /*forceUpdate*/, const bool /*store*/) { not_implemented( "getLogLikelihood()", typeid(*this) ); }
 
+double PedBase::getLogLikelihoodXChr(const Options& , const bool /*forceUpdate*/, const bool /*store*/) { not_implemented( "getLogLikelihoodXChr()", typeid(*this) ); }
+
 void PedBase::storeLogLikelihood(const bool /*setHMMAsOK*/) { not_implemented( "storeLogLikelihood()", typeid(*this) ); }
 
 double PedBase::getLogLikelihoodAtPosteriorMeans(const Options& /*options*/) { not_implemented( "getLogLikelihoodAtPosteriorMeans()", typeid(*this) ); }
@@ -203,6 +205,7 @@ void PedBase::WritePosteriorMeans(ostream& /*os*/, unsigned /*samples*/, bool /*
 
 void PedBase::WritePosteriorMeansLoci(ostream& /*os*/) const { not_implemented( "WritePosteriorMeansLoci()", typeid(*this) ); }
 
+void PedBase::setOddsRatios(genepi::cvector<double>& /*os*/) { not_implemented( "setOddsRatios()", typeid(*this) ); }
 
 
 } // ---- end namespace genepi

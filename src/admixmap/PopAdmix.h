@@ -45,6 +45,8 @@ public:
   
   void UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC, bool sumlogtheta );
 
+  void UpdateOddsRatios(const AdmixIndividualCollection& IC, bool sumlogpsi);
+
   void UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const, bclib::LogWriter &Log);
   
   void OutputParams();
@@ -89,6 +91,12 @@ private:
   int w, NumberOfUpdates;
   double step;
   double step0;
+
+  genepi::cvector<double> psi;
+  genepi::cvector<bclib::StepSizeTuner> TunePsiSampler;
+  genepi::cvector<double> psistep;
+  genepi::cvector<double> SumLogPsi;
+  int NumberOfPsiUpdates;
 
   genepi::cvector<genepi::cvector<double> > alpha; //population admixture Dirichlet parameters
   genepi::cvector<double> SumAlpha; //ergodic sums of alphas

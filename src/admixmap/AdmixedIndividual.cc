@@ -966,10 +966,18 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options& options,
 
   // set StateArrivalProbs in HMM
   if(diploid || !isRandomMating){
-    C->HMM->SetStateArrivalProbs(theta.flat(), (int)isRandomMating, diploid);
+    if (C->isXChromosome())
+      C->HMM->SetStateArrivalProbs(theta.flatXChromosome(psi),
+                                   (int)isRandomMating, diploid);
+    else
+      C->HMM->SetStateArrivalProbs(theta.flat(), (int)isRandomMating, diploid);
   }
   else{ //haploid case in random mating model: pass pointer to maternal admixture props
-    C->HMM->SetStateArrivalProbs(theta.flat() + NumHiddenStates, true, false);
+    if (C->isXChromosome())
+      C->HMM->SetStateArrivalProbs(theta.flatXChromosome(psi) + NumHiddenStates,
+                                   true, false);
+    else
+      C->HMM->SetStateArrivalProbs(theta.flat() + NumHiddenStates, true, false);
   }
 
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed

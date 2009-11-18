@@ -172,6 +172,10 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
   // leaves individuals with HMM probs bad, stored likelihood ok
   // this function also sets locus correlations in Chromosomes
 
+  // update the odds ratios vector psi
+  if ((options.getPopulations() > 1) && Loci.isX_data())
+    L->UpdateOddsRatios(*AdmixedIndividuals, iteration > options.getBurnIn());
+
   //find posterior modes of individual admixture at end of burn-in
   //set Chib numerator
   if(!anneal && iteration == options.getBurnIn() && (options.getChibIndicator() || strlen(options.getIndAdmixModeFilename()))) {

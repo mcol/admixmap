@@ -69,6 +69,10 @@ class AdmixtureProportions {
   /// Return a (read-only) flattened version of the internal vectors
   const double* flat() const;
 
+  /// Return a (read-only) flattened version of the internal vectors adjusted
+  /// to account for the admixture ratio of the X chromosome
+  const double* flatXChromosome(const genepi::cvector<double>& psi) const;
+
   /// Print the content of the internal vectors
   void print() const;
 

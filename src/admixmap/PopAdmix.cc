@@ -90,6 +90,20 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
       }
     }
 
+    if (Loci.isX_data()) {
+
+      NumberOfPsiUpdates = 0;
+      psi.resize(K, 1.0);
+      psistep.resize(K, 1.0);
+      SumLogPsi.resize(K);
+
+      // initialise the tuner for psi: we create a stepsize tuner for each
+      // element of psi, but we never use the first element as it corresponds
+      // to psi[0] which is 1.0 by definition
+      TunePsiSampler.resize(K);
+      for (int i = 1; i < K; ++i)
+        TunePsiSampler[i].SetParameters(1.0, 0.01, 10, 0.44);
+    }
 
     // ** Open paramfile **
     if ( options.getIndAdmixHierIndicator()){
@@ -289,6 +303,86 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
 }
 
 
+/// Updates the odds ratio vector psi with a random-walk Metropolis-Hastings
+/// algorithm
+void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
+                                bool sumlogpsi) {
+
+  using bclib::Rand;
+
+  const int IC_size = IC.getSize();
+  cvector<double> psiprop(K);
+
+  if (sumlogpsi)
+    NumberOfPsiUpdates++;
+
+  // In the update of the odds ratio vector psi, we skip element 0 as it
+  // is 1.0 by definition, and we do a random-walk on the other elements
+  for (int el = 1; el < K; ++el) {
+
+    double LogLikelihood = 0.0;
+    double LogLikelihoodAtProposal = 0.0;
+
+    // propose log psi from normal distribution with SD step
+    const double logpsi = log(psi[el]);
+    const double logpsiprop = Rand::gennor(logpsi, psistep[el]);
+    psiprop = psi;
+    psiprop[el] = exp(logpsiprop);
+
+    // get log likelihood at current parameter values
+    for (int i = 0; i < IC_size; ++i) {
+
+      PedBase& ind = IC.getElement(i);
+
+      // force update, don't store the result
+      LogLikelihood += ind.getLogLikelihoodXChr(options, true, false);
+
+      // HMM probs overwritten by next indiv
+      ind.HMMIsBad(true);
+    }
+
+    // set the proposed values for psi
+    IC.getElement(0).setOddsRatios(psiprop);
+
+    // get log likelihood at proposed values
+    for (int i = 0; i < IC_size; ++i) {
+
+      PedBase& ind = IC.getElement(i);
+
+      // force update, don't store the result
+      LogLikelihoodAtProposal += ind.getLogLikelihoodXChr(options, true, false);
+
+      // HMM probs overwritten by next indiv
+      ind.HMMIsBad(true);
+    }
+
+    const double LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
+
+    // gamma(1,1)
+    const double LogPriorRatio = (logpsiprop - logpsi) - (psiprop[el] - psi[el]);
+    const double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio;
+
+    // generic Metropolis step
+    const bool accept = (LogAccProbRatio >= 0) ||
+                        (log(Rand::myrand()) < LogAccProbRatio);
+
+    if (accept) {
+      psi = psiprop;
+    }
+
+    // psi is static within Individual
+    IC.getElement(0).setOddsRatios(psi);
+
+    // update sampler object every w updates
+    if( !(NumberOfPsiUpdates % w) )
+      psistep[el] = TunePsiSampler[el].UpdateStepSize(exp(LogAccProbRatio));
+
+    // Accumulate sum of log of sumintensities after burnin
+    if (sumlogpsi)
+      SumLogPsi[el] += logpsi;
+  }
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -330,6 +424,11 @@ void PopAdmix::OutputParams(bclib::Delimitedostream& out){
     out << setprecision(6) << rho[0] ;
   else
     out << setprecision(6) << rhoalpha / rhobeta ;
+
+  // odds ratios
+  if (Loci.isX_data())
+    for (size_t i = 0; i < psi.size(); ++i)
+      out << setprecision(6) << psi[i];
 }
 
 void PopAdmix::OutputParams(){
@@ -359,4 +458,15 @@ void PopAdmix::printAcceptanceRates(bclib::LogWriter &Log) {
 	  << step	<< "\n";
     }
 
+    if (Loci.isX_data()) {
+      Log << "Expected acceptance rate in the odds ratios sampler:\n";
+      for (int i = 1; i < K; ++i)
+        Log << "population " << i << ": "
+            << TunePsiSampler[i].getExpectedAcceptanceRate()
+            << " with final step size of " << psistep[i] << "\n";
+      Log << "Odds ratios on the X chromosome:\n";
+      for (int i = 0; i < K; ++i)
+        Log << "population " << i << ": "
+            << exp(SumLogPsi[i] / NumberOfPsiUpdates) << "\n";
+    }
 }
