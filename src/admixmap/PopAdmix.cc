@@ -52,7 +52,7 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
     //set values for sampler
     const genepi::cvector<float> & samplerparams = options.getPopAdmixSamplerParams();
     const size_t size = samplerparams.size();
-    float initial_stepsize = size? samplerparams[0] : 0.03;
+    float initial_stepsize = size? samplerparams[0] : 0.02;
     unsigned num_leapfrogs = size? (unsigned)samplerparams[1] : 40;
     PopAdmixSampler.SetSize( obs, K, initial_stepsize, num_leapfrogs );
 
