@@ -1084,16 +1084,19 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
       vector<vector<double> > AProbs =
 	chrm->getHiddenStateCopyNumberProbs(!isHaploid && (!chrm->isXChromosome() || SexIsFemale),  jj );
 
+      // diploid is true if (not isHaploid) and (female or not X chr)
+      bool diploid = !isHaploid && (SexIsFemale ||
+                                    (Loci->GetChrNumOfLocus(locus) != X_posn));
+
       //Update affecteds only scores
       if(IamAffected){
-	// argument diploid is true if (not isHaploid) and (female or not X chr)
         // if random mating model and X chr in male, should pass Theta+NumHiddenStates (maternal gamete admixture) as Theta
 	if(options.isRandomMatingModel() && !SexIsFemale && (Loci->GetChrNumOfLocus(locus) == X_posn)) {
           affectedsOnlyTest.Update(locus, k0, Theta.flat() + NumHiddenStates, options.isRandomMatingModel(),
-				   !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
+                                   diploid, AProbs);
 	} else { // just pass Theta
           affectedsOnlyTest.Update(locus, k0, Theta.flat(), options.isRandomMatingModel(),
-				   !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
+                                   diploid, AProbs);
 	}
       }
 
@@ -1102,7 +1105,7 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
 	ancestryAssocTest.Update(locus, admixtureCovars, R[0]->getDispersion(),
 				 Outcome->get(getIndex(), 0) - R[0]->getExpectedOutcome(getIndex()),
 				 R[0]->DerivativeInverseLinkFunction(getIndex()),
-				 !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs);
+                                 diploid, AProbs);
       }
 
       if( options.getLocusAncestryProbsIndicator() ) {
