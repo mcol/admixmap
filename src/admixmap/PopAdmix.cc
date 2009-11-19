@@ -397,6 +397,13 @@ void PopAdmix::InitializeOutputFile(const Vector_s& PopulationLabels) {
   if( options.isGlobalRho() ) outputstream << "sumIntensities\t";
   else outputstream << "sumIntensities.mean\t";
 
+  // Odds ratios for the X chromosome
+  if (Loci.isX_data()) {
+    for (int i = 0; i < options.getPopulations(); i++) {
+      outputstream << "Psi." << PopulationLabels[i] << "\t";
+    }
+  }
+
   outputstream.delimit(true);
   outputstream << bclib::newline;
 }

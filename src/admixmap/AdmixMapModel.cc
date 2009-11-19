@@ -504,6 +504,14 @@ void AdmixMapModel::WriteParamsAsRObjectDimensions(const AdmixOptions& options, 
     if( options.isGlobalRho() )  dimnames[0].push_back("sumIntensities");
     else  dimnames[0].push_back("sumIntensities.mean");
 
+    // Odds ratios for the X chromosome
+    if (Loci.isX_data()) {
+      for (int i = 0; i < options.getPopulations(); i++) {
+        stringstream ss;
+        ss << "Psi." << PopulationLabels[i];
+        dimnames[0].push_back(ss.str());
+      }
+    }
   }
 
   //allele freq precision
