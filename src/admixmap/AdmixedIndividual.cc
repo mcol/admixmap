@@ -1090,9 +1090,18 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
 
       //Update affecteds only scores
       if(IamAffected){
-        // if random mating model and X chr in male, should pass Theta+NumHiddenStates (maternal gamete admixture) as Theta
+        // if random mating model and X chromosome in male, should pass the
+        // maternal gamete X chromosome admixture
 	if(options.isRandomMatingModel() && !SexIsFemale && (Loci->GetChrNumOfLocus(locus) == X_posn)) {
-          affectedsOnlyTest.Update(locus, k0, Theta.flat() + NumHiddenStates, options.isRandomMatingModel(),
+          affectedsOnlyTest.Update(locus, k0,
+                                   Theta.flatXChromosome(psi) + NumHiddenStates,
+                                   options.isRandomMatingModel(),
+                                   diploid, AProbs);
+        }
+        // if X chromosome
+        else if (Loci->GetChrNumOfLocus(locus) == X_posn) {
+          affectedsOnlyTest.Update(locus, k0, Theta.flatXChromosome(psi),
+                                   options.isRandomMatingModel(),
                                    diploid, AProbs);
 	} else { // just pass Theta
           affectedsOnlyTest.Update(locus, k0, Theta.flat(), options.isRandomMatingModel(),
