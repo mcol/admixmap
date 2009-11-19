@@ -111,7 +111,7 @@ simulateGenotypes <- function(sex, M1, M2, M1X, M2X, rho, x, L, Xchr.L, alleleFr
   
   diploidAlleles <- paste(paternalGamete, maternalGamete, sep=",")
   if(Xchr.L > 0 & sex==1) { ## haploid at X chr loci - code as homozygous for maternal allele
-    diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("([12]),([12])", "\\1,\\1", diploidAlleles[(L+1):(L+Xchr.L)])
+    diploidAlleles[(L+1):(L+Xchr.L)] <- gsub("(NA),([12])", "\\2,\\2", diploidAlleles[(L+1):(L+Xchr.L)])
   }
   return(diploidAlleles)
 }
@@ -173,7 +173,7 @@ x <- numeric(0)
 chr <- numeric(0)
 length <- sum(chr.L)
 chr.labels <- c(as.character(1:22), "X")
-spacing <- 40 # 40 cM spacing gives 99 autosomal loci
+spacing <- 10 # 40 cM spacing gives 99 autosomal loci
 for(chromosome in 1:23) {
   positions <- seq(0, chr.L[chromosome], spacing)
   x <- c( x, positions) 
@@ -186,7 +186,6 @@ Xchr.L <- length(positions) # number of X chr loci
 
 ## alternatively, read marker positions from file
 # locustable <- read.table("loci.txt", header=TRUE)
-
 
 L <- length(x) - Xchr.L # number of autosomal loci
 
@@ -220,12 +219,12 @@ alleleFreqs[,2] <- c(0.2, 0.8)
 
 
 ##############################################################
-popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
+popM <- popadmixparams[2] / sum(popadmixparams) # mean admixture proportions
 beta <- 2 # regression slope for effect of admixture
 alpha <- -beta*popM 
 logistic <- TRUE # logistic or linear
 
-N.ind <- 100
+N.ind <- 400
 N.sibpairs <- 0
 
 ####################################################################
@@ -250,12 +249,12 @@ for(i in 1:N.ind) {
   ind <- simulateIndividual(sex.ind[i], popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
   genotypes.ind[i, ]  <- ind$genotypes
   avM[i] <- ind$avM
-}
-## simulate outcome
-if(logistic) { # logistic regression with approx equal numbers of cases and controls
-  outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
-} else { # linear regression
-  outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
+  ## simulate outcome
+  if(logistic) { # logistic regression with approx equal numbers of cases and controls
+    outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
+  } else { # linear regression
+    outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
+  }
 }
 ped6.ind[1:N.ind, 5] <- sex.ind
 ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
@@ -297,7 +296,8 @@ write.table(ped, file="data/genotypes.ped", sep="\t", quote=FALSE,
 ## write in standard ADMIXMAP format for unrelated individuals
 write.table(ped[, -c(1, 3:4, 6)], file="data/genotypes.txt", quote=FALSE,
             row.names=FALSE, col.names=TRUE)
-            
+
+
 ## write outcome variable to file
 outcome.table <- data.frame(ped6[, 6] - 1, row.names=NULL) 
 write.table(outcome.table, file="data/outcome.txt", row.names=FALSE, col.names="outcome")
