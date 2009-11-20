@@ -481,12 +481,12 @@ void PopAdmix::printAcceptanceRates(bclib::LogWriter &Log) {
     if (Loci.isX_data()) {
       Log << "Expected acceptance rate in the odds ratios sampler:\n";
       for (int i = 1; i < K; ++i)
-        Log << "population " << i << ": "
+        Log << "population " << i + 1 << ": "
             << TunePsiSampler[i].getExpectedAcceptanceRate()
             << " with final step size of " << psistep[i] << "\n";
-      Log << "Odds ratios on the X chromosome:\n";
-      for (int i = 0; i < K; ++i)
-        Log << "population " << i << ": "
+      Log << "Odds ratios female/male between ancestral populations:\n";
+      for (int i = 1; i < K; ++i)
+        Log << "population " << i + 1 << " vs population 1: "
             << exp(SumLogPsi[i] / NumberOfPsiUpdates) << "\n";
     }
 }
