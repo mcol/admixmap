@@ -68,6 +68,8 @@ public:
   
   void resetStepSizeApproximator(int k); 
   
+  void StoreOddsRatiosPosteriorMean(const AdmixIndividualCollection& IC);
+
   //functions required by base class, not used
 //   const double* getGlobalTheta()const{return 0;};
 //   void SampleHapMixLambda(const int* , bool ) {};

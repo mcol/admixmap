@@ -429,6 +429,8 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     }
   }
   else{
+    if (Loci.isX_data())
+      L->StoreOddsRatiosPosteriorMean(*AdmixedIndividuals);
     AdmixedIndividuals->WritePosteriorMeans(options, data.GetHiddenStateLabels(), &Loci);
   }
   //FST

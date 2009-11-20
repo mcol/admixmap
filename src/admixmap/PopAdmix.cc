@@ -383,6 +383,19 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
   }
 }
 
+/// Computes the posterior mean for the odds ratio vector and stores it in
+/// the Individual.
+/// This must be called before computing any other posterior means, otherwise
+/// we end up using the psi set at the last iteration.
+void PopAdmix::StoreOddsRatiosPosteriorMean(const AdmixIndividualCollection& IC) {
+
+  // compute the posterior mean
+  for (int i = 0; i < K; ++i)
+    psi[i] = exp(SumLogPsi[i] / NumberOfPsiUpdates);
+
+  // store it within the individual
+  IC.getElement(0).setOddsRatios(psi);
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
