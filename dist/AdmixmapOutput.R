@@ -19,7 +19,7 @@
 ##
 ## 2. Interactively, in R console session: 
 ## set environment variable RESULTSDIR
-## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
+## by typing 'Sys.setenv("RESULTSDIR" = "<path to directory containing results>")'
 ## Set RPLOTS similarly, then type
 ## source("<path/to/script>/AdmixmapOutput.R")
 #######################################################
