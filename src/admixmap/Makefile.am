@@ -68,5 +68,5 @@ admixmap_DEPENDENCIES += $(top_builddir)/$(subdir)/../base/libbase.a
 
 
 svn_version.o: $(admixmap_SOURCES) Makefile.am
-	svnversion $(top_builddir)/src | sed 's/^/extern const char SVN_VERSION [] = "/;s/$$/";/' > $(srcdir)/svn_version.cc
+	svnversion $(srcdir) | sed 's/^/extern const char SVN_VERSION [] = "/;s/$$/";/' > $(srcdir)/svn_version.cc
 	$(CXX) $(CXXFLAGS) -o "$@" -c $(srcdir)/svn_version.cc
