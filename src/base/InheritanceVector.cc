@@ -64,15 +64,16 @@ const size_t InheritanceVector::MAX_ORGANISMS;
 //=============================================================================
 
 InheritanceSpace::InheritanceSpace( const Pedigree & _ped ) :
-	non_x_vals ( _ped.getNNonFndrs() ) ,
-	x_vals	   ( _ped.getNNonFndrs() ) ,
-	nFounders  ( _ped.getNFounders() ) ,
-	nMembers   ( _ped.getNMembers () )
+	non_x_vals	( _ped.getNNonFndrs() ) ,
+	x_vals		( _ped.getNNonFndrs() ) ,
+	nFounders	( _ped.getNFounders() ) ,
+	nMembers	( _ped.getNMembers () )
     {
 
     const size_t n_nonf = _ped.getNNonFndrs();
 
-    size_t cur_offset = 0;
+    size_t cur_offset_X	   = 0;
+    size_t cur_offset_nonX = 0;
 
     for ( NonFounderIdx idx = 0; idx < n_nonf; ++idx )
 	{
@@ -86,21 +87,27 @@ InheritanceSpace::InheritanceSpace( const Pedigree & _ped ) :
 	entry.wm.haveMaternalMeiosis = ! org.getMother()->isHaploid( false ); // NOT_X_CHROM
 	entry.wm.havePaternalMeiosis = ! org.getFather()->isHaploid( false ); // NOT_X_CHROM
 
-	entry.p_bit = entry.wm.havePaternalMeiosis ? cur_offset++ : Entry::HAPLOID_PARENT;
-	entry.m_bit = entry.wm.haveMaternalMeiosis ? cur_offset++ : Entry::HAPLOID_PARENT;
+	entry.p_bit = entry.wm.havePaternalMeiosis ? cur_offset_nonX++ : Entry::HAPLOID_PARENT;
+	entry.m_bit = entry.wm.haveMaternalMeiosis ? cur_offset_nonX++ : Entry::HAPLOID_PARENT;
 
 	Entry & x_entry = x_vals[ idx ];
 
 	x_entry.wm.haveMaternalMeiosis = ! org.getMother()->isHaploid( true ); // IS_X_CHROM
 	x_entry.wm.havePaternalMeiosis = ! org.getFather()->isHaploid( true ); // IS_X_CHROM
 
-	x_entry.p_bit = x_entry.wm.havePaternalMeiosis ? cur_offset++ : Entry::HAPLOID_PARENT;
-	x_entry.m_bit = x_entry.wm.haveMaternalMeiosis ? cur_offset++ : Entry::HAPLOID_PARENT;
+	x_entry.p_bit = x_entry.wm.havePaternalMeiosis ? cur_offset_X++ : Entry::HAPLOID_PARENT;
+	x_entry.m_bit = x_entry.wm.haveMaternalMeiosis ? cur_offset_X++ : Entry::HAPLOID_PARENT;
+
 	}
 
 
+    nMeiosis_nonX = cur_offset_nonX;
+    nMeiosis_X    = cur_offset_X;
+
+
     #if DEBUG_PRINT_SPACES
-	fprintf( stderr, "Ped %s (%d) space:\n", _ped.getId().c_str(), _ped.getMyNumber() );
+	fprintf( stderr, "Ped %s (%d) inheritance space: %zu non-X meiosis\n",
+		    _ped.getId().c_str(), _ped.getMyNumber(), nMeiosis_nonX );
 	for ( NonFounderIdx idx = 0; idx < n_nonf; ++idx )
 	    {
 	    const Organism & org = _ped.memberAt( idx + nFounders );
@@ -138,7 +145,7 @@ void InheritanceVector::Iterator::reset()
 
 InheritanceVector::Iterator::Iterator( const Pedigree & _ped ) :
 	pattern( _ped ),
-	max_val( (1UL << pattern.n_meiosis()) - 1 )
+	max_val( (1UL << pattern.getNMeiosis()) - 1 )
     {
     reset();
     }
@@ -180,8 +187,8 @@ InheritanceVector::Iterator::Iterator( const Pedigree & _ped ) :
 	{
 	os << "IV(";
 
-	if ( iv.n_meiosis() == 0 )
-	    os << "-no-child-)";
+	if ( iv.getNMeiosis() == 0 )
+	    os << "-no-meiosis-)";
 	else
 	    {
 	    const size_t limit = iv.getNMembers() - 1;

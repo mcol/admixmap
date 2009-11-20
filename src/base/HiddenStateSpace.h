@@ -109,7 +109,7 @@ class HiddenStateSpace
 	    gp_assert_lt( iv_idx, N_IVs );
 	    gp_assert_lt( av_idx, N_AVs );
 
-	    // We can use either arrangement scheme; if this is changed,
+	    // We can use either arrangement scheme, but if this is changed,
 	    // Iterator::advance() must be reimplemented:
 	    #if HSS_AV_MOST_SIG
 		return (av_idx * N_IVs) + iv_idx;
@@ -307,7 +307,9 @@ class HiddenStateSpace
 
 
 		/// Move to the next state with non-zero emission probability.
-		/// Returns the new value for isFinished().
+		/// Returns the new value for isFinished().  Throws an exception
+		/// if already past the last state, i.e. if already
+		/// isFinsihed().
 		bool advance();
 		Iterator & operator++() { advance(); return *this; } ///< Synonym for advance()
 

@@ -32,6 +32,7 @@ private:
   bool noConjugateUpdate;
   bool printPedSummary;
   int  excludePedsOver;
+  bool singleIndividualAutoHier; ///< Force hierarchical model for single individual
 
 public:
   AdmixOptions(int, char**);
@@ -86,6 +87,9 @@ public:
   bool getNoConjugateUpdate() const { return noConjugateUpdate; }
   bool getPrintPedSummary  () const { return printPedSummary  ; }
   int  getExcludePedsOver  () const { return excludePedsOver  ; }
+
+  /// Force hierarchical model for single individual.
+  bool getSingleIndividualAutoHier() const { return singleIndividualAutoHier; }
 
   //score test indicators 
   bool getScoreTestIndicator() const;

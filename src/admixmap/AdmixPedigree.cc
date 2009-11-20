@@ -30,14 +30,6 @@
 //=============================================================================
 
 
-//=============================================================================
-/// Issues yet to resolve:
-///	* Rho indexing.  On what is it indexed for pedigrees?  Which element to
-///	  pass into TPC constructor?  Update: for the moment, we are restrictng
-///	  pedigrees to globalrho=1, so it's not relevant.
-//=============================================================================
-
-
 #include "Pedigree.h"
 
 
@@ -114,7 +106,6 @@ static const double SOFTMAX_0_FLAG = std::numeric_limits<double>::infinity();
 #define NOT_NEEDED_FOR_FIXEDALLELEFREQ_EQ_1		    0
 #define NOT_NEEDED_UNLESS_CONJUGATE_UPDATE		    0
 #define SUPPORT_ASSOCIATION_TESTS			    0
-#define IMPLEMENTED_AFFECTED_ONLY_SCORE_TEST_FOR_PEDIGREES  0
 #define TRACK_PEDIGREE_MISSING				    0
 #define PEDIGREES_HAVE_PLOIDINESS			    0
 #define SUM_PROBS_IS_IMPLEMENTED			    0
@@ -248,7 +239,7 @@ void Pedigree::LLBuf::rejectProposal()
 
 
 /// Get the log-likelihood of the last accepted parameters (rho,theta)
-double Pedigree::LLBuf::getAcceptedVal() /*const*/
+double Pedigree::LLBuf::getAcceptedVal()
     {
     if ( ! accValIsValid )
 	{
@@ -261,7 +252,7 @@ double Pedigree::LLBuf::getAcceptedVal() /*const*/
 
 
 /// Get the log-likelihood of the proposed parameters (rho,theta)
-double Pedigree::LLBuf::getProposedVal() /*const*/
+double Pedigree::LLBuf::getProposedVal()
     {
     gp_assert( propActive );
     if ( ! propIsValid )
@@ -375,12 +366,6 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 					" Re-run with fixedallelefreqs=1." );
     #endif
 
-    #if 0 && ! IMPLEMENTED_AFFECTED_ONLY_SCORE_TEST_FOR_PEDIGREES
-	if ( options.getScoreTestIndicator() )
-	    throw std::runtime_error( "Sorry, pedigrees are not (yet) compatible with affected-only score test."
-					" Re-run with something else." );
-    #endif
-
     #if ! SUPPORT_ASSOCIATION_TESTS
 	if ( options.hasAnyAssociationTests() )
 	    throw std::runtime_error( "Sorry, pedigrees are not (yet) compatible with association tests."
@@ -472,10 +457,20 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 
     Ancestry ancStack[ getNMembers() ]; // Could just be (getNMembers()-fIdx), then subtract indexes
 
-    PopIdx mAncestry;
-    const PopIdx pAncestry = av.getBoth( fIdx, mAncestry );
-    ancStack[fIdx].pAncestry = (pAncestry == k);
-    ancStack[fIdx].mAncestry = (mAncestry == k);
+    if ( founderAt(fIdx).isHaploid() )
+	{
+	const PopIdx ancestry = av.at( fIdx, GT_SINGLE );
+
+	// NOTE *X9*: Use the paternal slot to hold the ancestry in the case of
+	// a single-gamete founder.  This will later be recognized when tracing
+	// back inheritance of ancestry.
+	ancStack[fIdx].pAncestry = (ancestry == k);
+	}
+    else
+	{
+	ancStack[fIdx].pAncestry = (av.at(fIdx,GT_PATERNAL) == k);
+	ancStack[fIdx].mAncestry = (av.at(fIdx,GT_MATERNAL) == k);
+	}
 
     #if 0
 
@@ -504,7 +499,7 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 	// Or do something like this...
 
 	// FIXME: if the founder itself is affected, should that contribute to m?
-	// If so, use this code:
+	// If so, use something like this code:
 	#if 0
 	    if ( memberAt(fIdx).getOutcome() != 0 ) // isAffected()
 		{
@@ -525,7 +520,9 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 	    if ( father != 0 )
 		{
 		const Ancestry & pAncestry = ancStack[ father->getPIdx() ];
-		if ( pAncestry.hasAncOfType( iv.paternal(cIdx) ) )
+		if ( father->isHaploid()				?
+			    pAncestry.pAncestry				:
+			    pAncestry.hasAncOfType( iv.paternal(cIdx) ) )
 		    {
 		    cAncestry.pAncestry = true;
 		    if ( child.getOutcome() != 0 ) // isAffected()
@@ -539,7 +536,9 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 	    if ( mother != 0 )
 		{
 		const Ancestry & mAncestry = ancStack[ mother->getPIdx() ];
-		if ( mAncestry.hasAncOfType( iv.maternal(cIdx) ) )
+		if ( mother->isHaploid()				?
+			    mAncestry.pAncestry				:
+			    mAncestry.hasAncOfType( iv.maternal(cIdx) ) )
 		    {
 		    cAncestry.mAncestry = true;
 		    if ( child.getOutcome() != 0 ) // isAffected()
@@ -682,10 +681,10 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		double stInfo;
 
 		// Special case for a single unrelated individual: this can be
-		// removed when we correctly model it as two single-gamete
-		// parents.
+		// removed should we model it as two single-gamete parents.
 		if ( getNMembers() == 1 )
 		    {
+
 		    const double mu = getCurTheta()[ 0 ][ k ]; // Could move outside the inner HSS loop.
 
 		    stScore = -mu;
@@ -693,16 +692,22 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		    //gp_assert( stId->getIV() == InheritanceVector::null_IV() );
 		    const AncestryVector & av = stIt.getAV();
 
-		    PopIdx mat_anc;
-		    const PopIdx pat_anc = av.getBoth( 0, mat_anc );
+		    // Assert: the sole member (unrelated individual) is not a
+		    // single-gamete-founder, but rather has two gametes with
+		    // observed genotyped data.  This is not necessary, but it's
+		    // not clear (to me) why we would have in the input dataset
+		    // an unrelated individual with no genotyped data.  This can
+		    // be removed if the score computation below is adjusted
+		    // accordingly.
+		    gp_assert( av.size() == 2 );
 
-		    if ( pat_anc == k )
+		    if ( av.at(0) == k ) // Paternal ancestry
 			stScore += 0.5;
-
-		    if ( mat_anc == k )
+		    if ( av.at(1) == k ) // Maternal ancestry
 			stScore += 0.5;
 
 		    stInfo = 0.5 * (1 - mu) * mu;
+
 		    }
 
 		else
@@ -714,33 +719,65 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		    for ( FounderIdx fIdx = getNFounders() ; fIdx-- != 0 ; )
 			{
 
-			const int nFromK = stIt.getAV().nCopiesFromKAtFounder( fIdx, k );
+			const AncestryVector & av = stIt.getAV();
 
-			#if DEBUG_AOTEST
-			    fprintf( stderr, "	fIdx:%zd st:%zd nFromK:%d hetro:%s nAff:%zd",
-				    fIdx, stIt.getNon0Index(), nFromK,
-				    stIt.getAV().isHetrozygousForPop(fIdx,k) ? "yes" : "no", nAff );
-			#endif
-
-			if ( stIt.getAV().isHetrozygousForPop( fIdx, k ) )
-			    {
-			    const int m = getNInheritedByAffected( k, fIdx, stIt.getAV(), stIt.getIV() );
-			    stScore += 0.25 * (m - nAffOver2);
-			    stInfo += nAffOver16;
-			    #if DEBUG_AOTEST
-				fprintf( stderr, " hetro-m:%d; score:%.12lf; info:%.12lf", m, stScore, stInfo );
-			    #endif
-			    }
+			const Member & founder = founderAt( fIdx );
 
 			const double mu = getCurTheta()[ fIdx ][ k ];
 
-			stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
-			stInfo	+= aa_info( nFromK, nNPlus3over8, nNPlus3over16, n3over16, mu );
+			//-------------------------------------------------------
+			// Special case for founders modeled as a single-gamete:
+			// it may be possible to use the 2-gamete computation
+			// for this, if we can verify that it simplified
+			// correctly to the same computation here.
+			//
+			// If not, consider passing the is-haploid flag into
+			// AncestryVector's nCopiesFromKAtFounder() and
+			// isHetrozygousForPop() to avoid them looking it up (or
+			// just having them assume that it is diploid if we only
+			// use those methods for that case).
+			//
+			// Alternatively, just get both ancestries once here,
+			// keep them, and do the isHetro and nCopies
+			// computations here.
+			//-------------------------------------------------------
 
-			#if DEBUG_AOTEST
-			    fprintf( stderr, " mu:%.12lf; stScore:%.12lf; stInfo:%.12lf\n", mu, stScore, stInfo );
-			#endif
+			if ( founder.isHaploid() )
+			    {
+			    const int m = getNInheritedByAffected( k, fIdx, av, stIt.getIV() );
+			    stScore += (0.5 * ((av.at(fIdx,GT_SINGLE) == k) ? 1 : 0) - mu) * m;
+			    stInfo = 0.25 * (1 - mu) * mu * m;
+			    }
+			else
+			    {
+			    // AncestryVector::isHetrozygousForPop() will return
+			    // false for haploid founders (i.e. those that we model
+			    // as a single gamete), so we need no special-case for them here.
+			    if ( av.isHetrozygousForPop( fIdx, k ) )
+				{
+				const int m = getNInheritedByAffected( k, fIdx, av, stIt.getIV() );
+				stScore += 0.25 * (m - nAffOver2);
+				stInfo += nAffOver16;
+				#if DEBUG_AOTEST
+				    fprintf( stderr, " hetro-m:%d; score:%.12lf; info:%.12lf", m, stScore, stInfo );
+				#endif
+				}
 
+			    const int nFromK = av.nCopiesFromKAtFounder( fIdx, k );
+
+			    #if DEBUG_AOTEST
+				fprintf( stderr, "	fIdx:%zd st:%zd nFromK:%d hetro:%s nAff:%zd",
+					fIdx, stIt.getNon0Index(), nFromK,
+					av.isHetrozygousForPop(fIdx,k) ? "yes" : "no", nAff );
+			    #endif
+
+			    stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
+			    stInfo  += aa_info( nFromK, nNPlus3over8, nNPlus3over16, n3over16, mu );
+
+			    #if DEBUG_AOTEST
+				fprintf( stderr, " mu:%.12lf; stScore:%.12lf; stInfo:%.12lf\n", mu, stScore, stInfo );
+			    #endif
+			    }
 			}
 
 		    }
@@ -809,6 +846,10 @@ TransProbCache & Pedigree::getTPC() const
     {
     #if NON_GLOBAL_RHO_WORKS
 	#error Which rho to use here?
+	// Issue yet to resolve: rho indexing.  On what is it indexed for
+	// pedigrees?  Which element to pass into TPC constructor?  For the
+	// moment, we are restrictng pedigrees to globalrho=1, so it's not
+	// relevant.
     #else
 	if ( tpCache == 0 )
 	    tpCache = new TransProbCache( *this, getGlobalRhoVal(), getCurTheta() );
@@ -893,7 +934,7 @@ void Pedigree::SampleTheta(
     catch ( string & s )
 	{
 	throw std::runtime_error(
-	    "Errorx generating proposed pedigree admixture proportions:\n  " + s );
+	    "Error generating proposed pedigree admixture proportions:\n  " + s );
 	}
 
     // Calculate Metropolis acceptance probability ratio for proposal theta
@@ -1807,54 +1848,16 @@ void Pedigree::ResetSufficientStats()
 
 
 //-----------------------------------------------------------------------------
-//
 // UpdateScores()
-//
-/// DDF: Code is direct copy from AdmixedIndividual, but cleaned up a little.
-///
-/// Copied comment: "Merge with updatescoretests"
-//
 //-----------------------------------------------------------------------------
 
-#if IMPLEMENTED_AFFECTED_ONLY_SCORE_TEST_FOR_PEDIGREES
-    void Pedigree::UpdateScores( const AdmixOptions & options, bclib::DataMatrix * Outcome, bclib::DataMatrix * Covariates,
-				const vector<bclib::Regression*> & R, AffectedsOnlyTest & affectedsOnlyTest,
-				CopyNumberAssocTest& ancestryAssocTest )
-	{
-	// DDF: admixtureCovars is only needed if options.getTestForLinkageWithAncestry() is
-	//	    turned on, but since it apparently is not too large, just allocate
-	//	    it on the stack here.
-	double admixtureCovars[ NumHiddenStates - 1 ];
-
-	for ( ChromIdxType j = 0; j < numChromosomes; j++ )
-	    {
-	    Chromosome & C = getChromosome(j);
-
-	    // Update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted
-	    // Update Forward/Backward probs in HMM
-	    if ( ! logLikelihood.HMMisOK )
-		UpdateHMMInputs(j, options, Theta, _rho);
-
-	    // Update of score tests for linkage with ancestry requires update of backward probs
-	    if ( options.getTestForLinkageWithAncestry() )
-		for ( int t = NumHiddenStates ; t-- != 0 ; )
-		    admixtureCovars[t] = Covariates->get( getIndex(), Covariates->nCols()-NumHiddenStates+1+t );
-
-	    UpdateScoreTests( options, options.getTestForLinkageWithAncestry() ? admixtureCovars : 0,
-				Outcome, C, R, affectedsOnlyTest, ancestryAssocTest);
-	    } //end chromosome loop
-	}
-#else
-
-    void Pedigree::UpdateScores( const AdmixOptions & options, bclib::DataMatrix *, bclib::DataMatrix *,
-				const vector<bclib::Regression*> &, AffectedsOnlyTest & aoTest,
-				CopyNumberAssocTest & )
-	    {
-	    if ( options.getTestForAffectedsOnly() )
-		accumAOScore( aoTest );
-	    }
-
-#endif
+void Pedigree::UpdateScores( const AdmixOptions & options, bclib::DataMatrix *, bclib::DataMatrix *,
+			const vector<bclib::Regression*> &, AffectedsOnlyTest & aoTest,
+			CopyNumberAssocTest & )
+    {
+    if ( options.getTestForAffectedsOnly() )
+	accumAOScore( aoTest );
+    }
 
 
 

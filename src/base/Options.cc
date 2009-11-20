@@ -237,6 +237,7 @@ void Options::DefineOptions(){
   //set up Option map
 
   addOption( "use-pedigree-for-individual", usePedForInd	 , false );
+  addOption( "single-gamete-founder"	  , sglGameteFounder	 , true  );
   addOption( "warnings-are-errors"	  , warningsAreErrors	 , false );
   addOption( "ignore-invalid-parents"	  , ignoreInvalidParents , false );
   addOption( "max-cpus"			  , maxCPUsToUse	 , 0	 );

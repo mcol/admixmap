@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl-copyright@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -56,16 +56,17 @@ const SimpleLocusArray & Organism::getSLoci() const
 //=============================================================================
 
 Organism::Organism( const Organism & rhs ) :
-	lineNum ( rhs.lineNum	) ,
-	famId	( rhs.famId	) ,
-	orgId	( rhs.orgId	) ,
-	sex	( rhs.sex	) ,
-	outcome ( rhs.outcome	) ,
-	gtypedFlg(rhs.gtypedFlg ) ,
-	father	( rhs.father	) ,
-	mother	( rhs.mother	) ,
-	depth	( rhs.depth	) ,
-	inFile	( rhs.inFile	)
+	lineNum		  ( rhs.lineNum		  ) ,
+	famId		  ( rhs.famId		  ) ,
+	orgId		  ( rhs.orgId		  ) ,
+	sex		  ( rhs.sex		  ) ,
+	outcome		  ( rhs.outcome		  ) ,
+	gtypedFlg	  ( rhs.gtypedFlg	  ) ,
+	singleGameteModel ( rhs.singleGameteModel ) ,
+	father		  ( rhs.father		  ) ,
+	mother		  ( rhs.mother		  ) ,
+	depth		  ( rhs.depth		  ) ,
+	inFile		  ( rhs.inFile		  )
     {
     const SLocIdxType nLoci = inFile.getNSimpleLoci();
     gp_assert( nLoci != 0 );
@@ -106,6 +107,7 @@ Organism & Organism::operator=( const Organism & rhs )
     sex		= rhs.sex	;
     outcome	= rhs.outcome	;
     gtypedFlg	= rhs.gtypedFlg ;
+    singleGameteModel = rhs.singleGameteModel;
 
     // We can't copy a reference, so we assert that they already refer to the
     // same object.  This violates encapsulation and effectively requires that

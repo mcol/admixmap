@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl-copyright@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -48,9 +48,9 @@ namespace genepi { // ----
 
 
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 // Index cache:
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 static inline unsigned long K_to_the_F( unsigned int K, unsigned int F )
     {
@@ -74,7 +74,29 @@ namespace
 {  // Begin anonymous namespace to give IdxCache internal linkage
 
 
-// "Static" class used internally to the implementation of AncestryVector:
+//-----------------------------------------------------------------------------
+/// The IdxCache data-structure caches the "space" of ancestry vectors for a
+/// given pedigree structure, allowing an integer index into the space to
+/// quickly be translated into an AncestryVector by table-lookup.  This is
+/// important for performance because it is a very frequent operation in the
+/// simulations and on-the-fly generation of the AV from the index, while
+/// possible, is non-trivial.  The number of vectors in the space is K^F where K
+/// is the number of populations and F is the number of founder-gametes in the
+/// Pedigree.  Since the larger space of AVs of a larger pedigree with a larger
+/// number of founder-gametes is a superset of smaller spaces, we can just keep
+/// one table with as many elements as required for the largest possible number
+/// of founder-gametes, and use the lower-indexed elements for smaller
+/// pedigrees.  It is a "static linkage" class which is only used internally by
+/// the implementation of AncestryVector.  While it could (and should) be used
+/// in a "AncestryVectorSpace" class thus allowing multiple instances, as
+/// currently used by AncestryVector there is only one global table.  This is
+/// nonetheless relatively thread-safe because it is computed once at
+/// initialization time (which is protected as a critical section for OpenMP)
+/// and thereafter used in a read-only manner.  The initial computation is done
+/// by set_parms(), which then fixes the number of populations and maximum
+/// number of founder gametes to single global values.
+//-----------------------------------------------------------------------------
+
 class IdxCache
     {
     public:
@@ -170,6 +192,9 @@ void IdxCache::El::generate( size_t _K, size_t _F )
 
 #if MULTIPLE_PARMS
 
+    // This implementation can maintain separate caches for multiple values of K
+    // and F.  Not currently used.
+
     const IdxCache::DType & IdxCache::lookup( PopIdx _K, size_t F, unsigned long index ) const
 	{
 	gp_assert_eq( _K, K );
@@ -252,7 +277,7 @@ void IdxCache::El::generate( size_t _K, size_t _F )
 
 
 //-----------------------------------------------------------------------------
-// set_ulong()
+// set_parms()
 //-----------------------------------------------------------------------------
 
 #if THREAD_PRIVATE_CACHE
@@ -295,6 +320,12 @@ static const IdxCache & get_cache()
     return *cache;
     }
 
+
+
+//-----------------------------------------------------------------------------
+// set_ulong()
+//-----------------------------------------------------------------------------
+
 void AncestryVector::set_ulong( unsigned long nv )
     {
     memcpy( data.bytes, get_cache().lookup(K, ped.getNFounderGametes(), nv).bytes, AV_MC_BYTES() );
@@ -311,15 +342,15 @@ unsigned long AncestryVector::to_ulong() const
     unsigned long rv = 0;
 
     if ( K == 2 )	// Optimized version for K==2:
-	for ( IdxType idx = size() ; idx-- != 0 ; )
+	for ( FGIdx idx = size() ; idx-- != 0 ; )
 	    rv = (rv << 1) + at(idx);
 
     else if ( K == 3 )	// Optimized version for K==3:
-	for ( IdxType idx = size() ; idx-- != 0 ; )
+	for ( FGIdx idx = size() ; idx-- != 0 ; )
 	    rv = (rv << 1) + rv + at(idx);
 
     else
-	for ( IdxType idx = size() ; idx-- != 0 ; )
+	for ( FGIdx idx = size() ; idx-- != 0 ; )
 	    rv = (rv * K) + at(idx);
 
 
@@ -380,17 +411,28 @@ bool AncestryVector::Iterator::advance()
 		return os << size_t(pop);
 	}
 
-    std::ostream & operator<<( std::ostream & os, const AncestryVector & av )
+    std::ostream & output( std::ostream & os,
+			   const AncestryVector & av,
+			   AncestryVector::FGIdx nValid )
 	{
+	AncestryVector::FGIdx idx;
+
 	gp_assert( av.size() != 0 );
+	gp_assert( nValid <= av.size() );
 
 	os << "AV(";
-	const AncestryVector::IdxType limit = av.size() - 1;
-	for ( AncestryVector::IdxType idx = 0 ; idx < limit ; ++idx )
-	    output( os, av.at(idx) ) << ',';
-	os << av.at(limit) << ')';
+	for ( idx = 0; idx < nValid; ++idx )
+	    output( os << ((idx==0)?"":","), av.at(idx) );
+	for ( ; idx < av.size(); ++idx )
+	    os << ((idx==0) ? "X" : ",X");
+	os << ')';
 
 	return os;
+	}
+
+    std::ostream & operator<<( std::ostream & os, const AncestryVector & av )
+	{
+	return output( os, av, av.size() );
 	}
 
 #endif // AV_OSTREAM

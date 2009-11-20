@@ -279,7 +279,7 @@ int main( int argc , char** argv ){
 		    if ( print_eprobs && ((max_print_states == 0) || (n_states <= size_t(max_print_states))) )
 			{
 			const HiddenStateSpace::State & st = *it;
-			cout << "\n  " << st.av << ' ' << st.iv << "  " << st.emProb;
+			cout << "\n  " << st.av << ' ' << st.iv << "  " << setw(10) << setprecision(8) << st.emProb;
 			}
 		    }
 

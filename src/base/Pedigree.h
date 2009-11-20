@@ -203,6 +203,7 @@ class Pedigree : public PedBase // See NOTE *4*
 	typedef size_t		 MemberIdx  ; ///< Index into sorted-organism-array for any member
 	typedef size_t		 FounderIdx ; ///< Index into sorted-organism-array for founders
 	typedef size_t		 SibIdx	    ; ///< Index into sorted-organism-array for non-founders
+	typedef size_t		 FGameteIdx ; ///< Index into founder-gametes
 
 	// This is one way to receive the generated "states":
 	typedef void (*StateReceiver)(	const Pedigree &	  ped		  ,
@@ -212,6 +213,8 @@ class Pedigree : public PedBase // See NOTE *4*
 					const Haplotype *	  founderHapState ,
 					double			  emProb	  );
 
+	enum GameteType { GT_PATERNAL, GT_MATERNAL, GT_SINGLE };
+
 
     private:
 	const OrganismArray & memberPool;
@@ -220,6 +223,18 @@ class Pedigree : public PedBase // See NOTE *4*
 	MemberIdx  nMembers	 ;
 	FounderIdx nFounders	 ;
 	Member * * sortedMembers ;
+
+	/// Mapping from founder-index to founder-gamete-index, useful for
+	/// AncestryVector.  Perhaps this belongs in AncestryVector.  Talk about
+	/// maternal and paternal gametes here.
+	struct FGMapEl { FGameteIdx nonX; FGameteIdx X; };
+	cvector<FGMapEl> fgMap;
+
+	/// Mapping from founder-gamete-index to founder-index, useful for
+	/// AncestryVector, state-generation.  Perhaps this belongs in
+	/// AncestryVector.
+	struct GFMapEl { FounderIdx fIdx; GameteType whichOne; };
+	cvector<GFMapEl> gfMap;
 
 	InheritanceSpace * ivSpace;
 
@@ -236,19 +251,20 @@ class Pedigree : public PedBase // See NOTE *4*
 
 
 	void recurseSib( SLocIdxType		sLocIdx		,
-			 Haplotype *		memberHapState	,
+			 Genotype::AlleleType * fndrGameteState ,
+			 Haplotype *		nonFndrHapState	,
 			 const AncestryVector & ancestry	,
 			 InheritanceVector &	iv		,
 			 MemberIdx		memDepth	,
 			 double			emProbTerm	,
 			 StateReceiver		receiver	) const;
 
-	void recurseFounder(	SLocIdxType		sLocIdx		,
+	void recurseFndrGamete( SLocIdxType		sLocIdx		,
 				PopIdx			K		,
 				const AlleleProbTable & alProbTab	,
-				Haplotype *		memberHapState	,
+				Genotype::AlleleType *	fndrGameteState ,
 				AncestryVector &	ancestry	,
-				MemberIdx		memDepth	,
+				FGameteIdx		fgDepth		,
 				double			probProdSoFar	,
 				StateReceiver		receiver	) const;
 
@@ -357,8 +373,17 @@ class Pedigree : public PedBase // See NOTE *4*
 	size_t getNNonFndrs() const { return (nMembers - nFounders); }	///< Number of non-founders
 
 	const InheritanceSpace & getIVSpace() const { return *ivSpace; }
-	size_t getNFounderGametes() const { return (nFounders << 1   ); } ///< Number of founder gametes
-	size_t getNMeiosis	 () const { return (getNNonFndrs()<<1); } ///< Number of meiosis
+
+	/// Number of meiosis.  Remove the default value for @a isX when X
+	/// chromosomes are fully implemented for pedigrees.
+	size_t getNMeiosis( InheritanceSpace::IsXChrom isX = InheritanceSpace::NOT_X_CHROM ) const
+	    {
+	    return getIVSpace().getNMeiosis( isX );
+	    }
+
+	/// Number of founder gametes.  Remove the default value for @a isXChrom
+	/// when X chromosomes are fully implemented for pedigrees.
+	FGameteIdx getNFounderGametes( bool /*isXChrom*/ = false ) const { return gfMap.size(); }
 							///< NB: see haploid note in recurseSib().
 
 
@@ -385,6 +410,43 @@ class Pedigree : public PedBase // See NOTE *4*
 
 	    return *(sortedMembers[fIdx]);
 	    }
+
+
+	/// Mapping from founder-index to founder-gamete-index, useful for
+	/// AncestryVector.  Perhaps this belongs in AncestryVector.  Remove the
+	/// default false value for @a onXChrom when X chromosome is fully
+	/// implemented for pedigrees.
+	FGameteIdx founderGameteOfFounder( FounderIdx fIdx, GameteType whichOne, bool onXChrom = false ) const
+	    {
+	    #if AGGRESSIVE_RANGE_CHECK
+		const Organism & founder = founderAt( fIdx );
+		if ( whichOne == GT_SINGLE )
+		    gp_assert(	 founder.isHaploid( onXChrom ) );
+		else
+		    gp_assert( ! founder.isHaploid( onXChrom ) );
+	    #endif
+
+	    const FGMapEl & el = fgMap[ fIdx ];
+
+	    // NOTE *X91*: This assumption that the maternal gamete is the
+	    // higher-ordered index is also built into the Pedigree constructor
+	    // where the mappings are created.
+	    return (onXChrom ? el.X : el.nonX) + ((whichOne == GT_MATERNAL) ? 1 : 0);
+	    }
+
+	/// Mapping from founder-gamete-index to founder-index, useful for
+	/// AncestryVector and TransProbCache.  Perhaps this belongs in
+	/// AncestryVector.  Remove the default false value for @a onXChrom when
+	/// X chromosome is fully implemented for pedigrees.
+	FounderIdx founderOfGameteIdx( FGameteIdx fgIdx, GameteType & whichOne, bool /*onXChrom*/ = false ) const
+	    {
+	    const GFMapEl & el = gfMap[ fgIdx ];
+	    whichOne = el.whichOne;
+	    return el.fIdx;
+	    }
+
+	/// Get genotype data for the give founder-gamete at the given locus:
+	Genotype::AlleleType getGTypeOfFndrGamete( FGameteIdx fgIdx, SLocIdxType sLocIdx ) const;
 
 
 
@@ -486,6 +548,9 @@ class Pedigree : public PedBase // See NOTE *4*
 
 	/// Returns size of Theta, used to allocate storage for the various
 	/// thetas and SumSoftmaxTheta.  Was: NumGametes --> K*NumGametes
+	/// We are modeling the same admixture proportions for both of a
+	/// founders' gametes, so the number of Thetas is the same as the number
+	/// of founders.
 	typedef FounderIdx ThetaIdx;
 	ThetaIdx getNTheta() const { return getNFounders(); }
 
@@ -567,8 +632,8 @@ class Pedigree : public PedBase // See NOTE *4*
 		void startProposal();
 		void acceptProposal();
 		void rejectProposal();
-		double getAcceptedVal() /*const*/;
-		double getProposedVal() /*const*/;
+		double getAcceptedVal();
+		double getProposedVal();
 
 
 		/// Get the log-likelihood of the "current" parameters (rho,theta): if a proposal
@@ -731,8 +796,8 @@ class Pedigree : public PedBase // See NOTE *4*
 
     bool GenotypeIsMissing	( unsigned int clIdx ) const; ///< locus is a comp locus
     bool simpleGenotypeIsMissing( SLocIdxType  slIdx ) const; ///< locus is a simple locus
-    bool isHaploidatLocus(unsigned j)const;
-    bool isHaploidIndividual()const;
+    bool isHaploidatLocus( unsigned locusIdx ) const;
+    bool isHaploidIndividual() const;
 
 
     /// Copied from AdmixedIndividual because it is used by WritePosteriorMeans().

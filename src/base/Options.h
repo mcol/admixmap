@@ -33,6 +33,7 @@ class Options: public bclib::OptionReader
 {
 private:
   bool usePedForInd	; ///< Use Pedigree rather than Individual objects for individuals (single-member pedigrees).
+  bool sglGameteFounder ; ///< Should founders with no genotyped data and a single offspring be modeled as a single gamete.
   bool warningsAreErrors; ///< Abort execution without running model if input data contains warnings.
   int  maxCPUsToUse	; ///< Maximum CPUs (cores) to use in parallel.  0 (default) for all available.
   unsigned maxPedigreeSize; ///< Maximum number of organisms in a pedigree (larger pedigrees will be reduced by removing non-founders).
@@ -157,6 +158,8 @@ private:
 
     bool getUsePedForInd     () const { return usePedForInd	; } ///< Use Pedigree rather than Individual objects for
 								    ///< unrelated individuals (i.e. single-member pedigrees).
+    bool getSglGameteFounder () const { return sglGameteFounder ; } ///< Should founders with no genotyped data and a single
+								    ///< offspring be modeled as a single gamete.
     bool getWarningsAreErrors() const { return warningsAreErrors; } ///< Abort execution without running model if
 								    ///< the input data generates and warnings.
     int	 getMaxCPUsToUse     () const { return maxCPUsToUse	; } ///< Maximum CPUs (cores) to use in parallel.

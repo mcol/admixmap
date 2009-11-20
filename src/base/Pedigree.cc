@@ -107,6 +107,8 @@
 
 using namespace std;
 
+typedef std::list<genepi::Organism*> ChList;
+
 
 
 namespace genepi { // ----
@@ -121,8 +123,6 @@ namespace genepi { // ----
 
 static void traverseChildTree( Organism & ind )
     {
-    typedef std::list<Organism*> ChList;
-
 
     const int depth = ind.getDepth() + 1;
 
@@ -203,6 +203,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
     // counting the number of founders and traversing the parent-tree to compute
     // the depth value (maximum depth-to-founder) for each member:
     nFounders = 0;
+    FGameteIdx nFGametes = 0;
     Member * * mPtr = sortedMembers;
     while ( firstM != endM )
 	{
@@ -212,6 +213,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	    {
 	    gp_assert( m.getDepth() == 0 );
 	    ++nFounders;
+	    nFGametes += m.isHaploid() ? 1 : 2;
 	    traverseChildTree( m );
 	    }
 
@@ -223,7 +225,9 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	    // place earlier, in GenotypeParser.
 	    if ( getOptions().getExcludeUnaffectedSibs() && (! m.isFounder()) && m.getChildren().empty() )
 		{
-		std::cerr << "Pedigree " << getId() << ": excluding unaffected sibling " << m.getOrgId() << '\n';
+		if ( getOptions().getDisplayLevel() >= 3 )
+		    cout << "Pedigree " << getId() <<
+			": excluding unaffected sibling " << m.getOrgId() << '\n';
 		++firstM;
 		--nMembers;
 		continue;
@@ -262,15 +266,18 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	{
 
 	if ( getNFounders() > max_n )
-	    throw std::runtime_error( estr("Pedigree ") + getId() + " has " + getNFounders() +
+	    throw runtime_error( estr("Pedigree ") + getId() + " has " + getNFounders() +
 			" founders, which exceeds the maximum number of members (" +
 			max_n + ')' );
 
-	cout << "Pedigree " << getId() << " size reduced from " << getNMembers() << " to "
-	    << max_n << " per parameters (excluding organism IDs:";
-	for ( Member * * mPtr = sortedMembers + getNMembers() ; mPtr-- != (sortedMembers + max_n) ; )
-	    cout << ' ' << (*mPtr)->getOrgId();
-	cout << ").\n";
+	if ( getOptions().getDisplayLevel() >= 3 )
+	    {
+	    cout << "Pedigree " << getId() << " size reduced from " << getNMembers() << " to "
+		<< max_n << " per parameters (excluding organism IDs:";
+	    for ( Member * * mPtr = sortedMembers + getNMembers() ; mPtr-- != (sortedMembers + max_n) ; )
+		cout << ' ' << (*mPtr)->getOrgId();
+	    cout << ").\n";
+	    }
 
 	nMembers = max_n;
 
@@ -281,8 +288,8 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	// non-founders.  This is super-hack.
 	for ( Member * * mPtr = sortedMembers + getNMembers() ; mPtr-- != sortedMembers ; )
 	    {
-	    std::list<Organism*> & children = (*mPtr)->getChildren();
-	    for ( std::list<Organism*>::iterator chIter = children.begin() ; chIter != children.end() ; ++chIter )
+	    ChList & children = (*mPtr)->getChildren();
+	    for ( ChList::iterator chIter = children.begin() ; chIter != children.end() ; ++chIter )
 		while ( ((*chIter)->getPIdx() >= max_n) &&
 			((chIter = children.erase(chIter)) == children.end()) )
 		    ; // Do nothing
@@ -290,6 +297,50 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 
 	}
 
+
+    // Since organisms now know their children, we can reduce certain founders
+    // to be modeled as a single gamete: those without genotyped data and only a
+    // single offspring in the pedigree.
+    if ( getOptions().getSglGameteFounder() )
+	for ( Iterator it = getFirstFounder() ; it != getEndFounder() ; ++it )
+	    {
+	    Member & f = **it;
+	    if ( (! f.isHaploid()) &&
+		    (! f.isGenotyped()) &&
+		    (f.getChildren().size() == 1) )
+		{
+		if ( getOptions().getDisplayLevel() >= 3 )
+		    cout << "Pedigree " << getId()
+			<< ": using single-gamete model for founder "
+			<< f.getOrgId() << ".\n";
+		f.setSingleGameteModel( true );
+		--nFGametes;
+		}
+	    }
+
+
+    // Build the founder-index to founder-gamete-index and founder-gamete-index
+    // to founder-index mappings:
+    fgMap.resize( nFounders );
+    gfMap.resize( nFGametes );
+    FGMapEl fg = { 0, 0 };
+    for ( FounderIdx fIdx = 0 ; fIdx < nFounders ; ++fIdx )
+	{
+	fgMap[ fIdx ] = fg;
+	const Organism & founder = founderAt( fIdx );
+	gfMap[fg.nonX].fIdx = fIdx;
+	if ( founder.isHaploid(false) )
+	    gfMap[fg.nonX++].whichOne = Pedigree::GT_SINGLE;
+	else
+	    {
+	    gfMap[fg.nonX++].whichOne = Pedigree::GT_PATERNAL;
+	    gfMap[fg.nonX].fIdx = fIdx;
+	    gfMap[fg.nonX++].whichOne = Pedigree::GT_MATERNAL;
+	    }
+	fg.X += founder.isHaploid(true ) ? 1 : 2;
+	}
+    gp_assert_eq( fg.nonX, nFGametes );
+    gp_assert_eq( fgMap.size(), nFounders );
 
 
     #if 0
@@ -301,6 +352,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 
     // Sanity checking:
     gp_assert( nFounders != 0 );
+    gp_assert_ge( nFGametes, nFounders );
     gp_assert_le( nFounders, nMembers );
     gp_assert_le( getNNonFndrs(), InheritanceVector::MAX_ORGANISMS );
     gp_assert( sortedMembers[0]->isFounder() );
@@ -328,6 +380,8 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	nMembers	  ( rhs.nMembers	  ) ,
 	nFounders	  ( rhs.nFounders	  ) ,
 	sortedMembers	  ( rhs.sortedMembers	  ) ,
+	fgMap		  ( rhs.fgMap		  ) ,
+	gfMap		  ( rhs.gfMap		  ) ,
 	ivSpace		  ( rhs.ivSpace		  ) ,
 	nMendelErrs	  ( rhs.nMendelErrs	  ) ,
 	mendelErrsByLocus ( rhs.mendelErrsByLocus ) ,
@@ -367,6 +421,8 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     nMembers		= rhs.nMembers		;
     nFounders		= rhs.nFounders		;
     sortedMembers	= rhs.sortedMembers	;
+    fgMap		= rhs.fgMap		;
+    gfMap		= rhs.gfMap		;
     ivSpace		= rhs.ivSpace		;
     nMendelErrs		= rhs.nMendelErrs	;
     mendelErrsByLocus	= rhs.mendelErrsByLocus ;
@@ -455,7 +511,7 @@ void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedig
     gp_assert( ! curFamId.empty() );
 
     // Ugly data-type but pretty method-call (no "output"/"reference" parameters):
-    const std::pair<OrganismArray::ConstPedIter,OrganismArray::ConstPedIter> &
+    const pair<OrganismArray::ConstPedIter,OrganismArray::ConstPedIter> &
 	interval = organisms.findOrgsInPed( curFamId );
 
     PED_PB( rv, organisms, interval.first, interval.second, max_n );
@@ -469,14 +525,50 @@ void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedig
 
 void Pedigree::throwFRange( size_t fIdx ) const
     {
-    throw std::out_of_range( estr("Founder-index ") + fIdx +
+    throw out_of_range( estr("Founder-index ") + fIdx +
 		" out of range (" + getNFounders() + ')' );
     }
 
 void Pedigree::throwMRange( size_t mIdx ) const
     {
-    throw std::out_of_range( estr("Member-index ") + mIdx +
+    throw out_of_range( estr("Member-index ") + mIdx +
 		" out of range (" + getNMembers() + ')' );
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// getGTypeOfFndrGamete()
+//-----------------------------------------------------------------------------
+
+Genotype::AlleleType Pedigree::getGTypeOfFndrGamete( FGameteIdx fgIdx, SLocIdxType sLocIdx ) const
+    {
+    Genotype::AlleleType rv;
+
+    const bool isX = getSLoci()[sLocIdx].isXChrom();
+
+    GameteType whichOne;
+    const FounderIdx fIdx    = founderOfGameteIdx( fgIdx, whichOne, isX );
+    const Member &   founder = founderAt( fIdx );
+    const Genotype & gType   = founder.getGType( sLocIdx );
+
+    if ( whichOne == GT_SINGLE )
+	{
+	gp_assert( founder.isHaploid( isX ) );
+	gp_assert( gType.isHaploid() );
+	rv = gType.getVal1();
+	}
+    else
+	{
+	gp_assert( ! founder.isHaploid( isX ) );
+	gp_assert( ! gType.isHaploid() );
+
+	// Is this right?  Arbitrarily call the first allele in the unphased
+	// genotype the "paternal" and the second the "maternal"?
+	rv = (whichOne == GT_PATERNAL) ? gType.getVal1() : gType.getVal2();
+	}
+
+    return rv;
     }
 
 
@@ -489,7 +581,7 @@ bool Pedigree::haveMendelErrAt( SLocIdxType t ) const
     {
     #if AGGRESSIVE_RANGE_CHECK
 	if ( t >= getNSLoci() )
-	    throw std::out_of_range( estr("Simple-locus-index ") + t +
+	    throw out_of_range( estr("Simple-locus-index ") + t +
 		    " out of range (" + getNSLoci() + ')' );
     #endif
 

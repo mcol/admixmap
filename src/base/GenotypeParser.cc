@@ -101,6 +101,10 @@ Organism::SexType GenotypeParser::lexSex()
 	}
     else if ( tok.isType(T_STRING) && equalsCaseInsens(tok.getStrVal(),"na") )
 	rv = Organism::SEX_UNKNOWN;
+    else if ( tok.isType(T_STRING) && equalsCaseInsens(tok.getStrVal(),"m") )
+	rv = Organism::SEX_MALE;
+    else if ( tok.isType(T_STRING) && equalsCaseInsens(tok.getStrVal(),"f") )
+	rv = Organism::SEX_FEMALE;
     else
 	throwError( estr("expected integer or \"NA\" in sex column; found ") + tok.getTypeName() );
 
@@ -594,6 +598,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 
 
 	    row.gtypedFlg = false;
+	    bool hasDiploid = false;
 
 	    for ( size_t i = 0 ; i < nLoci ; ++i )
 		{
@@ -619,10 +624,14 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 			    gtype.getVal2() + " which exceeds maximum value of "
 			    + nAlleles );
 
+		if ( gtype.isDiploid() )
+		    hasDiploid = true;
+
 		if ( ! gtype.isMissing2() )
 		    row.gtypedFlg = true;
 		}
 
+	    row.singleGameteModel = ! hasDiploid;
 
 	    if ( hasSexColumn() && (row.sex == Organism::SEX_UNKNOWN) && row.isGenotyped() )
 		warn( estr("sex is missing for ") + row.idDesc()
@@ -642,7 +651,9 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	    // pointer, as these objects may be relocated as the vector expands
 	    // its storage.
 	    rows.push_back( row );
+
 	    }
+
 	}
 
     // Catch and rethrow DataValidError's just so that we can isolate other exceptions below:

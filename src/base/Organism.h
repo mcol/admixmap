@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl-copyright@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -138,6 +138,9 @@ class Organism
 	Genotype * gtypes   ;
 	bool	   gtypedFlg;
 
+	/// Model this organism as a single haploid gamete.
+	bool singleGameteModel;
+
 
 	// If we allow alphanumeric organism-IDs, and store as
 	// std::string's (POD type), we cannot put them in a union with
@@ -203,7 +206,11 @@ class Organism
 	const Genotype & getGType( SLocIdxType sLocIdx ) const;
 
 	/// Is the organism modeled by a single gamete?
-	bool isHaploid( bool /*onXChromosome*/ ) const { return false; }
+	/// Get rid of the default false value when we are ready to fully
+	/// implement the X chromosome for pedigrees.
+	bool isHaploid( bool /*onXChromosome*/ = false ) const { return singleGameteModel; }
+		//{ return (onXChromosome && isMale()) || singleGameteModel; }
+	void setSingleGameteModel( bool nv ) { singleGameteModel = nv; }
 
 	/// Returns pointer to the father's record, or null if none/unknown.
 	const Organism * getFather() const { return father; }

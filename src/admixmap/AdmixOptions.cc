@@ -328,6 +328,7 @@ void AdmixOptions::DefineOptions(){
   addOption( "no-conjugate-update", noConjugateUpdate, false );
   addOption( "print-ped-summary"  , printPedSummary  , false );
   addOption( "exclude-peds-over"  , excludePedsOver  , 0     );
+  addOption( "single-individual-auto-hier", singleIndividualAutoHier, true );
 
   addOption("populations", intOption, &Populations);
   addOption("allelefreqfile", stringOption, &alleleFreqFilename);
@@ -421,7 +422,7 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
     else RegType = Multiple;
   }
 
-  if (NumberOfIndividuals==1) {
+  if ( (NumberOfIndividuals==1) && getSingleIndividualAutoHier() ) {
     IndAdmixHierIndicator = false;
     useroptions["indadmixhiermodel"]="0";
     Log << "One individual analysis";

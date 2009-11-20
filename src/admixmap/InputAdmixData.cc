@@ -190,16 +190,15 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	    if ( options.getExcludeMendelError() )
 		{
 
-		// DDF: At this time, I am disqualifying all pedigrees which contain
-		// mendelian errors/inconsistencies.  This is because they will have
-		// emission probability of 0 for all hidden states (i.e. hidden state
-		// space of size 0), because no inheritance vector can ever be
-		// consistent with the observed genotyped data.  This means that:
-		//	(1) Running the HMM is pointless, and
-		//	(2) Running the HMM will generate errors because it will try to
-		//	    normalize likelihoods that sum to 0.  We can add an
-		//	    exception to the code that will deal with this, but why
-		//	    bother?
+		// DDF: At this time, I am disqualifying all pedigrees which
+		// contain mendelian errors/inconsistencies.  This is because
+		// they will have emission probability of 0 for all hidden
+		// states (i.e. hidden state space of size 0), because no
+		// inheritance vector can ever be consistent with the observed
+		// genotyped data.  If no correction is made, running the HMM
+		// will generate errors because it will try to normalize
+		// likelihoods that sum to 0.  We can add an exception to the
+		// code that will deal with this, but haven't yet.
 
 		if ( ped.getNMendelErrs() != 0 )
 		    {

@@ -197,7 +197,7 @@ void HiddenMarkovModel::computeForwards() const
 	{
 	double pi = prob_of_each_iv;
 	const AncestryVector & av = it.getAV();
-	for ( AncestryVector::IdxType idx = av.size() ; idx-- != 0 ; )
+	for ( AncestryVector::FGIdx idx = av.size() ; idx-- != 0 ; )
 	    pi *= th[ AncestryVector::founderOf(idx) ] [ av.at(idx) ];
 	const double val = pi * it.getEProb();
 	alpha_0[ it.getNon0Index() ] = val;

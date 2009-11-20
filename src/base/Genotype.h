@@ -106,7 +106,7 @@ class Genotype
 	/// Is al present as either of the observed alleles?
 	bool contains( AlleleType al ) const { return ((val1 == al) || (val2 == al)); }
 
-	/// Is the presence of al consistent with the observed alleles?
+	/// Is the presence of @a al consistent with the observed alleles?
 	bool consistent( AlleleType al ) const
 	    { return (val1 == MISSING_VAL) || (val1 == al) || (val2 == al); }
 
@@ -192,18 +192,23 @@ class Haplotype : public Genotype
 
 
 
+//-----------------------------------------------------------------------------
+// Inline Genotype::consistent()
+//-----------------------------------------------------------------------------
+
 inline bool Genotype::consistent( const Haplotype & hap ) const
     {
-#if 0
-    printf( "Consistent: (%hu,%hu) & (%hu,%hu) = %s\n",
-	    val1, val2, hap.val1, hap.val2,
-	    (
-			(val1 == MISSING_VAL) ||
-			((val1 == hap.val1) && (val2 == hap.val2)) ||
-			((val2 == hap.val1) && (val1 == hap.val2)) ||
-			((val1 == hap.val1) && (val2 == MISSING_VAL))
-	    ) ? "true" : "false" );
-#endif
+    #if 0 // DEBUG
+	printf( "Consistent: (%hu,%hu) & (%hu,%hu) = %s\n",
+		val1, val2, hap.val1, hap.val2,
+		(
+			    (val1 == MISSING_VAL) ||
+			    ((val1 == hap.val1) && (val2 == hap.val2)) ||
+			    ((val2 == hap.val1) && (val1 == hap.val2)) ||
+			    ((val1 == hap.val1) && (val2 == MISSING_VAL))
+		) ? "true" : "false" );
+    #endif
+
     return ( // Perhaps this can be rewritten as a shorter boolean expression?
 			(val1 == MISSING_VAL) ||
 			((val1 == hap.val1) && (val2 == hap.val2)) ||

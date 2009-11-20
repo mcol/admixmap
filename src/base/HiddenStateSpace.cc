@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl-copyright@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -154,24 +154,28 @@ bool HiddenStateSpace::Iterator::advance()
     #endif
 
 
-    if ( (! finished) && (space.getEProb( sIdx ) != 0.0) )
-	if ( ++non0Idx == space.getNNon0() ) // Saves skipping past the last segment of 0-EPs
-	    return (finished = true); // **** RETURN HERE ****
+    if ( isFinished() )
+	throw runtime_error(
+	    string("Advance iterator when already past last state in pedigree ") +
+	    space.getPed().getId() );
+
+
+    if ( (space.getEProb(sIdx) != 0.0) &&
+	    (++non0Idx == space.getNNon0()) )	// Saves skipping past the last segment of 0-EPs
+	return (finished = true);		// **** RETURN HERE ****
 
     do
 	{
 
 	if ( iv_it.is_on_last_el() )
 	    {
-	    finished = true;
-	    iv_it.reset();
-
 	    finished = ! av_it.advance();
 
 	    if ( ! finished )
 		{
+		iv_it.reset();
 		++sIdx;
-		gp_assert( sIdx == (av_it.to_ulong() * space.N_IVs) );
+		gp_assert_eq( sIdx, (av_it.to_ulong() * space.N_IVs) );
 		}
 	    }
 	else

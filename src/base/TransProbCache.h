@@ -329,6 +329,11 @@ class TransProbCache
 		// t must be less than T-1 since we are computing the probability from t to t+1:
 		gp_assert_lt( frLocus, (loci.size() - 1) );
 		const SLocFacts & fact = factors[ frLocus ];
+		#if 0 // DEBUG
+		    printf( "Transition-probabilities for ped %s from locus #%zu to %zu, state %zu to %zu: %.9lf\n",
+		      pedigree.getId().c_str(), frLocus, frLocus+1, frState.getNon0Index(), toState.getNon0Index(),
+		      computeProb( frState, toState, fact, getMu() ) );
+		#endif
 		return computeProb( frState, toState, fact, getMu() );
 		}
 

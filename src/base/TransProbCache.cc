@@ -368,18 +368,21 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
     gp_assert_eq( frAV.size(), toAV.size() ); // DEBUG
 
     double rv = facts.iv_factors[ frState.getIV() ^ toState.getIV() ];
-    #if DEBUG_PRINT_TP_DETAIL
-	printf( " (%lu,%lu) IV%lu=%d: %lf %lf\n", frIdx, toIdx, ctr, notEqual, (notEqual ? (g + 1) : (1 - g)) * 0.5, rv );
-    #endif
 
     const double f = facts.f;
     const double one_minus_f = 1 - f;
-    for ( Pedigree::FounderIdx fIdx = ped.getNFounders() ; fIdx-- != 0 ; )
+
+    #if DEBUG_PRINT_TP_DETAIL
+	const unsigned long ivXor = frState.getIV() ^ toState.getIV();
+	cout << "Compute trans-prob from-state=" << frState.getNon0Index() << ", to-state=" << toState.getNon0Index()
+	     << ", from-IV=" << frState.getIV() << ", to-IV=" << toState.getIV() << ", xor=" << ivXor << ", f=" << f << '\n';
+    #endif
+
+    for ( Pedigree::FGameteIdx fgIdx = ped.getNFounderGametes() ; fgIdx-- != 0 ; )
 	{
-	PopIdx frMatAncestry;
-	const PopIdx frPatAncestry = frAV.getBoth( fIdx, frMatAncestry );
-	PopIdx toMatAncestry;
-	const PopIdx toPatAncestry = toAV.getBoth( fIdx, toMatAncestry );
+
+	Pedigree::GameteType whichOne;
+	const Pedigree::FounderIdx fIdx = ped.founderOfGameteIdx( fgIdx, whichOne ); // , t.isXChromosome() );
 
 	// The ancestry-vector is indexed on founder-gamete; mu (the ancestry
 	// proportions) is indexed on founder (since we are assuming that the
@@ -388,25 +391,22 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
 	// founder-index.
 	const cvector<double> & mu_of_fIdx = _mu[ fIdx ];
 
-	double factor = one_minus_f * mu_of_fIdx[ toPatAncestry ];
-	if ( frPatAncestry == toPatAncestry )
+	const PopIdx frAncestry = frAV.at( fgIdx );
+	const PopIdx toAncestry = toAV.at( fgIdx );
+
+	double factor = one_minus_f * mu_of_fIdx[ toAncestry ];
+	if ( frAncestry == toAncestry )
 	    factor += f;
 	rv *= factor;
-
-
-	factor = one_minus_f * mu_of_fIdx[ toMatAncestry ];
-	if ( frMatAncestry == toMatAncestry )
-	    factor += f;
-	rv *= factor;
-
 
 	#if DEBUG_PRINT_TP_DETAIL
-	    printf( " (%lu,%lu) AV%lu = %lu,%lu{%d}: %lf %lf\n", frIdx, toIdx, avIdx, i, j, (i == j), factor, rv );
+	    printf( "  fndr:%zu(gmete:%zu)  = %zu,%zu: mu=%.9lf %.9lf %.9lf\n", fIdx, fgIdx, frAncestry, toAncestry, mu_of_fIdx[toAncestry], factor, rv );
 	#endif
+
 	}
 
     #if DEBUG_PRINT_TP_DETAIL
-	printf( " (%lu,%lu) trans-prob=%lf\n", frIdx, toIdx, rv );
+	printf( " (%lu,%lu) trans-prob=%lf\n", frState.getNon0Index(), toState.getNon0Index(), rv );
     #endif
 
     return rv;
@@ -421,9 +421,9 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
     //-----------------------------------------------------------------------------
 
     void TransProbCache::LocusTP::debugOut(
-				    std::ostream &	 os	,
-				    const Pedigree & ped	,
-				    SLocIdxType	 frLoc	) const
+				    std::ostream &	os    ,
+				    const Pedigree &	ped   ,
+				    SLocIdxType		frLoc ) const
 	{
 	os << "Transition-probabilities for ped #" << ped.getMyNumber() << " (" << ped.getId()
 	    << ") from locus #" << frLoc << " to " << (frLoc+1) << ":\n";

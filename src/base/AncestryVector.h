@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro  gpl-copyright@meta-dynamic.com
+// Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free
@@ -65,7 +65,7 @@ namespace genepi { // ----
 /// <A name="note-1"></A>
 /// NOTE *1*: We need to index both based on the founder-index and which gamete
 /// (i.e. using {Pedigree::FounderIdx,MaternalPaternalType}) for inheritance,
-/// and by a simple integral index (IdxType) for comparison and probability
+/// and by a simple integral index (FGIdx) for comparison and probability
 /// computation.  We might consider an iterator rather than the index externally.
 //
 //-----------------------------------------------------------------------------
@@ -73,9 +73,10 @@ namespace genepi { // ----
 //template < size_t MAX_FNDR_GAMETES >
 class AncestryVector
     {
+
     public:
 	/// Integer index into the elements, i.e. founder-gamete-index:
-	typedef size_t IdxType;
+	typedef Pedigree::FGameteIdx FGIdx;
 
     protected:
 
@@ -92,50 +93,26 @@ class AncestryVector
 
 	    WordType bytes[ MAX_BYTES ];
 
-	    PopIdx at_unsafe( IdxType el ) const
+	    PopIdx at_unsafe( FGIdx el ) const
 		{
 		const WordType byte = bytes[ el >> 1 ];
 		return ((el&1) != 0) ? (byte >> 4) : (byte & 0x0F);
 		}
 
-	    void setAt_unsafe( IdxType el, PopIdx val )
+	    void setAt_unsafe( FGIdx el, PopIdx val )
 		{
 		WordType & byte = bytes[ el >> 1 ];
 
 		if ( (el & 1) == 0 )
-		    { // Lower-order nibble (even index, maternal)
+		    { // Lower-order nibble (even/smaller index)
 		    byte &= 0xF0;
 		    byte |= val;
 		    }
 		else
-		    { // Higher-order nibble (odd index, paternal)
+		    { // Higher-order nibble (odd/larger index)
 		    byte &= 0x0F;
 		    byte |= (val << 4);
 		    }
-		}
-
-	    PopIdx getBoth( const Pedigree::FounderIdx & f, PopIdx & maternalAncestry ) const
-		{
-		const WordType byte = bytes[ f ];
-		maternalAncestry = byte & 0x0F;
-		return byte >> 4;
-		}
-
-	    int nCopiesFromKAtFounder( const Pedigree::FounderIdx & f, const PopIdx & k ) const
-		{
-		const WordType byte = bytes[ f ];
-		const PopIdx matAnc = byte & 0x0F;
-		const PopIdx patAnc = byte >> 4;
-		return (matAnc == k) + (patAnc == k);
-		}
-
-	    bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k ) const
-		{
-		const WordType byte = bytes[ f ];
-		const PopIdx matAnc = byte & 0x0F;
-		const PopIdx patAnc = byte >> 4;
-		return	((matAnc == k) && (patAnc != k)) ||
-			((patAnc == k) && (matAnc != k));
 		}
 
 	    };
@@ -154,16 +131,9 @@ class AncestryVector
 	    #define AV_MC_BYTES() nBytes()
 	#endif
 
+
+
     protected:
-	/// Converts between (founder-index,which-gamete) and
-	/// founder-gamete-index (see <A HREF="#note-1">NOTE *1*</A>).
-	static IdxType idxOf( Pedigree::FounderIdx f, bool isPaternalGamete )
-	    {
-	    IdxType idx = f << 1;
-	    if ( isPaternalGamete )
-		++idx;
-	    return idx;
-	    }
 
 	AncestryVector( const Pedigree & _ped, PopIdx _K, const DType & val ) :
 		ped ( _ped ) ,
@@ -172,7 +142,28 @@ class AncestryVector
 	    memcpy( data.bytes, val.bytes, AV_MC_BYTES() );
 	    }
 
+
+	//----------------------------------------------------------------------
+	// Access as unsigned long: use with caution.  We befriend
+	// HiddenStateSpace only so that it can use these methods, which it does
+	// to compute the index into its table of emission-probabilities when
+	// passed a specific AV and IV during state-space-generation
+	// (HiddenStateSpace::getEProb() called by
+	// Pedigree::accumStateInArray().
+	//----------------------------------------------------------------------
+
+	friend class HiddenStateSpace;
+
+	/// For use as an index into arrays; in the range of (0,K^F)
+	unsigned long to_ulong() const;
+
+	/// @warning set_parms() must be called prior to this method.
+	void set_ulong( unsigned long nv );
+
+
+
     public:
+
 	AncestryVector( const Pedigree & _ped, PopIdx _K ) :
 		ped ( _ped ) ,
 		K   ( _K   ) {}
@@ -187,17 +178,10 @@ class AncestryVector
 
 
 	/// Converts between founder-gamete-index and founder-index.
-	static Pedigree::FounderIdx founderOf( IdxType idx )
+	static Pedigree::FounderIdx founderOf( FGIdx idx )
 	    {
 	    return idx >> 1;
 	    }
-
-
-	/// For use as an index into arrays; in the range of (0,K^F)
-	unsigned long to_ulong() const;
-
-	/// @warning set_parms() must be called prior to this method.
-	void set_ulong( unsigned long nv );
 
 
 
@@ -207,20 +191,20 @@ class AncestryVector
 
 	/// Number of elements (founder-gamete-indexed).
 	/// Maybe we should cache this somewhere.
-	IdxType size() const { return ped.getNFounderGametes(); }
-	PopIdx at_unsafe( IdxType el ) const		///< at(IdxType), but not range-checked
+	FGIdx size() const { return ped.getNFounderGametes(); }
+	PopIdx at_unsafe( FGIdx el ) const		///< at(FGIdx), but not range-checked
 	    { return data.at_unsafe(el); }
-	PopIdx at( IdxType el ) const			///< Element access via founder-gamete-index
+	PopIdx at( FGIdx el ) const			///< Element access via founder-gamete-index
 	    {
 	    gp_assert_lt( el, size() );
 	    return at_unsafe( el );
 	    }
-	PopIdx operator[]( IdxType el ) const { return at(el); } ///< equivalent to at(IdxType)
+	PopIdx operator[]( FGIdx el ) const { return at(el); } ///< equivalent to at(FGIdx)
 
-	/// See (see <A HREF="#note-1">NOTE *1*</A>) and at(IdxType)
-	PopIdx at( Pedigree::FounderIdx f, bool isPaternalGamete ) const
+	/// See (see <A HREF="#note-1">NOTE *1*</A>) and at(FGIdx)
+	PopIdx at( Pedigree::FounderIdx f, Pedigree::GameteType whichOne ) const
 	    {
-	    return at( idxOf(f,isPaternalGamete) );
+	    return at( ped.founderGameteOfFounder( f, whichOne ) );
 	    }
 
 
@@ -228,46 +212,60 @@ class AncestryVector
 	// Index (founder-gamete-index) based write-access to the elements:
 	//---------------------------------------------------------------------
 
-	/// Like @link setAt(IdxType,PopIdx) setAt() @endlink, but not range-checked.
-	void setAt_unsafe( IdxType el, PopIdx val )
+	/// Like @link setAt(FGIdx,PopIdx) setAt() @endlink, but not range-checked.
+	void setAt_unsafe( FGIdx el, PopIdx val )
 	    { return data.setAt_unsafe( el, val ); }
 
 	/// Set the ancestry at position @a el to @a val.
-	void setAt( IdxType el, PopIdx val )
+	void setAt( FGIdx el, PopIdx val )
 	    {
 	    gp_assert_lt( el , size() );
 	    gp_assert_lt( val, K );
 	    setAt_unsafe( el, val );
 	    }
 
-	/// See (see <A HREF="#note-1">NOTE *1*</A>) and setAt(IdxType,PopIdx).
-	void setAt( Pedigree::FounderIdx f, bool isPaternalGamete, PopIdx val )
+	/// See (see <A HREF="#note-1">NOTE *1*</A>) and setAt(FGIdx,PopIdx).
+	void setAt( Pedigree::FounderIdx f, Pedigree::GameteType whichOne, PopIdx val )
 	    {
-	    setAt( idxOf(f,isPaternalGamete), val );
+	    setAt( ped.founderGameteOfFounder(f,whichOne), val );
 	    }
 
 
-	/// Retrieve two ancestry values at once (for the maternal and paternal
-	/// gametes of one individual).  Pass in the founder index in @a f;
-	/// returns the paternal gamete's ancestry, and puts the maternal
-	/// gamete's ancestry into @a maternalAncestry.  Implementation note:
-	/// this depends on the internal implementation of DType in a slightly
-	/// inelegant way; but getBoth() can improve performance in
-	/// certain situations, and it does not expose the implementation
-	/// details outside of the AncestryVector class.
-	PopIdx getBoth( const Pedigree::FounderIdx & f, PopIdx & maternalAncestry ) const
-	    {
-	    return data.getBoth( f, maternalAncestry );
-	    }
-
+	/// Returns true if founder is 2-gamete model, one gamete's ancestry is
+	/// from population @a k, the other's is not.  False otherwise,
+	/// including if f is modeled as a single gamete.  Used by
+	/// AdmixPedigree::accumAOScore().
 	bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k ) const
 	    {
-	    return data.isHetrozygousForPop( f, k );
+	    bool rv;
+
+	    const Organism & founder = ped.founderAt( f );
+
+	    if ( founder.isHaploid() )
+		{
+		const bool patAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL)) == k;
+		const bool matAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL)) == k;
+		rv = (matAncIsK && (! patAncIsK)) || (patAncIsK && (! matAncIsK));
+		}
+	    else
+		rv = false;
+
+	    return rv;
 	    }
 
+	/// The number of gametes of founder @a f with ancestry from population
+	/// @a k.  Used by AdmixPedigree::accumAOScore().  Consider passing in
+	/// is-haploid flag, eliminating look-up of founder here.
 	int nCopiesFromKAtFounder( const Pedigree::FounderIdx & f, const PopIdx & k ) const
 	    {
-	    return data.nCopiesFromKAtFounder( f, k );
+	    int rv;
+	    const Organism & founder = ped.founderAt( f );
+	    if ( founder.isHaploid() )
+		rv = at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_SINGLE) ) == k;
+	    else
+		rv = ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL) ) == k ) +
+		     ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL) ) == k );
+	    return rv;
 	    }
 
 
@@ -323,12 +321,21 @@ class AncestryVector::Iterator
 
 
 #if AV_OSTREAM
+
     /// Alpha output is not currently supported since the vector keeps no
     /// reference to the population-names vector.
     enum AVOutputStyle { AV_NUMERIC , AV_ALPHA };
     void setAVOutputStyle( AVOutputStyle );
+
+    /// Useful for debugging: output an AV to an ostream; only the first @a
+    /// nValid elements are valid.
+    std::ostream & output( std::ostream & os,
+			   const AncestryVector & av,
+			   AncestryVector::FGIdx nValid );
+
     /// Useful for debugging: output an AV to an ostream
     std::ostream & operator<<( std::ostream & os, const AncestryVector & av );
+
 #endif // AV_OSTREAM
 
 

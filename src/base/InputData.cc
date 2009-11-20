@@ -2,7 +2,7 @@
  *   InputData.cc
  *   Class to read and check all input data files
  *   Copyright (c) 2005 - 2007 David O'Donnell and Paul McKeigue
- *   Copyright (C) 2009  David D. Favro
+ *   Portions copyright (C) 2009  David D. Favro
  *
  * This program is free software distributed WITHOUT ANY WARRANTY.
  * You can redistribute it and/or modify it under the terms of the GNU General Public License,

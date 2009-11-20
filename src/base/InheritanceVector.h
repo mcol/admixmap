@@ -167,14 +167,14 @@ class InheritanceVector
 
 
 	/// Return the number of meiosis (i.e. the number of bits) in this vector.
-	size_t n_meiosis() const { return (getNNonFndrs() << 1); }
+	size_t getNMeiosis() const;
 
 
 	InheritanceVector( const Pedigree & p );
 
 	InheritanceVector( const InheritanceVector & rhs ) :
-		    space    ( rhs.space     ) ,
-		    bits     ( rhs.bits	     )
+		    space ( rhs.space ) ,
+		    bits  ( rhs.bits  )
 	    {
 	    gp_assert_lt( getNNonFndrs(), MAX_ORGANISMS );
 	    }
@@ -293,7 +293,12 @@ class InheritanceVector::Iterator
 
 
 //-----------------------------------------------------------------------------
+//
 // InheritanceSpace
+//
+/// Consider maintaining two for each Pedigree, one for the X chromosome and one
+/// for the non-X chromosomes, and eliminating the IsXChrom parameters.
+//
 //-----------------------------------------------------------------------------
 
 class InheritanceSpace
@@ -332,8 +337,11 @@ class InheritanceSpace
 	cvector<Entry>	x_vals;
 	size_t		nFounders;
 	size_t		nMembers;
+	size_t		nMeiosis_X;
+	size_t		nMeiosis_nonX;
 
-	// Used by friend InheritanceVector.
+	// Used by friend InheritanceVector.  Remove the default value for
+	/// @a isX when X chromosomes are fully implemented for pedigrees.
 	const Entry & getEntry( InheritanceVector::SibIdx mIdx, IsXChrom isX = NOT_X_CHROM ) const
 	    {
 	    gp_assert_ge( mIdx, nFounders );
@@ -343,10 +351,18 @@ class InheritanceSpace
 	    }
 
     public:
+
 	InheritanceSpace( const Pedigree & _ped );
 
 	size_t getNFounders() const { return nFounders; }
 	size_t getNMembers () const { return nMembers ; }
+
+	/// The number of meiosis in the pedigree.  Remove the default value for
+	/// @a isX when X chromosomes are fully implemented for pedigrees.
+	size_t getNMeiosis( IsXChrom isX = NOT_X_CHROM ) const
+	    {
+	    return (isX == IS_X_CHROM) ? nMeiosis_X : nMeiosis_nonX;
+	    }
 
 	/// Given a member of a pedigree, report which meiosis contributed to its genotype.
 	WhichMeiosis getWhichMeiosis( NonFounderIdx nonFounderIdx, IsXChrom x_chrom ) const;
@@ -372,8 +388,16 @@ inline size_t InheritanceVector::getNMembers() const
     }
 
 
+inline size_t InheritanceVector::getNMeiosis() const
+    {
+    return getSpace().getNMeiosis();
+    }
+
+
+
 inline InheritanceVector::Bits InheritanceVector::getMember( SibIdx mIdx ) const
     {
+
     gp_assert_lt( mIdx, getNMembers() );
     gp_assert_ge( mIdx, getNFounders() );
 
@@ -392,7 +416,9 @@ inline InheritanceVector::Bits InheritanceVector::getMember( SibIdx mIdx ) const
 	matSI = bits[ entry.m_bit ] ? SI_MATERNAL : SI_PATERNAL;
 
     return Bits( patSI, matSI );
+
     }
+
 
 
 inline void InheritanceVector::setMember( SibIdx mIdx, const Bits & nv )

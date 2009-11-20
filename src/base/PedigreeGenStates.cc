@@ -37,8 +37,9 @@
 // These control whether debugging-output support is compiled in at all; to get
 // the output, it must also be enabled by calling dbgRecursion() and/or
 // dbgEmission():
-#define DEBUG_EMISSION_PROBS	1
-#define DEBUG_RECURSION		1
+#define DEBUG_EMISSION_PROBS	0
+#define DEBUG_RECURSION		0
+#define DEBUG_INHERITANCE	0
 
 
 
@@ -49,6 +50,7 @@
 
 
 using namespace std;
+typedef genepi::Genotype::AlleleType AlleleType;
 
 
 
@@ -66,6 +68,7 @@ namespace genepi { // ----
 
 #if DEBUG_EMISSION_PROBS
     /// Output the founder-haplotype-state:
+// **** SINGLE-FOUNDER-GAMETE ANCESTRY-VECTOR LOOK HERE ****
     static std::ostream & output_hs( std::ostream & os, const Haplotype * hapState, const Pedigree & ped, bool full )
 	{
 	os << "FHS{";
@@ -126,6 +129,29 @@ void Pedigree::releaseStateProbs() const
 
 
 
+#if DEBUG_RECURSION
+
+    static std::ostream & operator<<( std::ostream & os, const genepi::Genotype & gt )
+	{
+	os << '[';
+	if ( ! gt.isMissing1() )
+	    os << gt.getVal1();
+	os << ',';
+	if ( ! gt.isMissing2() )
+	    os << gt.getVal2();
+	os << ']';
+	return os;
+	}
+
+    static std::ostream & operator<<( std::ostream & os, const genepi::Haplotype & ht )
+	{
+	return os << static_cast<const genepi::Genotype &>(ht);
+	}
+
+#endif
+
+
+
 //-----------------------------------------------------------------------------
 // mendelErrAt() [private]
 //-----------------------------------------------------------------------------
@@ -163,6 +189,7 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 				  const Haplotype *	    founderHapState ,
 				  double		    emProb	    )
     {
+
     if ( emProb == 0.0 )
 	cerr << "Strangeness: pedigree " << ped.getId() << " at locus " << sLocIdx << " (" <<
 	    ped.getSLoci()[sLocIdx].getName() << ") received a zero emission-probability.\n";
@@ -189,6 +216,7 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
     #else
 	if ( founderHapState ) {;} // Suppress unused parameter compiler warning
     #endif
+
     }
 
 
@@ -196,27 +224,6 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 //==============================================================================
 // GENERATION OF STATES
 //==============================================================================
-
-
-//-----------------------------------------------------------------------------
-/// Compute inherited haplotype from the relevant bits of an inheritance vector
-/// and the two parents' phased haplotypes:
-//-----------------------------------------------------------------------------
-
-static inline Haplotype inheritHap(
-		   const InheritanceVector::Bits & ivEl		,
-		   const Haplotype &		   paternalHap	,
-		   const Haplotype &		   maternalHap	)
-    {
-    return Haplotype(
-		(ivEl.paternal() == InheritanceVector::SI_PATERNAL) ?
-		    paternalHap.getPaternalAllele()		    :
-		    paternalHap.getMaternalAllele()			,
-		(ivEl.maternal() == InheritanceVector::SI_PATERNAL) ?
-		    maternalHap.getPaternalAllele()		    :
-		    maternalHap.getMaternalAllele()			);
-    }
-
 
 
 //-----------------------------------------------------------------------------
@@ -235,7 +242,8 @@ static inline Haplotype inheritHap(
 //-----------------------------------------------------------------------------
 
 void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
-			   Haplotype *		  memberHapState ,
+			   Genotype::AlleleType * fndrGameteState,
+			   Haplotype *		  nonFndrHapState,
 			   const AncestryVector & av		 ,
 			   InheritanceVector &	  iv		 ,
 			   MemberIdx		  memDepth	 ,
@@ -245,21 +253,19 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
 
     #if DEBUG_RECURSION
 	if ( dRecursion )
-	    std::cout << "Recurse sib sloc(" << sLocIdx << ") memDepth(" << memDepth
+	    std::cout << "Recurse-sib memDepth(" << memDepth
 		<< ") " << av << " iv-so-far(" << iv << " ep-term(" << emProbTerm << ")\n";
     #endif
 
 
     if ( memDepth == getNMembers() )
 	{
-	(*receiver)( *this, sLocIdx, av, iv, memberHapState, emProbTerm );
+	(*receiver)( *this, sLocIdx, av, iv, nonFndrHapState, emProbTerm );
 	return; // **** RETURN HERE ****
 	}
 
-    Haplotype &	     thisMemberHap   = memberHapState[ memDepth ];
+    Haplotype &	     thisMemberHap   = nonFndrHapState[ memDepth ];
     const Member &   member	     = memberAt( memDepth );
-    Haplotype &	     patHapState     = memberHapState[ member.getFather()->getPIdx() ];
-    Haplotype &	     matHapState     = memberHapState[ member.getMother()->getPIdx() ];
     const Genotype & myUnphasedGType = member.getGType( sLocIdx );
 
     // Generate every possible (all 4) segregation-indicator combinations for
@@ -279,18 +285,124 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
     //*** state containing that value of the paternal SI and no maternal SI.
     //***************************************************************************
 
-    // These odd-looking for-loops each iterate over the two possible
-    // segregation-indicators.
+    // These odd-looking for-loops each iterate over the two possible values of
+    // each of the two segregation-indicators.
 
     for ( InheritanceVector::SegInd patSI = InheritanceVector::SI_PATERNAL ; ;
 	    patSI = InheritanceVector::SI_MATERNAL )
 	{
 
+	const Member & father = *member.getFather();
+
+	if ( father.isHaploid() )
+	    {
+	    if ( patSI == InheritanceVector::SI_MATERNAL )
+		break;
+	    else
+		patSI = InheritanceVector::SI_NONE;
+	    }
+
 	for ( InheritanceVector::SegInd matSI = InheritanceVector::SI_PATERNAL ; ;
 		matSI = InheritanceVector::SI_MATERNAL )
 	    {
+
+	    const Member & mother = *member.getMother();
+
+	    if ( mother.isHaploid() )
+		{
+		if ( matSI == InheritanceVector::SI_MATERNAL )
+		    break;
+		else
+		    matSI = InheritanceVector::SI_NONE;
+		}
+
+
+	    #if DEBUG_RECURSION
+		if ( dRecursion )
+		    {
+		    std::cout
+			<< "  propose: paternal-seg-ind=" << patSI
+			<< "; maternal-srg-ind=" << matSI << '\n';
+		    }
+	    #endif
+
+	    AlleleType paternalGamete;
+	    if ( patSI == InheritanceVector::SI_NONE )
+		{
+		gp_assert( father.isHaploid() );
+		if ( father.isFounder() )
+		    paternalGamete = fndrGameteState[ founderGameteOfFounder(father.getPIdx(),GT_SINGLE) ];
+		else
+		    {
+		    // For the moment, no haploid non-founders; this needs to be fixed for X-chromosomes for pedigrees.
+		    throw std::runtime_error( "No haploid non-founders" );
+		    }
+		}
+	    else
+		{
+		gp_assert( ! father.isHaploid() );
+		if ( father.isFounder() )
+		    {
+		    const FGameteIdx patGameteIdx = founderGameteOfFounder( father.getPIdx(),
+						    (patSI == InheritanceVector::SI_PATERNAL) ? GT_PATERNAL : GT_MATERNAL );
+		    paternalGamete = fndrGameteState[ patGameteIdx ];
+		    #if DEBUG_INHERITANCE
+			std::cout << "    father.pedIdx=" << father.getPIdx()
+			    << ", patGameteIdx=" << patGameteIdx
+			    << " -> paternalGamete=" << paternalGamete << '\n';
+		    #endif
+		    }
+		else
+		    {
+		    Haplotype & paternalHap = nonFndrHapState[ father.getPIdx() ];
+		    paternalGamete =
+			(patSI == InheritanceVector::SI_PATERNAL) ?
+			    paternalHap.getPaternalAllele()	  :
+			    paternalHap.getMaternalAllele()	  ;
+		    }
+		}
+
+
+	    AlleleType maternalGamete;
+	    if ( matSI == InheritanceVector::SI_NONE )
+		{
+		gp_assert( mother.isHaploid() );
+		if ( mother.isFounder() )
+		    maternalGamete = fndrGameteState[ founderGameteOfFounder(mother.getPIdx(),GT_SINGLE) ];
+		else
+		    {
+		    // For the moment, no haploid non-founders; this needs to be fixed for X-chromosomes for pedigrees.
+		    throw std::runtime_error( "No haploid non-founders" );
+		    }
+		}
+	    else
+		{
+		gp_assert( ! mother.isHaploid() );
+		if ( mother.isFounder() )
+		    {
+		    const FGameteIdx matGameteIdx = founderGameteOfFounder( mother.getPIdx(),
+						    (matSI == InheritanceVector::SI_PATERNAL) ? GT_PATERNAL : GT_MATERNAL );
+		    maternalGamete = fndrGameteState[ matGameteIdx ];
+		    #if DEBUG_INHERITANCE
+			std::cout << "    mother.pedIdx=" << mother.getPIdx()
+				<< ", matGameteIdx=" << matGameteIdx
+				<< " -> maternalGamete=" << maternalGamete << '\n';
+		    #endif
+		    }
+		else
+		    {
+		    Haplotype & maternalHap = nonFndrHapState[ mother.getPIdx() ];
+		    maternalGamete =
+			(matSI == InheritanceVector::SI_PATERNAL) ?
+			    maternalHap.getPaternalAllele()	  :
+			    maternalHap.getMaternalAllele()	  ;
+		    }
+		}
+
+
 	    const InheritanceVector::Bits ivSeg( patSI, matSI );
-	    thisMemberHap = inheritHap( ivSeg, patHapState, matHapState );
+	    thisMemberHap.setVals( paternalGamete, maternalGamete );
+
 
 	    // One possible added optimization: if two different IVs produce the
 	    // same haplotype here, we don't need to recurse each separately,
@@ -298,21 +410,33 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
 	    // IVs as an equivalence class of states, so for the moment we'll
 	    // generate all of them separately.
 
+	    #if DEBUG_RECURSION
+		if ( dRecursion )
+		    std::cout
+			<< "  check consistency of proposed phased nonf: "
+			<< thisMemberHap
+			<< " versus actual unphased: " << myUnphasedGType
+			<< ": " << (myUnphasedGType.consistent(thisMemberHap)?"yes":"no")
+			<< '\n';
+	    #endif
+
 	    if ( myUnphasedGType.consistent( thisMemberHap ) )
 		{
 		// Store the bits in the IV so that if/when we reach the bottom
 		// of the recursion, we'll have accumulated the whole qualifying
 		// IV for emission:
 		iv.setMember( memDepth, ivSeg );
-		recurseSib( sLocIdx, memberHapState, av, iv, memDepth + 1, emProbTerm, receiver );
+		recurseSib( sLocIdx, fndrGameteState, nonFndrHapState, av, iv, memDepth + 1, emProbTerm, receiver );
 		}
 
 	    if ( matSI == InheritanceVector::SI_MATERNAL )
 		break;
+
 	    }
 
 	if ( patSI == InheritanceVector::SI_MATERNAL )
 	    break;
+
 	}
 
     }
@@ -334,20 +458,29 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
 //
 //-----------------------------------------------------------------------------
 
-void Pedigree::recurseFounder(	SLocIdxType		sLocIdx		,
-				PopIdx			K		,
-				const AlleleProbTable & alProbTab	,
-				Haplotype *		memberHapState	,
-				AncestryVector &	ancestry	,
-				MemberIdx		memDepth	,
-				double			probProdSoFar	,
-				StateReceiver		receiver	) const
+void Pedigree::recurseFndrGamete( SLocIdxType		  sLocIdx	  ,
+				  PopIdx		  K		  ,
+				  const AlleleProbTable & alProbTab	  ,
+				  AlleleType *		  fndrGameteState ,
+				  AncestryVector &	  ancestry	  ,
+				  FGameteIdx		  fgDepth	  ,
+				  double		  probProdSoFar   ,
+				  StateReceiver		  receiver	  ) const
     {
 
     #if DEBUG_RECURSION
 	if ( dRecursion )
-	    std::cout << "Recurse fndr sloc(" << sLocIdx << ") memDepth(" << memDepth
-		<< ") " << ancestry << " prob-prod-so-far(" << probProdSoFar << ")\n";
+	    {
+	    std::cout << "Recurse-fndr fgDepth(" << fgDepth << ':';
+	    for ( FGameteIdx fgi = 0 ; fgi < fgDepth ; ++fgi )
+		{
+		if ( fgi != 0 )
+		    std::cout << ',';
+		std::cout << fndrGameteState[fgi];
+		}
+	    std::cout << ") ";
+	    output(std::cout,ancestry,fgDepth) << " prob-prod-so-far(" << probProdSoFar << ")\n";
+	    }
     #endif
 
 
@@ -366,98 +499,96 @@ void Pedigree::recurseFounder(	SLocIdxType		sLocIdx		,
     // ancestry vector, then retrieving them again for lookup here (ditto for
     // alleles).
 
-    if ( memDepth == 0 )
+    if ( fgDepth == 0 )
 	probProdSoFar = 1.0;
     else
 	{
-	const FounderIdx fDepth = memDepth - 1; // The depth just before this call was made
-	const Haplotype & hap = memberHapState[ fDepth ];
-	probProdSoFar *= alProbTab.at( hap.getPaternalAllele(), ancestry.at(fDepth,true ) );
-	probProdSoFar *= alProbTab.at( hap.getMaternalAllele(), ancestry.at(fDepth,false) );
+	const FGameteIdx pDepth = fgDepth - 1; // The depth just before this call was made
+	const AlleleType & al = fndrGameteState[ pDepth ];
+	probProdSoFar *= alProbTab.at( al, ancestry.at(pDepth) );
 	}
 
-    if ( memDepth == getNFounders() )
+
+    // If recursed to the end of the founders, start recursing the non-founders:
+    if ( fgDepth == getNFounderGametes() )
 	{
+
 	InheritanceVector iv( *this );
-	recurseSib( sLocIdx, memberHapState, ancestry, iv, memDepth, probProdSoFar, receiver );
+
+	// We currently index the non-founder-haplotype-state stack on
+	// member-index rather than non-founder-index, so we must allocate more
+	// than we need.
+	#if 0
+	    Haplotype nonFndrHapState[ getNNonFndrs() ];
+	#else
+	    Haplotype nonFndrHapState[ getNMembers() ];
+	#endif
+
+	// Start memDepth at nFounders, which is the member-index of the first non-founder.
+	recurseSib( sLocIdx, fndrGameteState, nonFndrHapState, ancestry, iv, getNFounders(), probProdSoFar, receiver );
+
 	return; // **** RETURN HERE ****
+
 	}
 
-    gp_assert_lt( memDepth, getNFounders() );
+    gp_assert_lt( fgDepth, getNFounderGametes() );
 
-    Haplotype &		thisMemberHap	= memberHapState[ memDepth ];
-    const Member &	member		= memberAt( memDepth );
-    const Genotype &	thisUnphasedGT	= member.getGType( sLocIdx );
-    const SimpleLocus & locus		= getSLoci()[ sLocIdx ];
-    const size_t	nAlleles	= locus.getNumAlleles();
+    const SimpleLocus & locus		  = getSLoci()[ sLocIdx ];
+    const size_t	nAlleles	  = locus.getNumAlleles();
+    const bool		isX		  = locus.isXChrom();
+    AlleleType &	thisAllele	  = fndrGameteState[ fgDepth ];
+    GameteType		whichOne;
+    const FounderIdx	fIdx		  = founderOfGameteIdx( fgDepth, whichOne, isX );
+    const Member &	founder		  = founderAt( fIdx );
+    const bool		haplotypeComplete = (whichOne != GT_PATERNAL); // NOTE *X91* in Pedigree.h
+    const Genotype &	thisUnphasedGT	  = founder.getGType( sLocIdx );
 
-    gp_assert( member.isFounder() );
-
-
-    const MemberIdx nextMemDepth = memDepth + 1;
+    gp_assert( founder.isFounder() );
+    gp_assert( (whichOne == GT_SINGLE) || (! founder.isHaploid()) );
 
 
     //-------------------------------------------------------------------------
     // Iterate over every possible ancestry for this node:
     //-------------------------------------------------------------------------
 
-    for ( PopIdx popMat = K ; popMat-- != 0 ; )
+    for ( PopIdx pop = K ; pop-- != 0 ; )
 	{
-	ancestry.setAt( memDepth, false, popMat );
 
-	for ( PopIdx popPat = K ; popPat-- != 0 ; )
-	    {
-	    ancestry.setAt( memDepth, true, popPat );
+	ancestry.setAt( fgDepth, pop );
 
 
-	    //------------------------------------------------------------------
-	    // Now, for each possible ancestry setting at this node, iterate
-	    // over every possible haplotype for this node, and recurse each
-	    // one of those:
-	    //------------------------------------------------------------------
+	//------------------------------------------------------------------
+	// Now, for each possible ancestry setting at this node, iterate over
+	// every possible allele for this founder-gamete, and recurse each one
+	// of those; yet eliminating any phased-haplotype combinations that are
+	// not consistent with observed genotype data for this founder.
+	//------------------------------------------------------------------
 
-	    // ---- How to deal with haploid? ----
-
-	    if ( thisUnphasedGT.hasOneVal() )
+	for ( Genotype::AlleleType al = 1; al <= nAlleles; ++al )
+	    if ( thisUnphasedGT.consistent( al ) )
 		{
-		// Only one observed allele in genotype: haploid or one missing:
-		const Genotype::AlleleType obsVal = thisUnphasedGT.getVal1();
-		for ( Genotype::AlleleType aIdx = 1; aIdx <= nAlleles; ++aIdx )
+		bool consistent = (! haplotypeComplete) || founder.isHaploid();
+		if ( ! consistent )
 		    {
-		    thisMemberHap.setVals( aIdx, obsVal );
-		    recurseFounder( sLocIdx, K, alProbTab, memberHapState, ancestry, nextMemDepth, probProdSoFar, receiver );
-		    if ( aIdx != obsVal )
-			{
-			thisMemberHap.setVals( obsVal, aIdx );
-			recurseFounder( sLocIdx, K, alProbTab, memberHapState, ancestry, nextMemDepth, probProdSoFar, receiver );
-			}
+		    gp_assert( fgDepth > 0 );
+		    const FGameteIdx pDepth = fgDepth - 1; // The depth just before this call was made
+		    consistent = thisUnphasedGT.consistent( Haplotype(fndrGameteState[pDepth],al) );
+		    #if DEBUG_RECURSION
+			if ( dRecursion )
+			    std::cout
+				<< "  check consistency of proposed phased fndr: "
+				<< Haplotype( fndrGameteState[pDepth], al )
+				<< " versus actual unphased: " << thisUnphasedGT
+				<< ": " << (consistent?"yes":"no") << '\n';
+		    #endif
+		    }
+		if ( consistent )
+		    {
+		    thisAllele = al;
+		    recurseFndrGamete( sLocIdx, K, alProbTab, fndrGameteState, ancestry,
+				    fgDepth + 1, probProdSoFar, receiver );
 		    }
 		}
-	    else if ( thisUnphasedGT.hasTwoVals() )
-		{
-		// Two observed alleles in genotype:
-		const Genotype::AlleleType a1 = thisUnphasedGT.getVal1();
-		const Genotype::AlleleType a2 = thisUnphasedGT.getVal2();
-		thisMemberHap.setVals( a1, a2 );
-		recurseFounder( sLocIdx, K, alProbTab, memberHapState, ancestry, nextMemDepth, probProdSoFar, receiver );
-		if ( a1 != a2 )
-		    {
-		    thisMemberHap.setVals( a2, a1 );
-		    recurseFounder( sLocIdx, K, alProbTab, memberHapState, ancestry, nextMemDepth, probProdSoFar, receiver );
-		    }
-		}
-	    else
-		{
-		// Untyped (both alleles missing):
-		for ( Genotype::AlleleType pIdx = 1; pIdx <= nAlleles; ++pIdx )
-		    for ( Genotype::AlleleType mIdx = 1; mIdx <= nAlleles; ++mIdx )
-			{
-			thisMemberHap.setVals( pIdx, mIdx );
-			recurseFounder( sLocIdx, K, alProbTab, memberHapState, ancestry, nextMemDepth, probProdSoFar, receiver );
-			}
-		}
-
-	    }
 
 	}
 
@@ -476,7 +607,7 @@ void Pedigree::recurseFounder(	SLocIdxType		sLocIdx		,
 
 void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const AlleleProbTable & alProbTab, SLocIdxType sLocIdx ) const
     {
-    Haplotype	   memberHapState[ getNMembers() ];
+    AlleleType	   fndrGameteState[ getNFounderGametes() ];
     AncestryVector ancestry( *this, K );
 
     #if DEBUG_EMISSION_PROBS || DEBUG_RECURSION
@@ -484,10 +615,12 @@ void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const Allele
 	    {
 	    std::cout.setf(ios::fixed);
 	    std::cout.precision(8);
+	    std::cout << "\n\n====== LOCUS #" << sLocIdx << ' '
+		      << getSLoci()[sLocIdx].getName() << " =======\n\n";
 	    }
     #endif
 
-    recurseFounder( sLocIdx, K, alProbTab, memberHapState, ancestry, 0, 0.0, receiver );
+    recurseFndrGamete( sLocIdx, K, alProbTab, fndrGameteState, ancestry, 0, 0.0, receiver );
     }
 
 
@@ -500,7 +633,7 @@ void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const Allele
 
 void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const AlleleProbVect & alProbVect ) const
     {
-    Haplotype	   memberHapState[ getNMembers() ];
+    AlleleType	   fndrGameteState[ getNFounderGametes() ];
     AncestryVector ancestry( *this, K );
 
     #if DEBUG_EMISSION_PROBS || DEBUG_RECURSION
@@ -512,7 +645,14 @@ void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const Allele
     #endif
 
     for ( size_t sLocIdx = 0 ; sLocIdx < getSLoci().size() ; ++sLocIdx )
-	recurseFounder( sLocIdx, K, alProbVect.at(sLocIdx), memberHapState, ancestry, 0, 0.0, receiver );
+	{
+	#if DEBUG_EMISSION_PROBS || DEBUG_RECURSION
+	    if ( dEmission || dRecursion )
+		std::cout << "\n\n====== LOCUS #" << sLocIdx << ' '
+			  << getSLoci()[sLocIdx].getName() << " =======\n\n";
+	#endif
+	recurseFndrGamete( sLocIdx, K, alProbVect.at(sLocIdx), fndrGameteState, ancestry, 0, 0.0, receiver );
+	}
     }
 
 
