@@ -46,7 +46,6 @@ ResidualLDTest.cc ResidualLDTest.h \
 ScoreTestBase.cc ScoreTestBase.h \
 Genotype.h Genotype.cc \
 GenotypeIterator.cc \
-cvector.h \
 RhoType.h
 
 
@@ -69,7 +68,7 @@ if USE_GENOTYPE_PARSER
 		AlleleFreqParser.h AlleleFreqParser.cc \
 		TransProbCache.h TransProbCache.cc \
 		HiddenMarkovModel.new.h HiddenMarkovModel.new.cc \
-		TwoDimArray.h ThetaType.h \
+		TwoDimArray.h \
 		PedBase.h PedBase.cc \
 		CodeTimer.h CodeTimer.cc
 else
