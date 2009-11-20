@@ -176,7 +176,7 @@ class PedBase
 	virtual void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
 	virtual void WritePosteriorMeansXChr(ostream& os, unsigned samples) const;
 	virtual void WritePosteriorMeansLoci(ostream& os)const;
-	virtual void setOddsRatios(genepi::cvector<double>& psi);
+	virtual void setOddsRatios(const genepi::cvector<double>& psi);
 
 
 

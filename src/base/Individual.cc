@@ -410,6 +410,6 @@ void Individual::SampleMissingOutcomes(bclib::DataMatrix *Outcome, const vector<
   }
 }
 
-void Individual::setOddsRatios(genepi::cvector<double>& _psi) {
+void Individual::setOddsRatios(const genepi::cvector<double>& _psi) {
   psi = _psi;
 }

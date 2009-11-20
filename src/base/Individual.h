@@ -159,7 +159,7 @@ protected:
   public:
     const genepi::RhoType & getRho() const;
 
-  void setOddsRatios(genepi::cvector<double>& psi);
+  void setOddsRatios(const genepi::cvector<double>& psi);
 
 };
 

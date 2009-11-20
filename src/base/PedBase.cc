@@ -206,7 +206,7 @@ void PedBase::WritePosteriorMeansXChr(ostream& /*os*/, unsigned /*samples*/) con
 
 void PedBase::WritePosteriorMeansLoci(ostream& /*os*/) const { not_implemented( "WritePosteriorMeansLoci()", typeid(*this) ); }
 
-void PedBase::setOddsRatios(genepi::cvector<double>& /*os*/) { not_implemented( "setOddsRatios()", typeid(*this) ); }
+void PedBase::setOddsRatios(const genepi::cvector<double>& /*psi*/) { not_implemented( "setOddsRatios()", typeid(*this) ); }
 
 
 } // ---- end namespace genepi
