@@ -57,7 +57,7 @@ public:
   void setCovariates(double*);
   void setGenotypesToMissing();
 
-  const double* getAdmixtureProps()const;
+  const double* getAdmixtureProps(bool isXChrom = false) const;
   const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
   const int* getSampledHapPair(int locus)const;
   bool GenotypeIsMissing(unsigned int locus)const;///< locus is a comp locus

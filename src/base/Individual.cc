@@ -206,8 +206,11 @@ void Individual::HMMIsBad(bool loglikisbad) {
 }
 
 //******************** Accessors ***********************************************************
-const double* Individual::getAdmixtureProps()const {
-  return Theta.flat();
+const double* Individual::getAdmixtureProps(bool isXChrom) const {
+  if (isXChrom)
+    return Theta.flatXChromosome(psi);
+  else
+    return Theta.flat();
 }
 
 const std::vector<hapPair > &Individual::getPossibleHapPairs( unsigned int locus ) const {

@@ -149,18 +149,24 @@ void AllelicAssocTest::Update( const PedBase * const ind, double YMinusEY, doubl
   int locus = 0;
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
+
+    bool isXChrom = Lociptr->isXChromosome(j);
+
     for(unsigned int jj = 0; jj < Lociptr->GetSizeOfChromosome(j); jj++ ){
       //skip loci with missing genotypes as hap pairs have not been sampled for these
       if(!ind->GenotypeIsMissing(locus)){
 	//retrieve sampled hap pair from Individual
 	const int* happair = ind->getSampledHapPair(locus);
 	const unsigned numLoci = Lociptr->getNumberOfLoci(locus);
-	
-	SubTests[locus]->Update(happair, (*Lociptr)(locus), ind->getAdmixtureProps(), YMinusEY, phi, DInvLink);
-	
+
+        SubTests[locus]->Update(happair, (*Lociptr)(locus),
+                                ind->getAdmixtureProps(isXChrom),
+                                YMinusEY, phi, DInvLink);
+
 	if( options->getTestForHaplotypeAssociation() && numLoci > 1){
 	  HaplotypeAssocTests[locus]->Update(happair, (*Lociptr)(locus), 
-					     ind->getAdmixtureProps(), YMinusEY, phi, DInvLink);
+                                             ind->getAdmixtureProps(isXChrom),
+                                             YMinusEY, phi, DInvLink);
 	}
       }
       locus++;

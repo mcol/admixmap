@@ -85,7 +85,7 @@ void PedBase::setGenotypesToMissing() { not_implemented( "setGenotypesToMissing(
 
 void PedBase::SetMissingGenotypes() { not_implemented( "SetMissingGenotypes()", typeid(*this) ); }
 
-const double* PedBase::getAdmixtureProps()const { not_implemented( "getAdmixtureProps()", typeid(*this) ); }
+const double* PedBase::getAdmixtureProps(bool /* isXChrom */)const { not_implemented( "getAdmixtureProps()", typeid(*this) ); }
 
 const std::vector<hapPair > &PedBase::getPossibleHapPairs(unsigned int /*locus*/)const { not_implemented( "getPossibleHapPairs()", typeid(*this) ); }
 

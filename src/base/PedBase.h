@@ -100,7 +100,7 @@ class PedBase
 	virtual void setGenotypesToMissing();
 	virtual void SetMissingGenotypes();
 
-	virtual const double * getAdmixtureProps()const;
+	virtual const double* getAdmixtureProps(bool isXChrom = false) const;
 	virtual const std::vector<hapPair> & getPossibleHapPairs( unsigned int locus ) const;
 	virtual const int * getSampledHapPair(int locus)const;
 	virtual bool GenotypeIsMissing(unsigned int locus)const;///< locus is a comp locus
