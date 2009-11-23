@@ -48,18 +48,20 @@ void ResidualLDTest::Initialise(const char* filename, const IndividualCollection
   test = true;
   NumIntervals = Loci->GetNumberOfCompositeLoci() - Loci->GetNumberOfChromosomes();
 
+  const int NumOfChromosomes = Lociptr->GetNumberOfChromosomes();
+
   //open cumulative output file
   R.open(filename);
-  
-  SumScore.resize(Lociptr->GetNumberOfChromosomes());
-  SumScore2.resize(Lociptr->GetNumberOfChromosomes());
-  SumInfo.resize(Lociptr->GetNumberOfChromosomes());
-  
-  Score.resize(Lociptr->GetNumberOfChromosomes());
-  Info.resize(Lociptr->GetNumberOfChromosomes());
+
+  SumScore.resize(NumOfChromosomes);
+  SumScore2.resize(NumOfChromosomes);
+  SumInfo.resize(NumOfChromosomes);
+
+  Score.resize(NumOfChromosomes);
+  Info.resize(NumOfChromosomes);
   
   int locus = 0;
-  for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
+  for(int j = 0; j < NumOfChromosomes; ++j){
     unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
     
     SumScore[j].resize(NumberOfLoci-1);
@@ -141,7 +143,7 @@ void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
 }
 
 
-int delta(int i, int j){
+static int delta(int i, int j){
   return (i == j);
 }
 
