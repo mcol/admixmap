@@ -173,7 +173,7 @@ x <- numeric(0)
 chr <- numeric(0)
 length <- sum(chr.L)
 chr.labels <- c(as.character(1:22), "X")
-spacing <- 10 # 40 cM spacing gives 99 autosomal loci
+spacing <- 40 # 40 cM spacing gives 99 autosomal loci
 for(chromosome in 1:23) {
   positions <- seq(0, chr.L[chromosome], spacing)
   x <- c( x, positions) 
@@ -224,7 +224,7 @@ beta <- 2 # regression slope for effect of admixture
 alpha <- -beta*popM 
 logistic <- TRUE # logistic or linear
 
-N.ind <- 400
+N.ind <- 20
 N.sibpairs <- 0
 
 ####################################################################
@@ -282,7 +282,7 @@ if(N.sibpairs > 0) {
   ped6 <- ped6.ind
 }
 
-locusnames <- as.character(1:(L + Xchr.L))
+locusnames <- paste("X", as.character(1:(L + Xchr.L)), sep="")
 colnames(ped6) <- c("famid", "individ", "patid", "matid", "sex", "outcome")
 ped <- data.frame(ped6, genotypes)
   
@@ -294,7 +294,7 @@ mkdirs("data") # returns FALSE if directory already exists
 write.table(ped, file="data/genotypes.ped", sep="\t", quote=FALSE,
             row.names=FALSE, col.names=TRUE)
 ## write in standard ADMIXMAP format for unrelated individuals
-write.table(ped[, -c(1, 3:4, 6)], file="data/genotypes.txt", quote=FALSE,
+write.table(ped[, -c(2:4, 6)], file="data/genotypes.txt", quote=FALSE, sep="\t",
             row.names=FALSE, col.names=TRUE)
 
 
