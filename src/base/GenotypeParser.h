@@ -102,7 +102,7 @@ class GenotypeParser : public GFileLexer
 	    { pmap.insert( std::multimap<FamIdType,Organism*>::value_type( org.getFamId(), &org ) ); }
 
 
-	void validateOrg( const Organism & org ) const;
+	void validateOrg( Organism & org ) const;
 
 
     public:

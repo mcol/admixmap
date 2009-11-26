@@ -338,7 +338,7 @@ void GenotypeParser::buildAndCheckPedGraphs()
 // Check the input data for some basic validation.
 //-----------------------------------------------------------------------------
 
-void GenotypeParser::validateOrg( const Organism & org ) const
+void GenotypeParser::validateOrg( Organism & org ) const
     {
 
     const SimpleLocusArray & sLoci = getSLoci();
@@ -346,6 +346,7 @@ void GenotypeParser::validateOrg( const Organism & org ) const
     // Some counts:
     int nMissing    = 0;
     int nNotMissing = 0;
+    int nDiploid    = 0;
 
     for ( SLocIdxType locIdx = sLoci.size() ; locIdx-- != 0 ; )
 	{
@@ -381,10 +382,16 @@ void GenotypeParser::validateOrg( const Organism & org ) const
 		    else
 			gType.forceHaploid();
 		    }
+		else
+		    ++nDiploid;
 		}
 	    }
 
 	}
+
+
+    if ( nDiploid == 0 )
+	org.setSingleGameteModel( true );
 
 
     // The problem with generating this warning here for pedfiles is that these

@@ -1637,24 +1637,25 @@ bool Pedigree::simpleGenotypeIsMissing( SLocIdxType slIdx ) const
     }
 
 
-bool Pedigree::isHaploidatLocus( unsigned int ) const
-    {
-    #if PEDIGREES_HAVE_PLOIDINESS
-	throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
-    #else
-	return false;
-    #endif
-    }
+#if ! PEDIGREES_HAVE_PLOIDINESS
 
+    bool Pedigree::isHaploidatLocus( unsigned int sLocIdx ) const
+	{
+	if ( getNMembers() == 1 )
+	    return memberAt(0).getGType( sLocIdx ).isHaploid();
+	else
+	    throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
+	}
 
-bool Pedigree::isHaploidIndividual() const
-    {
-    #if PEDIGREES_HAVE_PLOIDINESS
-	throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
-    #else
-	return false;
-    #endif
-    }
+    bool Pedigree::isHaploidIndividual() const
+	{
+	if ( getNMembers() == 1 )
+	    return memberAt(0).isHaploid();
+	else
+	    throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
+	}
+
+#endif
 
 
 

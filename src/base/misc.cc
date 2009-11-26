@@ -104,7 +104,7 @@ void CreateDirectory(const char* dirname,  bool DeleteExistingFiles){
 void ThrowException( const string & msg, bclib::LogWriter & Log )
     {
     Log << bclib::On << "\n\n"
-	"FATAL ERROR: " << msg << ": aborting.\n\n";
+	">>>FATAL ERROR: " << msg << "\n>>>ABORTING!\n\n";
     Log.ProcessingTime();
     exit(1);
     }

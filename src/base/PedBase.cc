@@ -32,6 +32,9 @@
 #include <cxxabi.h>
 
 
+#define ALLOW_UNIMPLEMENTED_X_CHROM	1
+
+
 static const char NI_PREFIX [] = "Not implemented: ";
 
 
@@ -85,7 +88,12 @@ void PedBase::setGenotypesToMissing() { not_implemented( "setGenotypesToMissing(
 
 void PedBase::SetMissingGenotypes() { not_implemented( "SetMissingGenotypes()", typeid(*this) ); }
 
-const double* PedBase::getAdmixtureProps(bool /* isXChrom */)const { not_implemented( "getAdmixtureProps()", typeid(*this) ); }
+
+const double* PedBase::getAdmixtureProps(bool /* isXChrom */)const
+    {
+    not_implemented( "getAdmixtureProps()", typeid(*this) );
+    }
+
 
 const std::vector<hapPair > &PedBase::getPossibleHapPairs(unsigned int /*locus*/)const { not_implemented( "getPossibleHapPairs()", typeid(*this) ); }
 
@@ -101,7 +109,14 @@ bool PedBase::isHaploidIndividual()const { not_implemented( "isHaploidIndividual
 
 double PedBase::getLogLikelihood(const Options& , const bool /*forceUpdate*/, const bool /*store*/) { not_implemented( "getLogLikelihood()", typeid(*this) ); }
 
-double PedBase::getLogLikelihoodXChr(const Options& , const bool /*forceUpdate*/, const bool /*store*/) { not_implemented( "getLogLikelihoodXChr()", typeid(*this) ); }
+double PedBase::getLogLikelihoodXChr(const Options& , const bool /*forceUpdate*/, const bool /*store*/)
+    {
+    #if ALLOW_UNIMPLEMENTED_X_CHROM
+	return 0.0;
+    #else
+	not_implemented( "getLogLikelihoodXChr()", typeid(*this) );
+    #endif
+    }
 
 void PedBase::storeLogLikelihood(const bool /*setHMMAsOK*/) { not_implemented( "storeLogLikelihood()", typeid(*this) ); }
 
@@ -202,11 +217,23 @@ double PedBase::getLogPosteriorAlleleFreqs()const { not_implemented( "getLogPost
 
 void PedBase::WritePosteriorMeans(ostream& /*os*/, unsigned /*samples*/, bool /*globalrho*/) const { not_implemented( "WritePosteriorMeans()", typeid(*this) ); }
 
-void PedBase::WritePosteriorMeansXChr(ostream& /*os*/, unsigned /*samples*/) const { not_implemented( "WritePosteriorMeansXChr()", typeid(*this) ); }
+
+void PedBase::WritePosteriorMeansXChr(ostream& /*os*/, unsigned /*samples*/) const
+    {
+    #if ! ALLOW_UNIMPLEMENTED_X_CHROM
+	not_implemented( "WritePosteriorMeansXChr()", typeid(*this) );
+    #endif
+    }
+
 
 void PedBase::WritePosteriorMeansLoci(ostream& /*os*/) const { not_implemented( "WritePosteriorMeansLoci()", typeid(*this) ); }
 
-void PedBase::setOddsRatios(const genepi::cvector<double>& /*psi*/) { not_implemented( "setOddsRatios()", typeid(*this) ); }
+void PedBase::setOddsRatios(const genepi::cvector<double>& /*psi*/)
+    {
+    #if ! ALLOW_UNIMPLEMENTED_X_CHROM
+	not_implemented( "setOddsRatios()", typeid(*this) );
+    #endif
+    }
 
 
 } // ---- end namespace genepi
