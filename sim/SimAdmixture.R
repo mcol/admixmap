@@ -76,27 +76,29 @@ simulateOffspringFromParents <- function(sex, parent1.genotypes, parent2.genotyp
 
 simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
   ## returns vector of simulated alleles on one admixed gamete
-  ## M is proportionate admixture from pop 1 
-  gameteAncestry <- integer(L) # takes values 1 or 2
+  ## M is proportionate admixture from pop 1
   simAlleles <- integer(L)
-  randAnc <- runif(L)  
-  gameteAncestry[1] <- ifelse(randAnc[1] < M, 1, 2)
-  f <- exp(-rho * 0.01 * x) # prob 0 arrivals in preceding interval
-  ## Tmatrix[i,j] is prob ancestry at t+1 = j given ancestry at t = i
-  for(locus in 2:L) {
-    if(is.na(x[locus])) { ## distance from last missing
-      Tmatrix <- t(matrix(data=c(M, 1-M, M, 1-M), nrow=2, ncol=2))
-    } else {
-      Tmatrix <- t(matrix(data=c(M + (1-M)*f[locus],  1-M - (1-M)*f[locus],
-                            M - M*f[locus], 1-M + M*f[locus] ),
-                          nrow=2, ncol=2))
+  if(L > 0) {
+    gameteAncestry <- integer(L) # takes values 1 or 2
+    randAnc <- runif(L)  
+    gameteAncestry[1] <- ifelse(randAnc[1] < M, 1, 2)
+    f <- exp(-rho * 0.01 * x) # prob 0 arrivals in preceding interval
+    ## Tmatrix[i,j] is prob ancestry at t+1 = j given ancestry at t = i
+    for(locus in 2:L) {
+      if(is.na(x[locus])) { ## distance from last missing
+        Tmatrix <- t(matrix(data=c(M, 1-M, M, 1-M), nrow=2, ncol=2))
+      } else {
+        Tmatrix <- t(matrix(data=c(M + (1-M)*f[locus],  1-M - (1-M)*f[locus],
+                              M - M*f[locus], 1-M + M*f[locus] ),
+                            nrow=2, ncol=2))
+      }
+      ## simulate ancestry at locus
+      gameteAncestry[locus] <- ifelse(randAnc[locus] < Tmatrix[gameteAncestry[locus-1], 1], 1, 2)
     }
-    ## simulate ancestry at locus
-    gameteAncestry[locus] <- ifelse(randAnc[locus] < Tmatrix[gameteAncestry[locus-1], 1], 1, 2)
-  }
-  for(locus in 1:L) {
-    ## simulate allele conditional on ancestry at locus
-    simAlleles[locus] <- ifelse(runif(1) < alleleFreqs[2*locus - 1, gameteAncestry[locus]], 1, 2)
+    for(locus in 1:L) {
+      ## simulate allele conditional on ancestry at locus
+      simAlleles[locus] <- ifelse(runif(1) < alleleFreqs[2*locus - 1, gameteAncestry[locus]], 1, 2)
+    }
   }
   return(simAlleles)
 }
@@ -164,7 +166,14 @@ simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, a
 ##########################################################################
 ## Start of script
 ## specify genome and marker panel
-numChr <- 22
+withX <- FALSE
+
+if(withX) {
+  numChr <- 23
+} else {
+  numChr <- 22
+}
+
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,
            123,109,96,59,58,120)  # last value is length of X chr
@@ -174,7 +183,7 @@ chr <- numeric(0)
 length <- sum(chr.L)
 chr.labels <- c(as.character(1:22), "X")
 spacing <- 40 # 40 cM spacing gives 99 autosomal loci
-for(chromosome in 1:23) {
+for(chromosome in 1:numChr) {
   positions <- seq(0, chr.L[chromosome], spacing)
   x <- c( x, positions) 
   chr <- c(chr, rep(chr.labels[chromosome], length(positions)))
@@ -182,7 +191,13 @@ for(chromosome in 1:23) {
 chrnum <- chr
 chrnum[chr=="X"] <- "23"
 dist <- distanceFromLast(as.integer(chrnum), x)
-Xchr.L <- length(positions) # number of X chr loci
+
+
+if(withX) {
+  Xchr.L <- length(positions) # number of X chr loci
+} else {
+  Xchr.L <- 0
+}
 
 ## alternatively, read marker positions from file
 # locustable <- read.table("loci.txt", header=TRUE)
