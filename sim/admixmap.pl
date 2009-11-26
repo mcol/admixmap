@@ -57,9 +57,18 @@ sub doAnalysis
     } 
     mkpath($args->{resultsdir});
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    print "Results will be written to subdirectory $ENV{'RESULTSDIR'}";
-    print ":" . $command . ":";
-    system($command);
+    print "Results will be written to subdirectory $ENV{'RESULTSDIR'}\n";
+    print "Command: " . $command . "\n";
+    my $status = system($command);
+    if ( $status == -1 )
+	{
+	print STDERR $PROG . ": error executing: $command : $!\n";
+	}
+    elsif ( $status != 0 )
+	{
+	print STDERR $PROG . ": $prog exited with non-zero status: $status\n";
+	}
+
     print "Starting R script to process output\n";
     system("R CMD BATCH --quiet --no-save --no-restore ~/genepi/trunk/dist/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
     print "R script completed\n\n";
@@ -87,8 +96,19 @@ my $arg_hash =
     allelicassociationscorefile => 'allelicassociationscores.txt'
 };
 
+
+# **** These should be re-enabled when the are supported by pedigrees: ****
+if ( $usepedfile ) {
+    $arg_hash->{"no-conjugate-update"} = 1;
+    $arg_hash->{fixedallelefreqs} = 1;
+    $arg_hash->{residualldtest} = 0;
+} else {
+    $arg_hash->{fixedallelefreqs} = 0;
+    $arg_hash->{residualldtest} = 1;
+}
+
+
 # model with prior allele freqs
-$arg_hash->{fixedallelefreqs}      = 0;
 $arg_hash->{priorallelefreqfile}   = "data/priorallelefreqs.txt";
 $arg_hash->{resultsdir}            = 'results';  
 $arg_hash->{indadmixturefile}   = "indivadmixture.txt";
@@ -96,6 +116,5 @@ $arg_hash->{dispersiontest}    = 1;
 $arg_hash->{affectedsonlytest} = 1;
 $arg_hash->{ancestryassociationtest} = 1;
 $arg_hash->{hwtest} = 1;
-$arg_hash->{residualldtest} = 1;
 doAnalysis($executable,$arg_hash);
 
