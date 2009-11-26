@@ -239,7 +239,7 @@ beta <- 2 # regression slope for effect of admixture
 alpha <- -beta*popM 
 logistic <- TRUE # logistic or linear
 
-N.ind <- 20
+N.ind <- 10
 N.sibpairs <- 0
 
 ####################################################################
@@ -344,7 +344,7 @@ for(locus in 1:(L+Xchr.L)) {
 priorallelefreqs <- as.data.frame(0.5+array(as.vector(aperm(alleleCounts, c(3,1,2))),
                                             dim=c((L+Xchr.L)*2,2)))
 locusnames <- paste("X", seq(1:(L+Xchr.L)), sep="")
-priorallelefreqs <- data.frame(locusnames, priorallelefreqs)
+priorallelefreqs <- data.frame(rep(locusnames, each=2), priorallelefreqs)
 write.table(priorallelefreqs, file="data/priorallelefreqs.txt", row.names=FALSE, sep="\t",
             quote=FALSE)
 
