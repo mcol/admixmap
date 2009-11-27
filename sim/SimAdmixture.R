@@ -105,7 +105,6 @@ simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
 
 simulateGenotypes <- function(sex, M1, M2, M1X, M2X, rho, x, L, Xchr.L, alleleFreqs) {
   ## returns a vector of genotypes for a single diploid individual
-  ## set admixture proportions on X chromosome
   maternalGamete <- c(simulateHaploidAlleles(M2, rho, x, L,alleleFreqs[1:(2*L), ]),
                       simulateHaploidAlleles(M2X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
   paternalGamete <- c(simulateHaploidAlleles(M1, rho, x, L,alleleFreqs[1:(2*L), ]),
@@ -192,7 +191,6 @@ chrnum <- chr
 chrnum[chr=="X"] <- "23"
 dist <- distanceFromLast(as.integer(chrnum), x)
 
-
 if(withX) {
   Xchr.L <- length(positions) # number of X chr loci
 } else {
@@ -239,7 +237,7 @@ beta <- 2 # regression slope for effect of admixture
 alpha <- -beta*popM 
 logistic <- TRUE # logistic or linear
 
-N.ind <- 10
+N.ind <- 100
 N.sibpairs <- 0
 
 ####################################################################
