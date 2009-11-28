@@ -75,7 +75,8 @@ InputAdmixData::InputAdmixData( AdmixOptions & options, LogWriter & log )
 
 
 //-------------------------------------------------------------------------
-// DDF: This obviously should not exist.  No more circular dependencies, please.
+// This exists, due to the circular dependency between AdmixOptions and
+// InputAdmixData.
 //-------------------------------------------------------------------------
 
 void InputAdmixData::finishConstructing( const AdmixOptions & options )

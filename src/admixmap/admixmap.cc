@@ -181,16 +181,15 @@ int main( int argc , char** argv ){
     //also sets 'numberofoutcomes' and 'populations' options
     InputAdmixData data( options, Log );
 
-    // "check user options"
-    // DDF: well, actually finish constructing them also.  They can't be used
-    // prior to this call.
+    // Check user options (and finish constructing them also).  They can't be
+    // used prior to this call.
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
       Log << bclib::On << "\nProgram aborted due to bad options. See logfile for details\n";
       exit(1);
     }
 
-    // DDF: This shouldn't be required, but circular dependencies
-    //	(AdmixOptions/InputAdmixData) do that to you.
+    // This shouldn't be required, but is due to the circular dependency
+    // between AdmixOptions and InputAdmixData.
     data.finishConstructing( options );
 
     //print user options to args.txt; must be done after all options are set

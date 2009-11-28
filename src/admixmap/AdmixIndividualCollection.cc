@@ -83,10 +83,13 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
       {
       for ( unsigned int i = 0; i < size; i++ )
 	{
-	_child[i] = const_cast<genepi::Pedigree*>( &data.getPeds()[ i + i0 ] );
+	const Pedigree & ped = data.getPeds()[ i + i0 ];
+	if ( options.getUsePedForInd() || (ped.getNMembers() > 1) )
+	    _child[i] = const_cast<genepi::Pedigree*>( &ped );
+	else
+	    _child[i] = new AdmixedIndividual( i+i0+1, &options, &data, false );
 	++NumDiploidIndividuals;
 	}
-      iOwnChildren = false;
       }
   else
       {
@@ -96,7 +99,6 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
 	if ( ! _child[i]->isHaploidIndividual() )
 	  ++NumDiploidIndividuals;
 	}
-      iOwnChildren = true;
       }
 
 }
@@ -129,9 +131,12 @@ AdmixIndividualCollection::~AdmixIndividualCollection() {
       }
   #endif
 
-  if ( iOwnChildren )
-    for(unsigned int i = 0; i < size; i++)
-      delete _child[i];
+  for(unsigned int i = 0; i < size; i++)
+      {
+      PedBase * const pb = _child[i];
+      if ( dynamic_cast<AdmixedIndividual *>( pb ) != 0 )
+	delete pb;
+      }
 
   delete[] _child;
 }

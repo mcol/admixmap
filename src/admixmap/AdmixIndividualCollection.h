@@ -115,7 +115,6 @@ public:
 private:
   PedBase * * TestInd;// pointer to individual for whom to estimate marginal likelihood
   int sizeTestInd;
-  bool iOwnChildren;
 
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
 

@@ -35,8 +35,7 @@ public:
 
   /// The object is not constructed and cannot be used until this is called, but
   /// it cannot be done from the constructor (see note in source file for why).
-  /// Ugly and brittle -- this is what happens when you make circular depencies,
-  /// so whoever did that, stop doing that.
+  /// Ugly and brittle, this is due to the circular depency between.
   void finishConstructing( const AdmixOptions & options );
 
   ///Destructor
