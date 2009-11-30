@@ -1171,11 +1171,11 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 	    DEBUG_TH_PROP(
 		fprintf( stderr, "DBG-TH-PR-1: %d %s %zu", getMyNumber(), getId().c_str(), tIdx );
 		for ( PopIdx k = 0 ; k < K ; ++k )
-		    fprintf( stderr, " %.7lf", th[k] );
+		    fprintf( stderr, " %.9lf", th[k] );
 		putc( '\n', stderr );
 		fprintf( stderr, "DBG-TH-PR-2: %d %s %zu", getMyNumber(), getId().c_str(), tIdx );
 		for ( PopIdx k = 0 ; k < K ; ++k )
-		    fprintf( stderr, " %.7lf", a[k] );
+		    fprintf( stderr, " %.9lf", a[k] );
 		putc( '\n', stderr );
 
 		fprintf( stderr, "PRNG POISON TEST: %.12lf\n", RNG_UNIFORM() );
@@ -1189,7 +1189,7 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 	    DEBUG_TH_PROP(
 		fprintf( stderr, "DBG-TH-PR-3: %d %s %zu", getMyNumber(), getId().c_str(), tIdx );
 		for ( PopIdx k = 0 ; k < K ; ++k )
-		    fprintf( stderr, " %.7lf", a[k] );
+		    fprintf( stderr, " %.9lf", a[k] );
 		putc( '\n', stderr );
 	    ) // end DEBUG_TH_PROP()
 
@@ -1199,7 +1199,7 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 	    DEBUG_TH_PROP(
 		fprintf( stderr, "DBG-TH-PR-4: %d %s %zu", getMyNumber(), getId().c_str(), tIdx );
 		for ( PopIdx k = 0 ; k < K ; ++k )
-		    fprintf( stderr, " %.7lf", th_prop[k] );
+		    fprintf( stderr, " %.9lf", th_prop[k] );
 		putc( '\n', stderr );
 	    ) // end DEBUG_TH_PROP()
 
@@ -1208,6 +1208,8 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 	    for ( PopIdx k = 0; k < K; ++k )
 		if ( th[k] > 0.0 ) // Equivalent: if (a[k] != SOFTMAX_0_FLAG)
 		    LogPriorRatio += alpha[tIdx][k] * (log(th_prop[k]) - log(th[k])); // Equivalent: log(th_prop[k]/th[k])
+		else
+		    th_prop[k] = th[k];
 	    }
 
 	else // IS_ADMIXED()

@@ -793,16 +793,43 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& option
       }
       Theta[g].inv_softmax_gt0(a);
 
+      DEBUG_TH_PROP(
+	  fprintf( stderr, "DBG-TH-PR-1: %d %zu", getMyNumber(), g );
+	  for ( int k = 0 ; k < NumHiddenStates ; ++k )
+	      fprintf( stderr, " %.9lf", Theta[g][k] );
+	  putc( '\n', stderr );
+	  fprintf( stderr, "DBG-TH-PR-2: %d %zu", getMyNumber(), g );
+	  for ( int k = 0 ; k < NumHiddenStates ; ++k )
+	      fprintf( stderr, " %.9lf", a[k] );
+	  putc( '\n', stderr );
+
+	  fprintf( stderr, "PRNG POISON TEST: %.12lf\n", RNG_UNIFORM() );
+      ) // end DEBUG_TH_PROP()
+
       //random walk step - on all elements of array a
       for(int k = 0; k < NumHiddenStates; ++k) {
 	if( b[k] )
 	    a[k] = Rand::gennor(a[k], step);
       }
 
+      DEBUG_TH_PROP(
+	  fprintf( stderr, "DBG-TH-PR-3: %d %zu", getMyNumber(), g );
+	  for ( int k = 0 ; k < NumHiddenStates ; ++k )
+	      fprintf( stderr, " %.9lf", a[k] );
+	  putc( '\n', stderr );
+      ) // end DEBUG_TH_PROP()
+
       //reverse transformation from numbers on real line to proportions
       bclib::softmax(NumHiddenStates, a, a, b);
       for (int i = 0; i < NumHiddenStates; ++i)
         if (b[i]) ThetaProposal[g][i] = a[i];
+
+      DEBUG_TH_PROP(
+	  fprintf( stderr, "DBG-TH-PR-4: %d %zu", getMyNumber(), g );
+	  for ( int k = 0 ; k < NumHiddenStates ; ++k )
+	      fprintf( stderr, " %.9lf", ThetaProposal[g][k] );
+	  putc( '\n', stderr );
+      ) // end DEBUG_TH_PROP()
 
       //compute contribution of this gamete to log prior ratio
       for(int k = 0; k < NumHiddenStates; ++k) {
@@ -834,7 +861,7 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& option
   logLikelihood.tempvalue = getLogLikelihood(options, ThetaProposal, _rho, true);
   LogLikelihoodRatio += logLikelihood.tempvalue;
   DEBUG_TH_PROP( fprintf( stderr, "  Propose-LLR: %.9lf  Ratio: %.9lf  PriorRat: %.9lf\n",
-			llCache.getProposedVal(), LogLikelihoodRatio, LogPriorRatio ); )
+			logLikelihood.tempvalue, LogLikelihoodRatio, LogPriorRatio ); )
   return LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
 }
 
