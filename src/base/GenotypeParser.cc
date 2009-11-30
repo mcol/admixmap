@@ -335,7 +335,8 @@ void GenotypeParser::buildAndCheckPedGraphs()
 
 
 //-----------------------------------------------------------------------------
-// Check the input data for some basic validation.
+/// Check the input data for some basic validation.
+/// At this time, the mother and father have not yet been resolved to pointers.
 //-----------------------------------------------------------------------------
 
 void GenotypeParser::validateOrg( Organism & org ) const
@@ -382,16 +383,21 @@ void GenotypeParser::validateOrg( Organism & org ) const
 		    else
 			gType.forceHaploid();
 		    }
-		else
-		    ++nDiploid;
 		}
 	    }
+
+	if ( ! gType.isHaploid() )
+	    ++nDiploid;
 
 	}
 
 
     if ( nDiploid == 0 )
+	{
+	std::cerr << "Setting single-gamete-model due to all haploid genotypes for "
+	     << org.getFamId() << '/' << org.getOrgId() << '\n';
 	org.setSingleGameteModel( true );
+	}
 
 
     // The problem with generating this warning here for pedfiles is that these
