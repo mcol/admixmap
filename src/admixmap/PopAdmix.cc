@@ -358,8 +358,8 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
 
     const double LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
 
-    // gamma(1,1)
-    const double LogPriorRatio = (logpsiprop - logpsi) - (psiprop[el] - psi[el]);
+    // gaussian prior
+    const double LogPriorRatio = -0.5 * (logpsiprop*logpsiprop - logpsi*logpsi);
     const double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio;
 
     // generic Metropolis step
