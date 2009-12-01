@@ -382,14 +382,14 @@ double Genome::GetDistance( int locus ) const
 {
   #if AGGRESSIVE_RANGE_CHECK
 
+      if ( (locus < 0) || (unsigned(locus) > NumberOfCompositeLoci) )
+	  throw runtime_error( estr("Access of out-of-bounds distance[") +
+				locus + "] (max " + NumberOfCompositeLoci + ')' );
+
       #if USE_GENOTYPE_PARSER
 	if ( (*simpleLoci).size() == (*simpleLoci).getNComposite() )
 	    gp_assert( ! (*simpleLoci)[locus].startsNewChromosome() );
       #endif
-
-      if ( (locus < 0) || (unsigned(locus) > NumberOfCompositeLoci) )
-	  throw runtime_error( estr("Access of out-of-bounds distance[") +
-				locus + "] (max " + NumberOfCompositeLoci + ')' );
 
   #endif
 
