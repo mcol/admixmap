@@ -390,23 +390,35 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
     for(int i = 0; i < sizeTestInd; ++i){
       // ** set SumLocusAncestry and SumNumArrivals to 0
       TestInd[i]->ResetSufficientStats();
-      // ** update theta with random-walk proposal on even-numbered iterations
-      if(Populations >1 && !(iteration %2))
-	TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates,
-				beta, poptheta, options, alpha, 0.0,
-				dispersion, ancestryAssocTest, true, anneal);
-      // ** Run HMM forward recursions and Sample Locus Ancestry
-      if(Populations >1)TestInd[i]->SampleHiddenStates(options);
-      // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-      if(Populations >1)TestInd[i]->SampleJumpIndicators(!options.isGlobalRho());
-      // ** Sample individual- or gamete-specific sumintensities
-      if(Populations>1 && !options.isGlobalRho() )
-	TestInd[i]->SampleRho( options, rhoalpha, rhobeta,
-			       (!anneal && iteration > options.getBurnIn()));
-      // ** update admixture props with conjugate proposal on odd-numbered iterations
-      if((iteration %2) && Populations >1 )
-	TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates,
-				beta, poptheta, options, alpha, 0.0, dispersion, ancestryAssocTest, false, anneal);
+
+      if (Populations > 1) {
+
+        // ** update theta with random-walk proposal on even-numbered iterations
+        if ( !(iteration % 2) )
+          TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType,
+                                  lambda, NumCovariates, &Covariates,
+                                  beta, poptheta, options, alpha, 0.0,
+                                  dispersion, ancestryAssocTest, true, anneal);
+
+        // ** Run HMM forward recursions and Sample Locus Ancestry
+        TestInd[i]->SampleHiddenStates(options);
+
+        // ** Sample JumpIndicators, update SumLocusAncestry and SumNumArrivals
+        TestInd[i]->SampleJumpIndicators(!options.isGlobalRho());
+
+        // ** Sample individual- or gamete-specific sumintensities
+        if (!options.isGlobalRho())
+          TestInd[i]->SampleRho(options, rhoalpha, rhobeta,
+                                (!anneal && iteration > options.getBurnIn()));
+
+        // ** update admixture props with conjugate proposal on odd-numbered iterations
+        if (iteration % 2)
+          TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType,
+                                  lambda, NumCovariates, &Covariates,
+                                  beta, poptheta, options, alpha, 0.0,
+                                  dispersion, ancestryAssocTest, false, anneal);
+      }
+
       // ** Sample missing values of outcome variable
       //TestInd[i]->SampleMissingOutcomes(&Outcome, R);
 
