@@ -38,7 +38,7 @@ namespace genepi { // ----
 
 //-----------------------------------------------------------------------------
 /// A simple ring buffer to help manage proposing, accepting, and rejecting new
-/// parameters and the resulting computions.  Used internally by Pedigree.  As
+/// parameters and the resulting computations.  Used internally by Pedigree.  As
 /// currently implemented, the ring-buffer has only 2 elements, so there can be
 /// at most 1 active proposal.
 //-----------------------------------------------------------------------------
