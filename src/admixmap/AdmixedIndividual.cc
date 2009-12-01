@@ -978,6 +978,8 @@ void AdmixedIndividual::Accept_Reject_Theta( double logpratio, /*bool xdata, */ 
     }
   }
 
+  DEBUG_TH_PROP( fprintf( stderr, "Accept: %s\n", accept ? "yes" : "no" ); )
+
   if(accept) { // set proposed values as new values
     setAdmixtureProps(ThetaProposal);
     if(RW) { //if random-walk update, store the temp log-likelihood and set loglikelihood.HMMisOK to true
