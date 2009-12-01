@@ -289,8 +289,8 @@ void GenotypeParser::buildAndCheckPedGraphs()
     // Fourth pass: every pedigree should consist of a digraph which:
     //	    (a) is connected, and
     //	    (b) contains no cycles
-    // The "special" case of a single organism with no other family
-    // members also meets these conditions.
+    // The "special" case of a single unrelated individual also meets these
+    // conditions.
     //
     // By iterating over the organisms using the pmap rather than rows
     // container, we will visit them all in such an order that all of the
@@ -403,7 +403,7 @@ void GenotypeParser::validateOrg( Organism & org ) const
     // The problem with generating this warning here for pedfiles is that these
     // are often valid organisms in the context of pedigrees, typically because
     // they are the parent of an organism that _does_ have observed data; but we
-    // don't know at this stage weather an organism has children since the
+    // don't know at this stage whether an organism has children since the
     // pedigree graphs have not yet been connected.
     if ( (! isPedFile()) && (nNotMissing == 0) )
 	{
