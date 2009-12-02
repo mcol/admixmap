@@ -1,0 +1,85 @@
+#!/bin/bash
+
+
+PROG=$(basename "${0}")
+
+
+#-----------------------------------------------------------------------------
+#
+# Convert a genotype-format file (and an outcome file) to a pedigree format
+# file.  Does no validation of the input data, results are unpredictable if the
+# input files are not valid.  The first column of the outcome file becomes the
+# outcome column of the pedigree file.
+#
+# Can create two kinds of pedigree files: the default is to create a file with
+# one pedigree per individual, with no parents.  The "-parents" option will
+# create one three-member pedigree for each individual in the genotype file,
+# containing the source individual as child and two untyped, unaffected parents.
+#
+#-----------------------------------------------------------------------------
+
+
+if [ "${1}" = "-parents" ]
+    then
+    shift
+    parents="1"
+else
+    parents="0"
+    fi
+
+
+if [ "${#}" -ne 2 -o "${1:0:1}" = "-" ]
+    then
+    echo "Usage: ${PROG} [-parents] <genotype-file> <outcome-file>" 1>&2
+    exit 1
+    fi
+
+
+genotype_file="${1}"
+outcome_file="${2}"
+
+
+gawk -v outcome_file="${outcome_file}" -v parents="${parents}" \
+    '
+
+    function outline( indId, patId, matId )
+	{
+	getline oc < outcome_file
+	printf "%s\t%s\t%s\t%s\t%s\t%s", $1, indId, patId, matId, $2, oc
+	for ( i = 3 ; i <= NF ; ++i )
+	    printf "\t%s", $i
+	printf "\n"
+	}
+
+
+    {
+    if ( NR == 1 ) # Header line
+	outline( "indId", "patId", "matId" );
+    else
+	{
+	if ( parents )
+	    {
+
+	    # Father:
+	    printf "%s\t2\t0\t0\t1\t0", $1
+	    for ( i = 3 ; i <= NF ; ++i )
+		printf "\t0,0"
+	    printf "\n"
+
+	    # Mother:
+	    printf "%s\t3\t0\t0\t2\t0", $1
+	    for ( i = 3 ; i <= NF ; ++i )
+		printf "\t0,0"
+	    printf "\n"
+
+	    # Child:
+	    outline( 1, 2, 3 );
+
+	    }
+
+	else
+	    outline( 1, 0, 0 );
+	}
+    }
+
+    ' < "${genotype_file}"
