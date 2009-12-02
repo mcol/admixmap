@@ -145,7 +145,8 @@ distanceFromLast <- function(v.Chr, v.Position) {
 
 simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs) {
   M1 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
-  M2 <- M1 #assortative mating
+  M2 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M2 is prob pop 1
+  # M2 <- M1 #assortative mating
   avM <- 1 - 0.5*(M1 + M2)
   ## now set X chr admixture proportions using psi, sex, M1, M2
   if(sex==1) {
@@ -165,7 +166,7 @@ simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, a
 ##########################################################################
 ## Start of script
 ## specify genome and marker panel
-withX <- FALSE
+withX <- TRUE
 
 if(withX) {
   numChr <- 23
@@ -181,7 +182,7 @@ x <- numeric(0)
 chr <- numeric(0)
 length <- sum(chr.L)
 chr.labels <- c(as.character(1:22), "X")
-spacing <- 40 # 40 cM spacing gives 99 autosomal loci
+spacing <- 10 # 40 cM spacing gives 99 autosomal loci
 for(chromosome in 1:numChr) {
   positions <- seq(0, chr.L[chromosome], spacing)
   x <- c( x, positions) 
@@ -225,8 +226,8 @@ for(locus in 1:(L+Xchr.L)) {
 ## set allele freqs as required for testing purposes
 ## use 0, 1, and 1, 0 to make all markers informative
 ## use 0.5, 0.5 and 0.5, 0.5 to make all markers uninformative
-alleleFreqs[,1] <- c(0.8, 0.2)
-alleleFreqs[,2] <- c(0.2, 0.8)
+alleleFreqs[,1] <- c(0, 1)
+alleleFreqs[,2] <- c(1, 0)
 
 ## alternatively, read prior allele freqs from file
 
@@ -237,7 +238,7 @@ beta <- 2 # regression slope for effect of admixture
 alpha <- -beta*popM 
 logistic <- TRUE # logistic or linear
 
-N.ind <- 100
+N.ind <- 400
 N.sibpairs <- 0
 
 ####################################################################
