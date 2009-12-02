@@ -4,19 +4,22 @@
 PROG=$(basename "${0}")
 
 
-#-----------------------------------------------------------------------------
-#
-# Convert a genotype-format file (and an outcome file) to a pedigree format
-# file.  Does no validation of the input data, results are unpredictable if the
-# input files are not valid.  The first column of the outcome file becomes the
-# outcome column of the pedigree file.
-#
-# Can create two kinds of pedigree files: the default is to create a file with
-# one pedigree per individual, with no parents.  The "-parents" option will
-# create one three-member pedigree for each individual in the genotype file,
-# containing the source individual as child and two untyped, unaffected parents.
-#
-#-----------------------------------------------------------------------------
+help()
+    {
+    echo "${PROG}
+
+Convert a genotype-format file (and an outcome file) to a pedigree format
+file.  Does no validation of the input data, results are unpredictable if the
+input files are not valid.  The first column of the outcome file becomes the
+outcome column of the pedigree file.
+
+Can create two kinds of pedigree files: the default is to create a file with
+one pedigree per individual, with no parents.  The "-parents" option will
+create one three-member pedigree for each individual in the genotype file,
+containing the source individual as child and two untyped, unaffected parents.
+"
+    }
+
 
 
 if [ "${1}" = "-parents" ]
@@ -28,9 +31,17 @@ else
     fi
 
 
+if [ "${1}" = "-h" -o "${1}" = "-help" -o "${1}" = "--help" ]
+    then
+    help
+    exit 0
+    fi
+
+
 if [ "${#}" -ne 2 -o "${1:0:1}" = "-" ]
     then
     echo "Usage: ${PROG} [-parents] <genotype-file> <outcome-file>" 1>&2
+    help
     exit 1
     fi
 
