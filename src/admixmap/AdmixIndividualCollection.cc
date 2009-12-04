@@ -435,25 +435,31 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
 
     PedBase & el = getElement(i);
 
-    // ** Sample individual- or gamete-specific sumintensities
-    if(Populations>1 && !options.isGlobalRho() )
-       el.SampleRho( options, rhoalpha, rhobeta,
-				   (!anneal && iteration > options.getBurnIn()));
+    if (Populations > 1) {
 
-    // ** update admixture props with conjugate proposal on odd-numbered iterations
-     if((iteration %2) && Populations >1 ){
-           double DinvLink = 1.0;
+      // ** Sample individual- or gamete-specific sumintensities
+      if (!options.isGlobalRho())
+        el.SampleRho(options, rhoalpha, rhobeta,
+                     (!anneal && iteration > options.getBurnIn()));
+
+      // ** update admixture props with conjugate proposal on odd-numbered iterations
+      if (iteration % 2) {
+        double DinvLink = 1.0;
+
 	// Accessing global data here, must protect -- let's find a better way?
 	#if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP && SAMPLE_THETA_CALL_CRITICAL
 	    #pragma omp critical
 	#endif
 	    { // BEGIN SCOPE BLOCK
 	    if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-	    el.SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates,
-			beta, poptheta, options, alpha, DinvLink, dispersion, ancestryAssocTest,
-			options.getNoConjugateUpdate(), anneal);
+            el.SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType,
+                           lambda, NumCovariates, &Covariates,
+                           beta, poptheta, options, alpha, DinvLink,
+                           dispersion, ancestryAssocTest,
+                           options.getNoConjugateUpdate(), anneal);
 	    } // END SCOPE BLOCK
-     }
+      }
+    }
 
     // ** Sample missing values of outcome variable
     el.SampleMissingOutcomes(&Outcome, R);
