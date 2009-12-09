@@ -148,13 +148,22 @@ simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, a
   M2 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M2 is prob pop 1
   # M2 <- M1 #assortative mating
   avM <- 1 - 0.5*(M1 + M2)
+
+  samepsi <- TRUE
+
+  if(samepsi) {
+    psi.ind <- psi
+  } else {
+    psi.ind <- exp(rnorm(1, log(psi), 0.5))
+  }
+
   ## now set X chr admixture proportions using psi, sex, M1, M2
   if(sex==1) {
     M1X <- NA
   } else {
-    M1X <- setXchrAdmixture(psi, c(M1, 1 - M1))[1]
+    M1X <- setXchrAdmixture(psi.ind, c(M1, 1 - M1))[1]
   }
-  M2X <- setXchrAdmixture(psi, c(M2, 1 - M2))[1]
+  M2X <- setXchrAdmixture(psi.ind, c(M2, 1 - M2))[1]
   #cat("popadmixparams", popadmixparams, "M1", M1, "M2X", M2X, "\n")
   genotypes <- simulateGenotypes(sex, M1, M2, M1X, M2X, rho, dist, L, Xchr.L, alleleFreqs)
   ##make some genotypes missing
