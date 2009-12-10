@@ -105,10 +105,10 @@ simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
 
 simulateGenotypes <- function(sex, M1, M2, M1X, M2X, rho, x, L, Xchr.L, alleleFreqs) {
   ## returns a vector of genotypes for a single diploid individual
-  maternalGamete <- c(simulateHaploidAlleles(M2, rho, x, L,alleleFreqs[1:(2*L), ]),
-                      simulateHaploidAlleles(M2X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
   paternalGamete <- c(simulateHaploidAlleles(M1, rho, x, L,alleleFreqs[1:(2*L), ]),
-                      simulateHaploidAlleles(M1X, rho, x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
+                      simulateHaploidAlleles(M1X, rho, 0.5*x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
+  maternalGamete <- c(simulateHaploidAlleles(M2, rho, x, L,alleleFreqs[1:(2*L), ]),
+                      simulateHaploidAlleles(M2X, rho, 0.5*x[-(1:L)], Xchr.L, alleleFreqs[-(1:(2*L)), ]))  
   
   diploidAlleles <- paste(paternalGamete, maternalGamete, sep=",")
   if(Xchr.L > 0 & sex==1) { ## haploid at X chr loci - code as homozygous for maternal allele
@@ -145,8 +145,8 @@ distanceFromLast <- function(v.Chr, v.Position) {
 
 simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs) {
   M1 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
-  M2 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M2 is prob pop 1
-  # M2 <- M1 #assortative mating
+  #M2 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M2 is prob pop 1
+  M2 <- M1 #assortative mating
   avM <- 1 - 0.5*(M1 + M2)
 
   samepsi <- TRUE
@@ -164,7 +164,7 @@ simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, a
     M1X <- setXchrAdmixture(psi.ind, c(M1, 1 - M1))[1]
   }
   M2X <- setXchrAdmixture(psi.ind, c(M2, 1 - M2))[1]
-  #cat("popadmixparams", popadmixparams, "M1", M1, "M2X", M2X, "\n")
+  cat("popadmixparams", popadmixparams, "M2", M2, "M2X", M2X, "\n")
   genotypes <- simulateGenotypes(sex, M1, M2, M1X, M2X, rho, dist, L, Xchr.L, alleleFreqs)
   ##make some genotypes missing
   ##for(locus in 1:L) if(runif(n=1) < 0.1)
@@ -185,7 +185,7 @@ if(withX) {
 
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,
-           123,109,96,59,58,120)  # last value is length of X chr
+           123,109,96,59,58,5000)  # 120)  # last value is length of X chr
 ## assign map distances
 x <- numeric(0)
 chr <- numeric(0)
@@ -247,44 +247,50 @@ beta <- 2 # regression slope for effect of admixture
 alpha <- -beta*popM 
 logistic <- TRUE # logistic or linear
 
-N.ind <- 400
-N.sibpairs <- 0
+N.ind <- 200
+N.sibpairs <- 0 # 20
 
 ####################################################################
 N <- N.ind + 4*N.sibpairs
+
 ## first 6 cols of pedfile: 
-ped6.ind <- matrix(data=0, ncol=6, nrow=N.ind)
-ped6.ind[, 1] <- seq(1:N.ind)
-ped6.ind[, 2] <- seq(1:N.ind)
+ped6.ind <- NULL
+genotypes.ind <- NULL
+ped6.sibpair <- NULL
+genotypes.sibpair <- NULL
 
-ped6.sibpair <-  matrix(data=0, ncol=6, nrow=4*N.sibpairs)
-ped6.sibpair[, 1] <- N.ind + rep(1:N.sibpairs, each=4) # 4 members of each pedigree
-ped6.sibpair[, 2] <- seq((N.ind+1):N)
-
-## simulate unrelated individuals
-cat("Simulating", N.ind, "unrelated individuals\n")
-sex.ind <- 2 - rbinom(N.ind, 1,  0.5)
-## simulate genotypes 
-genotypes.ind <- matrix(data="0,0", nrow=N.ind, ncol=L+Xchr.L)
-outcome.ind <- integer(N.ind)
-avM <- numeric(N.ind)
-for(i in 1:N.ind) {
-  ind <- simulateIndividual(sex.ind[i], popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
-  genotypes.ind[i, ]  <- ind$genotypes
-  avM[i] <- ind$avM
-  ## simulate outcome
-  if(logistic) { # logistic regression with approx equal numbers of cases and controls
-    outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
-  } else { # linear regression
-    outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
+if(N.ind > 0) {
+  ## simulate unrelated individuals
+  cat("Simulating", N.ind, "unrelated individuals\n")
+  ped6.ind <- matrix(data=0, ncol=6, nrow=N.ind)
+  ped6.ind[, 1] <- seq(1:N.ind)
+  ped6.ind[, 2] <- seq(1:N.ind)
+  sex.ind <- 2 - rbinom(N.ind, 1,  0.5)
+  ## simulate genotypes 
+  genotypes.ind <- matrix(data="0,0", nrow=N.ind, ncol=L+Xchr.L)
+  outcome.ind <- integer(N.ind)
+  avM <- numeric(N.ind)
+  for(i in 1:N.ind) {
+    ind <- simulateIndividual(sex.ind[i], popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
+    genotypes.ind[i, ]  <- ind$genotypes
+    avM[i] <- ind$avM
+    ## simulate outcome
+    if(logistic) { # logistic regression with approx equal numbers of cases and controls
+      outcome.ind[i] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[i] ))))  
+    } else { # linear regression
+      outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
+    }
   }
+  ped6.ind[1:N.ind, 5] <- sex.ind
+  ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
 }
-ped6.ind[1:N.ind, 5] <- sex.ind
-ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
 
-## simulate sibpairs
-cat("Simulating", N.sibpairs, "sibpairs\n")
 if(N.sibpairs > 0) {
+  ## simulate sibpairs
+  ped6.sibpair <-  matrix(data=0, ncol=6, nrow=4*N.sibpairs)
+  ped6.sibpair[, 1] <- N.ind + rep(1:N.sibpairs, each=4) # 4 members of each pedigree
+  ped6.sibpair[, 2] <- seq((N.ind+1):N)
+  cat("Simulating", N.sibpairs, "sibpairs\n")
   genotypes.sibpair <- matrix(data="0,0", nrow=4*N.sibpairs, ncol=L+Xchr.L)
   for(i in 1:N.sibpairs) {
     sex2 <- 1 + rbinom(2, 1, 0.5)
@@ -296,14 +302,12 @@ if(N.sibpairs > 0) {
     ped6.sibpair[4*i, 3] <- ped6.sibpair[4*i-3, 2] 
     ped6.sibpair[4*i, 4] <- ped6.sibpair[4*i-2, 2]
     ped6.sibpair[(4*i-3):(4*i), 5] <- c(1, 2, sex2)  
+    ped6.sibpair[, 6] <- 2 ## affected sib-pairs
   }
-  genotypes <- data.frame(rbind(genotypes.ind, genotypes.sibpair))
-  ped6.sibpair[, 6] <- 2 ## affected sib-pairs
-  ped6 <- rbind(ped6.ind, ped6.sibpair)
-} else {
-  genotypes <- genotypes.ind
-  ped6 <- ped6.ind
 }
+
+genotypes <- data.frame(rbind(genotypes.ind, genotypes.sibpair))
+ped6 <- rbind(ped6.ind, ped6.sibpair)
 
 locusnames <- paste("X", as.character(1:(L + Xchr.L)), sep="")
 colnames(ped6) <- c("famid", "individ", "patid", "matid", "sex", "outcome")
