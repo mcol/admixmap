@@ -311,7 +311,6 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
   using bclib::Rand;
 
   const int IC_size = IC.getSize();
-  cvector<double> psiprop(K);
 
   if (sumlogpsi)
     NumberOfPsiUpdates++;
@@ -326,8 +325,7 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
     // propose log psi from normal distribution with SD step
     const double logpsi = log(psi[el]);
     const double logpsiprop = Rand::gennor(logpsi, psistep[el]);
-    psiprop = psi;
-    psiprop[el] = exp(logpsiprop);
+    const double psiprop = exp(logpsiprop);
 
     // get log likelihood at current parameter values
     for (int i = 0; i < IC_size; ++i) {
@@ -341,8 +339,12 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
       ind.HMMIsBad(true);
     }
 
+    // store the current psi and set the proposed value
+    const double storepsi = psi[el];
+    psi[el] = psiprop;
+
     // set the proposed values for psi
-    IC.getElement(0).setOddsRatios(psiprop);
+    IC.getElement(0).setOddsRatios(psi);
 
     // get log likelihood at proposed values
     for (int i = 0; i < IC_size; ++i) {
@@ -366,8 +368,8 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
     const bool accept = (LogAccProbRatio >= 0) ||
                         (log(Rand::myrand()) < LogAccProbRatio);
 
-    if (accept) {
-      psi = psiprop;
+    if (!accept) {
+      psi[el] = storepsi;
     }
 
     // psi is static within Individual
@@ -377,7 +379,7 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
     if( !(NumberOfPsiUpdates % w) )
       psistep[el] = TunePsiSampler[el].UpdateStepSize(exp(LogAccProbRatio));
 
-    // Accumulate sum of log of sumintensities after burnin
+    // Accumulate sum of log psi after burnin
     if (sumlogpsi)
       SumLogPsi[el] += logpsi;
   }
