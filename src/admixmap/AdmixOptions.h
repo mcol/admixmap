@@ -60,6 +60,11 @@ public:
   double getRhobetaRate()const;
   double getRhoPriorMean()const;
 
+  double getLogPsiPriorMean() const;
+  double getLogPsiPriorPrec() const;
+  double getLogPsigammaShape() const;
+  double getLogPsigammaRate() const;
+
   const genepi::cvector<double> & getInitAlpha(int) const;
   const genepi::cvector<genepi::cvector<double> > & getInitAlpha() const;
   int sizeInitAlpha() const;
@@ -71,6 +76,7 @@ public:
   bool getCorrelatedAlleleFreqs() const;
   bool isRandomMatingModel() const;
   bool isGlobalRho() const;
+  bool isGlobalPsi() const;
   bool PopAdmixturePropsAreEqual()const;
   bool getIndAdmixHierIndicator() const;
   bool getHapMixModelIndicator() const;
@@ -128,6 +134,7 @@ private:
   bool correlatedallelefreqs;
   bool RandomMatingModel;//random mating model
   bool GlobalRho;//indicator for global rho
+  bool GlobalPsi; // indicator for population-level psi
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   static const bool HapMixModelIndicator = false; //model haplotypes with mixture model
   bool chibIndicator;//calculate marginal likelihood using Chib method
@@ -158,6 +165,10 @@ private:
   genepi::cvector<double> alpha1;
   genepi::cvector< genepi::cvector<double> > initalpha;
   double etamean, etavar;//gamma parameters for dispersion parameter
+
+  // prior parameters on log psi (mean and precision; also gamma parameters
+  // for the prior on precision if globalpsi=0)
+  genepi::cvector<double> logpsiPrior;
 
   genepi::cvector<float> popAdmixSamplerParams;//parameters for sampler of population admixture
 

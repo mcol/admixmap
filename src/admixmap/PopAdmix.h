@@ -100,6 +100,16 @@ private:
   genepi::cvector<double> SumLogPsi;
   int NumberOfPsiUpdates;
 
+  // mean and precision of the odds ratios psi
+  genepi::cvector<double> psimu;
+  genepi::cvector<double> psitau;
+
+  // prior hyperparameters
+  double psimean0;  // mean
+  double psiprec0;  // precision
+  double psialpha0; // shape parameter
+  double psibeta0;  // rate parameter (inverse scale)
+
   genepi::cvector<genepi::cvector<double> > alpha; //population admixture Dirichlet parameters
   genepi::cvector<double> SumAlpha; //ergodic sums of alphas
   //sampler for alpha

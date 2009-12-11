@@ -139,7 +139,13 @@ protected:
                       ///< for this individual
   } logLikelihood;
 
-  static genepi::cvector<double> psi; ///< Odds ratios for the X chromosome admixtures
+  /// Odds ratios for the X chromosome admixtures
+  genepi::cvector<double> psi;
+
+  genepi::cvector<bclib::StepSizeTuner> TunePsiSampler;
+  genepi::cvector<double> psistep;
+  genepi::cvector<double> SumLogPsi;
+  int NumberOfPsiUpdates;
 
   Individual();
   void SetUniformAdmixtureProps();

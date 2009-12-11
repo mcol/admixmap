@@ -28,7 +28,6 @@ unsigned Individual::X_posn;
 unsigned int Individual::numChromosomes;
 Genome * Individual::Loci;
 int Individual::NumHiddenStates;
-genepi::cvector<double> Individual::psi;
 
 
 
@@ -178,7 +177,6 @@ void Individual::SetStaticMembers( Genome & pLoci, const Options & options ) {
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   if(Xdata) {
     X_posn = Loci->GetChrNumOfLocus(Loci->getFirstXLocus());//too clunky, should simplify
-    psi.resize(NumHiddenStates, 1.0);
   }
 }
 

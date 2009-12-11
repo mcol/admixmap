@@ -39,6 +39,7 @@ void AdmixOptions::SetDefaultValues(){
   correlatedallelefreqs = false;
   RandomMatingModel = false;
   GlobalRho = true;//corresponds to globalrho = 1;
+  GlobalPsi = true;
   PopAdmixPropsAreEqual = false;
   IndAdmixHierIndicator = true; //hierarchical model on ind admixture
   chibIndicator = false;//calculate marginal likelihood by Chib method
@@ -74,6 +75,7 @@ void AdmixOptions::SetDefaultValues(){
   useroptions["correlatedallelefreqs"] = "0";
   useroptions["randommatingmodel"] = "0";
   useroptions["globalrho"] = "1";
+  useroptions["globalpsi"] = "1";
   useroptions["indadmixhiermodel"] = "1";
   useroptions["chib"] = "0";
 
@@ -82,6 +84,7 @@ void AdmixOptions::SetDefaultValues(){
   // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
   // effective prior mean is 6*4/(5-1) = 6 and effective prior variance is 6*7 / (5-2) = 14
   useroptions["sumintensitiesprior"] = "6.0,5.0,4.0";
+  useroptions["oddsratiosprior"] = "0.0,1.0,4.0,1.0";
 }
 
 AdmixOptions::~AdmixOptions()
@@ -211,6 +214,11 @@ bool AdmixOptions::isGlobalRho() const
   return GlobalRho;
 }
 
+bool AdmixOptions::isGlobalPsi() const
+{
+  return GlobalPsi;
+}
+
 bool AdmixOptions::getLocusForTestIndicator() const
 {
   return locusForTestIndicator;
@@ -273,6 +281,22 @@ double AdmixOptions::getEtaVar() const{
   return etavar;
 }
 
+
+double AdmixOptions::getLogPsiPriorMean() const {
+  return logpsiPrior[0];
+}
+
+double AdmixOptions::getLogPsiPriorPrec() const {
+  return logpsiPrior[1];
+}
+
+double AdmixOptions::getLogPsigammaShape() const {
+  return logpsiPrior[2];
+}
+
+double AdmixOptions::getLogPsigammaRate() const {
+  return logpsiPrior[3];
+}
 
 const char *AdmixOptions::getEtaPriorFilename() const
 {
@@ -345,10 +369,12 @@ void AdmixOptions::DefineOptions(){
   addOption("hapmixmodel", nullOption, 0);//this will cause program to abort if 1
   addOption("randommatingmodel", boolOption, &RandomMatingModel);
   addOption("globalrho", boolOption, &GlobalRho);
+  addOption("globalpsi", boolOption, &GlobalPsi);
   addOption("indadmixhiermodel", boolOption, &IndAdmixHierIndicator);
   addOption("etapriorfile", stringOption, &EtaPriorFilename);
   addOption("globalsumintensitiesprior", dvectorOption, &globalrhoPrior);
   addOption("sumintensitiesprior", dvectorOption, &rhoPrior);
+  addOption("oddsratiosprior", dvectorOption, &logpsiPrior);
   addOption("etapriormean", doubleOption, &etamean);
   addOption("etapriorvar", doubleOption, &etavar);
   addOption("admixtureprior", dvectorOption, &initalpha[0]);
@@ -564,6 +590,49 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
   setInitAlpha(Log);
   if(Populations > 1 && IndAdmixHierIndicator){
     Log << "Gamma(1, 1) prior on population admixture Dirichlet parameters.\n";
+  }
+
+  if (GlobalPsi) {
+    Log << "Model with global odds ratio female/male founders.\n";
+    if (logpsiPrior.size() < 2) {
+      // we need two elements; if more (valid for globalpsi=0) we ignore them
+      Log.setDisplayMode(On);
+      Log << "ERROR: oddsratiosprior must have length 2\n";
+      badOptions = true;
+    }
+    if (!badOptions) {
+      if (logpsiPrior[1] < 0.1) {
+        Log.setDisplayMode(On);
+        Log << "ERROR: the second element of oddsratiosprior must be >= 0.1\n";
+        badOptions = true;
+      }
+      Log << "Gaussian prior on log psi with mean " << logpsiPrior[0]
+          << " and precision " << logpsiPrior[1] << "\n";
+    }
+  }
+  else { // individual psi
+    Log << "Model with individual-level odds ratios female/male.\n";
+    if (logpsiPrior.size() != 4) {
+      Log.setDisplayMode(On);
+      Log << "ERROR: oddsratiosprior must have length 4\n";
+      badOptions = true;
+    }
+    if (!badOptions) {
+      if (logpsiPrior[1] < 0.1) {
+        Log.setDisplayMode(On);
+        Log << "ERROR: the second element of oddsratiosprior must be >= 0.1\n";
+        badOptions = true;
+      }
+      if (logpsiPrior[2] <= 0.0 || logpsiPrior[3] <= 0.0) {
+        Log.setDisplayMode(On);
+        Log << "ERROR: 3rd and 4th elements of oddsratiosprior must be > 0\n";
+        badOptions = true;
+      }
+      Log << "Gaussian prior on log psi with mean " << logpsiPrior[0]
+          << " and precision " << logpsiPrior[1] << "\n";
+      Log << "Gamma prior on psi precision with shape parameter "
+          << logpsiPrior[2] << " and rate parameter " << logpsiPrior[3] << "\n";
+    }
   }
 
   // **** model for allele freqs ****

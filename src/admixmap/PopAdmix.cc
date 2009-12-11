@@ -94,15 +94,33 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
 
       NumberOfPsiUpdates = 0;
       psi.resize(K, 1.0);
-      psistep.resize(K, 1.0);
       SumLogPsi.resize(K);
 
-      // initialise the tuner for psi: we create a stepsize tuner for each
-      // element of psi, but we never use the first element as it corresponds
-      // to psi[0] which is 1.0 by definition
-      TunePsiSampler.resize(K);
-      for (int i = 1; i < K; ++i)
-        TunePsiSampler[i].SetParameters(1.0, 0.01, 10, 0.44);
+      // prior parameters on log psi
+      psimean0 = options.getLogPsiPriorMean();
+      psiprec0 = options.getLogPsiPriorPrec();
+
+      // global psi (one odds ratio vector)
+      if (options.isGlobalPsi()) {
+        psistep.resize(K, 1.0);
+
+        // initialise the tuner for psi: we create a stepsize tuner for each
+        // element of psi, but we never use the first element as it corresponds
+        // to psi[0] which is 1.0 by definition
+        TunePsiSampler.resize(K);
+        for (int i = 1; i < K; ++i)
+          TunePsiSampler[i].SetParameters(1.0, 0.01, 10, 0.44);
+      }
+
+      // hierarchical model on psi (one odds ratio vector per individual)
+      else {
+        psimu.resize(K, psimean0);
+        psitau.resize(K, psiprec0);
+
+        // gamma prior parameters on the precision
+        psialpha0 = options.getLogPsigammaShape();
+        psibeta0  = options.getLogPsigammaRate();
+      }
     }
 
     // ** Open paramfile **
@@ -303,8 +321,12 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
 }
 
 
-/// Updates the odds ratio vector psi with a random-walk Metropolis-Hastings
-/// algorithm
+/// Updates the population-level vector psi of odds ratio female/male between
+/// ancestral populations.
+/// Depending on the value of the "globalpsi" option, we either use a
+/// random-walk Metropolis-Hastings algorithm on the population-level parameter
+/// (globalpsi=1), or we use a hierarchical model in which we accumulate the
+/// individual parameters using a conjugate normal-gamma prior (globalpsi=0).
 void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
                                 bool sumlogpsi) {
 
@@ -315,6 +337,54 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
   if (sumlogpsi)
     NumberOfPsiUpdates++;
 
+  // Individual-level odds ratios
+  if (!options.isGlobalPsi()) {
+
+    // sample the individual-level parameters
+    for (int i = 0; i < IC_size; ++i)
+      IC.getElement(i).SamplePsi(options, psimu, psitau, sumlogpsi);
+
+    // Update the population-level parameters by using the conjugate prior:
+    // we skip element 0 as it is 1.0 by definition
+    for (int el = 1; el < K; ++el) {
+
+      // accumulate the sufficient statistics
+      double samplemean = 0.0, sumlogs2 = 0.0;
+      for (int i = 0; i < IC_size; ++i) {
+        double logpsi = log(IC.getElement(i).getPsi(el));
+        samplemean += logpsi;
+        sumlogs2 += logpsi * logpsi;
+      }
+      samplemean /= IC_size;
+
+      // posterior hyperparameters
+      double prec = psiprec0 + IC_size;
+      double mean = (psiprec0 * psimean0 + IC_size * samplemean) / prec;
+
+      double alpha = psialpha0 + 0.5 * IC_size;
+      double sumsqdevn = sumlogs2 - IC_size * samplemean * samplemean;
+      double otherterm = IC_size * psiprec0 / prec
+                       * (samplemean - psimean0) * (samplemean - psimean0);
+      double beta = psibeta0 + 0.5 * (sumsqdevn + otherterm);
+
+      // sample the population mean from a gaussian
+      psimu[el] = Rand::gennor(mean, 1/sqrt(prec));
+
+      // sample the population precision from a gamma
+      psitau[el] = Rand::gengam(alpha, beta);
+
+      // accumulate sum of log of psi after burnin
+      if (sumlogpsi)
+        SumLogPsi[el] += psimu[el];
+
+      // store the current value of psi
+      psi[el] = exp(psimu[el]);
+    }
+
+    return;
+  }
+
+  // Population-level odds ratio
   // In the update of the odds ratio vector psi, we skip element 0 as it
   // is 1.0 by definition, and we do a random-walk on the other elements
   for (int el = 1; el < K; ++el) {
@@ -343,13 +413,13 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
     const double storepsi = psi[el];
     psi[el] = psiprop;
 
-    // set the proposed values for psi
-    IC.getElement(0).setOddsRatios(psi);
-
     // get log likelihood at proposed values
     for (int i = 0; i < IC_size; ++i) {
 
       PedBase& ind = IC.getElement(i);
+
+      // set the proposed values for psi
+      ind.setOddsRatios(psi);
 
       // force update, don't store the result
       LogLikelihoodAtProposal += ind.getLogLikelihoodXChr(options, true, false);
@@ -360,8 +430,9 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
 
     const double LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
 
-    // gaussian prior
-    const double LogPriorRatio = -0.5 * (logpsiprop*logpsiprop - logpsi*logpsi);
+    // gaussian prior: -0.5 * tau * (logpsi - mu)^2
+    const double LogPriorRatio = -0.5 * psiprec0 * (logpsiprop - logpsi)
+                                      * (logpsiprop + logpsi - 2 * psimean0);
     const double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio;
 
     // generic Metropolis step
@@ -372,8 +443,8 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
       psi[el] = storepsi;
     }
 
-    // psi is static within Individual
-    IC.getElement(0).setOddsRatios(psi);
+    for (int i = 0; i < IC_size; ++i)
+      IC.getElement(i).setOddsRatios(psi);
 
     // update sampler object every w updates
     if( !(NumberOfPsiUpdates % w) )
@@ -395,8 +466,9 @@ void PopAdmix::StoreOddsRatiosPosteriorMean(const AdmixIndividualCollection& IC)
   for (int i = 0; i < K; ++i)
     psi[i] = exp(SumLogPsi[i] / NumberOfPsiUpdates);
 
-  // store it within the individual
-  IC.getElement(0).setOddsRatios(psi);
+  // store it in all individuals
+  for (int i = 0; i < IC.getSize(); ++i)
+    IC.getElement(i).setOddsRatios(psi);
 }
 
 //-----------------------------------------------------------------------------
@@ -449,8 +521,11 @@ void PopAdmix::OutputParams(bclib::Delimitedostream& out){
 
   // odds ratios
   if (Loci.isX_data())
-    for (size_t i = 0; i < psi.size(); ++i)
+    for (size_t i = 0; i < psi.size(); ++i) {
       out << setprecision(6) << psi[i];
+      if (!options.isGlobalPsi() && i > 0)
+        out << "(" << setprecision(6) << psitau[i] << ")";
+    }
 }
 
 void PopAdmix::OutputParams(){
@@ -481,11 +556,13 @@ void PopAdmix::printAcceptanceRates(bclib::LogWriter &Log) {
     }
 
     if (Loci.isX_data()) {
-      Log << "Expected acceptance rate in the odds ratios sampler:\n";
-      for (int i = 1; i < K; ++i)
-        Log << "population " << i + 1 << ": "
-            << TunePsiSampler[i].getExpectedAcceptanceRate()
-            << " with final step size of " << psistep[i] << "\n";
+      if (options.isGlobalPsi()) {
+        Log << "Expected acceptance rate in the odds ratios sampler:\n";
+        for (int i = 1; i < K; ++i)
+          Log << "population " << i + 1 << ": "
+              << TunePsiSampler[i].getExpectedAcceptanceRate()
+              << " with final step size of " << psistep[i] << "\n";
+      }
       Log << "Odds ratios female/male between ancestral populations:\n";
       for (int i = 1; i < K; ++i)
         Log << "population " << i + 1 << " vs population 1: "

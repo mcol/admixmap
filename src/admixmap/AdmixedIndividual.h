@@ -43,6 +43,7 @@ public:
 
   double getSumrho()const;
   const genepi::RhoType & getRho() const;
+  double getPsi(int pop) const;
   double getLogLikelihood(const Options&, const bool forceUpdate, const bool store);
   double getLogLikelihoodAtPosteriorMeans(const Options& options);
   double getLogLikelihoodOnePop();
@@ -53,6 +54,10 @@ public:
   void SampleJumpIndicators(bool sampleArrivals);
   void SampleRho(const AdmixOptions& options, double rhoalpha, double rhobeta,
 		 bool updateSumLogRho);
+  void SamplePsi(const AdmixOptions& options,
+                 const genepi::cvector<double>& priormean,
+                 const genepi::cvector<double>& priorprec,
+                 bool updateSumLogPsi);
   void SampleTheta( int iteration, double * SumLogTheta, const bclib::DataMatrix * Outcome,
 		    const DataType * OutcomeType, const std::vector<double> & lambda, int NumCovariates,
 		    bclib::DataMatrix * Covariates, const std::vector<const double*> & beta, const PopAdmix::PopThetaType & poptheta,

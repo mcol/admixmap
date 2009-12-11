@@ -157,9 +157,14 @@ class PedBase
 		double DInvLink, double dispersion, CopyNumberAssocTest & ancestryAssocTest, bool RW, bool anneal);
 	virtual void SampleRho(const AdmixOptions& options, double rhoalpha,
 		    double rhobeta, bool updateSumLogRho);
+	virtual void SamplePsi(const AdmixOptions& options,
+                               const cvector<double>& priormean,
+                               const cvector<double>& priorprec,
+                               bool updateSumLogPsi);
 	virtual void FindPosteriorModes(const AdmixOptions& options, const AlphaType &alpha,
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);
 	virtual const RhoType & getRho() const;
+	virtual double getPsi(int pop) const;
 	virtual void resetStepSizeApproximator(int k);
 	virtual void UpdateScores(const AdmixOptions& options, bclib::DataMatrix *Outcome, bclib::DataMatrix *Covariates,
 		    const vector<bclib::Regression*> & R, AffectedsOnlyTest & affectedsOnlyTest,

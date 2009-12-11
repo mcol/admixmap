@@ -176,6 +176,12 @@ void PedBase::SampleTheta( int /*iteration*/, double * /*SumLogTheta*/, const bc
 void PedBase::SampleRho(const AdmixOptions& /*options*/, double /*rhoalpha*/,
 	double /*rhobeta*/, bool /*updateSumLogRho*/) { not_implemented( "SampleRho()", typeid(*this) ); }
 
+void PedBase::SamplePsi(const AdmixOptions& /* options */,
+                        const cvector<double>& /* priormean */,
+                        const cvector<double>& /* priorprec */,
+                        bool /* updateSumLogPsi */) {
+  not_implemented("SamplePsi()", typeid(*this));
+}
 
 void PedBase::FindPosteriorModes(const AdmixOptions & /*options*/, const AlphaType &/*alpha*/,
 	  double /*rhoalpha*/, double /*rhobeta*/, AlleleFreqs* /*A*/, ofstream &/*modefile*/) { not_implemented( "FindPosteriorModes()", typeid(*this) ); }
@@ -183,6 +189,9 @@ void PedBase::FindPosteriorModes(const AdmixOptions & /*options*/, const AlphaTy
 
 const RhoType & PedBase::getRho() const { not_implemented( "getRho()", typeid(*this) ); }
 
+double PedBase::getPsi(int /* pop */) const {
+  not_implemented("getPsi()", typeid(*this));
+}
 
 void PedBase::resetStepSizeApproximator(int /*k*/) { not_implemented( "resetStepSizeApproximator()", typeid(*this) ); }
 

@@ -137,6 +137,24 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   step0 = 0.3; // initial sd of random walk proposal distribution
   step = step0;
   ThetaTuner.SetParameters( step0, 0.0001, 10.0, 0.44);
+
+  if (Xdata) {
+
+    psi.resize(NumHiddenStates, 1.0);
+
+    if (!options->isGlobalPsi()) {
+      psistep.resize(NumHiddenStates, 1.0);
+      SumLogPsi.resize(NumHiddenStates);
+      TunePsiSampler.resize(NumHiddenStates);
+      NumberOfPsiUpdates = 0;
+
+      // initialise the tuner for psi: we create a stepsize tuner for each
+      // element of psi, but we never use the first element as it corresponds
+      // to psi[0] which is 1.0 by definition
+      for (int i = 1; i < NumHiddenStates; ++i)
+        TunePsiSampler[i].SetParameters(1.0, 0.01, 10, 0.44);
+    }
+  }
 }
 
 void AdmixedIndividual::InitialiseSumIntensities(const AdmixOptions* const options){
@@ -309,6 +327,10 @@ double AdmixedIndividual::getSumrho()const {
 
 const RhoType & AdmixedIndividual::getRho() const {
    return _rho;
+}
+
+double AdmixedIndividual::getPsi(int pop) const {
+  return psi[pop];
 }
 
 const int *AdmixedIndividual::getSumLocusAncestry()const{
@@ -770,6 +792,62 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
        ancestryAssocTest.UpdateB(DInvLink, dispersion, admixtureCovars);
       delete[] admixtureCovars;
     }
+  }
+}
+
+void AdmixedIndividual::SamplePsi(const AdmixOptions& options,
+                                  const cvector<double>& priormean,
+                                  const cvector<double>& priorprec,
+                                  bool updateSumLogPsi) {
+
+  // In the update of the odds ratio vector psi, we skip element 0 as it
+  // is 1.0 by definition, and we do a random-walk on the other elements
+  for (int el = 1; el < NumHiddenStates; ++el) {
+
+    // propose log psi from normal distribution with SD step
+    const double logpsi = log(psi[el]);
+    const double logpsiprop = Rand::gennor(logpsi, psistep[el]);
+    const double psiprop = exp(logpsiprop);
+
+    // force update, don't store the result
+    double LogLikelihood = getLogLikelihoodXChr(options, true, false);
+
+    // HMM probs overwritten by next indiv
+    HMMIsBad(true);  // XXX needed?
+
+    // get log likelihood at proposed values
+
+    // set the proposed value for psi
+    const double storepsi = psi[el];
+    psi[el] = psiprop;
+
+    // force update, don't store the result
+    double LogLikelihoodAtProposal = getLogLikelihoodXChr(options, true, false);
+
+    // HMM probs overwritten by next indiv
+    HMMIsBad(true);  // XXX needed?
+
+    // gaussian prior: -0.5 * tau * (logpsi - mu)^2
+    const double LogPriorRatio = -0.5 * priorprec[el] * (logpsiprop - logpsi)
+                                      * (logpsiprop + logpsi - 2 * priormean[el]);
+    const double LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
+    const double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio;
+
+    // generic Metropolis step
+    const bool accept = (LogAccProbRatio >= 0) ||
+                        (log(Rand::myrand()) < LogAccProbRatio);
+
+    if (!accept) {
+      psi[el] = storepsi;
+    }
+
+    // update sampler object every w updates
+    if( !(NumberOfPsiUpdates % w) )
+      psistep[el] = TunePsiSampler[el].UpdateStepSize(exp(LogAccProbRatio));
+
+    // Accumulate sum of log of sumintensities after burnin
+    if (updateSumLogPsi)
+      SumLogPsi[el] += logpsi;
   }
 }
 
