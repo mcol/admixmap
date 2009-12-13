@@ -57,17 +57,19 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
   AdmixedIndividuals->LoadData( options, data );
   AdmixedIndividuals->setGenotypeProbs(&Loci); // sets unannealed probs
 
-  const int numdiploid = AdmixedIndividuals->getNumDiploidIndividuals();
-  const int numindivs = data.getNumberOfIndividuals();
-  if(numindivs > 1){
-    Log.setDisplayMode(Quiet);
-    //Log << numindivs << " individuals\n";
-    if(numdiploid > 0){
-      Log << numdiploid << " diploid ";
-      if(numdiploid < numindivs)Log<< "and ";
-    }
-    if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
-    Log << "individuals\n\n";
+  if ( ! (data.isPedFile() || options.getUsePedForInd()) ) {
+      const int numdiploid = AdmixedIndividuals->getNumDiploidIndividuals();
+      const int numindivs = data.getNumberOfIndividuals();
+      if(numindivs > 1){
+	Log.setDisplayMode(Quiet);
+	//Log << numindivs << " individuals\n";
+	if(numdiploid > 0){
+	  Log << numdiploid << " diploid ";
+	  if(numdiploid < numindivs)Log<< "and ";
+	}
+	if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
+	Log << "individuals\n\n";
+      }
   }
 
 
