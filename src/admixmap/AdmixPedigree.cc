@@ -100,7 +100,6 @@ static const double SOFTMAX_0_FLAG = std::numeric_limits<double>::infinity();
 // Stages of implementing PedBase methods, ported over from Individual/AdmixedIndividual.
 #define NEEDED_ONLY_FOR_CONJUGATE_UPDATE		    0
 #define NOT_NEEDED_FOR_FIRST_VERSION			    0
-#define THIS_IS_HOW_IT_WAS				    0
 #define USE_SINGLE_POPULATION_SPECIAL_CASE		    0
 #define NON_GLOBAL_RHO_WORKS				    0
 #define NOT_NEEDED_FOR_FIXEDALLELEFREQ_EQ_1		    0
@@ -121,17 +120,14 @@ namespace genepi { // ----
 
 
 
-/// This is bad; we need the concept of context!
+// Documented in header.
 const AdmixOptions * Pedigree::optionsRef = 0;
 
 
 
 //-----------------------------------------------------------------------------
-//
 // getGenome() [static]
-//
-/// Context access.  This is bad.
-//
+/// This should probably be replaced with a per-instance pointer to a context object.
 //-----------------------------------------------------------------------------
 
 inline static Genome & getGenome()
@@ -143,7 +139,8 @@ inline static Genome & getGenome()
 
 //-----------------------------------------------------------------------------
 // getK() [perhaps could be static but currently isn't]
-// Nasty hack for context access.
+// This hack implementation should be replaced by a per-pedigree reference to a
+// context object.
 //-----------------------------------------------------------------------------
 
 PopIdx Pedigree::K = 0;
@@ -159,16 +156,15 @@ void Pedigree::setK( PopIdx _K )
 
 
 
-#if 0
-    //-----------------------------------------------------------------------------
-    // getNumChromosomes() [perhaps could be static but currently isn't]
-    // Context access.
-    //-----------------------------------------------------------------------------
-    ChromIdxType Pedigree::getNumChromosomes() const
-	{
-	#error Not yet implemented.
-	}
-#endif
+//-----------------------------------------------------------------------------
+// getNumChromosomes() [perhaps could be static but currently isn't]
+// Context access.
+//-----------------------------------------------------------------------------
+
+ChromIdxType Pedigree::getNumChromosomes() const
+    {
+    return getSLoci().getNChromosomes();
+    }
 
 
 
@@ -309,19 +305,19 @@ void Pedigree::setOptions( const AdmixOptions & opts )
 
 //-----------------------------------------------------------------------------
 //
-/// This stuff should be in the constructor, when we have a derived class.
-/// See NOTE *2* in Pedigree.h.
-//
-// We can't allocate these prior to knowing, amongst other things, the number of founders.  Of
-// course they should be in a subclass, in which case they wouldn't be
-// allocated until much later anyhow.
+/// These intitialisations should be in the constructor, when we have a derived
+/// class.  See NOTE *2* in Pedigree.h.
+///
+/// We can't initialise some of the members prior to knowing, amongst other
+/// things, the number of founders.  They should of course be in a separate
+/// subclass, in which case they wouldn't be allocated until much later anyhow.
 //
 //-----------------------------------------------------------------------------
 
 void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
     {
 
-    // This is bad.  Where is the concept of context?
+    // See getOptions() in Pedigree.h for an explanation of this.
     if ( optionsRef == 0 )
 	optionsRef = &options;
     else

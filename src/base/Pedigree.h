@@ -46,14 +46,31 @@
 #include <vector>
 
 
-// Need to sort this out:
+//---------------------------------------------------------------------------
+// Forward references
+//---------------------------------------------------------------------------
 class Chromosome;
-class CompositeLocus;
+
+// These belong in some other header file:
 namespace genepi
     {
-    typedef size_t CLocIdxType;
     typedef size_t ChromIdxType;
     };
+
+
+
+/// Do pedigrees support composite loci (currently, not yet; this needs
+/// considerably more work before it can be enabled).
+#define PED_COMPOSITE_LOCI  0
+
+
+#if PED_COMPOSITE_LOCI
+    class CompositeLocus;
+    namespace genepi
+	{
+	typedef size_t CLocIdxType;
+	};
+#endif
 
 
 
@@ -71,13 +88,12 @@ class AffectedsOnlyTest;
 namespace bclib { class DataMatrix; }
 #include "common.h" // for DataType
 #include <bclib/StepSizeTuner.h>
-#if 0 // Circular dependencies
-    #include "HiddenMarkovModel.new.h"
-    #include "TransProbCache.h"
-#else
-    namespace genepi { class HiddenMarkovModel; }
-    namespace genepi { class TransProbCache; }
-#endif
+
+// Circular dependencies prevent us from directly including these header files,
+// using forward declarations instead; we might want to try to eliminate those
+// circular dependencies.
+namespace genepi { class HiddenMarkovModel; }
+namespace genepi { class TransProbCache; }
 
 /// See getRNG().
 #define PED_HAS_OWN_PRNG defined(_OPENMP)
@@ -112,8 +128,6 @@ class HiddenStateSpace;
 /// A class to represent a pedigree as read in from the pedigree file; the list
 /// of the @ref Organism "Organisms" in the pedigree, as well as aggregate and
 /// probability information about the pedigree.
-///
-/// Need more documentation here.
 ///
 /// @warning
 /// <SPAN STYLE="font-weight: bold; color: red;">IMPORTANT!</SPAN>: see
@@ -326,16 +340,24 @@ class Pedigree : public PedBase // See NOTE *4*
 
 
 	//---------------------------------------------------------------
-	// Access to our "context","domain" (locus file, populations, etc.).
-	// Perhaps these could be static.
-	// Many are convenience methods (simply derived from others).
+	// Methods to provide access to our "context"/"domain" (locus file,
+	// populations, etc.).  Many of these are convenience methods (simply
+	// derived from others).  Currently these are implmented with static
+	// data members which are set at startup, but probably should be
+	// replaced by a per-pedigree pointer to one or more context objects.
 	//---------------------------------------------------------------
 
 	private: static PopIdx K; public:
-	PopIdx	     getK	      () const	///< The number of populations
-						{ gp_assert_ne( K, 0 ); return K; }
-	ChromIdxType getNumChromosomes() const; ///< The number of chromosomes
+
+	/// Returns the number of populations.
+	PopIdx getK() const
+	    {
+	    gp_assert_ne( K, 0 );
+	    return K;
+	    }
 	static void setK( PopIdx _K );
+
+	ChromIdxType getNumChromosomes() const; ///< Returns the number of chromosomes.
 
 	const Chromosome & getChromosome( ChromIdxType chromIdx ) const;
 
@@ -344,7 +366,7 @@ class Pedigree : public PedBase // See NOTE *4*
 	const SimpleLocusArray & getSLoci     () const { return memberPool.getSLoci(); } ///< Convenience
 	SLocIdxType		 getNSLoci    () const { return getSLoci().size()    ; } ///< Convenience
 
-	#if 0 // Unimplemented; composite-loci do not as yet work with pedigrees
+	#if PED_COMPOSITE_LOCI
 	    const CompositeLocus & getCLocus( CLocIdxType ) const;
 	    CLocIdxType		   getNCLoci() const;
 	#endif
@@ -590,16 +612,13 @@ class Pedigree : public PedBase // See NOTE *4*
 	    {
 	    private:
 
-		// Since the HMM can in theory change (and is also not yet allocated at the time
-		// that the llCache is constructed), we will rather keep a reference to the
-		// pedigree and get the HMM from it.
-		#if 0
-		    genepi::HiddenMarkovModel hmm;
-		    genepi::HiddenMarkovModel & getHMM() { return hmm; }
-		#else
-		    Pedigree & ped;
-		    genepi::HiddenMarkovModel & getHMM() { return ped.getHMM(); }
-		#endif
+		// Since the HMM can in theory have a changing address in
+		// memory, or a new one assigned to the pedigree, (and is also
+		// not yet allocated at the time that the llCache is
+		// constructed), we will rather keep a reference to the pedigree
+		// and get the HMM from it, rather than keep a reference to the HMM.
+		Pedigree & ped;
+		genepi::HiddenMarkovModel & getHMM() { return ped.getHMM(); }
 
 		double accVal	    ; ///< Last accepted value
 		bool   accValIsValid; ///< Does curVal correspond to the last accepted
@@ -676,11 +695,11 @@ class Pedigree : public PedBase // See NOTE *4*
 	    double & getGlobalRhoVal() { return getCurRho()[0]; }
 	#endif
 
-	/// Const version of getGlobalRhoVal()
-	// This is a little scary in that could easily result in infinite
-	///	recursion; perhaps we should give explicitly different names to
-	///	the const and non-const versions rather than relying on
-	///	overloading.
+	/// Const version of getGlobalRhoVal().
+	/// This is a little scary in that could easily result in infinite
+	/// recursion; perhaps we should give explicitly different names to
+	/// the const and non-const versions rather than relying on
+	/// overloading.
 	double getGlobalRhoVal() const { return const_cast<Pedigree*>(this)->getGlobalRhoVal(); }
 
 
@@ -820,11 +839,17 @@ class Pedigree : public PedBase // See NOTE *4*
     void accumAOScore( AffectedsOnlyTest & aoTest ) const;
 
 
-    /// This is very bad; we need the concept of context.
+    /// See @a getOptions().
     static const AdmixOptions * optionsRef;
     public:
-	/// This is very bad; we need the concept of context.
-	static const AdmixOptions & getOptions() { gp_assert(optionsRef != 0); return *optionsRef; }
+	/// Global reference to options object; this should be replaced with
+	/// some kind of a per-instance pointer, perhaps to a context object.
+	static const AdmixOptions & getOptions()
+	    {
+	    gp_assert( optionsRef != 0 );
+	    return *optionsRef;
+	    }
+	/// See @a getOptions().
 	static void setOptions( const AdmixOptions & opts );
 
 

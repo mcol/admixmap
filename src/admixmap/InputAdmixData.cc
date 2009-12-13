@@ -85,10 +85,12 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
     if ( isPedFile() || options.getUsePedForInd() )
 	{
 
-	// Big hack, we need the concept of 'context'.	We could determine
-	// the maximum number of founder gametes that actually occurs in the
-	// dataset, but it does not consume too much resources to just
-	// use the maximum allowable constant here.
+	// Big hack, we need the concept of 'context'. AncestryVector needs to
+	// know some limits that are specific to the dataset.  This should
+	// probably be replaced by something like an AncestryVectorDomain.  We
+	// could determine the maximum number of founder gametes that actually
+	// occurs in the dataset, but it does not consume too much resources to
+	// just use the maximum allowable constant here.
 	AncestryVector::set_parms( options.getPopulations(), AV_MAX_FOUNDER_GAMETES );
 
 
