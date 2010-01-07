@@ -95,6 +95,7 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
       NumberOfPsiUpdates = 0;
       psi.resize(K, 1.0);
       SumLogPsi.resize(K);
+      w = 1;
 
       // prior parameters on log psi
       psimean0 = options.getLogPsiPriorMean();
