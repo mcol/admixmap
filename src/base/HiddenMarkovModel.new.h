@@ -106,7 +106,10 @@ class HiddenMarkovModel
 	void computeForwardsBackwards() const;
 
     protected:
-	void assureNotDirty() const { if ( dirtyForwards || dirtyBackwards ) computeForwardsBackwards(); }
+
+	void recursionProbs(  );
+
+	void assureNotDirty() const;
 
 	/// The forwards probability array: indexed on locus, then hidden-state-index.
 	const ProbArrType & getAlpha() const

@@ -107,6 +107,18 @@ void HiddenMarkovModel::transProbsChanged() const
 
 
 //-----------------------------------------------------------------------------
+// assureNotDirty()
+//-----------------------------------------------------------------------------
+
+void HiddenMarkovModel::assureNotDirty() const
+    {
+    if ( dirtyForwards || dirtyBackwards )
+	computeForwardsBackwards();
+    }
+
+
+
+//-----------------------------------------------------------------------------
 // computeForwardsBackwards()
 //-----------------------------------------------------------------------------
 
@@ -218,6 +230,7 @@ void HiddenMarkovModel::computeForwards() const
 
     for ( SLocIdxType t = 1 ; t < T ; ++t )
 	{
+
 	const SLocIdxType t_m1 = t - 1;
 
 	const HiddenStateSpace & hss_t	    = getPed().getStateProbs( t );
@@ -236,6 +249,7 @@ void HiddenMarkovModel::computeForwards() const
 
 	alpha_t.resize( hss_t.getNNon0() );
 
+	// This is the main recursion: compute alpha[t] from alpha[t-1]
 	for ( HiddenStateSpace::Iterator to_it( hss_t ) ; to_it ; ++to_it )
 	    {
 	    double val = 0.0;
@@ -247,6 +261,7 @@ void HiddenMarkovModel::computeForwards() const
 	    #endif
 	    alpha_t[ to_it->getNon0Index() ] = val;
 	    }
+
 	}
 
     dirtyForwards = false;
@@ -326,12 +341,17 @@ void HiddenMarkovModel::computeBackwards() const
 
 	beta_t.resize( hss_t.getNNon0() );
 
+	// Pre-multiply beta[t+1] by the emission probabilities at t+1 (making a copy)
+	ProbsAtLocusType beta_t_p1_mult( beta_t_p1 );
+	for ( HiddenStateSpace::Iterator fr_it( hss_t_p1 ) ; fr_it ; ++fr_it )
+	    beta_t_p1_mult[ fr_it->getNon0Index() ] *= fr_it->getEProb();
+
 	for ( HiddenStateSpace::Iterator to_it( hss_t ) ; to_it ; ++to_it )
 	    {
 	    double val = 0.0;
 
 	    for ( HiddenStateSpace::Iterator fr_it( hss_t_p1 ) ; fr_it ; ++fr_it )
-		val += beta_t_p1[ fr_it->getNon0Index() ] * tpCache->getProb( t, to_it, fr_it ) * fr_it->getEProb();
+		val += beta_t_p1_mult[ fr_it->getNon0Index() ] * tpCache->getProb( t, to_it, fr_it );
 
 	    #if HMM_OTF_RENORM
 	      normalize_sum += val;
