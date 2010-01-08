@@ -280,6 +280,9 @@ class TransProbCache
 	/// Set \f$\rho\f$, the arrival rate parameter.
 	void setRho( double nv );
 
+	/// Get \f$\rho\f$, the arrival rate parameter.
+	double getRho() const { return rho; }
+
 	/// Set \f$\mu\f$, the proportion of admixture from each population on
 	/// each gamete.  See also muChanged().
 	void setMu( const MuType & nv );

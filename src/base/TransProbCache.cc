@@ -318,7 +318,7 @@ void TransProbCache::muChanged()
 /// \f$f = e^{-\rho x}\f$
 //-----------------------------------------------------------------------------
 
-inline double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxType t, double rho )
+double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxType t, double rho )
     {
     // The distance from one chromosome to another is effectively infinity;
     // therefore e^-x is 0.  We make an explicit check for this here.
@@ -337,7 +337,7 @@ inline double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxTy
 /// \f$g = e^-x\f$
 //-----------------------------------------------------------------------------
 
-inline double TransProbCache::computeG( const SimpleLocusArray & loci, SLocIdxType t )
+double TransProbCache::computeG( const SimpleLocusArray & loci, SLocIdxType t )
     {
     // The distance from one chromosome to another is effectively infinity;
     // therefore e^-x is 0.  We make an explicit check for this here.

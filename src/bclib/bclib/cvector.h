@@ -178,6 +178,14 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 	template< typename U > cvector & operator/=( const U & rhs ) { for_each( divideBy  <U>( rhs ) ); return *this; }
 	template< typename U > cvector & operator*=( const U & rhs ) { for_each( multiplyBy<U>( rhs ) ); return *this; }
 
+	template< typename U > cvector operator*( const U & rhs )
+	    {
+	    cvector rv( size() );
+	    for ( size_t idx = size() ; idx-- != 0 ; )
+		rv[idx] = at(idx) * rhs;
+	    return rv;
+	    }
+
 
 	// Direct access to the STL std::vector -- avoid if possible:
 	const std::vector<T,Alloc> & getVector_unsafe() const { return v; }
