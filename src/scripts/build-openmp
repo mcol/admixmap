@@ -1,0 +1,12 @@
+#!/bin/bash
+export LDFLAGS=""
+export CPPFLAGS=""
+export CXXFLAGS="\
+-march=x86-64 \
+-O3 \
+-pipe \
+-fomit-frame-pointer \
+"
+export USER_CONFIG_OPTS="--disable-cxx-flags-preset --enable-optimize --disable-range-check --enable-openmp"
+
+source "$(pwd)/src/scripts/build-common"
