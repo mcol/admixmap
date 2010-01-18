@@ -146,6 +146,18 @@ HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp ) :
 
 
 
+HiddenStateSpace::Iterator::Iterator( const Iterator & rhs ) :
+	space	 ( rhs.space	),
+	av_it	 ( rhs.av_it	),
+	iv_it	 ( rhs.iv_it	),
+	sIdx	 ( rhs.sIdx	),
+	non0Idx  ( rhs.non0Idx  ),
+	finished ( rhs.finished )
+    {
+    }
+
+
+
 bool HiddenStateSpace::Iterator::advance()
     {
 

@@ -71,10 +71,10 @@ class HiddenStateSpace
     {
     public:
 	typedef float ProbType;
-	typedef size_t AncestryIdxType	    ;
-	typedef size_t InheritanceIdxType   ;
-	typedef size_t StateIdxType	    ; ///< Indexes all (including 0-EP states)
-	typedef size_t Non0IdxType	    ; ///< Indexes only existent (non-0-EP) states
+	typedef size_t AncestryIdxType	  ;
+	typedef size_t InheritanceIdxType ;
+	typedef size_t StateIdxType	  ; ///< Indexes all (including 0-EP states)
+	typedef size_t Non0IdxType	  ; ///< Indexes only existent (non-0-EP) states
 
     private:
 
@@ -296,6 +296,7 @@ class HiddenStateSpace
 	    public:
 
 		Iterator( const HiddenStateSpace & sp );
+		Iterator( const Iterator & rhs );
 
 		const HiddenStateSpace & getSpace() const { return space; }
 
@@ -312,6 +313,13 @@ class HiddenStateSpace
 		/// isFinsihed().
 		bool advance();
 		Iterator & operator++() { advance(); return *this; } ///< Synonym for advance()
+
+		/// Make a copy, advance() the copy, and return it, leaving this iterator unchanged.
+		Iterator plusOne() const
+		    {
+		    Iterator rv( *this );
+		    return ++rv;
+		    }
 
 
 		/// Retrieve the value of the state currently "pointed to".
