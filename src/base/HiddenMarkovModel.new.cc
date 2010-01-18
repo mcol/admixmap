@@ -164,37 +164,6 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 
 
 
-#if 0
-static double computeTransProb( const AncestryVector &	  fr_av , // From-state's ancestry-vector
-				const InheritanceVector & fr_iv , // From-state's inheritance-vector
-				const AncestryVector &	  to_av , // To-state's ancestry-vector
-				const InheritanceVector & to_iv , // To-state's inheritance-vector
-				double			  f	,
-				double			  g	,
-				const ThetaType &	  h	)
-    {
-    gp_assert( fr_av.size() == to_av.size() );
-
-    ********************************************
-    **** RESUME HERE ****: no nested loops like that, just one founder-gamete loop for both AVs:
-    ********************************************
-
-    for ( AncestryVector::FGIdx fr_av_fg_idx = 0 ; fr_av_fg_idx < fr_av.size() ; ++fr_av_fg_idx )
-	{
-	const PopIdx fr_ancestry = fr_av[ fr_av_fg_idx ];
-	for ( AncestryVector::FGIdx to_av_fg_idx = 0 ; to_av_fg_idx < to_av.size() ; ++to_av_fg_idx )
-	    {
-	    const PopIdx to_ancestry = to_av[ to_av_fg_idx ];
-	    const bool delta_ij = (to_ancestry == fr_ancestry);
-	    Pedigree::GameteType whichOne;
-	    const Pedigree::FounderIdx fIdx = ped.founderOfGameteIdx( fgIdx, whichOne ); // , t.isXChromosome()
-	    double factor = h [ fIdx ] [ to_ancestry ];
-	    }
-    }
-#endif
-
-
-
 //-----------------------------------------------------------------------------
 // recursionProbs()
 //-----------------------------------------------------------------------------
