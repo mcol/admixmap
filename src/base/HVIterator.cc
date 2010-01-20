@@ -33,18 +33,9 @@ namespace genepi { // ----
 
 
 
-#if 0
-    HVIterator::HVIterator( const HiddenStateSpace & hss ) :
-	    n_ancestries( hss.getPed().getNFounderGametes() ) ,
-	    n_meiosis	( hss.getPed().getNMeiosis()	    ) ,
-	    K		( hss.getPed().getK()		    ) ,
-	    cur_ancestry( 0 ) ,
-	    cur_meiosis ( 0 )
-	{
-	}
-#endif
-
-
+//-----------------------------------------------------------------------------
+// Constructors
+//-----------------------------------------------------------------------------
 
 HVIterator::HVIterator( const Pedigree & ped ) :
 	n_ancestries( ped.getNFounderGametes()	) ,
@@ -68,16 +59,26 @@ HVIterator::HVIterator( const HVIterator & rhs ) :
 
 
 
+//-----------------------------------------------------------------------------
+// advance()
+//-----------------------------------------------------------------------------
+
 void HVIterator::advance()
     {
     gp_assert( ! isFinished() ); // Don't allow advance after finished
 
     // NOTE *1*:
-    if ( isOnMeiosis() || (++cur_ancestry == n_ancestries) )
+    if ( isOnMeiosis() )
 	++cur_meiosis;
+    else
+	++cur_ancestry;
     }
 
 
+
+//-----------------------------------------------------------------------------
+// nValues()
+//-----------------------------------------------------------------------------
 
 int HVIterator::nValues() const
     {

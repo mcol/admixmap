@@ -75,11 +75,10 @@ class HVIterator
 
     public:
 
-	HVIterator( const HiddenStateSpace & hss );
-	HVIterator( const Pedigree &	     ped );
-	HVIterator( const HVIterator &	     rhs );
+	HVIterator( const Pedigree &   ped );
+	HVIterator( const HVIterator & rhs );
 
-	bool isOnMeiosis () const { return (cur_ancestry < n_ancestries); } // NOTE *1*
+	bool isOnMeiosis () const { return (cur_ancestry == n_ancestries); } // NOTE *1*
 	bool isOnAncestry() const { return (! isOnMeiosis()); }
 
 	bool isFinished() const { return (cur_ancestry == n_ancestries) && (cur_meiosis == n_meiosis); }
