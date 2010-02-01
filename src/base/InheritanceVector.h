@@ -65,22 +65,23 @@ class InheritanceSpace;
 
 
 //-----------------------------------------------------------------------------
+//
+/// Inheritance vector for a Pedigree group.  This is effectively a bitmap with
+/// one bit for each meiosis; this would typially be two bits for each
+/// non-founder member of a pedigree of diploid organisms: one for the father's
+/// meiosis and one for the mother's; however, if we are only modeling a single
+/// gamete for one of the parents, there will be no meiosis for that parent.
 ///
-/// Inheritance vector for a Pedigree group.  This may require generalization
-/// for polyploidal organisms.
-///
-/// This is effectively a bitmap with two bits for each non-founder member of
-/// the pedigree.
+/// Internally, each meiosis is represented as a single bit, 1 for the maternal
+/// gamete (parent's mother's allele received by child) and 0 for the paternal
+/// gamete (parent's father's allele received by child).  Externally, we
+/// represent a meiosis via the InheritanceVector::Bits class, which contains
+/// both meiosis for a given child; if one of the parents had no meiosis
+/// (haploid or single-gamete-model), the corresponding meiosis will have value
+/// @a SI_NONE.
 ///
 /// <A name="note-1"></A>
 /// <TABLE STYLE="border: groove 3pt aqua;">
-///
-///  <TR>
-///	<TD><B>NOTE *1*</B></TD>
-///	<TD>
-///	Legacy, nothing here.
-///	</TD>
-///  </TR>
 ///
 ///  <TR>
 ///	<TD><B>NOTE *2*</B></TD>
@@ -104,16 +105,16 @@ class InheritanceVector
     {
 
     public:
-	// Segregation Indicator for one meosis:
+	/// Segregation Indicator for one meosis:
 	enum SegInd
 	    {
-	    SI_PATERNAL ,
-	    SI_MATERNAL ,
-	    SI_NONE	  // No meiosis: parent had haploid genotype or we only model one gamete
+	    SI_PATERNAL , /// Child received the parent's father's allele
+	    SI_MATERNAL , /// Child received the parent's mother's allele
+	    SI_NONE	  /// No meiosis: parent had haploid genotype or we only model one gamete
 	    };
 
-	// Complete segregation indicator (both maternal and paternal) for
-	// diploid organism's inheritance:
+	/// Complete segregation indicator (both maternal and paternal) for
+	/// diploid organism's inheritance.
 	class Bits
 	    {
 	    friend class InheritanceVector;
@@ -227,10 +228,15 @@ class InheritanceVector
 	/// bitmaps (rather than the number of non-zero bits in that number),
 	/// and thus is a highly specialized method that links the internal
 	/// representation of InheritanceVector and the internal algorithms of
-	/// TransProbCache.  This could be made cleaner and more generic by
-	/// implementing option (C) of the note at TPC_PRE_CALC_IV_FACTORS in
-	/// TransProbCache.h and thus returning the true number of differing
-	/// meiosis, resulting in a slight runtime/memory tradeoff.
+	/// TransProbCache.  However, for the purposes of the
+	/// transition-probability computation as implemented in TransProbCache,
+	/// the order of the bits in the bitmap of InheritanceVector is
+	/// irrelevant; only the number of non-zero bits in the XOR is used in
+	/// the computation.  This could, however, be made cleaner and more
+	/// generic by implementing option (C) of the note at
+	/// TPC_PRE_CALC_IV_FACTORS in TransProbCache.h and thus returning the
+	/// true number of differing meiosis, resulting in a slight
+	/// runtime/memory tradeoff.
 	///
 	/// See also: TransProbCache.h
 	//-----------------------------------------------------------------------

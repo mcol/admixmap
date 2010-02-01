@@ -172,33 +172,66 @@ TransProbCache::TransProbCache( const Pedigree & _pedigree, double _rho, const M
 
 	gp_assert( loci.size() != 0 ); // Unnecessary, but a bug did manifest itself this way once
 
+
+	// Pre-compute and cache the table of factors that are based on the
+	// number of non-zero bits in the XOR of the from and to IVs.  As
+	// explained in the header-file, the double-lookup is condensed to a
+	// single table-lookup, but when computing the table, we first compute a
+	// table (preCompTab) containing the values of the factor, indexed on
+	// the number of non-0 bits; then create the lookup table (gtab) that is
+	// indexed on the value of the XOR of the bitmaps of the two IVs.
+	//
+	// The value of the g-factor for a transition in which there are n
+	// differing bits between the two IVs is (here "^" means "to the power
+	// of"):
+	//	[0.5*(1-g)]^n * [0.5*(g+1)]^k
+	// Where k is the number of bits which do _not_ differ between the two
+	// IVs, and is therefore equal to (M-n) where M is the total number of
+	// meiosis in the pedigree at that locus.
+
+
 	factors.resize( loci.size() - 1 );
 	for ( size_t t = factors.size() ; t-- != 0 ; )
 	    {
+
 	    const double g = computeG( loci, t );
 	    factors[ t ].g = g;
+
 	    cvector<CachedIVFactor> & gtab = factors[ t ].iv_factors;
-	    const size_t n_meiosis = (_pedigree.getNNonFndrs() << 1);
-	    gtab.resize( 1 << n_meiosis ); // 2^n_meiosis = 4^n_non_founders
+	    const size_t n_meiosis = _pedigree.getNMeiosis();
+	    gtab.resize( 1 << n_meiosis ); // 2^n_meiosis
+
 	    if ( n_meiosis == 0 )
-		gtab[0] = 1.0; // For no-non-founders, "null" IV
+		gtab[0] = 1.0; // When the pedigree contains no meiosis, "null" IV
 	    else
 		{
-		double preCompTab[ n_meiosis ];
-		const double gPlusOne = (g + 1) * 0.5;
-		double gPlusOneTerm = 1.0;
-		for ( size_t ctr = 0 ; ctr < n_meiosis ; ++ctr )
-		    {
-		    preCompTab[ ctr ] = gPlusOneTerm;
-		    gPlusOneTerm *= gPlusOne;
-		    }
+
+		// The number of non-0 bis can be from 0 to M, so we need a
+		// lookup-table of size M+1:
+		double preCompTab[ n_meiosis + 1 ];
+
+		// First, compute the first half of the factor in each slot,
+		// [0.5*(1-g)]^n
 		const double oneMinusG = (1 - g) * 0.5;
-		double oneMinusGTerm = gPlusOne;
-		for ( size_t ctr = n_meiosis - 1 ; ctr-- != 0 ; )
+		double oneMinusGTerm = 1.0;
+		for ( size_t ctr = 0 ; ctr <= n_meiosis ; ++ctr )
 		    {
-		    preCompTab[ ctr ] *= oneMinusGTerm;
+		    preCompTab[ ctr ] = oneMinusGTerm;
 		    oneMinusGTerm *= oneMinusG;
 		    }
+
+		// Next multiply the value in each slot by the second half of
+		// the factor, [0.5*(g+1)]^k
+		const double gPlusOne = (g + 1) * 0.5;
+		double gPlusOneTerm = gPlusOne;
+		for ( size_t ctr = n_meiosis ; ctr-- != 0 ; )
+		    {
+		    preCompTab[ ctr ] *= gPlusOneTerm;
+		    gPlusOneTerm *= gPlusOne;
+		    }
+
+		// Now fill in the values in the main table (gtab), indexed on
+		// the result of the XOR, with the corresponding values.
 		for ( size_t idx = 0 ; idx < gtab.size() ; ++idx )
 		    {
 		    unsigned int n_non_zero_bits = 0;
@@ -208,8 +241,10 @@ TransProbCache::TransProbCache( const Pedigree & _pedigree, double _rho, const M
 			n_non_zero_bits += (ivTransBits & 1);
 			ivTransBits >>= 1;
 			}
+		    gp_assert_le( n_non_zero_bits, n_meiosis );
 		    gtab[ idx ] = preCompTab[ n_non_zero_bits ];
 		    }
+
 		}
 	    }
 
