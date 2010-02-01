@@ -75,16 +75,11 @@
 #define USE_QSORT	1 ///< Whether to use ::qsort() or std::sort() for sorting arrays
 
 
-// We really must find a way to auto-box with STL:
-#if 0
-    #define PED_PB(rv, organisms, firstInd, lastInd ) \
-	rv.push_back( organisms, firstInd, lastInd, max_n ) , \
-	rv.back().setMyNumber( rv.size() );
-#else
-    #define PED_PB(rv, organisms, firstInd, lastInd, max_n ) \
+
+// No C++ auto-boxing with STL, so:
+#define PED_PB(rv, organisms, firstInd, lastInd, max_n ) \
 	rv.push_back( Pedigree( organisms, firstInd, lastInd, max_n ) ) , \
 	rv.back().setMyNumber( rv.size() );
-#endif
 
 
 
@@ -170,6 +165,49 @@ static int depthCompare( Pedigree::Member * const * lhs_ptr, Pedigree::Member * 
 
     return rv;
     }
+
+
+
+//-----------------------------------------------------------------------------
+// dumpFGMappings()
+//-----------------------------------------------------------------------------
+
+#if DEBUG_PRINT_FOUNDER_GAMETE_MAPS
+
+    void Pedigree::dumpFGMappings() const
+	{
+
+	fprintf( stderr, "\n==== Founder-to-gamete map for pedigree %s at %p (non-X chromosomes)\n",
+			getId().c_str(), this );
+	for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
+	    {
+	    const bool onX = false;
+	    const Organism & founder = founderAt( fIdx );
+	    if ( founder.isHaploid( onX ) )
+		fprintf( stderr, "    fndr-idx %02zd (org #%d) ->   single-gamete %zd\n",
+		    fIdx, founder.getOrgId(), founderGameteOfFounder( fIdx, GT_SINGLE, onX ) );
+	    else
+		fprintf( stderr, "    fndr %02zd (org #%d) -> paternal-gamete %zd\n"
+				 "            (org #%d) -> maternal-gamete %zd\n",
+		    fIdx,
+		    founder.getOrgId(), founderGameteOfFounder( fIdx, GT_PATERNAL, onX ),
+		    founder.getOrgId(), founderGameteOfFounder( fIdx, GT_MATERNAL, onX ) );
+	    }
+
+	fprintf( stderr, "\n  == Gamete-to-founder map:\n" );
+	GameteType whichOne;
+	for ( FGameteIdx fgIdx = 0 ; fgIdx < getNFounderGametes() ; ++fgIdx )
+	    {
+	    const FounderIdx fIdx = founderOfGameteIdx( fgIdx, whichOne );
+	    fprintf( stderr, "    gamete-idx %zd -> fndr %zd (org #%d) [%s]\n", fgIdx,
+		fIdx, founderAt(fIdx).getOrgId(), gameteTypeDesc(whichOne) );
+	    }
+
+	putc( '\n', stderr );
+
+	}
+
+#endif
 
 
 
@@ -337,7 +375,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	    gfMap[fg.nonX].fIdx = fIdx;
 	    gfMap[fg.nonX++].whichOne = Pedigree::GT_MATERNAL;
 	    }
-	fg.X += founder.isHaploid(true ) ? 1 : 2;
+	fg.X += founder.isHaploid(true) ? 1 : 2;
 	}
     gp_assert_eq( fg.nonX, nFGametes );
     gp_assert_eq( fgMap.size(), nFounders );
@@ -349,6 +387,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	firstFounder = sortedMembers;
 	endFounder = sortedMembers + nFounders;
     #endif
+
 
     // Sanity checking:
     gp_assert( nFounders != 0 );
@@ -533,6 +572,28 @@ void Pedigree::throwMRange( size_t mIdx ) const
     {
     throw out_of_range( estr("Member-index ") + mIdx +
 		" out of range (" + getNMembers() + ')' );
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// gameteTypeDesc() [static]
+//-----------------------------------------------------------------------------
+
+const char * Pedigree::gameteTypeDesc( GameteType gt )
+    {
+    const char * rv;
+
+    if ( gt == GT_PATERNAL )
+	rv = "paternal";
+    else if ( gt == GT_MATERNAL )
+	rv = "maternal";
+    else if ( gt == GT_SINGLE )
+	rv = "single";
+    else
+	throw std::runtime_error( "invalid gamete-type" );
+
+    return rv;
     }
 
 

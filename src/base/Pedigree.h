@@ -434,6 +434,10 @@ class Pedigree : public PedBase // See NOTE *4*
 	    }
 
 
+	/// Printable description of a GameteType, useful for debugging.
+	static const char * gameteTypeDesc( GameteType gt );
+
+
 	/// Mapping from founder-index to founder-gamete-index, useful for
 	/// AncestryVector.  Perhaps this belongs in AncestryVector.  Remove the
 	/// default false value for @a onXChrom when X chromosome is fully
@@ -855,9 +859,10 @@ class Pedigree : public PedBase // See NOTE *4*
 
     private:
 
-    // ====== DEBUGGING METHODS (overridden from PedBase) ======
+    // ====== DEBUGGING METHODS ======
     #if PEDBASE_DEBUG_METHODS
-	virtual void dumpTheta( const char * prefix ) const;
+	virtual void dumpTheta( const char * prefix ) const; // overridden from PedBase
+	void dumpFGMappings() const;
     #endif
     };
 
