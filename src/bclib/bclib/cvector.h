@@ -192,8 +192,8 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 	std::vector<T,Alloc> &	     getVector_unsafe()	      { return v; }
 
 	/// Direct access to the data as a "C array" -- avoid if possible.
-	const T * data_unsafe() const { return v.data(); }
-	T *	  data_unsafe()	      { return v.data(); }
+	const T * data_unsafe() const { return &(v[0]); }
+	T *	  data_unsafe()	      { return &(v[0]); }
 
     };
 
