@@ -187,9 +187,13 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 	    }
 
 
-	// Direct access to the STL std::vector -- avoid if possible:
+	/// Direct access to the STL std::vector -- avoid if possible.
 	const std::vector<T,Alloc> & getVector_unsafe() const { return v; }
 	std::vector<T,Alloc> &	     getVector_unsafe()	      { return v; }
+
+	/// Direct access to the data as a "C array" -- avoid if possible.
+	const T * data_unsafe() const { return v.data(); }
+	T *	  data_unsafe()	      { return v.data(); }
 
     };
 
