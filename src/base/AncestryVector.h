@@ -279,6 +279,10 @@ class AncestryVector
 	/// Number of populations and maximum number of founder-gametes.
 	static void set_parms( PopIdx K, Pedigree::FounderIdx maxF );
 
+
+	/// Return a decimal representation of the ancestry vector.
+	unsigned long to_decimal() const;
+
     };
 
 

@@ -171,6 +171,10 @@ class InheritanceVector
 	size_t getNMeiosis() const;
 
 
+	/// Return a decimal representation of the inheritance vector.
+	unsigned long to_decimal() const { return bits.to_ulong(); }
+
+
 	InheritanceVector( const Pedigree & p );
 
 	InheritanceVector( const InheritanceVector & rhs ) :

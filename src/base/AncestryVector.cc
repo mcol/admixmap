@@ -364,6 +364,27 @@ unsigned long AncestryVector::to_ulong() const
 
 
 //-----------------------------------------------------------------------------
+// to_decimal()
+//-----------------------------------------------------------------------------
+
+/// This evaluates the base-K ancestry vector in reverse order to obtain
+/// a decimal number. For example, if there are two populations (K = 2) and
+/// four founder gametes (F = 4) then for AV(1,1,0,1) we obtail the value 11,
+/// corresponding to the decimal representation of the binary number 1011.
+unsigned long AncestryVector::to_decimal() const
+    {
+    unsigned long rv = 0;
+    const FGIdx F = size(); // number of founder gametes
+
+    for ( FGIdx idx = F ; idx-- != 0 ; )
+      rv += at(idx) * K_to_the_F(K, F - idx - 1);
+
+    return rv;
+    }
+
+
+
+//-----------------------------------------------------------------------------
 // Iterator
 //-----------------------------------------------------------------------------
 
