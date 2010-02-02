@@ -89,6 +89,12 @@ class HVIterator
 	// The number of discrete values that the "pointed-to" hidden-variable can take on.
 	int nValues() const;
 
+	// Number of hidden variables still to be visited
+	size_t leftToIterate() const { return n_ancestries + n_meiosis - cur_ancestry - cur_meiosis; }
+
+	// Index of the current ancestry
+	size_t getCurrentAncestry() const { return isOnMeiosis() ? cur_ancestry - 1 : cur_ancestry; }
+
     };
 
 

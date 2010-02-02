@@ -24,6 +24,7 @@
 //=============================================================================
 
 #include "HiddenMarkovModel.new.h"
+#include "HVIterator.h"
 
 #include <cmath> // log()
 
@@ -31,6 +32,8 @@
 #define CHECK_ALL_LIKELIHOODS	0 ///< Validation check that dot-products of all alpha & beta are "equal"
 				  ///< Which only works if we're _not_ renormalizing on-the-fly
 #define USE_LIBOIL		0
+#define DEBUG_TRANSRECURSION	0 ///< Debugging output for TransRecursion
+#define ALPHA_REMAPPING 	1 ///< Reorder the vectors for TransRecursion
 
 
 
@@ -165,32 +168,143 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 
 
 //-----------------------------------------------------------------------------
+// transRecursion() [private]
+//
+/// Recursive function to compute the product of the transition probability
+/// matrix times alpha.
+/// @param alpha  The probability vector at the "from" locus
+/// @param res    The probability vector at the "to" locus
+/// @param f      The probability of 0 arrivals for founder gametes
+/// @param g      The probability of 0 arrivals for meiosis
+/// @param h      Admixture proportions scaled by (1-f)
+/// @param z      Hidden variables index corresponding to the recursion level
+/// @param sz     Size of the probability vector having fixed the first z
+///               hidden variables to a certain state
+//-----------------------------------------------------------------------------
+
+void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
+                                       double f, double g,
+                                       const ThetaType& h,
+                                       HVIterator z, size_t sz) const {
+
+  // Check if we've reached the bottom of the recursion
+  if (z.leftToIterate() == 1) {
+
+    double asum = 0.0;
+    for (size_t i = 0; i < sz; ++i)
+      asum += alpha[i];
+
+    // Ancestry
+    if (z.isOnAncestry()) {
+
+      Pedigree::GameteType whichOne;
+      const Pedigree::FounderIdx idx = ped->founderOfGameteIdx(z.getCurrentAncestry(), whichOne);
+
+      for (size_t i = 0; i < sz; ++i)
+        res[i] = f * alpha[i] + h[idx][i] * asum;
+    }
+
+    // Meiosis
+    else {
+      for (size_t i = 0; i < sz; ++i)
+        res[i] = g * alpha[i] + (1 - g) * 0.5 * asum;
+    }
+  }
+
+  // Recursive computations
+  else {
+
+    // Advance the iterator that will enter the recursion
+    HVIterator z_p1( z );
+    z_p1.advance();
+
+    const size_t nValues = z.nValues();
+    sz /= nValues;
+
+    // Enter the recursion
+    double *alpha_tilde = res;
+    for (size_t i = 0; i < nValues; ++i) {
+
+      // Divide the alpha array in nValues parts of size sz, each corresponding
+      // to one of the possible states for the current hidden variable
+      const double *alpha_i = &alpha[i * sz];
+      double *alpha_tilde_i = &alpha_tilde[i * sz];
+      transRecursion(alpha_i, alpha_tilde_i, f, g, h, z_p1, sz);
+    }
+
+    // Sum the alpha_tilde_i arrays along the rows
+    double *asum = new double[sz];
+    for (size_t i = 0; i < sz; ++i) {
+      asum[i] = 0.0;
+      for (size_t j = 0; j < nValues; ++j)
+        asum[i] += alpha_tilde[j * sz + i];
+    }
+
+    // Ancestry
+    if (z.isOnAncestry()) {
+      Pedigree::GameteType whichOne;
+      const Pedigree::FounderIdx idx = ped->founderOfGameteIdx(z.getCurrentAncestry(), whichOne);
+
+      for (size_t i = 0; i < sz * nValues; ++i)
+        res[i] = f * alpha_tilde[i] + h[idx][i / sz] * asum[i % sz];
+    }
+
+    // Meiosis
+    else {
+      for (size_t i = 0; i < sz * nValues; ++i)
+        res[i] = g * alpha_tilde[i] + (1 - g) * 0.5 * asum[i % sz];
+    }
+
+    delete[] asum;
+  }
+}
+
+
+//-----------------------------------------------------------------------------
 // recursionProbs()
 //-----------------------------------------------------------------------------
 
-void HiddenMarkovModel::recursionProbs( double			 /*f*/	   ,
-					double			 /*g*/	   ,
-					const ThetaType &	 /*theta*/ ,
-					const ThetaType &	 /*h*/	   ,
+void HiddenMarkovModel::recursionProbs( double	 		 f	   ,
+					double 	 		 g	   ,
+					const ThetaType &	 h	   ,
 					const HiddenStateSpace & fr_hss	   ,
 					const HiddenStateSpace & to_hss	   ,
 					const ProbsAtLocusType & frProbs   ,
-					ProbsAtLocusType &	 toProbs   ,
-					SLocIdxType		 fr_t	   ,
-					bool			 ascending ) const
+					ProbsAtLocusType &	 toProbs) const
     {
-    for ( HiddenStateSpace::Iterator to_it( to_hss ) ; to_it ; ++to_it )
-	{
-	double val = 0.0;
-	for ( HiddenStateSpace::Iterator fr_it( fr_hss ) ; fr_it ; ++fr_it )
-	    {
-	    const double transProb = ascending					 ?
-					tpCache->getProb( fr_t	, fr_it, to_it ) :
-					tpCache->getProb( fr_t-1, to_it, fr_it ) ;
-	    val += frProbs[ fr_it.getNon0Index() ] * transProb;
-	    }
-	toProbs[ to_it.getNon0Index() ] = val;
-	}
+    gp_assert(frProbs.size() == toProbs.size());
+  
+    // create a flat array for alpha
+    double *alphaflat = new double[frProbs.size()];
+    double *res = new double[toProbs.size()];
+
+#if ALPHA_REMAPPING
+    memset(alphaflat, 0, frProbs.size() * sizeof(double));
+    for ( HiddenStateSpace::Iterator it( fr_hss ) ; it ; ++it ) {
+      const AncestryVector & av = it.getAV();
+      const InheritanceVector & iv = it.getIV();
+      alphaflat[fr_hss.idxMapping(av, iv)] = frProbs[it.getOverallIndex()];
+    }
+#else
+    copy(frProbs.begin(), frProbs.end(), alphaflat);
+#endif
+
+    HVIterator z(getPed());
+    transRecursion(alphaflat, res, f, g, h, z, frProbs.size());
+
+#if ALPHA_REMAPPING
+    // store res into alpha[t+1]
+    for ( HiddenStateSpace::Iterator it( to_hss ) ; it ; ++it ) {
+      const AncestryVector & av = it.getAV();
+      const InheritanceVector & iv = it.getIV();
+      toProbs[it.getOverallIndex()] = res[to_hss.idxMapping(av, iv)];
+    }
+#else
+    copy(res, res + toProbs.size(), toProbs.begin());
+#endif
+
+    delete[] alphaflat;
+    delete[] res;
     }
 
 
@@ -229,7 +343,7 @@ void HiddenMarkovModel::computeForwards() const
 	double normalize_sum = 0.0;
     #endif
 
-    alpha_0.resize( hss_0.getNNon0() );
+    alpha_0.resize( hss_0.getNStates() );
 
     // Probability of any given IV is 1/(2^M): perhaps this should be cached in
     // the pedigree or HSS?
@@ -243,7 +357,7 @@ void HiddenMarkovModel::computeForwards() const
 	for ( AncestryVector::FGIdx idx = av.size() ; idx-- != 0 ; )
 	    pi *= th[ AncestryVector::founderOf(idx) ] [ av.at(idx) ];
 	const double val = pi * it.getEProb();
-	alpha_0[ it.getNon0Index() ] = val;
+	alpha_0[ it.getOverallIndex() ] = val;
 	#if HMM_OTF_RENORM
 	    normalize_sum += val;
 	#endif
@@ -273,10 +387,16 @@ void HiddenMarkovModel::computeForwards() const
 	    norm_log_sum_alpha += log( normalize_sum );
 	    gp_assert( normalize_sum != 0.0 );
 	    normalize_sum = 1.0 / normalize_sum;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_m1.getNNon0() ; j-- != 0 ; )
+	    for ( HiddenStateSpace::Non0IdxType j = hss_t_m1.getNStates() ; j-- != 0 ; )
 		alpha_t_m1[ j ] *= normalize_sum;
 	    normalize_sum = 0.0;
 	#endif
+
+#if DEBUG_TRANSRECURSION
+        cout << "\n* alpha[" << t - 1 << "] norm\n";
+        for (size_t i = 0; i < alpha_t_m1.size(); ++i)
+          cout << alpha_t_m1[i] << endl;
+#endif
 
 	// This is the main recursion: compute alpha[t] from alpha[t-1]
 
@@ -292,14 +412,20 @@ void HiddenMarkovModel::computeForwards() const
 	// assure that alpha[t] has been resized to the size of the
 	// hidden-state-space at locus t so that recursionProbs() knows how
 	// large the space is.
-	alpha_t.resize( hss_t.getNNon0() );
-	recursionProbs( f, g, th, h, hss_t_m1, hss_t, alpha_t_m1, alpha_t, t_m1, true );
+	alpha_t.resize( hss_t.getNStates() );
+	recursionProbs( f, g, h, hss_t_m1, hss_t, alpha_t_m1, alpha_t );
+
+#if DEBUG_TRANSRECURSION
+        cout << "\n* alpha[" << t - 1 << "] after\n";
+        for (size_t i = 0; i < alpha_t.size(); ++i)
+          cout << alpha_t[i] << endl;
+#endif
 
 	// Next multiply by the emission probabilities, simultaneously
 	// accumulating the normalization factor for the next iteration:
 	for ( HiddenStateSpace::Iterator to_it( hss_t ) ; to_it ; ++to_it )
 	    {
-	    double & val = alpha_t[ to_it->getNon0Index() ];
+	    double & val = alpha_t[ to_it->getOverallIndex() ];
 	    val *= to_it->getEProb();
 	    #if HMM_OTF_RENORM
 		normalize_sum += val;
@@ -346,9 +472,9 @@ void HiddenMarkovModel::computeBackwards() const
     const HiddenStateSpace & hss_Tm1  = getPed().getStateProbs( t );
     ProbsAtLocusType &	     beta_Tm1 = beta[ t ];
 
-    beta_Tm1.resize( hss_Tm1.getNNon0() );
+    beta_Tm1.resize( hss_Tm1.getNStates() );
 
-    for ( HiddenStateSpace::Non0IdxType i = hss_Tm1.getNNon0() ; i-- != 0 ; )
+    for ( HiddenStateSpace::Non0IdxType i = hss_Tm1.getNStates() ; i-- != 0 ; )
 	beta_Tm1[ i ] = 1.0;
 
 
@@ -374,13 +500,13 @@ void HiddenMarkovModel::computeBackwards() const
 	#if HMM_OTF_RENORM
 
 	    double normalize_sum = 0.0;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNNon0() ; j-- != 0 ; )
+	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNStates() ; j-- != 0 ; )
 		normalize_sum += beta_t_p1[ j ];
 
 	    norm_log_sum_beta += log( normalize_sum );
 	    gp_assert( normalize_sum != 0.0 );
 	    normalize_sum = 1.0 / normalize_sum;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNNon0() ; j-- != 0 ; )
+	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNStates() ; j-- != 0 ; )
 		beta_t_p1[ j ] *= normalize_sum;
 
 	#endif
@@ -398,15 +524,15 @@ void HiddenMarkovModel::computeBackwards() const
 	// Pre-multiply beta[t+1] by the emission probabilities at t+1 (making a copy)
 	ProbsAtLocusType beta_t_p1_mult( beta_t_p1 );
 	for ( HiddenStateSpace::Iterator fr_it( hss_t_p1 ) ; fr_it ; ++fr_it )
-	    beta_t_p1_mult[ fr_it->getNon0Index() ] *= fr_it->getEProb();
+	    beta_t_p1_mult[ fr_it->getOverallIndex() ] *= fr_it->getEProb();
 
 
 	// Do the matrix multiplication by the transition probabilities.  We
 	// assure that beta[t] has been resized to the size of the
 	// hidden-state-space at locus t so that recursionProbs() knows how
 	// large the space is.
-	beta_t.resize( hss_t.getNNon0() );
-	recursionProbs( f, g, *theta, h, hss_t_p1, hss_t, beta_t_p1_mult, beta_t, t_p1, false );
+	beta_t.resize( hss_t.getNStates() );
+	recursionProbs( f, g, h, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
 
 
 	t_p1 = t;

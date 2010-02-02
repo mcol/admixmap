@@ -31,6 +31,7 @@
 #include "HiddenStateSpace.h"
 #include "Pedigree.h"
 #include "TransProbCache.h"
+#include "HVIterator.h"
 #include <bclib/cvector.h>
 
 
@@ -96,6 +97,12 @@ class HiddenMarkovModel
 	mutable ProbArrType condStateProbs;
 	mutable bool	    dirtyCondStateProbs;
 
+	/// Recursive function to multiply the transition-probability matrix
+	/// by the probability vector alpha
+	void transRecursion(const double *alpha, double *res,
+			    double f, double g, const ThetaType& h,
+			    HVIterator z, size_t sz) const;
+
 	/// Do the main forwards recursion
 	void computeForwards() const;
 
@@ -114,39 +121,28 @@ class HiddenMarkovModel
 	/// used both for the forwards and backwards recursions.
 	///	@param f	The probability of 0 arrivals at the destination locus (toProbs)
 	///	@param g	"g" factor at the destination locus (toProbs)
-	///	@param theta	The admixture proportions (i.e. arrival proportions, also called
-	///			    \f$\mu\f$ in the context of transition-probability calculations).
-	///			    This is redundant with @a h, so perhaps can be eliminated.
-	///	@param h	Intermediate factor, pre-computed so that it can be
-	///			    cached to avoid repeated recalculations.
+	///	@param h	The admixture proportions (i.e. arrival proportions,
+	///			    called \f$\mu\f$ in the transition-probability
+	///			    context) scaled by (1-f) and cached to avoid
+	///			    repeated recalculations.
 	///			    h=(1-f)*theta   <BR>  \f$h \equiv (1-f)\theta\f$
 	///	@param fr_hss	The hidden-state-space at the "from" locus.  This
 	///			    is necessary to find the values of the
 	///			    ancestry-vector and inheritance-vector for
 	///			    each hidden-state.
 	///	@param to_hss	The hidden-state-space at the "to" locus.
-	///	@param frProbs	The "from" probabilities, indexed on the HiddenStateSpace's "non0Index"
-	///	@param toProbs	The "to" probabilities, indexed on the HiddenStateSpace's "non0Index"
-	///	@param fr_t	The number (index) of the "from" locus.  This is a
-	///			    transitional convenience; it is not needed
-	///			    to make the computation and once the final
-	///			    algorithm is implemented, it can be removed.
-	///	@param ascending True if the "to" locus is higher (by index)
-	///			    than the "from" locus.  This is a
-	///			    transitional convenience; it is not needed
-	///			    to make the computation and once the final
-	///			    algorithm is implemented, it can be removed.
+	///	@param frProbs	The "from" probabilities, indexed on the
+	///			    HiddenStateSpace's "overallIndex".
+	///	@param toProbs	The "to" probabilities, indexed on the
+	///			    HiddenStateSpace's "overallIndex".
 
 	void recursionProbs( double		      f		,
 			     double		      g		,
-			     const ThetaType &	      theta	,
 			     const ThetaType &	      h		,
 			     const HiddenStateSpace & fr_hss	,
 			     const HiddenStateSpace & to_hss	,
 			     const ProbsAtLocusType & frProbs	,
-			     ProbsAtLocusType &	      toProbs	,
-			     SLocIdxType	      fr_t	,
-			     bool		      ascending ) const;
+			     ProbsAtLocusType &	      toProbs	) const;
 
 
 	void assureNotDirty() const;
@@ -203,6 +199,7 @@ class HiddenMarkovModel
 
 	/// Get the conditional probability distribution of the hidden states at locus @a t.
 	const cvector<double> & getCondStateProbsAtLocus( SLocIdxType t ) const;
+
 
     };
 
