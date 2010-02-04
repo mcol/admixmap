@@ -558,9 +558,9 @@ double HiddenMarkovModel::getLogLikelihood() const
     SLocIdxType t = getNLoci();
     const ProbsAtLocusType & alpha_Tm1 = alpha[ --t ];
 
-    #if USE_LIBOIL
+    #if USE_LIBOIL && 0 // disabled, as it doesn't produce the same results
 	double rv;
-	oil_sum_f64( &rv, alpha_Tm1.data(), 1, alpha_Tm1.size() );
+	oil_sum_f64( &rv, alpha_Tm1.data_unsafe(), 1, alpha_Tm1.size() );
     #else
 	double rv = 0.0;
 
@@ -645,10 +645,10 @@ const cvector<double> & HiddenMarkovModel::getCondStateProbsAtLocus( SLocIdxType
 	    #if USE_LIBOIL
 
 		double normSum;
-		oil_multiply_f64( locProbs.data(), locAlpha.data(), locBeta.data(), locAlpha.size() );
-		oil_sum_f64( locProbs.data(), &normSum, 1, locProbs.size() );
+		oil_multiply_f64( locProbs.data_unsafe(), locAlpha.data_unsafe(), locBeta.data_unsafe(), locAlpha.size() );
+		oil_sum_f64( locProbs.data_unsafe(), &normSum, 1, locProbs.size() );
 		normSum = 1.0 / normSum;
-		oil_scalarmult_f64( locProbs.data(), 1, locProbs.data(), 1, &normSum, locProbs.size() );
+		oil_scalarmult_f64( locProbs.data_unsafe(), 1, locProbs.data_unsafe(), 1, &normSum, locProbs.size() );
 
 	    #else
 
