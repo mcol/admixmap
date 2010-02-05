@@ -441,7 +441,7 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
 	}
 
     #if DEBUG_PRINT_TP_DETAIL
-	printf( " (%lu,%lu) trans-prob=%lf\n", frState.getNon0Index(), toState.getNon0Index(), rv );
+	printf( " (%u,%u) trans-prob=%lf\n", frState.getNon0Index(), toState.getNon0Index(), rv );
     #endif
 
     return rv;
