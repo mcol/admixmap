@@ -223,6 +223,8 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	    cerr << "After excluding " << n_peds_excl << " pedigrees due to Mendelian errors, "
 		<< getPeds().size() << " pedigrees remain.\n";
 
+	if ( getPeds().size() == 0 )
+	    throw std::runtime_error( "No pedigree can be processed.\n" );
 
 	cerr << ct.local_now() << " finished HSS/EP generation: " << ct.local_elapsed() << '\n';
 
