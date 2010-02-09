@@ -132,15 +132,16 @@ void HiddenStateSpace::resetEmProbsToZero()
 //=============================================================================
 
 
-HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp ) :
+HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp, bool sparse ) :
 	space	 ( sp	       ) ,
 	av_it	 ( sp.getPed() ) ,
 	iv_it	 ( sp.getPed() ) ,
 	sIdx	 ( 0	       ) ,
 	non0Idx	 ( 0	       ) ,
+	skipNon0 ( sparse      ) ,
 	finished ( false       )
     {
-    if ( sp.getEProb( sIdx ) == 0.0 )
+    if ( skipNon0 && sp.getEProb( sIdx ) == 0.0 )
 	advance();
     }
 
@@ -172,7 +173,7 @@ bool HiddenStateSpace::Iterator::advance()
 	    space.getPed().getId() );
 
 
-    if ( (space.getEProb(sIdx) != 0.0) &&
+    if ( skipNon0 && (space.getEProb(sIdx) != 0.0) &&
 	    (++non0Idx == space.getNNon0()) )	// Saves skipping past the last segment of 0-EPs
 	return (finished = true);		// **** RETURN HERE ****
 
@@ -196,7 +197,7 @@ bool HiddenStateSpace::Iterator::advance()
 	    ++sIdx;
 	    }
 
-	} while ( (! finished) && (space.getEProb(sIdx) == 0.0) );
+	} while ( skipNon0 && (! finished) && (space.getEProb(sIdx) == 0.0) );
 
 
     return finished;

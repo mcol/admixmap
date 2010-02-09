@@ -309,13 +309,20 @@ class HiddenStateSpace
 		StateIdxType		    sIdx;
 		Non0IdxType		    non0Idx;
 
+		/// Whether the iterator should skip the elements for which
+		/// the emission probability is zero.
+		bool skipNon0;
+
 		/// Can avoid keeping this finished flag by implementing
 		/// isFinished() as "return (idx < space.aSize())";
 		bool finished;
 
 	    public:
 
-		Iterator( const HiddenStateSpace & sp );
+		/// By default, the iterator skips the elements for which
+		/// the emission probability is zero.  If @a sparse is set
+		/// to false, then those elements will not be skipped.
+		Iterator( const HiddenStateSpace & sp, bool sparse = true );
 		Iterator( const Iterator & rhs );
 
 		const HiddenStateSpace & getSpace() const { return space; }
@@ -327,10 +334,10 @@ class HiddenStateSpace
 		operator bool() const { return (! isFinished()); } ///< Synonym for (!isFinished())
 
 
-		/// Move to the next state with non-zero emission probability.
+		/// Move to the next state depending on the value of skipNon0.
 		/// Returns the new value for isFinished().  Throws an exception
 		/// if already past the last state, i.e. if already
-		/// isFinsihed().
+		/// isFinished().
 		bool advance();
 		Iterator & operator++() { advance(); return *this; } ///< Synonym for advance()
 
