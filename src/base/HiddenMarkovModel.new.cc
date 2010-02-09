@@ -534,6 +534,11 @@ void HiddenMarkovModel::computeBackwards() const
 	beta_t.resize( hss_t.getNStates() );
 	recursionProbs( f, g, h, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
 
+#if DEBUG_TRANSRECURSION
+        cout << "\n* beta[" << t << "] after\n";
+        for (size_t i = 0; i < beta_t.size(); ++i)
+          cout << beta_t[i] << endl;
+#endif
 
 	t_p1 = t;
 	}
