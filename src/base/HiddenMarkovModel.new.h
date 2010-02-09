@@ -64,6 +64,7 @@ class HiddenMarkovModel
     {
     protected:
 	typedef double ProbType;
+	typedef double InvProbType;
 
 	/// Probability array type, for the forward (alpha) and backwards(beta)
 	/// probabilities: indexed on locus-index (t); within each locus,
@@ -96,6 +97,10 @@ class HiddenMarkovModel
 	/// on-the-fly).  Indexed on locus, then hidden-state-non0-index.
 	mutable ProbArrType condStateProbs;
 	mutable bool	    dirtyCondStateProbs;
+
+	/// Inverse of the stationary distribution, calculated in computeForwards()
+	/// and used in computeBackwards()
+	mutable cvector<InvProbType> piInv;
 
 	/// Recursive function to multiply the transition-probability matrix
 	/// by the probability vector alpha

@@ -344,19 +344,27 @@ void HiddenMarkovModel::computeForwards() const
     #endif
 
     alpha_0.resize( hss_0.getNStates() );
+    piInv.resize(hss_0.getNStates());
 
     // Probability of any given IV is 1/(2^M): perhaps this should be cached in
     // the pedigree or HSS?
     const double prob_of_each_iv = 1.0 / (1LL << getPed().getNMeiosis());
 
     const ThetaType & th = *theta;
-    for ( HiddenStateSpace::Iterator it( hss_0 ) ; it ; ++it )
+
+    // Here we compute the stationary distribution (pi) and store its inverse
+    // in piInv. To ensure that we compute it for all elements in the hidden
+    // state space, we force the iterator to not skip the elements for which
+    // the emission probability is zero by setting the second parameter of
+    // the constructor to false.
+    for ( HiddenStateSpace::Iterator it( hss_0, false ) ; it ; ++it )
 	{
 	double pi = prob_of_each_iv;
 	const AncestryVector & av = it.getAV();
 	for ( AncestryVector::FGIdx idx = av.size() ; idx-- != 0 ; )
 	    pi *= th[ AncestryVector::founderOf(idx) ] [ av.at(idx) ];
 	const double val = pi * it.getEProb();
+	piInv[ it.getOverallIndex() ] = 1 / pi;
 	alpha_0[ it.getOverallIndex() ] = val;
 	#if HMM_OTF_RENORM
 	    normalize_sum += val;
@@ -524,7 +532,7 @@ void HiddenMarkovModel::computeBackwards() const
 	// Pre-multiply beta[t+1] by the emission probabilities at t+1 (making a copy)
 	ProbsAtLocusType beta_t_p1_mult( beta_t_p1 );
 	for ( HiddenStateSpace::Iterator fr_it( hss_t_p1 ) ; fr_it ; ++fr_it )
-	    beta_t_p1_mult[ fr_it->getOverallIndex() ] *= fr_it->getEProb();
+	    beta_t_p1_mult[ fr_it->getOverallIndex() ] *= fr_it->getEProb() / piInv[fr_it->getOverallIndex()];
 
 
 	// Do the matrix multiplication by the transition probabilities.  We
@@ -533,6 +541,9 @@ void HiddenMarkovModel::computeBackwards() const
 	// large the space is.
 	beta_t.resize( hss_t.getNStates() );
 	recursionProbs( f, g, h, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
+
+	for(size_t j = 0; j < hss_t.getNStates(); ++j)
+	  beta_t[j] *= piInv[j];
 
 #if DEBUG_TRANSRECURSION
         cout << "\n* beta[" << t << "] after\n";
