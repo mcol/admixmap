@@ -56,6 +56,9 @@ AlleleFreqs::~AlleleFreqs(){
       delete *i;
   FreqSampler.clear();
 
+  for(unsigned i = 0; i < NumberOfCompositeLoci; ++i)
+    delete[] Freqs.array[i];
+  delete[] Freqs.array;
   //delete[] SumKLInfo;
 }
 
