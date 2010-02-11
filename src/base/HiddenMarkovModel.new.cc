@@ -65,6 +65,12 @@ HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	_ped	 ,
 	oil_init();
     #endif
 
+    //------------------------------------------------------------------------
+    // Reserve memory space
+    //------------------------------------------------------------------------
+
+    alpha.resize( getNLoci() );
+    beta.resize( getNLoci() );
     condStateProbs.resize( getNLoci() );
     }
 
@@ -221,6 +227,8 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
     const size_t nValues = z.nValues();
     sz /= nValues;
 
+    cvector<double> asum(sz);
+
     // Enter the recursion
     double *alpha_tilde = res;
     for (size_t i = 0; i < nValues; ++i) {
@@ -230,18 +238,15 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
       const double *alpha_i = &alpha[i * sz];
       double *alpha_tilde_i = &alpha_tilde[i * sz];
       transRecursion(alpha_i, alpha_tilde_i, f, g, h, z_p1, sz);
-    }
 
-    // Sum the alpha_tilde_i arrays along the rows
-    double *asum = new double[sz];
-    for (size_t i = 0; i < sz; ++i) {
-      asum[i] = 0.0;
-      for (size_t j = 0; j < nValues; ++j)
-        asum[i] += alpha_tilde[j * sz + i];
+      // Accumulate the sum the alpha_tilde_i arrays
+      for (size_t j = 0; j < sz; ++j)
+        asum[j] += alpha_tilde_i[j];
     }
 
     // Ancestry
     if (z.isOnAncestry()) {
+
       Pedigree::GameteType whichOne;
       const Pedigree::FounderIdx idx = ped->founderOfGameteIdx(z.getCurrentAncestry(), whichOne);
 
@@ -254,8 +259,6 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
       for (size_t i = 0; i < sz * nValues; ++i)
         res[i] = g * alpha_tilde[i] + (1 - g) * 0.5 * asum[i % sz];
     }
-
-    delete[] asum;
   }
 }
 
@@ -321,15 +324,6 @@ void HiddenMarkovModel::computeForwards() const
 
 
     const SLocIdxType T = getNLoci();
-
-
-
-    //------------------------------------------------------------------------
-    // Reserve memory space
-    //------------------------------------------------------------------------
-
-    alpha.resize( T );
-
 
 
     //------------------------------------------------------------------------
@@ -461,14 +455,6 @@ void HiddenMarkovModel::computeBackwards() const
 
 
     const SLocIdxType T = getNLoci();
-
-
-
-    //------------------------------------------------------------------------
-    // Reserve memory space
-    //------------------------------------------------------------------------
-
-    beta.resize( T );
 
 
     //------------------------------------------------------------------------
