@@ -389,7 +389,7 @@ void HiddenMarkovModel::computeForwards() const
 	    norm_log_sum_alpha += log( normalize_sum );
 	    gp_assert( normalize_sum != 0.0 );
 	    normalize_sum = 1.0 / normalize_sum;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_m1.getNStates() ; j-- != 0 ; )
+	    for ( HiddenStateSpace::StateIdxType j = hss_t_m1.getNStates() ; j-- != 0 ; )
 		alpha_t_m1[ j ] *= normalize_sum;
 	    normalize_sum = 0.0;
 	#endif
@@ -468,7 +468,7 @@ void HiddenMarkovModel::computeBackwards() const
 
     beta_Tm1.resize( hss_Tm1.getNStates() );
 
-    for ( HiddenStateSpace::Non0IdxType i = hss_Tm1.getNStates() ; i-- != 0 ; )
+    for ( HiddenStateSpace::StateIdxType i = hss_Tm1.getNStates() ; i-- != 0 ; )
 	beta_Tm1[ i ] = 1.0;
 
 
@@ -494,13 +494,13 @@ void HiddenMarkovModel::computeBackwards() const
 	#if HMM_OTF_RENORM
 
 	    double normalize_sum = 0.0;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNStates() ; j-- != 0 ; )
+	    for ( HiddenStateSpace::StateIdxType j = hss_t_p1.getNStates() ; j-- != 0 ; )
 		normalize_sum += beta_t_p1[ j ];
 
 	    norm_log_sum_beta += log( normalize_sum );
 	    gp_assert( normalize_sum != 0.0 );
 	    normalize_sum = 1.0 / normalize_sum;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNStates() ; j-- != 0 ; )
+	    for ( HiddenStateSpace::StateIdxType j = hss_t_p1.getNStates() ; j-- != 0 ; )
 		beta_t_p1[ j ] *= normalize_sum;
 
 	#endif
@@ -528,7 +528,7 @@ void HiddenMarkovModel::computeBackwards() const
 	beta_t.resize( hss_t.getNStates() );
 	recursionProbs( f, g, h, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
 
-	for(size_t j = 0; j < hss_t.getNStates(); ++j)
+	for ( HiddenStateSpace::StateIdxType j = hss_t.getNStates() ; j-- != 0 ; )
 	  beta_t[j] *= piInv[j];
 
 #if DEBUG_TRANSRECURSION
