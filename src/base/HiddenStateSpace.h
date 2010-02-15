@@ -390,7 +390,7 @@ class HiddenStateSpace
 		/// outside of this class, (e.g. for indexing into the
 		/// transition-probability matrix); all of the indexes that are
 		/// passed back into this class are StateIdxType.
-		Non0IdxType getNon0Index() const { return non0Idx; }
+		Non0IdxType getNon0Index() const { gp_assert( skipNon0 ); return non0Idx; }
 	    };
 
 
