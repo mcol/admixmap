@@ -673,6 +673,8 @@ const cvector<double> & HiddenMarkovModel::getCondStateProbsAtLocus( SLocIdxType
 
 	    }
 
+    dirtyCondStateProbs = false;
+
     return condStateProbs[ t ];
 
     }
