@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2009  David D. Favro
+// Copyright (C) 2010  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License, version 2 or later, as published by
@@ -58,6 +58,13 @@ namespace genepi { // ----
 ///	could instead just keep a reference to the Pedigree object.  This is
 ///	especially egregious in the case of K, which is fixed for the whole
 ///	simulation (i.e. global/static).
+///
+/// NOTE *3*: TransRecursion relies on the fact that the forward and backward
+///     probability vectors have a well-determined order which depends on the
+///     ordering of the ancestry vectors. The implementation of AncestryVector
+///     is such that the most significant bit moves faster; therefore, this
+///     iterator starts from the ancestry corresponding to the least
+///     significant bit, moving left.
 //
 //-----------------------------------------------------------------------------
 
@@ -93,7 +100,7 @@ class HVIterator
 	size_t leftToIterate() const { return n_ancestries + n_meiosis - cur_ancestry - cur_meiosis; }
 
 	// Index of the current ancestry
-	size_t getCurrentAncestry() const { return isOnMeiosis() ? cur_ancestry - 1 : cur_ancestry; }
+	size_t getCurrentAncestry() const { return isOnMeiosis() ? 0 : n_ancestries - cur_ancestry - 1; } // NOTE *3*
 
     };
 

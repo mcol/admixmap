@@ -98,8 +98,12 @@ class HiddenMarkovModel
 	mutable ProbArrType condStateProbs;
 	mutable bool	    dirtyCondStateProbs;
 
+	/// Stationary distribution, calculated in computeForwards() and used
+	/// in computeBackwards(), indexed on all states
+	mutable cvector<ProbType> Pi;
+
 	/// Inverse of the stationary distribution, calculated in computeForwards()
-	/// and used in computeBackwards()
+	/// and used in computeBackwards(), indexed on all states
 	mutable cvector<InvProbType> piInv;
 
 	/// Recursive function to multiply the transition-probability matrix

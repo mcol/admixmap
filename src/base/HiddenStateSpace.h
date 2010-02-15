@@ -125,25 +125,6 @@ class HiddenStateSpace
 	HiddenStateSpace();
 	~HiddenStateSpace();
 
-	/// This allows to remap a vector indexed over the hidden-state space
-	/// by returning the index corresponding to an (AV,IV) pair.
-	StateIdxType idxMapping( const AncestryVector    & av,
-				 const InheritanceVector & iv ) const
-	    {
-	    const unsigned long iv_idx = iv.to_decimal();
-	    const unsigned long av_idx = av.to_decimal();
-
-	    gp_assert_lt( iv_idx, N_IVs );
-	    gp_assert_lt( av_idx, N_AVs );
-
-	    // We can use either arrangement scheme, but if this is changed,
-	    // Iterator::advance() must be reimplemented:
-	    #if HSS_AV_MOST_SIG
-		return (av_idx * N_IVs) + iv_idx;
-	    #else
-		return (iv_idx * N_AVs) + av_idx;
-	    #endif
-	    }
 
 	/// This is distasteful but necessary since we must have a default
 	/// constructor (see comment at @a ped).

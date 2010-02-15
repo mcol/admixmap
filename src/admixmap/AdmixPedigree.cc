@@ -779,11 +779,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		    }
 
 
-		// The implementation of HiddenMarkovModel::recursionProbs()
-		// based on the TransRecursion algorithm uses vectors of size
-		// corresponding to the complete hidden-state space. Hence,
-		// here we use getOverallIndex() rather than getNon0Index().
-		const double stWeight = condStateProbs[ stIt.getOverallIndex() ];
+		const double stWeight = condStateProbs[ stIt.getNon0Index() ];
 		const double wtScore = stScore * stWeight;
 		scoreAvg += wtScore;
 		scoreSqAvg += wtScore * stScore;
