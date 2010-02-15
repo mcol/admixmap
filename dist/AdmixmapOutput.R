@@ -1485,5 +1485,5 @@ if(!is.null(user.options$indadmixturefile) && K >1 && file.exists(paste(resultsd
 }else{
 cat("No indadmixturefile\n", file=outfile, append=T)
 }
-cat("Script completed", file=outfile, append=T)
+cat("Script completed\n", file=outfile, append=T)
 
