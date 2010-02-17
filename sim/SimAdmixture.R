@@ -144,9 +144,15 @@ distanceFromLast <- function(v.Chr, v.Position) {
 }
 
 simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs) {
+
+  assortativemating <- TRUE
   M1 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
-  #M2 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M2 is prob pop 1
-  M2 <- M1 #assortative mating
+  if(assortativemating) {
+    M2 <- M1
+  }
+  else {
+    M2 <- rbeta(1, popadmixparams[1], popadmixparams[2]) ## M2 is prob pop 1
+  }
   avM <- 1 - 0.5*(M1 + M2)
 
   samepsi <- TRUE
