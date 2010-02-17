@@ -1959,10 +1959,7 @@ void Pedigree::WritePosteriorMeans( ostream& os, unsigned int samples, bool glob
     getPosteriorMeans( thetaBar, rhobar, samples );
 
     for ( ThetaType::iterator it = thetaBar.begin() ; it != thetaBar.end() ; ++it )
-	{
 	copy( it->begin(), it->end(), ostream_iterator<double>(os, "\t") );
-	os << '\n';
-	}
 
     if ( ! globalrho )
 	copy( rhobar.begin(), rhobar.end(), ostream_iterator<double>(os, "\t") );
