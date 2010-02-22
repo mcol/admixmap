@@ -203,7 +203,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
 				   Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
 
   // loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
-  if ( options.hasAnyAssociationTests() )
+  if ( options.hasAnyAssociationTests() || options.getTestForAffectedsOnly() )
     AdmixedIndividuals->SampleHapPairs(options, A, &Loci, true, anneal, true);
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
