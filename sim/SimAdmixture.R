@@ -170,7 +170,8 @@ simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, a
     M1X <- setXchrAdmixture(psi.ind, c(M1, 1 - M1))[1]
   }
   M2X <- setXchrAdmixture(psi.ind, c(M2, 1 - M2))[1]
-  cat("popadmixparams", popadmixparams, "M2", M2, "M2X", M2X, "\n")
+# cat("popadmixparams", popadmixparams, "M2", M2, "M2X", M2X, "\n")
+  cat(".")
   genotypes <- simulateGenotypes(sex, M1, M2, M1X, M2X, rho, dist, L, Xchr.L, alleleFreqs)
   ##make some genotypes missing
   ##for(locus in 1:L) if(runif(n=1) < 0.1)
@@ -289,6 +290,7 @@ if(N.ind > 0) {
   }
   ped6.ind[1:N.ind, 5] <- sex.ind
   ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
+  cat("\n")
 }
 
 if(N.sibpairs > 0) {
@@ -310,6 +312,7 @@ if(N.sibpairs > 0) {
     ped6.sibpair[(4*i-3):(4*i), 5] <- c(1, 2, sex2)  
     ped6.sibpair[, 6] <- 2 ## affected sib-pairs
   }
+  cat("\n")
 }
 
 genotypes <- data.frame(rbind(genotypes.ind, genotypes.sibpair))
