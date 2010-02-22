@@ -96,6 +96,7 @@ public:
 
   unsigned int getMyNumber() const { return myNumber  ; } ///< number of this individual, counting from 1
   unsigned int getIndex	  () const { return myNumber-1; } ///< number of this individual, counting from 0
+  unsigned int getNumObs  () const { return NumGametes; }
 
 private:
   const unsigned	    myNumber	     ; ///< number of this individual, counting from 1

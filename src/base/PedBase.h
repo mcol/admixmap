@@ -141,6 +141,7 @@ class PedBase
 
 	virtual unsigned int getMyNumber() const;
 	virtual unsigned int getIndex	() const;
+	virtual unsigned int getNumObs	() const = 0;
 
 
 

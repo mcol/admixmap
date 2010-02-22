@@ -34,7 +34,9 @@ PopAdmix::PopAdmix( const AdmixOptions& op, Genome& loci) :
     }
 
 
-void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, bclib::LogWriter &Log){
+void PopAdmix::Initialise(int NumObservations, const Vector_s& PopulationLabels,
+                          bclib::LogWriter& Log) {
+
   Log.setDisplayMode(bclib::On);
 
   // ** Initialise population admixture distribution Dirichlet parameters alpha **
@@ -44,17 +46,13 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
 
   if(K > 1){
     // ** set up sampler for alpha **
-    // should be able to pass initial step size to the sampler
-    unsigned obs = Numindividuals;
-    if( options.isRandomMatingModel() ){
-      obs *= 2;//for 2 gametes per individual
-    }
     //set values for sampler
     const genepi::cvector<float> & samplerparams = options.getPopAdmixSamplerParams();
     const size_t size = samplerparams.size();
     float initial_stepsize = size? samplerparams[0] : 0.02;
     unsigned num_leapfrogs = size? (unsigned)samplerparams[1] : 40;
-    PopAdmixSampler.SetSize( obs, K, initial_stepsize, num_leapfrogs );
+    PopAdmixSampler.SetSize(NumObservations, K,
+                            initial_stepsize, num_leapfrogs);
 
     SumLogRho.push_back(0.0);
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution

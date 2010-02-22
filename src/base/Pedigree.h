@@ -739,6 +739,7 @@ class Pedigree : public PedBase // See NOTE *4*
 	MemberIdx    getNAffected() const { return nAffected; }
 	unsigned int getMyNumber () const { return myNumber  ; } ///< "number" of this pedigree, counting from 1
 	unsigned int getIndex    () const { return myNumber-1; } ///< "number" of this pedigree, counting from 0
+	unsigned int getNumObs   () const { return getNFounders(); }
 	void setMyNumber( unsigned int nv );
 
 	#if PED_HAS_OWN_PRNG

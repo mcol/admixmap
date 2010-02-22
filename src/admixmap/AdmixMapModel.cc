@@ -72,9 +72,14 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
       }
   }
 
+  int NumObservations = 0;
+  for ( int i =  AdmixedIndividuals->getSize(); i-- != 0 ; ) {
+    PedBase & el = AdmixedIndividuals->getElement(i);
+    NumObservations += el.getNumObs();
+  }
 
   L = new PopAdmix(options, Loci);
-  L->Initialise(AdmixedIndividuals->getSize(), data.GetPopLabels(), Log);
+  L->Initialise(NumObservations, data.GetPopLabels(), Log);
   A->PrintPrior(data.GetPopLabels(), Log);
 
   if( options.getPopulations()>1 && (options.isGlobalRho())) {
