@@ -296,7 +296,7 @@ class TransProbCache
 
 
 	//-----------------------------------------------------------------------------
-	// Transition probability compututation:
+	// Transition probability computation:
 	//-----------------------------------------------------------------------------
 
 	/// Compute the "f" factor from locus t to t+1

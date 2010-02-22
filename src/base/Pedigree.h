@@ -342,7 +342,7 @@ class Pedigree : public PedBase // See NOTE *4*
 	//---------------------------------------------------------------
 	// Methods to provide access to our "context"/"domain" (locus file,
 	// populations, etc.).  Many of these are convenience methods (simply
-	// derived from others).  Currently these are implmented with static
+	// derived from others).  Currently these are implemented with static
 	// data members which are set at startup, but probably should be
 	// replaced by a per-pedigree pointer to one or more context objects.
 	//---------------------------------------------------------------

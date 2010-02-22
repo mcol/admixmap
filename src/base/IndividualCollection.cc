@@ -136,8 +136,8 @@ void IndividualCollection::LoadOutcomeVar(const InputData* const data_){
 
 
 /**
-   Samples Haplotype pairs and upates allele/haplotype counts if requested
-*/
+ *  Samples Haplotype pairs and updates allele/haplotype counts if requested.
+ */
 void IndividualCollection::SampleHapPairs(const Options& options, AlleleFreqs *A, const Genome* const Loci,
 					  bool skipMissingGenotypes, bool anneal, bool UpdateAlleleCounts){
   unsigned nchr = Loci->GetNumberOfChromosomes();

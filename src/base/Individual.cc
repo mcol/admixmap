@@ -224,7 +224,7 @@ const int* Individual::getSampledHapPair(int locus)const{
 }
 
 /**
-    Get the locus ancestry by the absolute locus index,ingoring the chromosome.
+ *  Get the locus ancestry by the absolute locus index, ignoring the chromosome.
  */
 void Individual::GetLocusAncestry(int locus, int Ancestry[2])const{
   unsigned c, l;

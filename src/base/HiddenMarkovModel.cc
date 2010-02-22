@@ -1,5 +1,5 @@
 /*
- *   HMMClass.cc 
+ *   HiddenMarkowModel.cc
  *   Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
