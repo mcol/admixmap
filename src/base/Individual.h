@@ -64,6 +64,7 @@ public:
   bool simpleGenotypeIsMissing(unsigned locus)const;///< locus is a simple locus
   bool isHaploidatLocus(unsigned j)const;
   bool isHaploidIndividual()const;
+  bool isPedigree() const { return false; }
 
   virtual double getLogLikelihood(const Options& , bool forceUpdate, bool store);
   virtual double getLogLikelihoodXChr(const Options&, bool forceUpdate,

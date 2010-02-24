@@ -107,6 +107,7 @@ class PedBase
 	virtual bool simpleGenotypeIsMissing(unsigned locus)const;///< locus is a simple locus
 	virtual bool isHaploidatLocus(unsigned j)const;
 	virtual bool isHaploidIndividual()const;
+	virtual bool isPedigree() const = 0;
 
 	virtual double getLogLikelihood( const Options & , bool forceUpdate, bool store );
 	virtual double getLogLikelihoodXChr(const Options&, bool forceUpdate, bool store);

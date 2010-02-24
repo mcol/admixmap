@@ -822,6 +822,7 @@ class Pedigree : public PedBase // See NOTE *4*
     bool simpleGenotypeIsMissing( SLocIdxType  slIdx ) const; ///< locus is a simple locus
     bool isHaploidatLocus( unsigned locusIdx ) const;
     bool isHaploidIndividual() const;
+    bool isPedigree() const { return true; }
 
 
     /// Copied from AdmixedIndividual because it is used by WritePosteriorMeans().
