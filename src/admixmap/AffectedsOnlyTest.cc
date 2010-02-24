@@ -154,9 +154,18 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
 			       const vector<vector<double> >& AProbs){
   // k0 should be passed as 1 if K==1 
   // values of ancestry risk ratio at which likelihood ratio is evaluated
-  double r1 = 0.5;
-  double r2 = 2.0;//hard-coding these for now, can make them vary later
-  if( diploid ) { // diploid case
+
+  // hard-coding these for now, can make them vary later
+  const double r1 = 0.5;
+  const double r2 = 2.0;
+  const double sqrt_r1 = sqrt(r1);
+  const double sqrt_r2 = sqrt(r2);
+
+  // first index of "locus" in the arrays
+  const unsigned int idxLocus = locus * K;
+
+  // diploid case
+  if (diploid) {
     double theta[2];//paternal and maternal admixture proportions
     double Pi[3];//probs of 0,1,2 copies of Pop k given admixture
     for( unsigned k = 0; k < K; k++ ){ //if K==1, only k=0 will be evaluated
@@ -182,16 +191,18 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
     putc( '\n', stderr );
     }
   fprintf(stderr, "AOT-debug-2: t=%d,k=%d,k0=%d mu[0]=%.12lf mu[1]=%.12lf", locus, k, k0, theta[0], theta[1] );
-  fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[locus*K+k] );
+  fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[idxLocus + k]);
 #endif
       //accumulate score, score variance, and info
-      AffectedsScore[locus *K + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
-      AffectedsVarScore[locus * K + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
-      AffectedsInfo[locus * K +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
+      AffectedsScore[idxLocus + k] += 0.5 * (AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1]);
+      AffectedsVarScore[idxLocus + k] += 0.25 * (AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]);
+      AffectedsInfo[idxLocus + k] += 0.25 * (theta[0]*(1.0 - theta[0]) + theta[1]*(1.0 - theta[1]));
       
 #if DEBUG_AOTEST
-  fprintf(stderr, " cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n", AffectedsScore[locus*K+k],
-    AffectedsVarScore[locus*K+k], AffectedsInfo[locus*K+k] );
+      fprintf(stderr, " cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n",
+              AffectedsScore[idxLocus + k],
+              AffectedsVarScore[idxLocus + k],
+              AffectedsInfo[idxLocus + k]);
 #endif
       //probs of 0,1,2 copies of Pop k given admixture
       Pi[2] = theta[0] * theta[1];
@@ -199,12 +210,16 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
       Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
       
       //compute contribution to likelihood ratio
-      LikRatio1[locus *K + k] *= (AProbs[0][k+k0] + sqrt(r1)*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) /
-	(Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
-      LikRatio2[locus *K + k] *= (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) /
-	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
+      LikRatio1[idxLocus + k] *= (AProbs[0][k+k0] + sqrt_r1*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) /
+        (Pi[0] + sqrt_r1*Pi[1] + r1*Pi[2]);
+      LikRatio2[idxLocus + k] *= (AProbs[0][k+k0] + sqrt_r2*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) /
+        (Pi[0] + sqrt_r2*Pi[1] + r2*Pi[2]);
     }
-  } else { // haploid - effect of one extra copy from pop k0 is equivalent to two extra copies in diploid case
+  }
+
+  // haploid case: effect of one extra copy from pop k0 is equivalent to two
+  // extra copies in diploid case
+  else {
     double theta;//gamete admixture proportions
     // should call with maternal admixture proportions if random mating and X chr in male
     double Pi[2];//probs of 0,1 copies of Pop k given admixture
@@ -212,17 +227,17 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
       theta = Theta[ k+k0 ]; 
       
       //accumulate score, score variance, and info
-      AffectedsScore[locus *K + k] += AProbs[1][k+k0] - theta;
-      AffectedsVarScore[locus * K + k] += AProbs[1][k+k0] * (1 - AProbs[1][k+k0]); 
-      AffectedsInfo[locus * K +k]+= theta * (1.0 - theta);
+      AffectedsScore[idxLocus + k] += AProbs[1][k+k0] - theta;
+      AffectedsVarScore[idxLocus + k] += AProbs[1][k+k0] * (1 - AProbs[1][k+k0]); 
+      AffectedsInfo[idxLocus + k] += theta * (1.0 - theta);
       
       //probs of 0,1 copies of Pop k given admixture
       Pi[1] = theta;
       Pi[0] = 1.0 - theta;
       
       //compute contribution to likelihood ratio - check this formula
-      LikRatio1[locus *K + k] *= (AProbs[0][k+k0] + r1*AProbs[1][k+k0]) / (Pi[0] + r1*Pi[1]);
-      LikRatio2[locus *K + k] *= (AProbs[0][k+k0] + r2*AProbs[1][k+k0]) / (Pi[0] + r2*Pi[1]);
+      LikRatio1[idxLocus + k] *= (AProbs[0][k+k0] + r1*AProbs[1][k+k0]) / (Pi[0] + r1*Pi[1]);
+      LikRatio2[idxLocus + k] *= (AProbs[0][k+k0] + r2*AProbs[1][k+k0]) / (Pi[0] + r2*Pi[1]);
     }
   }
 }
