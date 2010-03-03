@@ -478,7 +478,7 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
 
   //output to likelihood ratio file
   if(options.getTestForAffectedsOnly())
-    Scoretests.OutputLikelihoodRatios(options.getResultsDir(), data.GetHiddenStateLabels());
+    Scoretests.OutputLikelihoodRatios(data.GetHiddenStateLabels());
 
   //print deviance at posterior mean, DIC
   _Annealer.PrintResults(Log, getDevianceAtPosteriorMean(options, Log));

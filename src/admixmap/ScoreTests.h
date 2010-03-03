@@ -55,15 +55,14 @@ public:
 
   ~ScoreTests();
 
-  AffectedsOnlyTest& getAffectedsOnlyTest();
-  CopyNumberAssocTest& getAncestryAssocTest();
-  void OutputLikelihoodRatios(const std::string& ResultsDir, const Vector_s& PopLabels);
+  AffectedsOnlyTest& getAffectedsOnlyTest()  { return AffectedsOnlyScoreTest; }
+  CopyNumberAssocTest& getAncestryAssocTest(){ return AncestryAssocScoreTest; }
+  void OutputLikelihoodRatios(const Vector_s& PopLabels);
 
 private:
   const AdmixOptions *options;
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
-  const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
 
   void Reset();
 
