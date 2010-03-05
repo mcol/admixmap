@@ -255,7 +255,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	    traverseChildTree( m );
 	    }
 
-	if ( m.getOutcome() != 0 )
+	if ( m.getOutcome() == Organism::OUTCOME_AFFECTED )
 	    ++nAffected;
 	else
 	    {
