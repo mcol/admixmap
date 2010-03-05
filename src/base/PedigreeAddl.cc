@@ -119,12 +119,13 @@ ostream & print_aggregate_summary( ostream & os, const vector<Pedigree> & peds )
 
 ostream & ped_sum( ostream & os, const Pedigree & ped )
     {
-    os << "pedigree "
+    return os << "pedigree "
 		<< ped.getId() << " (" << ped.getNMembers() << " members, "
 		<< ped.getNFounders() << " founders, "
 		<< ped.getNNonFndrs() << " non-founders, "
-		<< ped.getNAffected() << " affected)";
-    return os;
+		<< ped.getNAffected() << " affected, "
+		<< ped.getNFounderGametes() << " founder-gametes, "
+		<< ped.getNMeiosis() << " meoisis)";
     }
 
 
