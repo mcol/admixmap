@@ -434,12 +434,32 @@ double Pedigree::getLogLikelihood( const Options & , bool /*forceUpdate*/ , bool
 // calcNInheritedByAffected() [private]
 //
 // Helper method for affected-only test computations [getNInheritedByAffected()].
+//
+// METHOD-NOTE *1*: We could just allocate ancStack of size
+//	[getNMembers()-fIdx], then subtract the offset from member-indexes when
+//	looking up, but this is easier and not too large.  We need to initialise
+//	the inheritance of all founders other than the one in question (fIdx) to
+//	"false", however, even if the ancestry-vector in question shows "k" at
+//	that gamete, because we are only interested in gametes inherited from
+//	_this_ founder with ancestry k, so initialising those to false (which is
+//	done in the default constructor) frees us up to look up the parents of
+//	any descendant nodes and increment the return-value if they inherit from
+//	that population and are affected, without at that time checking from
+//	which founder-gamete they inherited the gamete in question.
+//
 //-----------------------------------------------------------------------------
 
-inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const
+inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx,
+				const AncestryVector & av, const InheritanceVector & iv ) const
     {
 
     int rv = 0;
+
+    #define DEBUG_CALC_M 0
+    #if DEBUG_CALC_M
+	cerr << "calcNInherited[ped=" << getId() << "](k=" << k << ",fIdx=" << fIdx
+	    << '(' << founderAt(fIdx).getOrgId() << ")," << av << ',' << iv << "):\n";
+    #endif
 
     struct Ancestry
 	{
@@ -447,7 +467,9 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 	bool mAncestry;
 
 	Ancestry( bool p, bool m ) : pAncestry(p), mAncestry(m) {}
-	Ancestry() : pAncestry(false), mAncestry(false) {}
+	Ancestry() :
+	    pAncestry(false),	// Initialise to false:
+	    mAncestry(false) {} //  see METHOD-NOTE *1*
 
 	bool hasAncOfType( const InheritanceVector::SegInd & si ) const
 	    {
@@ -455,7 +477,9 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 	    }
 	};
 
-    Ancestry ancStack[ getNMembers() ]; // Could just be (getNMembers()-fIdx), then subtract indexes
+
+    Ancestry ancStack[ getNMembers() ]; // See METHOD-NOTE *1*
+
 
     if ( founderAt(fIdx).isHaploid() )
 	{
@@ -489,7 +513,12 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 		else
 		    ancStack[cIdx].pAncestry = true;
 		if ( child.isAffected() )
+		    {
 		    ++rv;
+		    #if DEBUG_CALC_M
+			cerr << "   path to affected-child " << child.getOrgId() << "; result so far: " << rv << '\n';
+		    #endif
+		    }
 		}
 	    Then recurse here...
 	    }
@@ -497,18 +526,6 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
     #else
 
 	// Or do something like this...
-
-	// FIXME: if the founder itself is affected, should that contribute to m?
-	// If so, use something like this code:
-	#if 0
-	    if ( memberAt(fIdx).getOutcome() != 0 ) // isAffected()
-		{
-		if ( pAncestry == k )
-		    ++rv;
-		if ( mAncestry == k )
-		    ++rv;
-		}
-	#endif
 
 	for ( MemberIdx cIdx = fIdx + 1 ; cIdx < getNMembers() ; ++cIdx )
 	    {
@@ -526,12 +543,26 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 		    {
 		    cAncestry.pAncestry = true;
 		    if ( child.getOutcome() == Organism::OUTCOME_AFFECTED ) // missing counted as unaffected
+			{
 			++rv;
+			#if DEBUG_CALC_M
+			    cerr << "   pat-path to affected-child " << child.getOrgId() << "; result so far: " << rv << '\n';
+			#endif
+			}
 		    }
 		}
 
-	    // Even if we already have one inherited k-state, we look for another in
-	    // case of incest-cycle in a multi-generational pedigree
+
+	    // If we have already found a transmitted gamete on the father's
+	    // side above, we would only need to continue to look for one on the
+	    // mother's side in the case of incest in a multi-generational
+	    // pedigree, which might result in a cycle in the pedigree (treated
+	    // as a non-directed graph).  That is, we could "continue" to the
+	    // bottom of the loop after having incremented rv above; but we
+	    // continue checking here anyhow, since such things do sometimes
+	    // happen.
+
+
 	    const Organism * const mother = child.getMother();
 	    if ( mother != 0 )
 		{
@@ -542,12 +573,21 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 		    {
 		    cAncestry.mAncestry = true;
 		    if ( child.getOutcome() == Organism::OUTCOME_AFFECTED ) // missing counted as unaffected
+			{
 			++rv;
+			#if DEBUG_CALC_M
+			    cerr << "   mat-path to affected-child " << child.getOrgId() << "; result so far: " << rv << '\n';
+			#endif
+			}
 		    }
 		}
 
 	    }
 
+    #endif
+
+    #if DEBUG_CALC_M
+	cerr << "   final result: " << rv << '\n';
     #endif
 
     return rv;
@@ -664,6 +704,10 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
     for ( SLocIdxType t = 0 ; t < loci.size() ; ++t )
 	{
 
+	#if DEBUG_CALC_M
+	    cerr << "\n=== AO-debug: locus " << t << " (" << loci[t].getName() << ")\n";
+	#endif
+
 	// If K==2, only evaluate for 1 population, otherwise for all of them.
 	// Existing code uses k==1 (not 0), so:
 	for ( PopIdx k = k_begin ; k < getK() ; ++k )
@@ -740,7 +784,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			//
 			// If not, consider passing the is-haploid flag into
 			// AncestryVector's nCopiesFromKAtFounder() and
-			// isHetrozygousForPop() to avoid them looking it up (or
+			// isHetrozygousForPop() to avoid their looking it up (or
 			// just having them assume that it is diploid if we only
 			// use those methods for that case).
 			//
