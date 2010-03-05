@@ -465,7 +465,10 @@ inline void InheritanceVector::setMember( SibIdx mIdx, const Bits & nv )
 #if IV_OSTREAM
     enum IVOutputStyle { IV_BINARY , IV_ALPHA };
     void setIVOutputStyle( IVOutputStyle );
-    /// Useful for debugging: output an IV to an ostream
+    /// Useful for debugging: output an IV to an ostream.  Each segregation
+    /// indicator is output as a '0' for paternal and a '1' for maternal.  For
+    /// diploid inheritance, the meiosis on the father's side is output first
+    /// and the mother's meosis is second.
     std::ostream & operator<<( std::ostream & os, const InheritanceVector & iv );
 #endif // IV_OSTREAM
 
