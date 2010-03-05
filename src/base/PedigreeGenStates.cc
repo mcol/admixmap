@@ -37,13 +37,13 @@
 // These control whether debugging-output support is compiled in at all; to get
 // the output, it must also be enabled by calling dbgRecursion() and/or
 // dbgEmission():
-#define DEBUG_EMISSION_PROBS	0
-#define DEBUG_RECURSION		0
+#define DEBUG_EMISSION_PROBS	1
+#define DEBUG_RECURSION		1
+
 #define DEBUG_INHERITANCE	0
 
 
-
-#if DEBUG_EMISSION_PROBS || DEBUG_RECURSION
+#if DEBUG_EMISSION_PROBS || DEBUG_RECURSION || DEBUG_INHERITANCE
     #include <iostream>
 #endif
 
@@ -68,20 +68,19 @@ namespace genepi { // ----
 
 #if DEBUG_EMISSION_PROBS
     /// Output the founder-haplotype-state:
-// **** SINGLE-FOUNDER-GAMETE ANCESTRY-VECTOR LOOK HERE ****
-    static std::ostream & output_hs( std::ostream & os, const Haplotype * hapState, const Pedigree & ped, bool full )
+    static std::ostream & output_hs( std::ostream & os, const Haplotype * nFndrHapState, const Pedigree & ped )
 	{
-	os << "FHS{";
-	const Pedigree::MemberIdx limit = full ? ped.getNMembers() : ped.getNFounders();
-	for ( Pedigree::MemberIdx fIdx = 0 ; fIdx < limit ; ++fIdx )
+	os << "SibHapSt{";
+	for ( Pedigree::MemberIdx mIdx = ped.getNFounders() ; mIdx < ped.getNMembers() ; ++mIdx )
 	    {
-	    const Organism &  org = ped.memberAt( fIdx );
-	    const Haplotype & hap = hapState[ fIdx ];
-	    if ( fIdx == ped.getNFounders() )
-		os << "} IHS{";
-	    else if ( fIdx != 0 )
+	    const Organism &  org = ped.memberAt( mIdx );
+	    const Haplotype & hap = nFndrHapState[ mIdx ];
+	    if ( mIdx != ped.getNFounders() )
 		os << ';';
-	    os << org.getOrgId() << '(' << hap.paternal() << ',' << hap.maternal() << ')';
+	    if ( org.isHaploid() )
+		os << org.getOrgId() << '(' << hap.getVal1() << ')';
+	    else
+		os << org.getOrgId() << '(' << hap.paternal() << ',' << hap.maternal() << ')';
 	    }
 	return os << '}';
 	}
@@ -186,7 +185,7 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 				  size_t		    sLocIdx	    ,
 				  const AncestryVector &    av		    ,
 				  const InheritanceVector & iv		    ,
-				  const Haplotype *	    founderHapState ,
+				  const Haplotype *	    nonFndrHapState ,
 				  double		    emProb	    )
     {
 
@@ -204,17 +203,15 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
     #if DEBUG_EMISSION_PROBS
 	if ( dEmission )
 	    {
-	    std::cout << "Emission prob term for " << av // << '=' << av.to_ulong()
-		<< ' ' << iv // << '=' << iv.to_ulong()
-		<< ' ';
-	    output_hs( std::cout, founderHapState, ped, true )
+	    std::cout << "Emission prob term for " << av << ' ' << iv << ' ';
+	    output_hs( std::cout, nonFndrHapState, ped )
 		<< " is " << emProb
 		<< " total so far: " << ped.getStateProbs(sLocIdx).getEProb(av,iv)
 		<< "; number of non-zero so far: " << ped.getStateProbs(sLocIdx).getNNon0()
 		<< '\n';
 	    }
     #else
-	if ( founderHapState ) {;} // Suppress unused parameter compiler warning
+	if ( nonFndrHapState ) {;} // Suppress unused parameter compiler warning
     #endif
 
     }
@@ -254,7 +251,7 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
     #if DEBUG_RECURSION
 	if ( dRecursion )
 	    std::cout << "Recurse-sib memDepth(" << memDepth
-		<< ") " << av << " iv-so-far(" << iv << " ep-term(" << emProbTerm << ")\n";
+		<< ") " << av << " iv-so-far(" << iv << ") ep-term(" << emProbTerm << ")\n";
     #endif
 
 
