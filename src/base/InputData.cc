@@ -69,7 +69,8 @@ void InputData::ReadData( Options * options, LogWriter & Log )
     #if USE_GENOTYPE_PARSER
 
 	SimpleLocusParser::parse( options->getLocusFilename(), simpleLoci );
-	genotypeLoader = new GenotypeParser( options->getGenotypesFilename(), simpleLoci );
+	genotypeLoader = new GenotypeParser( options->getGenotypesFilename(), simpleLoci,
+						options->getOutcomeIsBinary() );
 
 	// We used to generate the pedigrees here, but it turns out the number
 	// of populations is not yet known.  This is now called from
@@ -361,7 +362,9 @@ void InputData::CheckOutcomeVarFile(unsigned N, Options* const options, LogWrite
 	    {
 	    gp_assert_eq( outcomeVarMatrix_.nRows(), genotypeLoader->getNumOrganisms() );
 	    for ( unsigned row = outcomeVarMatrix_.nRows() ; row-- != 0 ; )
-		genotypeLoader->getOrganism(row).setOutcome( outcomeVarMatrix_.get(row,col_to_use) );
+		genotypeLoader->getOrganism(row).setOutcome(
+		    // So ugly: cast double to integer to enumerated value.
+		    static_cast<Organism::OutcomeType>(int(outcomeVarMatrix_.get(row,col_to_use))) );
 	    }
 	}
   #endif // USE_GENOTYPE_PARSER

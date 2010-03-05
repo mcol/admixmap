@@ -125,6 +125,14 @@ class Organism
 	    };
 
 
+	enum OutcomeType
+	    {
+	    OUTCOME_UNKNOWN	,
+	    OUTCOME_UNAFFECTED	,
+	    OUTCOME_AFFECTED	,
+	    };
+
+
     private:
 
 	/// Input file row number, for formatting error messages
@@ -134,7 +142,7 @@ class Organism
 	OrgIdType  orgId    ;
 
 	SexType	   sex	    ;
-	int	   outcome  ;
+	OutcomeType outcome ;
 	Genotype * gtypes   ;
 	bool	   gtypedFlg;
 
@@ -199,8 +207,8 @@ class Organism
 	bool	isMale	() const { return (sex == SEX_MALE   ); } ///< true if male, false if female/unknown
 	bool	sexKnown() const { return (sex != SEX_UNKNOWN); }
 
-	int  getOutcome() const { return outcome; }
-	void setOutcome( int nv ) { outcome = nv; }
+	OutcomeType getOutcome() const { return outcome; }
+	void setOutcome( OutcomeType nv ) { outcome = nv; }
 
 	/// Returns reference to the genotype at locus locIdx.
 	const Genotype & getGType( SLocIdxType sLocIdx ) const;

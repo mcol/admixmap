@@ -42,6 +42,11 @@ private:
   /// individuals into unknown-parent.  Otherwise there are errors.
   bool ignoreInvalidParents;
 
+  /// When parsing pedigree files, is the outcome column coded
+  /// (0-unknown,1-unaffected,2-affected) [outcome-is-binary==0, the default] or
+  /// (0-unaffected,1-affected) [outcome-is-binary==1].
+  bool outcomeIsBinary;
+
   bool excludeMendelError;
   bool excludeUnaffectedSibs;
 
@@ -170,6 +175,8 @@ private:
     /// When parsing pedigree files, turn parent-IDs that refer to non-existent
     /// individuals into unknown-parent.  Otherwise there are errors.
     bool getIgnoreInvalidParents() const { return ignoreInvalidParents; }
+
+    bool getOutcomeIsBinary() const { return outcomeIsBinary; }
 
     /// Should pedigrees with Mendelian inconsistencies be excluded from the input dataset?
     bool getExcludeMendelError() const { return excludeMendelError; }

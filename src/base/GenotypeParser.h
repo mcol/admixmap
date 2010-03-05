@@ -214,7 +214,7 @@ class GenotypeParser : public GFileLexer
 	//---------------------------------------------------------------
 
 	/// Constructs the object, opens the file, and parses the data:
-	GenotypeParser( const char * fileName, const SimpleLocusArray & sLoci );
+	GenotypeParser( const char * fileName, const SimpleLocusArray & sLoci, bool outcomeIsBinary );
 	~GenotypeParser();
 
     };

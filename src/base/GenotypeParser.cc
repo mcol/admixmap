@@ -422,7 +422,7 @@ void GenotypeParser::validateOrg( Organism & org ) const
 // Constructor:
 //-----------------------------------------------------------------------------
 
-GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & sLoci ) :
+GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & sLoci, bool outcomeIsBinary ) :
 	GFileLexer ( fileName ) ,
 	simpleLoci ( sLoci    )
     {
@@ -546,7 +546,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 	    row.mother = 0;
 	    row.depth = 0;
 
-	    row.outcome = 0;
+	    row.outcome = Organism::OUTCOME_UNKNOWN;
 
 	    if ( ! hasSexColumn() )
 		row.sex = Organism::SEX_UNKNOWN;
@@ -588,7 +588,38 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		row.sex = lexSex();
 
 		if ( pedHasOutcome )
-		    row.outcome = lexInteger( "affected-status" );
+		    {
+
+		    const int outcome = lexInteger( "affected-status" );
+
+		    if ( outcomeIsBinary )
+			{
+			if ( outcome == 0 )
+			    row.outcome = Organism::OUTCOME_UNAFFECTED;
+			else if ( outcome == 1 )
+			    row.outcome = Organism::OUTCOME_AFFECTED;
+			else
+			    {
+			    estr msg( "Unknown affectation-status (outcome): " );
+			    msg << outcome;
+			    if ( outcome == 2 )
+				msg << " (did you accidentally turn on outcome-is-binary?)";
+			    throwError( msg );
+			    }
+			}
+		    else
+			{
+			if ( outcome == 0 )
+			    row.outcome = Organism::OUTCOME_UNKNOWN;
+			else if ( outcome == 1 )
+			    row.outcome = Organism::OUTCOME_UNAFFECTED;
+			else if ( outcome == 2 )
+			    row.outcome = Organism::OUTCOME_AFFECTED;
+			else
+			    throwError( estr("Unknown affectation-status (outcome): ") + outcome );
+			}
+
+		    }
 		}
 	    else
 		{

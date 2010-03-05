@@ -521,7 +521,7 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 			    pAncestry.hasAncOfType( iv.paternal(cIdx) ) )
 		    {
 		    cAncestry.pAncestry = true;
-		    if ( child.getOutcome() != 0 ) // isAffected()
+		    if ( child.getOutcome() == Organism::OUTCOME_AFFECTED ) // missing counted as unaffected
 			++rv;
 		    }
 		}
@@ -537,7 +537,7 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, cons
 			    mAncestry.hasAncOfType( iv.maternal(cIdx) ) )
 		    {
 		    cAncestry.mAncestry = true;
-		    if ( child.getOutcome() != 0 ) // isAffected()
+		    if ( child.getOutcome() == Organism::OUTCOME_AFFECTED ) // missing counted as unaffected
 			++rv;
 		    }
 		}
