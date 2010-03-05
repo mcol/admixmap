@@ -49,6 +49,11 @@ else
 fi
 
 
+# Produce a less verbose output from the makefiles with automake 1.11.
+# To produce the usual output, run 'make V=1'.
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
+
 # C++ compilers
 #AC_PROG_CXX
 AC_PROG_CXX([icpc icc pathCC g++ pgCC openCC])
