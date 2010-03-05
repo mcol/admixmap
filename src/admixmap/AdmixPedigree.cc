@@ -57,6 +57,10 @@
 
 #define SEPARATE_HMM_FOR_EACH_CHROM 0
 
+// This is very broken, don't use it unless you fix it:
+#define USE_AO_CACHE 0
+
+
 #if 0
     #define DEBUG_TH_PROP(X) X
 #else
@@ -576,19 +580,26 @@ inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const A
     #endif
 
 
-    if ( aoCache == 0 )
-	{
+    #if USE_AO_CACHE
+	if ( aoCache == 0 )
+	    {
 
-	aoCache = new TwoDimArray<short,PopIdx,FounderIdx>( getK(), getNFounders() );
+	    aoCache = new TwoDimArray<short,PopIdx,FounderIdx>( getK(), getNFounders() );
 
-	for ( PopIdx i_k = getK() ; i_k-- != 0 ; )
-	    for ( FounderIdx i_f = getNFounders() ; i_f-- != 0 ; )
-		(*aoCache).get(i_k,i_f) = calcNInheritedByAffected( i_k, i_f, av, iv );
+	    for ( PopIdx i_k = getK() ; i_k-- != 0 ; )
+		for ( FounderIdx i_f = getNFounders() ; i_f-- != 0 ; )
+		    (*aoCache).get(i_k,i_f) = calcNInheritedByAffected( i_k, i_f, av, iv );
 
-	}
+	    }
 
 
-    return (*aoCache).get( k, fIdx );
+	return (*aoCache).get( k, fIdx );
+
+    #else // USE_AO_CACHE
+
+	return calcNInheritedByAffected( k, fIdx, av, iv );
+
+    #endif
 
     }
 
