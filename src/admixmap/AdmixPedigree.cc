@@ -795,9 +795,8 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
 			if ( founder.isHaploid() )
 			    {
-			    const int m = getNInheritedByAffected( k, fIdx, av, stIt.getIV() );
-			    stScore += (0.5 * ((av.at(fIdx,GT_SINGLE) == k) ? 1 : 0) - mu) * m;
-			    stInfo = 0.25 * (1 - mu) * mu * m;
+			    stScore += 0.5 * (((av.at(fIdx,GT_SINGLE) == k) ? 1 : 0) - mu);
+			    stInfo += 0.25 * (1 - mu) * mu;
 			    }
 			else
 			    {
