@@ -233,7 +233,7 @@ class AncestryVector
 
 	/// Returns true if founder is 2-gamete model, one gamete's ancestry is
 	/// from population @a k, the other's is not.  False otherwise,
-	/// including if f is modeled as a single gamete.  Used by
+	/// including if @a f is modeled as a single gamete.  Used by
 	/// AdmixPedigree::accumAOScore().
 	bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k ) const
 	    {
@@ -241,7 +241,7 @@ class AncestryVector
 
 	    const Organism & founder = ped.founderAt( f );
 
-	    if ( founder.isHaploid() )
+	    if ( ! founder.isHaploid() )
 		{
 		const bool patAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL)) == k;
 		const bool matAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL)) == k;
