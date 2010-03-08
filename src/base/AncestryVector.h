@@ -263,7 +263,7 @@ class AncestryVector
 	    if ( founder.isHaploid() )
 		rv = at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_SINGLE) ) == k;
 	    else
-		rv = ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL) ) == k ) +
+		rv = ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL) ) == k ) +
 		     ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL) ) == k );
 	    return rv;
 	    }
