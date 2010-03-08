@@ -689,7 +689,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
     const double nAffOver2	= double(nAff) / 2;
     const double negNAffOver2	= - nAffOver2;
     const double nAffOver4	= double(nAff) / 4;
-    const double nAffOver16	= double(nAff) / 16;
+    const double nAffOver64	= double(nAff) / 64;
     const double nNPlus3	= nAff * (nAff + 3);
     const double n3over16	= (3.0 * nAff) / 16;
     const double nNPlus3over8	= nNPlus3 / 8;
@@ -808,7 +808,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 				{
 				const int m = getNInheritedByAffected( k, fIdx, av, stIt.getIV() );
 				stScore += 0.25 * (m - nAffOver2);
-				stInfo += nAffOver16;
+				stInfo += nAffOver64;
 				#if DEBUG_AOTEST
 				    fprintf( stderr, " hetro-m:%d; score:%.12lf; info:%.12lf", m, stScore, stInfo );
 				#endif
