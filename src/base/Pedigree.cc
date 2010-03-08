@@ -256,7 +256,11 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	    }
 
 	if ( m.getOutcome() == Organism::OUTCOME_AFFECTED )
-	    ++nAffected;
+	    {
+	    // Only non-founders contribute to the number of affecteds.
+	    if ( ! m.isFounder() )
+		++nAffected;
+	    }
 	else
 	    {
 	    // If requested, exclude unaffected siblings.  This should probably take
