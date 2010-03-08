@@ -125,7 +125,7 @@ ostream & ped_sum( ostream & os, const Pedigree & ped )
 		<< ped.getNNonFndrs() << " non-founders, "
 		<< ped.getNAffected() << " affected offsprings, "
 		<< ped.getNFounderGametes() << " founder-gametes, "
-		<< ped.getNMeiosis() << " meoisis)";
+		<< ped.getNMeiosis() << " meiosis)";
     }
 
 

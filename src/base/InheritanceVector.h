@@ -67,7 +67,7 @@ class InheritanceSpace;
 //-----------------------------------------------------------------------------
 //
 /// Inheritance vector for a Pedigree group.  This is effectively a bitmap with
-/// one bit for each meiosis; this would typially be two bits for each
+/// one bit for each meiosis; this would typically be two bits for each
 /// non-founder member of a pedigree of diploid organisms: one for the father's
 /// meiosis and one for the mother's; however, if we are only modeling a single
 /// gamete for one of the parents, there will be no meiosis for that parent.
@@ -105,7 +105,7 @@ class InheritanceVector
     {
 
     public:
-	/// Segregation Indicator for one meosis:
+	/// Segregation Indicator for one meiosis:
 	enum SegInd
 	    {
 	    SI_PATERNAL , /// Child received the parent's father's allele
@@ -468,7 +468,7 @@ inline void InheritanceVector::setMember( SibIdx mIdx, const Bits & nv )
     /// Useful for debugging: output an IV to an ostream.  Each segregation
     /// indicator is output as a '0' for paternal and a '1' for maternal.  For
     /// diploid inheritance, the meiosis on the father's side is output first
-    /// and the mother's meosis is second.
+    /// and the mother's meiosis is second.
     std::ostream & operator<<( std::ostream & os, const InheritanceVector & iv );
 #endif // IV_OSTREAM
 
