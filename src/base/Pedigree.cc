@@ -60,8 +60,6 @@
 
 #include "Pedigree.h"
 
-#include <cstring>	// memcpy()
-
 #include "SimpleLocus.h"
 #include "SimpleLocusParser.h"
 #include "InheritanceVector.h"
@@ -255,13 +253,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	    traverseChildTree( m );
 	    }
 
-	if ( m.getOutcome() == Organism::OUTCOME_AFFECTED )
-	    {
-	    // Only non-founders contribute to the number of affecteds.
-	    if ( ! m.isFounder() )
-		++nAffected;
-	    }
-	else
+	if ( m.getOutcome() != Organism::OUTCOME_AFFECTED )
 	    {
 	    // If requested, exclude unaffected siblings.  This should probably take
 	    // place earlier, in GenotypeParser.
@@ -383,6 +375,12 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	}
     gp_assert_eq( fg.nonX, nFGametes );
     gp_assert_eq( fgMap.size(), nFounders );
+
+
+    // Count the number of affected non-founders for the affected-only test (NOTE *2*):
+    for ( Pedigree::Iterator it = Pedigree::getFirstNonFndr() ; it != Pedigree::getEndNonFndr() ; ++it )
+	if ( (*it)->getOutcome() == Organism::OUTCOME_AFFECTED )
+	    ++nAffected;
 
 
     #if 0
