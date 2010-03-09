@@ -333,7 +333,13 @@ class AncestryVector::Iterator
 			   const AncestryVector & av,
 			   AncestryVector::FGIdx nValid );
 
-    /// Useful for debugging: output an AV to an ostream
+    /// Useful for debugging: output an AV to an ostream.  Prints one digit for
+    /// each founder-gamete, showing the ancestry-population [0..K-1] for that
+    /// gamete.  Note that there will only be one gamete for single-gamete
+    /// founders; in the case of two-gamete founders, the paternal gamete will
+    /// be output first in the pair (this is controlled by
+    /// Pedigree::founderGameteOfFounder(), which gives the maternal gamete the
+    /// higher index).
     std::ostream & operator<<( std::ostream & os, const AncestryVector & av );
 
 #endif // AV_OSTREAM

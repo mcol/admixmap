@@ -60,6 +60,9 @@
 // This is very broken, don't use it unless you fix it:
 #define USE_AO_CACHE 0
 
+// Print the details of the M-calculation
+#define DEBUG_CALC_M 0
+
 
 #if 0
     #define DEBUG_TH_PROP(X) X
@@ -455,7 +458,6 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx,
 
     int rv = 0;
 
-    #define DEBUG_CALC_M 0
     #if DEBUG_CALC_M
 	cerr << "calcNInherited[ped=" << getId() << "](k=" << k << ",fIdx=" << fIdx
 	    << '(' << founderAt(fIdx).getOrgId() << ")," << av << ',' << iv << "):\n";
@@ -773,6 +775,13 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			const AncestryVector & av = stIt.getAV();
 
 			const Member & founder = founderAt( fIdx );
+
+			#if DEBUG_CALC_M
+			  cerr << "F-idx " << fIdx << " (ID " << founder.getOrgId() <<
+			    "): is " << (founder.isHaploid()?"":"not ") << "haploid, is "
+			    << (av.isHetrozygousForPop(fIdx,k)?"":"not ") << "heterozygous in "
+			    << av << " WRT pop " << k << ".\n";
+			#endif
 
 			const double mu = getCurTheta()[ fIdx ][ k ];
 

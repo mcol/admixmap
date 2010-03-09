@@ -439,9 +439,10 @@ class Pedigree : public PedBase // See NOTE *4*
 
 
 	/// Mapping from founder-index to founder-gamete-index, useful for
-	/// AncestryVector.  Perhaps this belongs in AncestryVector.  Remove the
-	/// default false value for @a onXChrom when X chromosome is fully
-	/// implemented for pedigrees.
+	/// AncestryVector.  In the case of two-gamete founders, the maternal
+	/// gamete is given the higher index.  Perhaps this belongs in
+	/// AncestryVector.  Remove the default false value for @a onXChrom when
+	/// X chromosome is fully implemented for pedigrees.
 	FGameteIdx founderGameteOfFounder( FounderIdx fIdx, GameteType whichOne, bool onXChrom = false ) const
 	    {
 	    #if AGGRESSIVE_RANGE_CHECK
