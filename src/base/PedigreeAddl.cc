@@ -123,7 +123,7 @@ ostream & ped_sum( ostream & os, const Pedigree & ped )
 		<< ped.getId() << " (" << ped.getNMembers() << " members, "
 		<< ped.getNFounders() << " founders, "
 		<< ped.getNNonFndrs() << " non-founders, "
-		<< ped.getNAffected() << " affected offsprings, "
+		<< ped.getNAffected() << '/' << ped.getNAffNonFndr() << " affected/offspring, "
 		<< ped.getNFounderGametes() << " founder-gametes, "
 		<< ped.getNMeiosis() << " meiosis)";
     }

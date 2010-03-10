@@ -682,10 +682,14 @@ static inline double aa_info( int nFromK, double nNPlus3over8, double nNPlus3ove
 void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
     {
 
-    const MemberIdx nAff = getNAffected();
     // Is this optimization worth having?  Does it come up in real datasets?
-    if ( nAff == 0 )
+    // Note that it affects the unrelated-individual special-case, so test that
+    // for is-affected if this is removed.
+    if ( getNAffected() == 0 )
 	return; // *** RETURN HERE ***
+
+
+    const MemberIdx nAff = getNAffNonFndr();
 
     // Precompute invariants outside the loop:
     const double nAffOver2	= double(nAff) / 2;

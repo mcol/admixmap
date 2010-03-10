@@ -571,7 +571,8 @@ class Pedigree : public PedBase // See NOTE *4*
 
     private:
 
-	size_t nAffected; ///< Number of affected non-founders (see NOTE *4*)
+	size_t nAffected  ; ///< Number of affected members (see NOTE *4*)
+	size_t nAffNonFndr; ///< Number of affected non-founders (see NOTE *4*)
 
 	/// Returns size of Theta, used to allocate storage for the various
 	/// thetas and SumSoftmaxTheta.  Was: NumGametes --> K*NumGametes
@@ -737,7 +738,9 @@ class Pedigree : public PedBase // See NOTE *4*
 
     public:
 
-	MemberIdx    getNAffected() const { return nAffected; }  ///< Number of affected non-founders (see NOTE *4*)
+	MemberIdx getNAffected  () const { return nAffected  ; } ///< Number of affected members (see NOTE *4*)
+	MemberIdx getNAffNonFndr() const { return nAffNonFndr; } ///< Number of affected non-founders (see NOTE *4*)
+
 	unsigned int getMyNumber () const { return myNumber  ; } ///< "number" of this pedigree, counting from 1
 	unsigned int getIndex    () const { return myNumber-1; } ///< "number" of this pedigree, counting from 0
 	unsigned int getNumObs   () const { return getNFounders(); }

@@ -225,6 +225,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	mendelErrsByLocus ( 0			     ) ,
 	stateProbs	  ( 0			     ) ,
 	nAffected	  ( 0			     ) ,
+	nAffNonFndr	  ( 0			     ) ,
 	step		  ( 0.3			     ) ,
 	NumberOfUpdates	  ( 0			     ) ,
 	w		  ( 1			     ) ,
@@ -377,10 +378,15 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
     gp_assert_eq( fgMap.size(), nFounders );
 
 
-    // Count the number of affected non-founders for the affected-only test (NOTE *2*):
-    for ( Pedigree::Iterator it = Pedigree::getFirstNonFndr() ; it != Pedigree::getEndNonFndr() ; ++it )
+    // Count the number of affected members (with separate count of
+    // non-founders) for the affected-only test (NOTE *2*):
+    for ( Pedigree::Iterator it = Pedigree::getFirstMember() ; it != Pedigree::getEndMember() ; ++it )
 	if ( (*it)->getOutcome() == Organism::OUTCOME_AFFECTED )
+	    {
 	    ++nAffected;
+	    if ( ! (*it)->isFounder() )
+		++nAffNonFndr;
+	    }
 
 
     #if 0
@@ -428,6 +434,7 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	mendelErrsByLocus ( rhs.mendelErrsByLocus ) ,
 	stateProbs	  ( rhs.stateProbs	  ) ,
 	nAffected	  ( rhs.nAffected	  ) ,
+	nAffNonFndr	  ( rhs.nAffNonFndr	  ) ,
 	thetas		  ( rhs.thetas		  ) , // See NOTE *2*
 	SumSoftmaxTheta	  ( rhs.SumSoftmaxTheta	  ) , // See NOTE *2*
 	rhos		  ( rhs.rhos		  ) , // See NOTE *2*
@@ -469,6 +476,7 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     mendelErrsByLocus	= rhs.mendelErrsByLocus ;
     stateProbs		= rhs.stateProbs	;
     nAffected		= rhs.nAffected		;
+    nAffNonFndr		= rhs.nAffNonFndr	;
 
     // See NOTE *2*:
     thetas		= rhs.thetas		;
