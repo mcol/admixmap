@@ -667,17 +667,6 @@ static inline double aa_score( int nFromK, double nAffOver2, double negNAffOver2
     }
 
 
-// Static helper:
-static inline double aa_info( int nFromK, double nNPlus3over8, double nNPlus3over16, double n3over16, double mu )
-    {
-    if ( (nFromK == 0) || (nFromK == 2) )
-	return nNPlus3over8 * (1 - mu) * mu;
-    else AGGRESSIVE_ONLY( if ( nFromK == 1 ) )
-	return (nNPlus3over16 * (1 - mu) * mu) - n3over16;
-    AGGRESSIVE_ONLY( else throw std::logic_error( "invalid nFromK" ); )
-    }
-
-
 // The method:
 void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
     {
@@ -696,10 +685,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
     const double negNAffOver2	= - nAffOver2;
     const double nAffOver4	= double(nAff) / 4;
     const double nAffOver64	= double(nAff) / 64;
-    const double nNPlus3	= nAff * (nAff + 3);
-    const double n3over16	= (3.0 * nAff) / 16;
-    const double nNPlus3over8	= nNPlus3 / 8;
-    const double nNPlus3over16	= nNPlus3 / 16;
+    const double nAffSqOver8	= double(nAff * nAff) / 8;
 
     const SimpleLocusArray & loci = getSLoci();
 
@@ -835,7 +821,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			    #endif
 
 			    stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
-			    stInfo  += aa_info( nFromK, nNPlus3over8, nNPlus3over16, n3over16, mu );
+			    stInfo  += nAffSqOver8 * (1 - mu) * mu;
 
 			    #if DEBUG_AOTEST
 				fprintf( stderr, " mu:%.12lf; stScore:%.12lf; stInfo:%.12lf\n", mu, stScore, stInfo );
