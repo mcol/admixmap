@@ -129,7 +129,7 @@ simulateSibPair <- function(sex2, popadmixparams, rho, psi, dist, L, Xchr.L, all
   ## simulate offspring gametes from founder gametes
   sib1.genotypes <- simulateOffspringFromParents(sex2[1], father.genotypes, mother.genotypes, x, L, Xchr.L)
   sib2.genotypes <- simulateOffspringFromParents(sex2[2], father.genotypes, mother.genotypes, x, L, Xchr.L)
-  return(list(sib1=sib1.genotypes, sib2=sib2.genotypes))
+  return(list(father=father.genotypes,mother=mother.genotypes,sib1=sib1.genotypes, sib2=sib2.genotypes))
 }
 
 distanceFromLast <- function(v.Chr, v.Position) {
@@ -171,7 +171,6 @@ simulateIndividual <- function(sex, popadmixparams, rho, psi, dist, L, Xchr.L, a
   }
   M2X <- setXchrAdmixture(psi.ind, c(M2, 1 - M2))[1]
 # cat("popadmixparams", popadmixparams, "M2", M2, "M2X", M2X, "\n")
-  cat(".")
   genotypes <- simulateGenotypes(sex, M1, M2, M1X, M2X, rho, dist, L, Xchr.L, alleleFreqs)
   ##make some genotypes missing
   ##for(locus in 1:L) if(runif(n=1) < 0.1)
@@ -287,6 +286,7 @@ if(N.ind > 0) {
     } else { # linear regression
       outcome.ind[i] <- rnorm(1, mean=(alpha + beta*avM[i]), sd=1) 
     }
+    cat(".")
   }
   ped6.ind[1:N.ind, 5] <- sex.ind
   ped6.ind[1:N.ind, 6] <- 1 + outcome.ind
@@ -300,9 +300,14 @@ if(N.sibpairs > 0) {
   ped6.sibpair[, 2] <- seq((N.ind+1):N)
   cat("Simulating", N.sibpairs, "sibpairs\n")
   genotypes.sibpair <- matrix(data="0,0", nrow=4*N.sibpairs, ncol=L+Xchr.L)
+  withGenotypedParents <- FALSE
   for(i in 1:N.sibpairs) {
     sex2 <- 1 + rbinom(2, 1, 0.5)
     sibpair <- simulateSibPair(sex2, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
+    if(withGenotypedParents) {
+      genotypes.sibpair[4*i - 3, ] <- sibpair$father
+      genotypes.sibpair[4*i - 2, ] <- sibpair$mother
+    }
     genotypes.sibpair[4*i - 1, ] <- sibpair$sib1
     genotypes.sibpair[4*i, ] <- sibpair$sib2
     ped6.sibpair[4*i-1, 3] <- ped6.sibpair[4*i-3, 2] 
@@ -311,6 +316,7 @@ if(N.sibpairs > 0) {
     ped6.sibpair[4*i, 4] <- ped6.sibpair[4*i-2, 2]
     ped6.sibpair[(4*i-3):(4*i), 5] <- c(1, 2, sex2)  
     ped6.sibpair[, 6] <- 2 ## affected sib-pairs
+    cat(".")
   }
   cat("\n")
 }
