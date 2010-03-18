@@ -52,7 +52,7 @@ AffectedsOnlyTest::~AffectedsOnlyTest(){
     labels[0].push_back("Population");
     labels[0].push_back("minusLogPValue");
     
-    std::vector<int> dimensions(3,0);
+    std::vector<int> dimensions(3);
     dimensions[0] = labels[0].size(); 
     dimensions[1] = L * K;
     dimensions[2] = (int)(numPrintedIterations);
@@ -139,13 +139,17 @@ void AffectedsOnlyTest::OutputAffectedsOnlyTest(bclib::DelimitedFileWriter& outf
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = Loci(j)->GetLabel(0);
     for( unsigned k = 0; k < K; k++ ){//end at 1 for 2pops
+      const unsigned idx = j*K + k;
       const std::string label = locuslabel + "\"" + sep + "\"" + PopLabels[k+firstpoplabel];//label is output in quotes
-	OutputRaoBlackwellizedScoreTest(outfile, label, SumAffectedsScore[ j*K + k], SumAffectedsScore2[ j*K + k], 
-					SumAffectedsVarScore[ j*K + k ],SumAffectedsInfo[ j*K + k ], final); 
+      OutputRaoBlackwellizedScoreTest(outfile, label,
+                                      SumAffectedsScore[idx],
+                                      SumAffectedsScore2[idx],
+                                      SumAffectedsVarScore[idx],
+                                      SumAffectedsInfo[idx], final);
     }
   }
-
 }
+
 /**
    Updates score, variance of score and info for a single individual at a single locus
 */
@@ -246,10 +250,12 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
 void AffectedsOnlyTest::Accumulate(){
   for(unsigned j = 0; j < L; ++j)
     for( unsigned k = 0; k < K; k++ ){
-      SumAffectedsScore[j*K +k] += AffectedsScore[j*K + k];
-      SumAffectedsVarScore[j*K +k] += AffectedsVarScore[j * K +k];
-      SumAffectedsInfo[j*K +k] += AffectedsInfo[j * K +k];
-      SumAffectedsScore2[j*K +k] +=  AffectedsScore[j*K +k] * AffectedsScore[j*K +k];
+      const unsigned int idx = j*K + k;
+      const double affScore = AffectedsScore[idx];
+      SumAffectedsScore[idx]    += affScore;
+      SumAffectedsScore2[idx]   += affScore * affScore;
+      SumAffectedsVarScore[idx] += AffectedsVarScore[idx];
+      SumAffectedsInfo[idx]     += AffectedsInfo[idx];
     }
 
   //increment update counter
@@ -261,8 +267,6 @@ void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector
   //open outut file
   bclib::RObjectWriter likratiostream(filename);
 
-  double L1, L2;
-
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = "\"" + Loci(j)->GetLabel(0) + "\"";
     for( unsigned k = 0; k < K; k++ ){//end at 1 for 2pops
@@ -270,15 +274,15 @@ void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector
       likratiostream << locuslabel
 		     << poplabel; //need offset to get second poplabel for 2pops
       
-      L1 = SumLikRatio1[j*K + k] / numUpdates;
-      L2 = SumLikRatio2[j*K + k] / numUpdates;
+      double L1 = SumLikRatio1[j*K + k] / numUpdates;
+      double L2 = SumLikRatio2[j*K + k] / numUpdates;
       
       likratiostream << double2R(log(L1))
                      << double2R(log(L2)) << bclib::newline;
     }
   }
   
-  std::vector<int> dim(2,0);
+  std::vector<int> dim(2);
   dim[0] = 4;
   dim[1] = L * K;
   
