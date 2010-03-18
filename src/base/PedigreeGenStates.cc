@@ -598,8 +598,8 @@ void Pedigree::recurseFndrGamete( SLocIdxType		  sLocIdx	  ,
 /// This is typically the public entry-point for generation the space of
 /// possible (founder-haplotype-set,inheritance-vector) pairs for each locus
 /// ("possible" meaning consistent with the observed unphased genotype data).
-/// For each consistent pair, it will call the pointer-to-method receiver .  See
-/// also genPossibleStatesInt() which does not require this parameter.
+/// For each consistent pair, it will call the pointer-to-method receiver.  See
+/// also genPossibleStatesInternal() which does not require this parameter.
 //-----------------------------------------------------------------------------
 
 void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const AlleleProbTable & alProbTab, SLocIdxType sLocIdx ) const
@@ -660,10 +660,10 @@ void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const Allele
 
 void Pedigree::genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alProbVect ) const
     {
+    const size_t nLoc = getSLoci().size();
+
     if ( stateProbs == 0 )
 	{
-	const size_t nLoc = getSLoci().size();
-
 	#if 0
 	    // We want this, but ISO C++ forbids it:
 	    stateProbs = new HiddenStateSpace[ nLoc ]( *this, K );
@@ -675,7 +675,7 @@ void Pedigree::genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alPro
 	#endif
 	}
 
-    for ( size_t sLocIdx = 0 ; sLocIdx < getSLoci().size() ; ++sLocIdx )
+    for ( size_t sLocIdx = 0 ; sLocIdx < nLoc ; ++sLocIdx )
 	stateProbs[ sLocIdx ] . resetEmProbsToZero();
 
     genPossibleStates( &Pedigree::accumStateInArray, K, alProbVect );
@@ -684,7 +684,7 @@ void Pedigree::genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alPro
     //------------------------------------------------------------------
     // Check for Mendelian inconsistencies:
     //------------------------------------------------------------------
-    for ( size_t sLocIdx = 0 ; sLocIdx < getSLoci().size() ; ++sLocIdx )
+    for ( size_t sLocIdx = 0 ; sLocIdx < nLoc ; ++sLocIdx )
 	if ( (mendelErrAt(sLocIdx) = HiddenStateSpace::Iterator(stateProbs[sLocIdx]).isFinished()) )
 	    {
 	    cout << estr("Apparent Mendelian inconsistency in pedigree ") +
@@ -694,7 +694,6 @@ void Pedigree::genPossibleStatesInternal( PopIdx K, const AlleleProbVect & alPro
 	    }
 
     }
-
 
 
 
