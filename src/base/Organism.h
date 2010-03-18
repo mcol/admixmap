@@ -40,6 +40,9 @@
 
 namespace genepi { // ----
 
+/** \addtogroup base
+ * @{ */
+
 
 
 class GenotypeParser;
@@ -280,6 +283,8 @@ class Organism
     };
 
 
+
+/** @} */
 
 } // ---- end namespace genepi
 

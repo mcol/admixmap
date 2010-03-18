@@ -50,6 +50,9 @@
 
 namespace genepi { // ----
 
+/** \addtogroup base
+ * @{ */
+
 
 
 //-----------------------------------------------------------------------------
@@ -345,6 +348,8 @@ class AncestryVector::Iterator
 #endif // AV_OSTREAM
 
 
+
+/** @} */
 
 } // ---- end namespace genepi
 

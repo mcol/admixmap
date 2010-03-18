@@ -36,6 +36,8 @@
 
 namespace genepi { // ----
 
+/** \addtogroup base
+ * @{ */
 
 
 
@@ -105,6 +107,8 @@ class HVIterator
     };
 
 
+
+/** @} */
 
 } // ---- end namespace genepi
 
