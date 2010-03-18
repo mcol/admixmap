@@ -286,6 +286,29 @@ void Pedigree::LLBuf::parmsChanged()
 
 
 //-----------------------------------------------------------------------------
+// Overridden virtuals from PedBase
+//-----------------------------------------------------------------------------
+
+unsigned int Pedigree::getMyNumber() const
+    {
+    return myNumber;
+    }
+
+
+unsigned int Pedigree::getIndex() const
+    {
+    return myNumber - 1;
+    }
+
+
+unsigned int Pedigree::getNumObs() const
+    {
+    return getNFounders();
+    }
+
+
+
+//-----------------------------------------------------------------------------
 // setMyNumber()
 //-----------------------------------------------------------------------------
 
@@ -1256,7 +1279,7 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 	    // Prior densities must be evaluated in softmax basis
 	    for ( PopIdx k = 0; k < K; ++k )
 		if ( th[k] > 0.0 ) // Equivalent: if (a[k] != SOFTMAX_0_FLAG)
-		    LogPriorRatio += alpha[tIdx][k] * (log(th_prop[k]) - log(th[k])); // Equivalent: log(th_prop[k]/th[k])
+		    LogPriorRatio += alpha[0][k] * (log(th_prop[k]) - log(th[k])); // Equivalent: log(th_prop[k]/th[k])
 		else
 		    th_prop[k] = th[k];
 	    }
@@ -1830,43 +1853,10 @@ void Pedigree::drawInitialAdmixtureProps( const AlphaType & alpha )
     {
     const PopIdx K = getK();
 
-    #if 0 // DDF: why was alpha copied into dirparams?
-     cvector<double> dirparams(K);///< Dirichlet parameters of full conditional for
-				  ///< conjugate updates.  Taken from
-				  ///< AdmixedIndividual, in which it is a data
-				  ///< member, and indexed on K (n-populations)
-    #endif
-
     for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
 	{
-
-	const cvector<double> & alphaEl = alpha[ fIdx ];
-
-	#if 0 // DDF: what is thetahat?
-	    double sum = 0.0;
-	    for ( PopIdx k = 0 ; k < K ; ++k )
-		sum += alphaEl[k];
-	    const double recipSum = 1.0 / sum;
-	#endif
-
-
-	#if 0 // DDF: why was alpha copied into dirparams?
-	    for ( PopIdx k = 0 ; k < K ; ++k )
-		{
-		#if 0 // DDF: what is thetahat?
-		    thetahatEl[k] = alphaEl[k] * recipSum; // set thetahat to prior mean
-		#endif
-		dirparams[k] = alphaEl[k];
-		}
-	#endif
-
-	// Draw theta from Dirichlet with parameters dirparams
-	#if 0 // DDF: why was alpha copied into dirparams?
-	    bclib::Rand::gendirichlet( K, dirparams.getVector_unsafe(), getCurTheta()[fIdx] );
-	#else
-	    bclib::Rand::gendirichlet( K, alphaEl.getVector_unsafe(), getCurTheta()[fIdx] );
-	#endif
-
+	// Draw theta from Dirichlet with dirichlet parameters alpha:
+	bclib::Rand::gendirichlet( K, alpha[0].getVector_unsafe(), getCurTheta()[fIdx] );
 	}
 
     }

@@ -741,9 +741,10 @@ class Pedigree : public PedBase // See NOTE *4*
 	MemberIdx getNAffected  () const { return nAffected  ; } ///< Number of affected members (see NOTE *4*)
 	MemberIdx getNAffNonFndr() const { return nAffNonFndr; } ///< Number of affected non-founders (see NOTE *4*)
 
-	unsigned int getMyNumber () const { return myNumber  ; } ///< "number" of this pedigree, counting from 1
-	unsigned int getIndex    () const { return myNumber-1; } ///< "number" of this pedigree, counting from 0
-	unsigned int getNumObs   () const { return getNFounders(); }
+	unsigned int getMyNumber () const; ///< "number" of this pedigree, counting from 1
+	unsigned int getIndex    () const; ///< "number" of this pedigree, counting from 0
+	unsigned int getNumObs   () const; ///< Overridden virtual from PedBase
+
 	void setMyNumber( unsigned int nv );
 
 	#if PED_HAS_OWN_PRNG
