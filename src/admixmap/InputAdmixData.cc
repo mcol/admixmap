@@ -167,13 +167,12 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	genepi::CodeTimer ct;
 	cerr << ct.local_started() << " computing hidden-state spaces and emission probabilities...\n";
 
-	// This can't be parallelized until Mendelian-error-exclusions are done
-	// in a separate loop, because they mess with the iterator.
 	#if defined(_OPENMP) && PARALLELIZE_EPROB_COMPS
-	  #pragma omp parallel for default(shared) if(options.getUsePedForInd())
+	  #pragma omp parallel for default(shared) EPROB_LOOP_OMP_SCHED if(options.getUsePedForInd())
 	#endif
 	  for ( int idx = 0 ; idx < int(getPeds().size()) ; ++idx )
 	    {
+
 	    Pedigree & ped = getPed( idx );
 
 	    #if DEBUG_PED_CONSTRUCTION
@@ -182,13 +181,20 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 		fflush( stderr );
 	    #endif
 
-
 	    ped.genPossibleStatesInternal( K, alProbVect );
 
+	    }
+
+
+	// This can't be done in the parallelized loop above because
+	// Mendelian-error-exclusions we mess with the iterator here.
+	for ( int idx = 0 ; idx < int(getPeds().size()) ; ++idx )
+	    {
+
+	    Pedigree & ped = getPed( idx );
 
 	    if ( options.getPrintPedSummary() )
 		ped_sum_hss(cerr,ped) << '\n';
-
 
 	    if ( options.getExcludeMendelError() )
 		{
@@ -216,6 +222,7 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 
 
 	    ped.InitialiseAdmixedStuff( options );
+
 	    }
 
 

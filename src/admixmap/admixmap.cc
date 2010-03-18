@@ -62,10 +62,17 @@ static void startupOMPMessage( const AdmixOptions & options )
 	#if PARALLELIZE_PEDIGREE_LOOP
 		    "enabled.\n";
 	    if ( ! options.getUsePedForInd() )
-		cout << "  ***WARNING*** pedigree-parallelization currently not supported without use-pedigree-for-individual.\n";
+		cout << "  WARNING: pedigree-parallelization currently only supported with use-pedigree-for-individual.\n";
 	#else
 		    "not enabled.\n";
 	#endif
+
+	cout << "  -> state-space-generation "
+		#if PARALLELIZE_EPROB_COMPS
+			"parallel.\n";
+		#else
+			"serial.\n";
+		#endif
 
 	cout << "  -> forward-backwards parallelization "
 	#if HMM_PARALLELIZE_FWD_BKWD

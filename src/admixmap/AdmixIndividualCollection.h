@@ -36,11 +36,9 @@ class IndAdmixOutputter;
 
 
 /// This only takes place if OpenMP is also enabled in the configuration
-/// options, and is only meaningful for pedigrees.  It also requires further
-/// work on the pedigree loop in InputAdmixData::finishConstructing, which
-/// currently manipulates the iterator-index in the case of
-/// Mendelian-error-exclusions, which will mess up OpenMP.
-#define PARALLELIZE_EPROB_COMPS		0
+/// options, and is only meaningful for pedigrees.
+#define PARALLELIZE_EPROB_COMPS		1
+#define EPROB_LOOP_OMP_SCHED		schedule(dynamic,1)
 
 
 
