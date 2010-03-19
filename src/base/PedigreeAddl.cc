@@ -119,10 +119,16 @@ ostream & print_aggregate_summary( ostream & os, const vector<Pedigree> & peds )
 
 ostream & ped_sum( ostream & os, const Pedigree & ped )
     {
+    int nSibs = 0;
+
+    for ( Pedigree::Iterator it = ped.getFirstNonFndr() ; it != ped.getEndNonFndr() ; ++it )
+	if ( ! (*it)->hasChildren() )
+	    ++nSibs;
+
     return os << "pedigree "
 		<< ped.getId() << " (" << ped.getNMembers() << " members, "
-		<< ped.getNFounders() << " founders, "
-		<< ped.getNNonFndrs() << " non-founders, "
+		<< ped.getNFounders() << '/' << ped.getNNonFndrs() << '/'
+		<< nSibs << " founders/offspring/siblings, "
 		<< ped.getNAffected() << '/' << ped.getNAffNonFndr() << " affected/offspring, "
 		<< ped.getNFounderGametes() << " founder-gametes, "
 		<< ped.getNMeiosis() << " meiosis)";

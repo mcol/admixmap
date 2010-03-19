@@ -116,6 +116,7 @@ typedef size_t	     PopIdx    ;
 
 class Organism
     {
+
     friend class GenotypeParser;
 
 
@@ -139,15 +140,15 @@ class Organism
     private:
 
 	/// Input file row number, for formatting error messages
-	int	   lineNum  ;
+	int	    lineNum  ;
 
-	FamIdType  famId    ;
-	OrgIdType  orgId    ;
+	FamIdType   famId    ;
+	OrgIdType   orgId    ;
 
-	SexType	   sex	    ;
-	OutcomeType outcome ;
-	Genotype * gtypes   ;
-	bool	   gtypedFlg;
+	SexType	    sex	     ;
+	OutcomeType outcome  ;
+	Genotype *  gtypes   ;
+	bool	    gtypedFlg;
 
 	/// Model this organism as a single haploid gamete.
 	bool singleGameteModel;
@@ -217,8 +218,8 @@ class Organism
 	const Genotype & getGType( SLocIdxType sLocIdx ) const;
 
 	/// Is the organism modeled by a single gamete?
-	/// Get rid of the default false value when we are ready to fully
-	/// implement the X chromosome for pedigrees.
+	/// Remove the default false value when we are ready to fully implement
+	/// the X chromosome for pedigrees.
 	bool isHaploid( bool /*onXChromosome*/ = false ) const { return singleGameteModel; }
 		//{ return (onXChromosome && isMale()) || singleGameteModel; }
 	void setSingleGameteModel( bool nv ) { singleGameteModel = nv; }
@@ -245,6 +246,7 @@ class Organism
 	typedef std::list<Organism*>::const_iterator ChConstIter;
 	ChConstIter childrenBegin() const { return children.begin(); }
 	ChConstIter childrenEnd	 () const { return children.end	 (); }
+	bool hasChildren() const { return ! children.empty(); }
 
 
 	/// Are all of the genotypes missing or do we have data for this
@@ -280,6 +282,7 @@ class Organism
 	/// A human-readable indicator of the file-name and row # from
 	/// whence this organism came:
 	estr inLineDesc() const;
+
     };
 
 

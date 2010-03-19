@@ -598,6 +598,8 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 			    row.outcome = Organism::OUTCOME_UNAFFECTED;
 			else if ( outcome == 1 )
 			    row.outcome = Organism::OUTCOME_AFFECTED;
+			else if ( outcome == -9 )
+			    row.outcome = Organism::OUTCOME_UNKNOWN;
 			else
 			    {
 			    estr msg( "Unknown affectation-status (outcome): " );
