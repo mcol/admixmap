@@ -350,7 +350,8 @@ write.table(Mvector.table, file="data/Mvalues.txt", row.names=FALSE,
 
 ## write locus file
 x[is.na(x)] <- NA
-loci <- data.frame(locusnames, rep(2, L + Xchr.L),  dist, chr, row.names=NULL)
+loci <- data.frame(locusnames, rep(2, L + Xchr.L), round(dist, digits=6),
+                   chr, row.names=NULL)
 dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "cM", "chr")
 write.table(loci, file="data/loci.txt", row.names=FALSE, quote=FALSE)
 
@@ -372,6 +373,7 @@ priorallelefreqs <- as.data.frame(0.5+array(as.vector(aperm(alleleCounts, c(3,1,
                                             dim=c((L+Xchr.L)*2,2)))
 locusnames <- paste("X", seq(1:(L+Xchr.L)), sep="")
 priorallelefreqs <- data.frame(rep(locusnames, each=2), priorallelefreqs)
+dimnames(priorallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
 write.table(priorallelefreqs, file="data/priorallelefreqs.txt", row.names=FALSE, sep="\t",
             quote=FALSE)
 
