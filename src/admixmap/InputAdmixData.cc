@@ -85,14 +85,6 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
     if ( isPedFile() || options.getUsePedForInd() )
 	{
 
-	// Big hack, we need the concept of 'context'. AncestryVector needs to
-	// know some limits that are specific to the dataset.  This should
-	// probably be replaced by something like an AncestryVectorDomain.  We
-	// could determine the maximum number of founder gametes that actually
-	// occurs in the dataset, but it does not consume too much resources to
-	// just use the maximum allowable constant here.
-	AncestryVector::set_parms( options.getPopulations(), AV_MAX_FOUNDER_GAMETES );
-
 
 	int n_peds_excl = 0;
 
@@ -162,6 +154,29 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	    #endif
 
 	#endif
+
+
+	// Big hack, we need the concept of 'context'. AncestryVector needs to
+	// know some limits that are specific to the dataset.  This should
+	// probably be replaced by something like an AncestryVectorDomain.  This
+	// needs to be initialised prior to generating the hidden-state-space,
+	// but after the pedigrees are constructed.
+
+	Pedigree::FGameteIdx maxFounderGametes = 0;
+	for ( int idx = 0 ; idx < int(getPeds().size()) ; ++idx )
+	    {
+	    const Pedigree::FGameteIdx nfg = getPed( idx ).getNFounderGametes();
+	    if ( nfg > maxFounderGametes )
+		maxFounderGametes = nfg;
+	    }
+
+	gp_assert( (getPeds().size() == 0) || (maxFounderGametes != 0) );
+	gp_assert_le( maxFounderGametes, AV_MAX_FOUNDER_GAMETES );
+
+	if ( options.getDisplayLevel() >= 3 )
+	    cout << "Maximum number of founder-gametes: " << maxFounderGametes << '\n';
+
+	AncestryVector::set_parms( options.getPopulations(), maxFounderGametes );
 
 
 	genepi::CodeTimer ct;

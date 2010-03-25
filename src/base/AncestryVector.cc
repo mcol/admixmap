@@ -297,7 +297,7 @@ void IdxCache::El::generate( size_t _K, size_t _F )
     void AncestryVector::set_parms( PopIdx K, size_t maxF )
 	{
 	gp_assert( cache == 0 );
-	cache = new IdxCache( K, maxF ); // Could use AV_MAX_FOUNDER_GAMETES
+	cache = new IdxCache( K, maxF );
 	#if ! THREAD_PRIVATE_CACHE
 	    #if MULTIPLE_PARMS
 		for ( size_t F = 1 ; F < 6 ; ++F )

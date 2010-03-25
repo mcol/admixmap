@@ -43,8 +43,11 @@
 
 
 
-#define AV_MAX_FOUNDER_GAMETES	16 ///< Should be even
-#define AV_MAX_K		16
+/// Should be even, because we allocate (n+1)/2 bytes anyhow.  This is used to
+/// determine the amount of storage to allocate for each vector, which we'd like
+/// to be fixed at compile-time.  There is another (dynamic) limit that is set
+/// during the initialisation process via set_parms().
+#define AV_MAX_FOUNDER_GAMETES	16
 
 
 
