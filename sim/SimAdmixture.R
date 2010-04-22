@@ -36,18 +36,12 @@ simulateMeiosis <- function(x, T) {
   ## returns vector of segregation indicators at loci 1 to T in a single meiosis
   seg <- integer(T) # takes values 0 or 1
   randmei <- runif(T)  
-  f <- exp(-x) # prob 0 arrivals in preceding interval
+  theta <- 0.5 * (1 - exp(-2 * 0.01 * x)) # Haldane's map function
+  theta[is.na(x)] <- 0.5
   seg[1] <- ifelse(randmei[1] < 0.5, 0, 1)
-  for(locus in 2:T) { # calculate transition matrix
-    if(is.na(x[locus])) { ## distance from last missing
-      Tmatrix <- t(matrix(data=c(0.5, 0.5, 0.5, 0.5), nrow=2, ncol=2))
-    } else {
-      Tmatrix <- 0.5 * t(matrix(data=c(1 + f[locus],  1 - f[locus],
-                                  1 - f[locus], 1 + f[locus] ),
-                                nrow=2, ncol=2))
-    }
+  for(locus in 2:T) {
     ## simulate crossovers
-    seg[locus] <- ifelse(randmei[locus] < Tmatrix[1+seg[locus-1], 1], 0, 1)
+    seg[locus] <- ifelse(randmei[locus] < theta[locus], 1 - seg[locus-1], seg[locus-1])
   }
   return(seg)
 }
