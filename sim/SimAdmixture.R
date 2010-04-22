@@ -32,6 +32,44 @@ setXchrAdmixture <- function(psi, mu) {
   return(muX)
 }
 
+g2int <- function(genotypes) {
+
+  intg <- integer(length(genotypes))
+  intg[genotypes=="0,0"] <- NA
+  intg[genotypes=="1,1"] <- 2
+  intg[genotypes=="1,2"] <- 1
+  intg[genotypes=="2,1"] <- 1
+  intg[genotypes=="2,2"] <- 0
+
+  return(intg)
+}
+
+sharefreqs <-function(g1, g2) {
+
+  intg1 <- g2int(g1)
+  intg2 <- g2int(g2)
+  share <- 2 - abs(intg1 - intg2)
+  cat(table(share), "\n")
+  fshare <- integer(3)
+  fshare[1] <- length(share[share == 0])
+  fshare[2] <- length(share[share == 1])
+  fshare[3] <- length(share[share == 2])
+
+  return(fshare)
+}
+
+gfreqs <-function(g1, g2) {
+  gfreq <- matrix(integer(9), nrow=3)
+  intg1 <- g2int(g1)
+  intg2 <- g2int(g2)
+  for(i in 1:3) {
+    for(j in 1:3) {
+      gfreq[i,j] <- length(intg1[intg1+1==i & intg2+1==j])
+    }
+  }
+  return(gfreq)
+}
+
 simulateMeiosis <- function(x, T) {
   ## returns vector of segregation indicators at loci 1 to T in a single meiosis
   seg <- integer(T) # takes values 0 or 1
@@ -295,9 +333,11 @@ if(N.sibpairs > 0) {
   cat("Simulating", N.sibpairs, "sibpairs\n")
   genotypes.sibpair <- matrix(data="0,0", nrow=4*N.sibpairs, ncol=L+Xchr.L)
   withGenotypedParents <- FALSE
+  tablefreqs <- matrix(integer(9), nrow=3)
   for(i in 1:N.sibpairs) {
     sex2 <- 1 + rbinom(2, 1, 0.5)
     sibpair <- simulateSibPair(sex2, popadmixparams, rho, psi, dist, L, Xchr.L, alleleFreqs)
+    tablefreqs <- tablefreqs + gfreqs(sibpair$sib1, sibpair$sib2)
     if(withGenotypedParents) {
       genotypes.sibpair[4*i - 3, ] <- sibpair$father
       genotypes.sibpair[4*i - 2, ] <- sibpair$mother
@@ -313,6 +353,8 @@ if(N.sibpairs > 0) {
     cat(".")
   }
   cat("\n")
+  cat("Genotype frequencies\n")
+  print(tablefreqs / sum(tablefreqs))
 }
 
 genotypes <- data.frame(rbind(genotypes.ind, genotypes.sibpair))
@@ -338,9 +380,9 @@ write.table(ped[, -c(2:4, 6)], file="data/genotypes.txt", quote=FALSE, sep="\t",
 outcome.table <- data.frame(ped6[, 6] - 1, row.names=NULL) 
 write.table(outcome.table, file="data/outcome.txt", row.names=FALSE, col.names="outcome")
 ## write true admixture proportions to file
-Mvector.table <- data.frame(avM, row.names=NULL)
-write.table(Mvector.table, file="data/Mvalues.txt", row.names=FALSE,
-            col.names=TRUE)
+#Mvector.table <- data.frame(avM, row.names=NULL)
+#write.table(Mvector.table, file="data/Mvalues.txt", row.names=FALSE,
+#            col.names=TRUE)
 
 ## write locus file
 x[is.na(x)] <- NA
@@ -370,6 +412,3 @@ priorallelefreqs <- data.frame(rep(locusnames, each=2), priorallelefreqs)
 dimnames(priorallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
 write.table(priorallelefreqs, file="data/priorallelefreqs.txt", row.names=FALSE, sep="\t",
             quote=FALSE)
-
-
-  
