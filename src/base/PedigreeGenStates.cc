@@ -193,12 +193,15 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
 	cerr << "Strangeness: pedigree " << ped.getId() << " at locus " << sLocIdx << " (" <<
 	    ped.getSLoci()[sLocIdx].getName() << ") received a zero emission-probability.\n";
 
+    else
+	{
     // stateProbs is mutable, so we don't need to const_cast<> here:
     #if 0 // addToEProbAt() tracks the number of non-zero e-probs
 	ped.stateProbs[sLocIdx].getEProb( av, iv ) += emProb;
     #else
 	ped.stateProbs[sLocIdx].addToEProbAt( av, iv, emProb );
     #endif
+	}
 
     #if DEBUG_EMISSION_PROBS
 	if ( dEmission )

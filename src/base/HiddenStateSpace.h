@@ -176,6 +176,9 @@ class HiddenStateSpace
 	    }
 
 	/// Add @a amt to the e-prob at @a idx
+	/// Note that the number of non-zero elements is increased at each
+	/// call independently of the value of @a amt.  Therefore, it's up
+	/// to the caller to ensure that @a amt is strictly positive.
 	void addToEProbAt( StateIdxType idx, double amt )
 	    {
 	    ProbType & rv = probs[ idx ];
@@ -209,7 +212,7 @@ class HiddenStateSpace
 	    }
 
 	/// Add @a amt to the e-prob at the state defined by @a av and @a iv.
-	/// See also addToEProbAt(StateIdxTyoe).
+	/// See also addToEProbAt(StateIdxType).
 	void addToEProbAt( const AncestryVector & av, const InheritanceVector & iv, double amt )
 	    {
 	    addToEProbAt( idxOf(av,iv), amt );
