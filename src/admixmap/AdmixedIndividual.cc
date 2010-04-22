@@ -481,18 +481,6 @@ void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, RhoType & rhoMean, 
       SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) samples;
   }
   delete[] b;
-
- if(AncestryProbs) {
-   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
-   for( unsigned int j = 0; j < (unsigned)numCompositeLoci; ++j ){
-     for(int k=0; k < NumHiddenStates; ++k ) {
-       for(unsigned int a=0; a < 3; ++a ) {
-	 SumProbs[j*NumHiddenStates*3 + k*3 + a] /= (double) samples;
-       }
-     }
-   }
-   // cout << "sums divided by samples\n";
- }
 }
 
 void AdmixedIndividual::WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const{
@@ -507,6 +495,15 @@ void AdmixedIndividual::WritePosteriorMeans(ostream& os, unsigned samples, bool 
 
   delete[] ThetaBar;
 
+  if (AncestryProbs) {
+    unsigned int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
+    for (unsigned int j = 0; j < numCompositeLoci; ++j) {
+      for (int k = 0; k < NumHiddenStates; ++k) {
+        for (unsigned int a = 0; a < 3; ++a)
+          SumProbs[j*NumHiddenStates*3 + k*3 + a] /= (double) samples;
+      }
+    }
+  }
 }
 
 void AdmixedIndividual::WritePosteriorMeansXChr(ostream& os, unsigned samples) const {
