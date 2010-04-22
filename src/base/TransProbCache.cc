@@ -206,7 +206,7 @@ TransProbCache::TransProbCache( const Pedigree & _pedigree, double _rho, const M
 	    else
 		{
 
-		// The number of non-0 bis can be from 0 to M, so we need a
+		// The number of non-0 bits can be from 0 to M, so we need a
 		// lookup-table of size M+1:
 		double preCompTab[ n_meiosis + 1 ];
 
