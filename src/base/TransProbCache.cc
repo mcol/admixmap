@@ -369,19 +369,19 @@ double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxType t, d
 
 //-----------------------------------------------------------------------------
 // computeG() [static]
-/// \f$g = e^-x\f$
+/// \f$g = e^-2x\f$
 //-----------------------------------------------------------------------------
 
 double TransProbCache::computeG( const SimpleLocusArray & loci, SLocIdxType t )
     {
     // The distance from one chromosome to another is effectively infinity;
-    // therefore e^-x is 0.  We make an explicit check for this here.
+    // therefore e^-2x is 0.  We make an explicit check for this here.
 
     const SimpleLocus & locTPlusOne = loci[ t + 1 ];
 
     return locTPlusOne.startsNewChromosome()		?
 	0.0						:
-	exp( - locTPlusOne.getDistance().inMorgans() )	;
+	exp( - 2*locTPlusOne.getDistance().inMorgans() );
     }
 
 
