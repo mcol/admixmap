@@ -339,10 +339,9 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
       }
 
 
-      // These calls are needed only for a conjugate update (on odd-numbered
-      // iterations) with globalrho=0. Since these methods are not implemented
-      // for pedigrees, we explicitly exclude them.
-      else if ( ! options.isGlobalRho() && ! el.isPedigree() )
+      // Since these methods are not implemented for pedigrees, we explicitly
+      // exclude them.
+      if ( ! el.isPedigree() )
 	{
 
 	// ** Run HMM forward recursions, if required, and sample locus ancestry
