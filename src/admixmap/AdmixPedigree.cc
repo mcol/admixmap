@@ -377,7 +377,8 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 
     #if ! NON_GLOBAL_RHO_WORKS
 	if ( ! options.isGlobalRho() )
-	    throw std::runtime_error( "Only global-rho currently is supported." );
+	    throw std::runtime_error( "Only global-rho currently is supported"
+					"with pedigrees." );
     #endif
 
     #if ! NOT_NEEDED_UNLESS_CONJUGATE_UPDATE
