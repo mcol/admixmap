@@ -459,7 +459,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
                            lambda, NumCovariates, &Covariates,
                            beta, poptheta, options, alpha, DinvLink,
                            dispersion, ancestryAssocTest,
-                           options.getNoConjugateUpdate(), anneal);
+                           el.isPedigree(), anneal);
 	    } // END SCOPE BLOCK
       }
     }
