@@ -344,7 +344,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 		    (! f.isGenotyped()) &&
 		    (f.getChildren().size() == 1) )
 		{
-		if ( getOptions().getDisplayLevel() >= 3 )
+		if ( getOptions().getDisplayLevel() > 3 )
 		    cout << "Pedigree " << getId()
 			<< ": using single-gamete model for founder "
 			<< f.getOrgId() << ".\n";

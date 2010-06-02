@@ -268,9 +268,9 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
     const Member &   member	     = memberAt( memDepth );
     const Genotype & myUnphasedGType = member.getGType( sLocIdx );
 
-    // Generate every possible (all 4) segregation-indicator combinations for
-    // this node, check them against the observed data, and recurse each that is
-    // consistent.
+    // Generate every possible (up to 4) segregation-indicator combinations for
+    // this node, check them for consistency against the observed data, and for
+    // each that is, recurse.
 
     //***************************************************************************
     //*** What about haploid genotypes here???  Only need one loop, but must
@@ -633,6 +633,7 @@ void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const Allele
 
 void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const AlleleProbVect & alProbVect ) const
     {
+
     AlleleType	   fndrGameteState[ getNFounderGametes() ];
     AncestryVector ancestry( *this, K );
 
@@ -653,6 +654,7 @@ void Pedigree::genPossibleStates( StateReceiver receiver, PopIdx K, const Allele
 	#endif
 	recurseFndrGamete( sLocIdx, K, alProbVect.at(sLocIdx), fndrGameteState, ancestry, 0, 0.0, receiver );
 	}
+
     }
 
 
