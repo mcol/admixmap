@@ -157,9 +157,21 @@ static int depthCompare( Pedigree::Member * const * lhs_ptr, Pedigree::Member * 
 
     int rv = lhs->getDepth() - rhs->getDepth();
 
-    // Tiebreaker: organisms with genotyped data will be higher in the list:
+    // Tiebreaker: organisms with genotyped data will be higher in the list.
+    // Since we value affected individuals more highly than non-affected, we
+    // want the --max-pedigree-size option will drop unaffected before affected
+    // individuals, so if we still have a tie, we sort affected individuals
+    // before unaffected.
     if ( rv == 0 )
+	{
 	rv = int(rhs->isGenotyped()) - int(lhs->isGenotyped());
+	if ( rv == 0 )
+	    {
+	    const bool lhs_affected = (lhs->getOutcome() == Organism::OUTCOME_AFFECTED);
+	    const bool rhs_affected = (rhs->getOutcome() == Organism::OUTCOME_AFFECTED);
+	    rv = int(rhs_affected) - int(lhs_affected);
+	    }
+	}
 
     return rv;
     }
