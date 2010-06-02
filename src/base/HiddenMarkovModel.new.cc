@@ -351,7 +351,7 @@ void HiddenMarkovModel::computeForwards() const
 	double pi = prob_of_each_iv;
 	const AncestryVector & av = it.getAV();
 	for ( AncestryVector::FGIdx idx = av.size() ; idx-- != 0 ; )
-	    pi *= th[ AncestryVector::founderOf(idx) ] [ av.at(idx) ];
+	    pi *= th[ av.founderOf(idx) ] [ av.at(idx) ];
 	Pi[ it.getOverallIndex() ] = pi;
 	piInv[ it.getOverallIndex() ] = 1 / pi;
 	}

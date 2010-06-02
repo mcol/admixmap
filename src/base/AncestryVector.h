@@ -29,10 +29,10 @@
 
 
 #include "Pedigree.h"
-#include "Organism.h"	// PopIdx
+#include "Organism.h"		// PopIdx
 #include "bclib/exceptions.h"
 
-#include <cstring> // memcpy()
+#include <cstring>		// memcpy()
 
 
 #define AV_OSTREAM		1 ///< Should we compile ostream support for AVs?
@@ -184,9 +184,14 @@ class AncestryVector
 
 
 	/// Converts between founder-gamete-index and founder-index.
-	static Pedigree::FounderIdx founderOf( FGIdx idx )
+	/// \see Pedigree::founderOfGameteIdx()
+	/// FIXME-PED-XCHR:
+	///	Remove the default value for @a xchrom when X chromosomes are
+	///	fully implemented for pedigrees.
+	Pedigree::FounderIdx founderOf( FGIdx idx, bool is_xchrom = false ) const
 	    {
-	    return idx >> 1;
+	    Pedigree::GameteType whichOne;
+	    return ped.founderOfGameteIdx( idx, whichOne, is_xchrom );
 	    }
 
 
