@@ -191,7 +191,7 @@ static int depthCompare( Pedigree::Member * const * lhs_ptr, Pedigree::Member * 
 			getId().c_str(), this );
 	for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
 	    {
-	    const bool onX = false;
+	    const bool onX = false; // XXX
 	    const Organism & founder = founderAt( fIdx );
 	    if ( founder.isHaploid( onX ) )
 		fprintf( stderr, "    fndr-idx %02zd (org #%d) ->   single-gamete %zd\n",
@@ -260,9 +260,10 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	Member & m = **firstM;
 	if ( m.isFounder() )
 	    {
+	    bool onXChromosome = false; // XXX
 	    gp_assert( m.getDepth() == 0 );
 	    ++nFounders;
-	    nFGametes += m.isHaploid() ? 1 : 2;
+	    nFGametes += m.isHaploid(onXChromosome) ? 1 : 2;
 	    traverseChildTree( m );
 	    }
 
@@ -352,7 +353,8 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	for ( Iterator it = getFirstFounder() ; it != getEndFounder() ; ++it )
 	    {
 	    Member & f = **it;
-	    if ( (! f.isHaploid()) &&
+	    bool onXChromosome = false; // XXX
+	    if ( (! f.isHaploid(onXChromosome)) &&
 		    (! f.isGenotyped()) &&
 		    (f.getChildren().size() == 1) )
 		{

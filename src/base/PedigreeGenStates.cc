@@ -71,13 +71,14 @@ namespace genepi { // ----
     static std::ostream & output_hs( std::ostream & os, const Haplotype * nFndrHapState, const Pedigree & ped )
 	{
 	os << "SibHapSt{";
+	bool onXChromosome = false; // XXX
 	for ( Pedigree::MemberIdx mIdx = ped.getNFounders() ; mIdx < ped.getNMembers() ; ++mIdx )
 	    {
 	    const Organism &  org = ped.memberAt( mIdx );
 	    const Haplotype & hap = nFndrHapState[ mIdx ];
 	    if ( mIdx != ped.getNFounders() )
 		os << ';';
-	    if ( org.isHaploid() )
+	    if ( org.isHaploid(onXChromosome) )
 		os << org.getOrgId() << '(' << hap.getVal1() << ')';
 	    else
 		os << org.getOrgId() << '(' << hap.paternal() << ',' << hap.maternal() << ')';
@@ -288,13 +289,15 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
     // These odd-looking for-loops each iterate over the two possible values of
     // each of the two segregation-indicators.
 
+    bool onXChromosome = getSLoci()[sLocIdx].isXChrom();
+
     for ( InheritanceVector::SegInd patSI = InheritanceVector::SI_PATERNAL ; ;
 	    patSI = InheritanceVector::SI_MATERNAL )
 	{
 
 	const Member & father = *member.getFather();
 
-	if ( father.isHaploid() )
+	if ( father.isHaploid(onXChromosome) )
 	    {
 	    if ( patSI == InheritanceVector::SI_MATERNAL )
 		break;
@@ -308,7 +311,7 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
 
 	    const Member & mother = *member.getMother();
 
-	    if ( mother.isHaploid() )
+	    if ( mother.isHaploid(onXChromosome) )
 		{
 		if ( matSI == InheritanceVector::SI_MATERNAL )
 		    break;
@@ -329,7 +332,7 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
 	    AlleleType paternalGamete;
 	    if ( patSI == InheritanceVector::SI_NONE )
 		{
-		gp_assert( father.isHaploid() );
+		gp_assert( father.isHaploid(onXChromosome) );
 		if ( father.isFounder() )
 		    paternalGamete = fndrGameteState[ founderGameteOfFounder(father.getPIdx(),GT_SINGLE) ];
 		else
@@ -340,7 +343,7 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
 		}
 	    else
 		{
-		gp_assert( ! father.isHaploid() );
+		gp_assert( ! father.isHaploid(onXChromosome) );
 		if ( father.isFounder() )
 		    {
 		    const FGameteIdx patGameteIdx = founderGameteOfFounder( father.getPIdx(),
@@ -366,7 +369,7 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
 	    AlleleType maternalGamete;
 	    if ( matSI == InheritanceVector::SI_NONE )
 		{
-		gp_assert( mother.isHaploid() );
+		gp_assert( mother.isHaploid(onXChromosome) );
 		if ( mother.isFounder() )
 		    maternalGamete = fndrGameteState[ founderGameteOfFounder(mother.getPIdx(),GT_SINGLE) ];
 		else
@@ -377,7 +380,7 @@ void Pedigree::recurseSib( SLocIdxType		  sLocIdx	 ,
 		}
 	    else
 		{
-		gp_assert( ! mother.isHaploid() );
+		gp_assert( ! mother.isHaploid(onXChromosome) );
 		if ( mother.isFounder() )
 		    {
 		    const FGameteIdx matGameteIdx = founderGameteOfFounder( mother.getPIdx(),
@@ -544,7 +547,7 @@ void Pedigree::recurseFndrGamete( SLocIdxType		  sLocIdx	  ,
     const Genotype &	thisUnphasedGT	  = founder.getGType( sLocIdx );
 
     gp_assert( founder.isFounder() );
-    gp_assert( (whichOne == GT_SINGLE) || (! founder.isHaploid()) );
+    gp_assert( (whichOne == GT_SINGLE) || (! founder.isHaploid(isX)) );
 
 
     //-------------------------------------------------------------------------
@@ -567,7 +570,7 @@ void Pedigree::recurseFndrGamete( SLocIdxType		  sLocIdx	  ,
 	for ( Genotype::AlleleType al = 1; al <= nAlleles; ++al )
 	    if ( thisUnphasedGT.consistent( al ) )
 		{
-		bool consistent = (! haplotypeComplete) || founder.isHaploid();
+		bool consistent = (! haplotypeComplete) || founder.isHaploid(isX);
 		if ( ! consistent )
 		    {
 		    gp_assert( fgDepth > 0 );

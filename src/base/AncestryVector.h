@@ -246,13 +246,13 @@ class AncestryVector
 	/// from population @a k, the other's is not.  False otherwise,
 	/// including if @a f is modeled as a single gamete.  Used by
 	/// AdmixPedigree::accumAOScore().
-	bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k ) const
+	bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k, bool onXChromosome ) const
 	    {
 	    bool rv;
 
 	    const Organism & founder = ped.founderAt( f );
 
-	    if ( ! founder.isHaploid() )
+	    if ( ! founder.isHaploid(onXChromosome) )
 		{
 		const bool patAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL)) == k;
 		const bool matAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL)) == k;
@@ -267,11 +267,11 @@ class AncestryVector
 	/// The number of gametes of founder @a f with ancestry from population
 	/// @a k.  Used by AdmixPedigree::accumAOScore().  Consider passing in
 	/// is-haploid flag, eliminating look-up of founder here.
-	int nCopiesFromKAtFounder( const Pedigree::FounderIdx & f, const PopIdx & k ) const
+	int nCopiesFromKAtFounder( const Pedigree::FounderIdx & f, const PopIdx & k, bool onXChromosome ) const
 	    {
 	    int rv;
 	    const Organism & founder = ped.founderAt( f );
-	    if ( founder.isHaploid() )
+	    if ( founder.isHaploid(onXChromosome) )
 		rv = at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_SINGLE) ) == k;
 	    else
 		rv = ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL) ) == k ) +

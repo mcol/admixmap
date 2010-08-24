@@ -476,7 +476,7 @@ double Pedigree::getLogLikelihood( const Options & , bool /*forceUpdate*/ , bool
 //
 //-----------------------------------------------------------------------------
 
-inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx,
+inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool isX,
 				const AncestryVector & av, const InheritanceVector & iv ) const
     {
 
@@ -507,7 +507,7 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx,
     Ancestry ancStack[ getNMembers() ]; // See METHOD-NOTE *1*
 
 
-    if ( founderAt(fIdx).isHaploid() )
+    if ( founderAt(fIdx).isHaploid(isX) )
 	{
 	const PopIdx ancestry = av.at( fIdx, GT_SINGLE );
 
@@ -563,7 +563,7 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx,
 	    if ( father != 0 )
 		{
 		const Ancestry & pAncestry = ancStack[ father->getPIdx() ];
-		if ( father->isHaploid()				?
+		if ( father->isHaploid(isX)				?
 			    pAncestry.pAncestry				:
 			    pAncestry.hasAncOfType( iv.paternal(cIdx) ) )
 		    {
@@ -593,7 +593,7 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx,
 	    if ( mother != 0 )
 		{
 		const Ancestry & mAncestry = ancStack[ mother->getPIdx() ];
-		if ( mother->isHaploid()				?
+		if ( mother->isHaploid(isX)				?
 			    mAncestry.pAncestry				:
 			    mAncestry.hasAncOfType( iv.maternal(cIdx) ) )
 		    {
@@ -636,7 +636,8 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx,
 /// same for both gametes, XXX.
 //-----------------------------------------------------------------------------
 
-inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const
+inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool isX,
+					      const AncestryVector & av, const InheritanceVector & iv ) const
     {
 
     // Is this optimization worth having?  Does it come up in real datasets?
@@ -654,7 +655,7 @@ inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const A
 
 	    for ( PopIdx i_k = getK() ; i_k-- != 0 ; )
 		for ( FounderIdx i_f = getNFounders() ; i_f-- != 0 ; )
-		    (*aoCache).get(i_k,i_f) = calcNInheritedByAffected( i_k, i_f, av, iv );
+		    (*aoCache).get(i_k,i_f) = calcNInheritedByAffected( i_k, i_f, isX, av, iv );
 
 	    }
 
@@ -663,7 +664,7 @@ inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const A
 
     #else // USE_AO_CACHE
 
-	return calcNInheritedByAffected( k, fIdx, av, iv );
+	return calcNInheritedByAffected( k, fIdx, isX, av, iv );
 
     #endif
 
@@ -723,6 +724,8 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	#if DEBUG_CALC_M
 	    cerr << "\n=== AO-debug: locus " << t << " (" << loci[t].getName() << ")\n";
 	#endif
+
+	const bool isX = loci[t].isXChrom();
 
 	// If K==2, only evaluate for 1 population, otherwise for all of them.
 	// Existing code uses k==1 (not 0), so:
@@ -816,7 +819,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			// computations here.
 			//-------------------------------------------------------
 
-			if ( founder.isHaploid() )
+			if ( founder.isHaploid(isX) )
 			    {
 			    stScore += 0.5 * (((av.at(fIdx,GT_SINGLE) == k) ? 1 : 0) - mu);
 			    stInfo += 0.25 * (1 - mu) * mu;
@@ -826,9 +829,9 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			    // AncestryVector::isHetrozygousForPop() will return
 			    // false for haploid founders (i.e. those that we model
 			    // as a single gamete), so we need no special-case for them here.
-			    if ( av.isHetrozygousForPop( fIdx, k ) )
+			    if ( av.isHetrozygousForPop( fIdx, k, isX ) )
 				{
-				const int m = getNInheritedByAffected( k, fIdx, av, stIt.getIV() );
+				const int m = getNInheritedByAffected( k, fIdx, isX, av, stIt.getIV() );
 				stScore += 0.25 * (m - nAffOver2);
 				stInfo += nAffOver64;
 				#if DEBUG_AOTEST
@@ -836,7 +839,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 				#endif
 				}
 
-			    const int nFromK = av.nCopiesFromKAtFounder( fIdx, k );
+			    const int nFromK = av.nCopiesFromKAtFounder( fIdx, k, isX );
 
 			    #if DEBUG_AOTEST
 				fprintf( stderr, "	fIdx:%zd st:%zd nFromK:%d hetro:%s nAff:%zd",
@@ -1724,8 +1727,9 @@ bool Pedigree::simpleGenotypeIsMissing( SLocIdxType slIdx ) const
 
     bool Pedigree::isHaploidIndividual() const
 	{
+	bool isX = false; // XXX
 	if ( getNMembers() == 1 )
-	    return memberAt(0).isHaploid();
+	    return memberAt(0).isHaploid(isX);
 	else
 	    throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
 	}

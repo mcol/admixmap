@@ -842,9 +842,14 @@ class Pedigree : public PedBase // See NOTE *4*
     /// Cache for getNInheritedByAffected()
     mutable TwoDimArray<short,PopIdx,FounderIdx> * aoCache;
     /// Helper method for getNInheritedByAffected (affected-only test computations).
-    short calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const;
+    short calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool isX,
+				    const AncestryVector & av,
+				    const InheritanceVector & iv ) const;
+
     /// Helper method for affected-only test computations.
-    int getNInheritedByAffected( PopIdx k, FounderIdx fIdx, const AncestryVector & av, const InheritanceVector & iv ) const;
+    int getNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool isX,
+				 const AncestryVector & av,
+				 const InheritanceVector & iv ) const;
 
     /// Supports affected-only test computations.
     void accumAOScore( AffectedsOnlyTest & aoTest ) const;

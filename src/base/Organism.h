@@ -218,10 +218,7 @@ class Organism
 	const Genotype & getGType( SLocIdxType sLocIdx ) const;
 
 	/// Is the organism modeled by a single gamete?
-	/// Remove the default false value when we are ready to fully implement
-	/// the X chromosome for pedigrees.
-	bool isHaploid( bool /*onXChromosome*/ = false ) const { return singleGameteModel; }
-		//{ return (onXChromosome && isMale()) || singleGameteModel; }
+	bool isHaploid( bool onXChromosome ) const { return (onXChromosome && isMale()) || singleGameteModel; }
 	void setSingleGameteModel( bool nv ) { singleGameteModel = nv; }
 
 	/// Returns pointer to the father's record, or null if none/unknown.
