@@ -354,10 +354,10 @@ void GenotypeParser::validateOrg( Organism & org ) const
 
 	// Male X-chromosome must be haploid; everything else must be diploid.
 
-	const SimpleLocus & locus  = sLoci[ locIdx ];
-	const bool	    isX	   = locus.isXChrom();
-	const Genotype &    gType  = org.getGType( locIdx );
-	const bool	    isMale = org.isMale();
+	const SimpleLocus & locus     = sLoci[ locIdx ];
+	const IsXChromType  is_xchrom = locus.isXChrom();
+	const Genotype &    gType     = org.getGType( locIdx );
+	const bool	    isMale    = org.isMale();
 
 	if ( gType.isMissing2() )
 	    ++nMissing;
@@ -367,7 +367,7 @@ void GenotypeParser::validateOrg( Organism & org ) const
 
 	    if ( gType.isHaploid() )
 		{
-		if ( ! (isMale && isX) )
+		if ( ! (isMale && (is_xchrom == CHR_IS_X)) )
 		    warn( estr("organism ") + org.idDesc() + " at locus " + locus.getName() +
 			    ": haploid genotype data on non-male organism or non-X chromosome" );
 		}
@@ -375,7 +375,7 @@ void GenotypeParser::validateOrg( Organism & org ) const
 		{
 		// Diploid data on male's X chromosome: if homozygous, just
 		// convert to haploid; otherwise issue a warning.
-		if ( isMale && isX )
+		if ( isMale && (is_xchrom == CHR_IS_X) )
 		    {
 		    if ( gType.isHeterozygous() )
 			warn( estr("organism ") + org.idDesc() + " at locus " + locus.getName() +
@@ -477,7 +477,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 
 	    // Warning if have data for X chromosomes and no sex supplied:
 	    for ( SimpleLocusArray::ConstIter it = simpleLoci.begin(); it != simpleLoci.end(); ++it )
-		if ( it->isXChrom() )
+		if ( it->isXChrom() == CHR_IS_X )
 		    {
 		    warn( "no-sex file-format yet locus-file contains loci for X chromosome." );
 		    break;
@@ -817,10 +817,10 @@ void GenotypeParser::validate() const
 
 	    // Male X-chromosome must be haploid; everything else must be diploid.
 
-	    const SimpleLocus & locus	= sLoci[ locIdx ];
-	    const bool		isX	= locus.isXChrom();
-	    const Genotype &	gType	= org.getGType( locIdx );
-	    const bool		isMale	= org.isMale();
+	    const SimpleLocus & locus	  = sLoci[ locIdx ];
+	    const IsXChromType	is_xchrom = locus.isXChrom();
+	    const Genotype &	gType	  = org.getGType( locIdx );
+	    const bool		isMale	  = org.isMale();
 
 	    if ( gType.isMissing2() )
 		++nMissing;
@@ -830,7 +830,7 @@ void GenotypeParser::validate() const
 
 		if ( gType.isHaploid() )
 		    {
-		    if ( ! (isMale && isX) )
+		    if ( ! (isMale && (is_xchrom == CHR_IS_X)) )
 			#if KEEP_LIST_OF_PLOID_ERRS
 			    haploidShouldBeDiploid.push_back( &locus );
 			#else
@@ -840,7 +840,7 @@ void GenotypeParser::validate() const
 		    }
 		else
 		    {
-		    if ( isMale && isX )
+		    if ( isMale && (is_xchrom == CHR_IS_X) )
 			#if KEEP_LIST_OF_PLOID_ERRS
 			    diploidShouldBeHaploid.push_back( &locus );
 			#else

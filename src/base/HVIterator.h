@@ -84,7 +84,7 @@ class HVIterator
 
     public:
 
-	HVIterator( const Pedigree &   ped );
+	HVIterator( const Pedigree & ped, IsXChromType isX );
 	HVIterator( const HVIterator & rhs );
 
 	bool isOnMeiosis () const { return (cur_ancestry == n_ancestries); } // NOTE *1*

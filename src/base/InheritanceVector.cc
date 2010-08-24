@@ -49,13 +49,15 @@ const size_t InheritanceVector::MAX_ORGANISMS;
 
 #if (! IV_KEEP_PED_REF) && IV_PEDIGREE_FORWARD
 
-    InheritanceVector::InheritanceVector( const Pedigree & p ) :
-	    space( p.getIVSpace() )
+    InheritanceVector::InheritanceVector( const Pedigree & p, IsXChromType isXChrom ) :
+	    space( p.getIVSpace() ) ,
+	    isX( isXChrom )
 	{
 	gp_assert_le( p.getNNonFndrs(), MAX_ORGANISMS );
 	}
 
 #endif
+
 
 
 
@@ -84,16 +86,16 @@ InheritanceSpace::InheritanceSpace( const Pedigree & _ped ) :
 
 	Entry & entry = non_x_vals[ idx ];
 
-	entry.wm.haveMaternalMeiosis = ! org.getMother()->isHaploid( false ); // NOT_X_CHROM
-	entry.wm.havePaternalMeiosis = ! org.getFather()->isHaploid( false ); // NOT_X_CHROM
+	entry.wm.haveMaternalMeiosis = ! org.getMother()->isHaploid( CHR_IS_NOT_X );
+	entry.wm.havePaternalMeiosis = ! org.getFather()->isHaploid( CHR_IS_NOT_X );
 
 	entry.p_bit = entry.wm.havePaternalMeiosis ? cur_offset_nonX++ : Entry::HAPLOID_PARENT;
 	entry.m_bit = entry.wm.haveMaternalMeiosis ? cur_offset_nonX++ : Entry::HAPLOID_PARENT;
 
 	Entry & x_entry = x_vals[ idx ];
 
-	x_entry.wm.haveMaternalMeiosis = ! org.getMother()->isHaploid( true ); // IS_X_CHROM
-	x_entry.wm.havePaternalMeiosis = ! org.getFather()->isHaploid( true ); // IS_X_CHROM
+	x_entry.wm.haveMaternalMeiosis = ! org.getMother()->isHaploid( CHR_IS_X );
+	x_entry.wm.havePaternalMeiosis = ! org.getFather()->isHaploid( CHR_IS_X );
 
 	x_entry.p_bit = x_entry.wm.havePaternalMeiosis ? cur_offset_X++ : Entry::HAPLOID_PARENT;
 	x_entry.m_bit = x_entry.wm.haveMaternalMeiosis ? cur_offset_X++ : Entry::HAPLOID_PARENT;
@@ -136,18 +138,19 @@ InheritanceSpace::InheritanceSpace( const Pedigree & _ped ) :
 // Iterator
 //-----------------------------------------------------------------------------
 
-void InheritanceVector::Iterator::reset()
+void InheritanceVector::Iterator::reset( IsXChromType isXChrom )
     {
+    pattern.setIsX( isXChrom );
     cur_val = 0;
     pattern.set_ulong( cur_val );
     }
 
 
-InheritanceVector::Iterator::Iterator( const Pedigree & _ped ) :
-	pattern( _ped ),
+InheritanceVector::Iterator::Iterator( const Pedigree & _ped, IsXChromType isXChrom ) :
+	pattern( _ped, isXChrom ),
 	max_val( (1UL << pattern.getNMeiosis()) - 1 )
     {
-    reset();
+    reset( isXChrom );
     }
 
 

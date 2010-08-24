@@ -191,14 +191,16 @@ TransProbCache::TransProbCache( const Pedigree & _pedigree, double _rho, const M
 
 
 	factors.resize( loci.size() - 1 );
-	for ( size_t t = factors.size() ; t-- != 0 ; )
+	for ( SLocIdxType t = factors.size() ; t-- != 0 ; )
 	    {
+
+	    const IsXChromType isX = loci[t].isXChrom();
 
 	    const double g = computeG( loci, t );
 	    factors[ t ].g = g;
 
 	    cvector<CachedIVFactor> & gtab = factors[ t ].iv_factors;
-	    const size_t n_meiosis = _pedigree.getNMeiosis();
+	    const size_t n_meiosis = _pedigree.getNMeiosis( isX );
 	    gtab.resize( 1 << n_meiosis ); // 2^n_meiosis
 
 	    if ( n_meiosis == 0 )
@@ -394,13 +396,17 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
 				    const HiddenStateSpace::Iterator & toState,
 				    const SLocFacts & facts, const MuType & _mu )
     {
+
     const AncestryVector & frAV = frState.getAV();
     const AncestryVector & toAV = toState.getAV();
+
+    const IsXChromType isX = frState.isX();
+    gp_assert( isX == toState.isX() );
 
     const Pedigree & ped = frState.getSpace().getPed();
     gp_assert( &(frState.getSpace().getPed()) == &(toState.getSpace().getPed()) );
 
-    gp_assert_eq( frAV.size(), toAV.size() ); // DEBUG
+    gp_assert_eq( frAV.size(isX), toAV.size(isX) );
 
     double rv = facts.iv_factors[ frState.getIV() ^ toState.getIV() ];
 
@@ -413,11 +419,11 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
 	     << ", from-IV=" << frState.getIV() << ", to-IV=" << toState.getIV() << ", xor=" << ivXor << ", f=" << f << '\n';
     #endif
 
-    for ( Pedigree::FGameteIdx fgIdx = ped.getNFounderGametes() ; fgIdx-- != 0 ; )
+    for ( Pedigree::FGameteIdx fgIdx = ped.getNFounderGametes(isX) ; fgIdx-- != 0 ; )
 	{
 
 	Pedigree::GameteType whichOne;
-	const Pedigree::FounderIdx fIdx = ped.founderOfGameteIdx( fgIdx, whichOne ); // , t.isXChromosome() );
+	const Pedigree::FounderIdx fIdx = ped.founderOfGameteIdx( fgIdx, whichOne, isX );
 
 	// The ancestry-vector is indexed on founder-gamete; mu (the ancestry
 	// proportions) is indexed on founder (since we are assuming that the
@@ -426,8 +432,8 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
 	// founder-index.
 	const cvector<double> & mu_of_fIdx = _mu[ fIdx ];
 
-	const PopIdx frAncestry = frAV.at( fgIdx );
-	const PopIdx toAncestry = toAV.at( fgIdx );
+	const PopIdx frAncestry = frAV.at( fgIdx, isX );
+	const PopIdx toAncestry = toAV.at( fgIdx, isX );
 
 	double factor = one_minus_f * mu_of_fIdx[ toAncestry ];
 	if ( frAncestry == toAncestry )
@@ -445,6 +451,7 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
     #endif
 
     return rv;
+
     }
 
 

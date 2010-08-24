@@ -326,9 +326,9 @@ static const IdxCache & get_cache()
 // set_ulong()
 //-----------------------------------------------------------------------------
 
-void AncestryVector::set_ulong( unsigned long nv )
+void AncestryVector::set_ulong( unsigned long nv, IsXChromType isX )
     {
-    memcpy( data.bytes, get_cache().lookup(K, ped.getNFounderGametes(), nv).bytes, AV_MC_BYTES() );
+    memcpy( data.bytes, get_cache().lookup(K, ped.getNFounderGametes(isX), nv).bytes, AV_MC_BYTES() );
     }
 
 
@@ -337,21 +337,22 @@ void AncestryVector::set_ulong( unsigned long nv )
 // to_ulong()
 //-----------------------------------------------------------------------------
 
-unsigned long AncestryVector::to_ulong() const
+unsigned long AncestryVector::to_ulong( IsXChromType isX ) const
     {
+
     unsigned long rv = 0;
 
     if ( K == 2 )	// Optimized version for K==2:
-	for ( FGIdx idx = size() ; idx-- != 0 ; )
-	    rv = (rv << 1) + at(idx);
+	for ( FGIdx idx = size(isX) ; idx-- != 0 ; )
+	    rv = (rv << 1) + at(idx,isX);
 
     else if ( K == 3 )	// Optimized version for K==3:
-	for ( FGIdx idx = size() ; idx-- != 0 ; )
-	    rv = (rv << 1) + rv + at(idx);
+	for ( FGIdx idx = size(isX) ; idx-- != 0 ; )
+	    rv = (rv << 1) + rv + at(idx,isX);
 
     else
-	for ( FGIdx idx = size() ; idx-- != 0 ; )
-	    rv = (rv * K) + at(idx);
+	for ( FGIdx idx = size(isX) ; idx-- != 0 ; )
+	    rv = (rv * K) + at(idx,isX);
 
 
     // We need to cache the limit here:
@@ -359,6 +360,7 @@ unsigned long AncestryVector::to_ulong() const
 
 
     return rv;
+
     }
 
 
@@ -367,9 +369,9 @@ unsigned long AncestryVector::to_ulong() const
 // Iterator
 //-----------------------------------------------------------------------------
 
-AncestryVector::Iterator::Iterator( const Pedigree & _ped ) :
+AncestryVector::Iterator::Iterator( const Pedigree & _ped, IsXChromType isX ) :
 	idx	 ( 0 ) ,
-	idxLimit ( K_to_the_F( get_cache().getK(), _ped.getNFounderGametes() ) ) ,
+	idxLimit ( K_to_the_F( get_cache().getK(), _ped.getNFounderGametes(isX) ) ) ,
 	av	 ( _ped, get_cache().getK(), get_cache().getByIndex(0) )
     {
     gp_assert( ! MULTIPLE_PARMS );
@@ -413,27 +415,31 @@ bool AncestryVector::Iterator::advance()
 
     std::ostream & output( std::ostream & os,
 			   const AncestryVector & av,
-			   AncestryVector::FGIdx nValid )
+			   AncestryVector::FGIdx nValid,
+			   IsXChromType isX )
 	{
 	AncestryVector::FGIdx idx;
 
-	gp_assert( av.size() != 0 );
-	gp_assert( nValid <= av.size() );
+	gp_assert( av.size(isX) != 0 );
+	gp_assert( nValid <= av.size(isX) );
 
 	os << "AV(";
 	for ( idx = 0; idx < nValid; ++idx )
-	    output( os << ((idx==0)?"":","), av.at(idx) );
-	for ( ; idx < av.size(); ++idx )
+	    output( os << ((idx==0)?"":","), av.at(idx,isX) );
+	for ( ; idx < av.size(isX); ++idx )
 	    os << ((idx==0) ? "X" : ",X");
 	os << ')';
 
 	return os;
 	}
 
+  #if 0 // FIXME-PED-XCHR: restore when AV remembers is X-chrom status
     std::ostream & operator<<( std::ostream & os, const AncestryVector & av )
 	{
-	return output( os, av, av.size() );
+	return output( os, av, av.size(isX) );
 	}
+  #endif
+
 
 #endif // AV_OSTREAM
 

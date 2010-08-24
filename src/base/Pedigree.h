@@ -46,6 +46,7 @@
 #include <vector>
 
 
+
 //---------------------------------------------------------------------------
 // Forward references
 //---------------------------------------------------------------------------
@@ -238,6 +239,7 @@ class Pedigree : public PedBase // See NOTE *4*
 	FounderIdx nFounders	 ;
 	Member * * sortedMembers ;
 
+
 	/// Mapping from founder-index to founder-gamete-index, useful for
 	/// AncestryVector.  Perhaps this belongs in AncestryVector.  Talk about
 	/// maternal and paternal gametes here.
@@ -248,7 +250,18 @@ class Pedigree : public PedBase // See NOTE *4*
 	/// AncestryVector, state-generation.  Perhaps this belongs in
 	/// AncestryVector.
 	struct GFMapEl { FounderIdx fIdx; GameteType whichOne; };
-	cvector<GFMapEl> gfMap;
+	cvector<GFMapEl> gfMap	;
+	cvector<GFMapEl> gfMapX ;
+
+	cvector<GFMapEl> & getGFMap( IsXChromType is_xchrom )
+	    {
+	    return (is_xchrom==CHR_IS_X) ? gfMapX : gfMap;
+	    }
+
+	const cvector<GFMapEl> & getGFMap( IsXChromType is_xchrom ) const
+	    {
+	    return (is_xchrom==CHR_IS_X) ? gfMapX : gfMap;
+	    }
 
 	InheritanceSpace * ivSpace;
 
@@ -366,6 +379,8 @@ class Pedigree : public PedBase // See NOTE *4*
 	const SimpleLocusArray & getSLoci     () const { return memberPool.getSLoci(); } ///< Convenience
 	SLocIdxType		 getNSLoci    () const { return getSLoci().size()    ; } ///< Convenience
 
+	IsXChromType isX( SLocIdxType sLIdx ) const { return getSLoci()[sLIdx].isXChrom(); } ///< Convenience
+
 	#if PED_COMPOSITE_LOCI
 	    const CompositeLocus & getCLocus( CLocIdxType ) const;
 	    CLocIdxType		   getNCLoci() const;
@@ -376,10 +391,10 @@ class Pedigree : public PedBase // See NOTE *4*
 	// Access to data members:
 	//---------------------------------------------------------------
 
+	/// The "family ID" from the pedfile.  Every Organism in this Pedigree
+	/// returns the same value of Organism::getFamId() (which is also returned
+	/// here).
 	const IdType & getId() const { return id; }
-	///< The "family ID" from the pedfile.  Every Organism in this Pedigree
-	///< returns the same value of Organism::getFamId() (which is also returned
-	///< here).
 
 
 	// Iterative access:
@@ -396,17 +411,17 @@ class Pedigree : public PedBase // See NOTE *4*
 
 	const InheritanceSpace & getIVSpace() const { return *ivSpace; }
 
-	/// Number of meiosis.  Remove the default value for @a isX when X
-	/// chromosomes are fully implemented for pedigrees.
-	size_t getNMeiosis( InheritanceSpace::IsXChrom isX = InheritanceSpace::NOT_X_CHROM ) const
+	/// Number of meiosis.
+	size_t getNMeiosis( IsXChromType is_xchrom ) const
 	    {
-	    return getIVSpace().getNMeiosis( isX );
+	    return getIVSpace().getNMeiosis( is_xchrom );
 	    }
 
-	/// Number of founder gametes.  Remove the default value for @a isXChrom
-	/// when X chromosomes are fully implemented for pedigrees.
-	FGameteIdx getNFounderGametes( bool /*isXChrom*/ = false ) const { return gfMap.size(); }
-							///< NB: see haploid note in recurseSib().
+	/// Number of founder gametes.
+	FGameteIdx getNFounderGametes( IsXChromType is_xchrom ) const
+	    {
+	    return getGFMap(is_xchrom).size();
+	    }
 
 
 
@@ -441,16 +456,17 @@ class Pedigree : public PedBase // See NOTE *4*
 	/// Mapping from founder-index to founder-gamete-index, useful for
 	/// AncestryVector.  In the case of two-gamete founders, the maternal
 	/// gamete is given the higher index.  Perhaps this belongs in
-	/// AncestryVector.  Remove the default false value for @a onXChrom when
-	/// X chromosome is fully implemented for pedigrees.
-	FGameteIdx founderGameteOfFounder( FounderIdx fIdx, GameteType whichOne, bool onXChrom = false ) const
+	/// AncestryVector.
+
+	FGameteIdx founderGameteOfFounder( FounderIdx fIdx, GameteType whichOne,
+					    IsXChromType is_xchrom ) const
 	    {
 	    #if AGGRESSIVE_RANGE_CHECK
 		const Organism & founder = founderAt( fIdx );
 		if ( whichOne == GT_SINGLE )
-		    gp_assert(	 founder.isHaploid( onXChrom ) );
+		    gp_assert(	 founder.isHaploid( is_xchrom ) );
 		else
-		    gp_assert( ! founder.isHaploid( onXChrom ) );
+		    gp_assert( ! founder.isHaploid( is_xchrom ) );
 	    #endif
 
 	    const FGMapEl & el = fgMap[ fIdx ];
@@ -458,16 +474,16 @@ class Pedigree : public PedBase // See NOTE *4*
 	    // NOTE *X91*: This assumption that the maternal gamete is the
 	    // higher-ordered index is also built into the Pedigree constructor
 	    // where the mappings are created.
-	    return (onXChrom ? el.X : el.nonX) + ((whichOne == GT_MATERNAL) ? 1 : 0);
+	    return ((is_xchrom == CHR_IS_X) ? el.X : el.nonX) + ((whichOne == GT_MATERNAL) ? 1 : 0);
 	    }
 
 	/// Mapping from founder-gamete-index to founder-index, useful for
 	/// AncestryVector and TransProbCache.  Perhaps this belongs in
-	/// AncestryVector.  Remove the default false value for @a onXChrom when
-	/// X chromosome is fully implemented for pedigrees.
-	FounderIdx founderOfGameteIdx( FGameteIdx fgIdx, GameteType & whichOne, bool /*onXChrom*/ = false ) const
+	/// AncestryVector.
+	FounderIdx founderOfGameteIdx( FGameteIdx fgIdx, GameteType & whichOne,
+					IsXChromType is_xchrom ) const
 	    {
-	    const GFMapEl & el = gfMap[ fgIdx ];
+	    const GFMapEl & el = getGFMap(is_xchrom)[ fgIdx ];
 	    whichOne = el.whichOne;
 	    return el.fIdx;
 	    }
@@ -826,7 +842,6 @@ class Pedigree : public PedBase // See NOTE *4*
     bool GenotypeIsMissing	( unsigned int clIdx ) const; ///< locus is a comp locus
     bool simpleGenotypeIsMissing( SLocIdxType  slIdx ) const; ///< locus is a simple locus
     bool isHaploidatLocus( unsigned locusIdx ) const;
-    bool isHaploidIndividual() const;
     bool isPedigree() const { return true; }
 
 
@@ -842,12 +857,12 @@ class Pedigree : public PedBase // See NOTE *4*
     /// Cache for getNInheritedByAffected()
     mutable TwoDimArray<short,PopIdx,FounderIdx> * aoCache;
     /// Helper method for getNInheritedByAffected (affected-only test computations).
-    short calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool isX,
+    short calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, IsXChromType is_xchrom,
 				    const AncestryVector & av,
 				    const InheritanceVector & iv ) const;
 
     /// Helper method for affected-only test computations.
-    int getNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool isX,
+    int getNInheritedByAffected( PopIdx k, FounderIdx fIdx, IsXChromType is_xchrom,
 				 const AncestryVector & av,
 				 const InheritanceVector & iv ) const;
 

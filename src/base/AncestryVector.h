@@ -130,7 +130,7 @@ class AncestryVector
 	DType		 data;
 
 	/// Maybe we should cache this somewhere.
-	size_t nBytes() const { return ((size()+1) >> 1); }
+	size_t nBytes() const { return ((size(CHR_IS_NOT_X)+1) >> 1); }
 	#if 1
 	    #define AV_MC_BYTES() MAX_BYTES
 	#else
@@ -161,10 +161,10 @@ class AncestryVector
 	friend class HiddenStateSpace;
 
 	/// For use as an index into arrays; in the range of (0,K^F)
-	unsigned long to_ulong() const;
+	unsigned long to_ulong( IsXChromType isX ) const;
 
 	/// @warning set_parms() must be called prior to this method.
-	void set_ulong( unsigned long nv );
+	void set_ulong( unsigned long nv, IsXChromType isX );
 
 
 
@@ -185,10 +185,7 @@ class AncestryVector
 
 	/// Converts between founder-gamete-index and founder-index.
 	/// \see Pedigree::founderOfGameteIdx()
-	/// FIXME-PED-XCHR:
-	///	Remove the default value for @a xchrom when X chromosomes are
-	///	fully implemented for pedigrees.
-	Pedigree::FounderIdx founderOf( FGIdx idx, bool is_xchrom = false ) const
+	Pedigree::FounderIdx founderOf( FGIdx idx, IsXChromType is_xchrom ) const
 	    {
 	    Pedigree::GameteType whichOne;
 	    return ped.founderOfGameteIdx( idx, whichOne, is_xchrom );
@@ -202,20 +199,24 @@ class AncestryVector
 
 	/// Number of elements (founder-gamete-indexed).
 	/// Maybe we should cache this somewhere.
-	FGIdx size() const { return ped.getNFounderGametes(); }
-	PopIdx at_unsafe( FGIdx el ) const		///< at(FGIdx), but not range-checked
+	FGIdx size( IsXChromType isX ) const { return ped.getNFounderGametes(isX); }
+
+	PopIdx at_unsafe( FGIdx el ) const			///< at(FGIdx), but not range-checked
 	    { return data.at_unsafe(el); }
-	PopIdx at( FGIdx el ) const			///< Element access via founder-gamete-index
+
+	PopIdx at( FGIdx el, IsXChromType isX ) const		///< Element access via founder-gamete-index
 	    {
-	    gp_assert_lt( el, size() );
+	    gp_assert_lt( el, size(isX) );
 	    return at_unsafe( el );
 	    }
-	PopIdx operator[]( FGIdx el ) const { return at(el); } ///< equivalent to at(FGIdx)
+	#if 0 // FIXME-PED-XCHR: restore when AV's remember their isX status.
+	    PopIdx operator[]( FGIdx el ) const { return at(el); }	///< equivalent to at(FGIdx)
+	#endif
 
 	/// See (see <A HREF="#note-1">NOTE *1*</A>) and at(FGIdx)
-	PopIdx at( Pedigree::FounderIdx f, Pedigree::GameteType whichOne ) const
+	PopIdx at( Pedigree::FounderIdx f, Pedigree::GameteType whichOne, IsXChromType isX ) const
 	    {
-	    return at( ped.founderGameteOfFounder( f, whichOne ) );
+	    return at( ped.founderGameteOfFounder(f,whichOne,isX), isX );
 	    }
 
 
@@ -228,17 +229,17 @@ class AncestryVector
 	    { return data.setAt_unsafe( el, val ); }
 
 	/// Set the ancestry at position @a el to @a val.
-	void setAt( FGIdx el, PopIdx val )
+	void setAt( FGIdx el, PopIdx val, IsXChromType isX )
 	    {
-	    gp_assert_lt( el , size() );
+	    gp_assert_lt( el , size(isX) );
 	    gp_assert_lt( val, K );
 	    setAt_unsafe( el, val );
 	    }
 
 	/// See (see <A HREF="#note-1">NOTE *1*</A>) and setAt(FGIdx,PopIdx).
-	void setAt( Pedigree::FounderIdx f, Pedigree::GameteType whichOne, PopIdx val )
+	void setAt( Pedigree::FounderIdx f, Pedigree::GameteType whichOne, PopIdx val, IsXChromType isX )
 	    {
-	    setAt( ped.founderGameteOfFounder(f,whichOne), val );
+	    setAt( ped.founderGameteOfFounder(f,whichOne,isX), val, isX );
 	    }
 
 
@@ -246,16 +247,16 @@ class AncestryVector
 	/// from population @a k, the other's is not.  False otherwise,
 	/// including if @a f is modeled as a single gamete.  Used by
 	/// AdmixPedigree::accumAOScore().
-	bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k, bool onXChromosome ) const
+	bool isHetrozygousForPop( const Pedigree::FounderIdx & f, const PopIdx & k, IsXChromType is_xchrom ) const
 	    {
 	    bool rv;
 
 	    const Organism & founder = ped.founderAt( f );
 
-	    if ( ! founder.isHaploid(onXChromosome) )
+	    if ( ! founder.isHaploid( is_xchrom ) )
 		{
-		const bool patAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL)) == k;
-		const bool matAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL)) == k;
+		const bool patAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL,is_xchrom)) == k;
+		const bool matAncIsK = at_unsafe(ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL,is_xchrom)) == k;
 		rv = (matAncIsK && (! patAncIsK)) || (patAncIsK && (! matAncIsK));
 		}
 	    else
@@ -267,15 +268,15 @@ class AncestryVector
 	/// The number of gametes of founder @a f with ancestry from population
 	/// @a k.  Used by AdmixPedigree::accumAOScore().  Consider passing in
 	/// is-haploid flag, eliminating look-up of founder here.
-	int nCopiesFromKAtFounder( const Pedigree::FounderIdx & f, const PopIdx & k, bool onXChromosome ) const
+	int nCopiesFromKAtFounder( const Pedigree::FounderIdx & f, const PopIdx & k, IsXChromType is_xchrom ) const
 	    {
 	    int rv;
 	    const Organism & founder = ped.founderAt( f );
-	    if ( founder.isHaploid(onXChromosome) )
-		rv = at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_SINGLE) ) == k;
+	    if ( founder.isHaploid( is_xchrom ) )
+		rv = at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_SINGLE,is_xchrom) ) == k;
 	    else
-		rv = ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL) ) == k ) +
-		     ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL) ) == k );
+		rv = ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_PATERNAL,is_xchrom) ) == k ) +
+		     ( at_unsafe( ped.founderGameteOfFounder(f,Pedigree::GT_MATERNAL,is_xchrom) ) == k );
 	    return rv;
 	    }
 
@@ -309,7 +310,7 @@ class AncestryVector::Iterator
 
     public:
 
-	Iterator( const Pedigree & _ped );
+	Iterator( const Pedigree & _ped, IsXChromType isX );
 
 	/// Returns true if did _not_ advance _past_ the end of the
 	/// space.  If returns false, the iterator is _no_longer_ valid.
@@ -342,7 +343,8 @@ class AncestryVector::Iterator
     /// nValid elements are valid.
     std::ostream & output( std::ostream & os,
 			   const AncestryVector & av,
-			   AncestryVector::FGIdx nValid );
+			   AncestryVector::FGIdx nValid,
+			   IsXChromType isX );
 
     /// Useful for debugging: output an AV to an ostream.  Prints one digit for
     /// each founder-gamete, showing the ancestry-population [0..K-1] for that

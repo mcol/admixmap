@@ -51,6 +51,7 @@ typedef size_t SLocIdxType;
 
 
 
+
 //-----------------------------------------------------------------------------
 //
 /// Container for the SimpleLocus records.  Also holds some summary and

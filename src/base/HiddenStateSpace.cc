@@ -45,10 +45,8 @@ namespace genepi { // ----
 /// Static helper function, returns K^F (optimized for certain common cases)
 //-----------------------------------------------------------------------------
 
-static inline size_t k_pow_f( PopIdx K , const Pedigree & ped )
+static inline size_t k_pow_f( PopIdx K , size_t F )
     {
-    size_t F = ped.getNFounderGametes();
-
     size_t rv;
 
     if ( K == 2 )
@@ -72,30 +70,43 @@ static inline size_t k_pow_f( PopIdx K , const Pedigree & ped )
 //-----------------------------------------------------------------------------
 
 HiddenStateSpace::HiddenStateSpace( const Pedigree & _ped, PopIdx _K ) :
-	ped   ( &_ped			 ) ,
-	K     ( _K			 ) ,
-	N_IVs ( 1U << _ped.getNMeiosis() ) , // 2^M
-	N_AVs ( k_pow_f( _K, _ped )	 ) , // K^F
-	nNon0 ( 0			 ) ,
-	probs ( new ProbType [ aSize() ] )
+	ped	   ( &_ped				    ) ,
+	K	   ( _K					    ) ,
+	N_IVs_X	   ( 1U << _ped.getNMeiosis(CHR_IS_X)	    ) , // 2^M
+	N_IVs_notX ( 1U << _ped.getNMeiosis(CHR_IS_NOT_X)   ) , // 2^M
+	N_AVs_X	   ( k_pow_f ( _K, _ped.getNFounderGametes(CHR_IS_X    ) ) ) , // K^F
+	N_AVs_notX ( k_pow_f ( _K, _ped.getNFounderGametes(CHR_IS_NOT_X) ) ) , // K^F
+	nNon0	   ( 0					    ) ,
+	probs	   ( new ProbType [ aSize(CHR_IS_NOT_X) ]   )
     {
     }
 
 
 HiddenStateSpace::HiddenStateSpace() :
-	ped( 0 )
+	ped  ( 0 ) ,
+	probs( 0 )
     {
     }
 
 
 void HiddenStateSpace::init( const Pedigree & _ped, PopIdx _K )
     {
-    ped	  = &_ped		     ;
-    K	  = _K			     ;
-    N_IVs = 1U << _ped.getNMeiosis() ; // 2^M
-    N_AVs = k_pow_f( _K, _ped )	     ; // K^F
-    nNon0 = 0			     ;
-    probs = new ProbType [ aSize() ] ;
+
+    gp_assert( ped == 0 );
+
+    ped = &_ped;
+    K	= _K;
+
+    N_IVs_X    = 1U << _ped.getNMeiosis(CHR_IS_X    ); // 2^M
+    N_IVs_notX = 1U << _ped.getNMeiosis(CHR_IS_NOT_X); // 2^M
+    N_AVs_X    = k_pow_f ( _K, _ped.getNFounderGametes(CHR_IS_X	   ) ) ; // K^F
+    N_AVs_notX = k_pow_f ( _K, _ped.getNFounderGametes(CHR_IS_NOT_X) ) ; // K^F
+
+    nNon0 = 0;
+
+    gp_assert( probs == 0 );
+    probs = new ProbType [ aSize(CHR_IS_NOT_X) ] ;
+
     }
 
 
@@ -117,7 +128,7 @@ HiddenStateSpace::~HiddenStateSpace()
 
 void HiddenStateSpace::resetEmProbsToZero()
     {
-    for ( size_t idx = aSize() ; idx-- != 0 ; )
+    for ( size_t idx = aSize(CHR_IS_NOT_X) ; idx-- != 0 ; )
 	#if TRACK_UNVISITED_STATES
 	    probs[ idx ] = State::NOT_VISITED;
 	#else
@@ -132,14 +143,15 @@ void HiddenStateSpace::resetEmProbsToZero()
 //=============================================================================
 
 
-HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp, bool sparse ) :
-	space	 ( sp	       ) ,
-	av_it	 ( sp.getPed() ) ,
-	iv_it	 ( sp.getPed() ) ,
-	sIdx	 ( 0	       ) ,
-	non0Idx	 ( 0	       ) ,
-	skipNon0 ( sparse      ) ,
-	finished ( false       )
+HiddenStateSpace::Iterator::Iterator( const HiddenStateSpace & sp, IsXChromType isX, bool sparse ) :
+	space	 ( sp		    ) ,
+	av_it	 ( sp.getPed(), isX ) ,
+	iv_it	 ( sp.getPed(), isX ) ,
+	sIdx	 ( 0		    ) ,
+	non0Idx	 ( 0		    ) ,
+	isXChrom ( isX		    ) ,
+	skipNon0 ( sparse	    ) ,
+	finished ( false	    )
     {
     if ( skipNon0 && sp.getEProb( sIdx ) == 0.0 )
 	advance();
@@ -186,9 +198,9 @@ bool HiddenStateSpace::Iterator::advance()
 
 	    if ( ! finished )
 		{
-		iv_it.reset();
 		++sIdx;
-		gp_assert_eq( sIdx, (av_it.to_ulong() * space.N_IVs) );
+		iv_it.reset( isX() );
+		gp_assert_eq( sIdx, (av_it.to_ulong() * space.N_IVs(isX())) );
 		}
 	    }
 	else
@@ -214,14 +226,14 @@ HiddenStateSpace::State HiddenStateSpace::Iterator::getState() const
 
 
 
-HiddenStateSpace::State HiddenStateSpace::stateAtIdx( StateIdxType idx ) const
+HiddenStateSpace::State HiddenStateSpace::stateAtIdx( StateIdxType idx, IsXChromType isX ) const
     {
-    const size_t iv_idx = idx % N_IVs;
-    const size_t av_idx = idx / N_IVs;
-    State rv = { AncestryVector(getPed(),K), InheritanceVector(getPed()), getEProb(idx) };
-    gp_assert( rv.av.size() != 0 );
-    rv.av.set_ulong( av_idx );
-    gp_assert( rv.av.size() != 0 );
+    const size_t iv_idx = idx % N_IVs( isX );
+    const size_t av_idx = idx / N_IVs( isX );
+    State rv = { AncestryVector(getPed(),K), InheritanceVector(getPed(),isX), getEProb(idx) };
+    gp_assert( rv.av.size(isX) != 0 );
+    rv.av.set_ulong( av_idx, isX );
+    gp_assert( rv.av.size(isX) != 0 );
     rv.iv.set_ulong( iv_idx );
     return rv;
     }

@@ -37,10 +37,10 @@ namespace genepi { // ----
 // Constructors
 //-----------------------------------------------------------------------------
 
-HVIterator::HVIterator( const Pedigree & ped ) :
-	n_ancestries( ped.getNFounderGametes()	) ,
-	n_meiosis   ( ped.getNMeiosis()		) ,
-	K	    ( ped.getK()		) ,
+HVIterator::HVIterator( const Pedigree & ped, IsXChromType isX ) :
+	n_ancestries( ped.getNFounderGametes(isX) ) ,
+	n_meiosis   ( ped.getNMeiosis( isX )	  ) ,
+	K	    ( ped.getK()		  ) ,
 	cur_ancestry( 0 ) ,
 	cur_meiosis ( 0 )
     {

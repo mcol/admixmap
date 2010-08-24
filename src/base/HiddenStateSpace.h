@@ -89,13 +89,17 @@ class HiddenStateSpace
 	/// Number of IVs = 2^M where M is the number of meioses in the pedigree
 	/// Number of AVs = K^F where K is the number of populations and F is the
 	///	number of founder gametes in the pedigree.
-	size_t	    N_IVs;
-	size_t	    N_AVs; ///< @see { N_IVs }
+	size_t	    N_IVs_X	;
+	size_t	    N_IVs_notX	; ///< @see { N_IVs_X }
+	size_t	    N_IVs( IsXChromType isX ) const { return (isX==CHR_IS_NOT_X) ? N_IVs_notX : N_IVs_X; }
+	size_t	    N_AVs_X	; ///< @see { N_IVs_X }
+	size_t	    N_AVs_notX	; ///< @see { N_IVs_X }
+	size_t	    N_AVs( IsXChromType isX ) const { return (isX==CHR_IS_NOT_X) ? N_AVs_notX : N_AVs_X; }
 	Non0IdxType nNon0;
 
 	ProbType *  probs;
 
-	StateIdxType aSize() const { return (N_IVs * N_AVs); }
+	StateIdxType aSize( IsXChromType isX ) const { return (N_IVs(isX) * N_AVs(isX)); }
 
 
     protected:
@@ -103,18 +107,28 @@ class HiddenStateSpace
 	/// Translate an ancestry-vector and an inheritance-vector into a StateIdxType.
 	StateIdxType idxOf( const AncestryVector & av, const InheritanceVector & iv ) const
 	    {
+	    // FIXME-PED-XCHR: This is a little goofy but should work: we use
+	    //		the IV's remembered is-X status to tell the AV if we are
+	    //		on an X chromosome.  We should probably give AV's a
+	    //		similar concept to IVs: being fixed to X or non-X
+	    //		chromosomes at construction time.  In both cases (IV and
+	    //		AV), perhaps the isX data-member should be replaced with
+	    //		a pointer-to-space.
 	    const unsigned long iv_idx = iv.to_ulong();
-	    const unsigned long av_idx = av.to_ulong();
+	    const unsigned long av_idx = av.to_ulong( iv.getIsX() );
 
-	    gp_assert_lt( iv_idx, N_IVs );
-	    gp_assert_lt( av_idx, N_AVs );
+	    const size_t n_iv = N_IVs( iv.getIsX() );
+	    const size_t n_av = N_AVs( iv.getIsX() ); // iv rather than av: is this correct?
+
+	    gp_assert_lt( iv_idx, n_iv );
+	    gp_assert_lt( av_idx, n_av );
 
 	    // We can use either arrangement scheme, but if this is changed,
 	    // Iterator::advance() must be reimplemented:
 	    #if HSS_AV_MOST_SIG
-		return (av_idx * N_IVs) + iv_idx;
+		return (av_idx * n_iv) + iv_idx;
 	    #else
-		return (iv_idx * N_AVs) + av_idx;
+		return (iv_idx * n_av) + av_idx;
 	    #endif
 	    }
 
@@ -139,8 +153,8 @@ class HiddenStateSpace
 
 	/// Get the number of states, including those with 0 probability.  See
 	/// also stateAtIdx().
-	StateIdxType getNStates () const { return aSize() ; }
-	Non0IdxType  getNNon0	() const { return nNon0   ; }
+	StateIdxType getNStates ( IsXChromType isX ) const { return aSize(isX); }
+	Non0IdxType  getNNon0	(		   ) const { return nNon0     ; }
 
 
 	/// Set all emission-probabilities to zero.
@@ -286,12 +300,14 @@ class HiddenStateSpace
 
 	class Iterator
 	    {
+
 	    private:
 		const HiddenStateSpace &    space;
 		AncestryVector::Iterator    av_it;
 		InheritanceVector::Iterator iv_it;
 		StateIdxType		    sIdx;
 		Non0IdxType		    non0Idx;
+		IsXChromType		    isXChrom;
 
 		/// Whether the iterator should skip the elements for which
 		/// the emission probability is zero.
@@ -306,10 +322,12 @@ class HiddenStateSpace
 		/// By default, the iterator skips the elements for which
 		/// the emission probability is zero.  If @a sparse is set
 		/// to false, then those elements will not be skipped.
-		Iterator( const HiddenStateSpace & sp, bool sparse = true );
+		Iterator( const HiddenStateSpace & sp, IsXChromType isX, bool sparse = true );
 		Iterator( const Iterator & rhs );
 
 		const HiddenStateSpace & getSpace() const { return space; }
+
+		IsXChromType isX() const { return isXChrom; }
 
 
 		/// Returns true if there are no more states, i.e. if we've
@@ -388,7 +406,7 @@ class HiddenStateSpace
 
 	/// Indexed-based access to states.  See also getNStates().  Consider
 	/// using Iterator instead.
-	State stateAtIdx( StateIdxType ) const;
+	State stateAtIdx( StateIdxType, IsXChromType isX ) const;
 
     };
 

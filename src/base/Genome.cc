@@ -213,7 +213,7 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
 
 	const size_t	    sStLocIdx	= sstart[i];
 	const SimpleLocus & startLocus	= sLoci[ sStLocIdx ];
-	const bool	    isX		= startLocus.isXChrom();
+	const bool	    isX		= (startLocus.isXChrom() == CHR_IS_X);
 	const string &	    label	= startLocus.getChromLabel();
 
     #else

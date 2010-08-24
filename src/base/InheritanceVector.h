@@ -32,8 +32,10 @@
 #include "bclib/exceptions.h"
 #include "bclib/cvector.h"
 
+#include "SimpleLocus.h" // For IsXChrom
 
-#define IV_OSTREAM		1 /// Should we compile ostream support for IVs?
+
+#define IV_OSTREAM		1   /// Should we compile ostream support for IVs?
 
 #define IV_PEDIGREE_FORWARD	1
 //#define IV_MAX_BITS		128 /// 64 max non-founders
@@ -114,7 +116,7 @@ class InheritanceVector
 	    };
 
 	/// Complete segregation indicator (both maternal and paternal) for
-	/// diploid organism's inheritance.
+	/// diploid organism's inheritance; i.e. the parents' meiosis.
 	class Bits
 	    {
 	    friend class InheritanceVector;
@@ -149,6 +151,7 @@ class InheritanceVector
 
 	const InheritanceSpace & space;
 	std::bitset<IV_MAX_BITS> bits;
+	IsXChromType		 isX; ///< See InheritanceSpace for explanation.
 
 
     protected:
@@ -171,11 +174,12 @@ class InheritanceVector
 	size_t getNMeiosis() const;
 
 
-	InheritanceVector( const Pedigree & p );
+	InheritanceVector( const Pedigree & p, IsXChromType isXChrom );
 
 	InheritanceVector( const InheritanceVector & rhs ) :
 		    space ( rhs.space ) ,
-		    bits  ( rhs.bits  )
+		    bits  ( rhs.bits  ) ,
+		    isX	  ( rhs.isX   )
 	    {
 	    gp_assert_lt( getNNonFndrs(), MAX_ORGANISMS );
 	    }
@@ -184,28 +188,25 @@ class InheritanceVector
 	    {
 	    gp_assert( &space == &rhs.space );
 	    bits = rhs.bits;
+	    isX = rhs.isX;
 	    return *this;
 	    }
+
+
+
+	IsXChromType getIsX() const { return isX; }
+
+	/// This is only used if the IV is re-used for a different locus.
+	void setIsX( IsXChromType isXChrom ) { isX = isXChrom; }
 
 
 	/// Extract both inheritance bits for a given member of the pedigree
 	Bits getMember( SibIdx mIdx ) const;
 
 
-	#if ! IV_PEDIGREE_FORWARD
-	  Bits getMember( const Pedigree::Member & organism ) const
-	    {
-	    #if 0 // See *TD1*
-		gp_assert( pedigree.isAMember( organism );
-	    #endif
-	    gp_assert( ! organism.isFounder() );
-	    return getMember( organism.getPIdx() );
-	    }
-	#endif
-
-
 	/// Set both inheritance bits for a given member of the pedigree:
 	void setMember( SibIdx mIdx, const Bits & nv );
+
 
 	// Would be nice to make a member-reference type so we can implement this:
 	// BitsReference & operator[]( SibIdx mIdx );
@@ -213,6 +214,7 @@ class InheritanceVector
 
 	/// Convenience: did father contribute his father's or his mother's?
 	SegInd paternal( SibIdx n ) const { return getMember(n).paternal(); }
+
 
 	/// Convenience: did mother contribute her father's or her mother's?
 	SegInd maternal( SibIdx n ) const { return getMember(n).maternal(); }
@@ -276,7 +278,7 @@ class InheritanceVector::Iterator
 	unsigned long max_val;
 
     public:
-	Iterator( const Pedigree & _ped );
+	Iterator( const Pedigree & _ped, IsXChromType isXChrom );
 
 	bool is_on_last_el() const { return (cur_val == max_val); }
 
@@ -292,7 +294,10 @@ class InheritanceVector::Iterator
 	/// For efficiency and convenience, we will allow an iterator to be
 	/// reset to the the beginning of the space, starting a new complete
 	/// iteration, rather than forcing the construction of a new iterator.
-	void reset();
+	/// At the same time, we allow the is-X-chromosome status to change, so
+	/// that the same iterator can be re-used on multiple loci.
+	void reset( IsXChromType isXChrom );
+
     };
 
 
@@ -302,8 +307,17 @@ class InheritanceVector::Iterator
 //
 // InheritanceSpace
 //
-/// Consider maintaining two for each Pedigree, one for the X chromosome and one
-/// for the non-X chromosomes, and eliminating the IsXChrom parameters.
+/// Each InheritanceSpace objects maintains data for two spaces: one for the X
+/// chromosome and one for the non-X chromosomes; we then specify which space we
+/// desire at the time of lookup, via the various IsXChromType parameters.  This
+/// contrasts with InheritanceVector, which is tied to either a X- or
+/// non-X-chromomsome status at the time of construction and thus has no such
+/// parameters at the time of lookup.
+///
+/// FIXME-PED-XCHR: We might consider maintaining two
+/// InheritanceSpaces for each Pedigree, one for the X chromosome and one for
+/// the non-X chromosomes, thus eliminating the IsXChromType parameters, and
+/// more important, the @a isXChrom data member of InheritanceVector.
 //
 //-----------------------------------------------------------------------------
 
@@ -312,11 +326,6 @@ class InheritanceSpace
 
     public:
 
-	enum IsXChrom
-	    {
-	    IS_X_CHROM	= 0 ,
-	    NOT_X_CHROM = 1
-	    };
 	typedef size_t NonFounderIdx;
 
 	struct WhichMeiosis
@@ -346,14 +355,13 @@ class InheritanceSpace
 	size_t		nMeiosis_X;
 	size_t		nMeiosis_nonX;
 
-	// Used by friend InheritanceVector.  Remove the default value for
-	/// @a isX when X chromosomes are fully implemented for pedigrees.
-	const Entry & getEntry( InheritanceVector::SibIdx mIdx, IsXChrom isX = NOT_X_CHROM ) const
+	/// Used by friend InheritanceVector.
+	const Entry & getEntry( InheritanceVector::SibIdx mIdx, IsXChromType isX ) const
 	    {
 	    gp_assert_ge( mIdx, nFounders );
 	    gp_assert_lt( mIdx, nMembers  );
 	    const size_t ent_idx = mIdx - nFounders;
-	    return (isX == IS_X_CHROM) ? x_vals[ent_idx] : non_x_vals[ent_idx];
+	    return (isX == CHR_IS_X) ? x_vals[ent_idx] : non_x_vals[ent_idx];
 	    }
 
     public:
@@ -363,15 +371,14 @@ class InheritanceSpace
 	size_t getNFounders() const { return nFounders; }
 	size_t getNMembers () const { return nMembers ; }
 
-	/// The number of meiosis in the pedigree.  Remove the default value for
-	/// @a isX when X chromosomes are fully implemented for pedigrees.
-	size_t getNMeiosis( IsXChrom isX = NOT_X_CHROM ) const
+	/// The number of meiosis in the pedigree.
+	size_t getNMeiosis( IsXChromType isX ) const
 	    {
-	    return (isX == IS_X_CHROM) ? nMeiosis_X : nMeiosis_nonX;
+	    return (isX == CHR_IS_X) ? nMeiosis_X : nMeiosis_nonX;
 	    }
 
 	/// Given a member of a pedigree, report which meiosis contributed to its genotype.
-	WhichMeiosis getWhichMeiosis( NonFounderIdx nonFounderIdx, IsXChrom x_chrom ) const;
+	WhichMeiosis getWhichMeiosis( NonFounderIdx nonFounderIdx, IsXChromType x_chrom ) const;
 
     };
 
@@ -396,7 +403,7 @@ inline size_t InheritanceVector::getNMembers() const
 
 inline size_t InheritanceVector::getNMeiosis() const
     {
-    return getSpace().getNMeiosis();
+    return getSpace().getNMeiosis( isX );
     }
 
 
@@ -407,7 +414,7 @@ inline InheritanceVector::Bits InheritanceVector::getMember( SibIdx mIdx ) const
     gp_assert_lt( mIdx, getNMembers() );
     gp_assert_ge( mIdx, getNFounders() );
 
-    const InheritanceSpace::Entry & entry = space.getEntry( mIdx );
+    const InheritanceSpace::Entry & entry = space.getEntry( mIdx, isX );
 
     SegInd patSI;
     if ( entry.p_bit == InheritanceSpace::Entry::HAPLOID_PARENT )
@@ -429,10 +436,11 @@ inline InheritanceVector::Bits InheritanceVector::getMember( SibIdx mIdx ) const
 
 inline void InheritanceVector::setMember( SibIdx mIdx, const Bits & nv )
     {
+
     gp_assert_lt( mIdx, getNMembers()  );
     gp_assert_ge( mIdx, getNFounders() );
 
-    const InheritanceSpace::Entry & entry = space.getEntry( mIdx );
+    const InheritanceSpace::Entry & entry = space.getEntry( mIdx, isX );
 
     if ( nv.paternal() == SI_NONE )
 	{

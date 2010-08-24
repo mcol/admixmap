@@ -111,7 +111,6 @@ class Genotype
 	    { return (val1 == MISSING_VAL) || (val1 == al) || (val2 == al); }
 
 	/// Are the potential and observed genotypes consistent?
-	// ---- How to deal with haploid? ----
 	bool consistent( const Haplotype & hap ) const;
 
 	/// Create a human-readable representation of the value
@@ -211,9 +210,10 @@ inline bool Genotype::consistent( const Haplotype & hap ) const
 
     return ( // Perhaps this can be rewritten as a shorter boolean expression?
 			(val1 == MISSING_VAL) ||
-			((val1 == hap.val1) && (val2 == hap.val2)) ||
-			((val2 == hap.val1) && (val1 == hap.val2)) ||
-			((val1 == hap.val1) && (val2 == MISSING_VAL))
+			((val1 == hap.val1) && (val2 == hap.val2   )) ||
+			((val2 == hap.val1) && (val1 == hap.val2   )) ||
+			((val1 == hap.val1) && (val2 == MISSING_VAL)) ||
+			((val1 == hap.val1) && (val2 == HAPLOID_VAL))
 	    );
     }
 

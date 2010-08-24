@@ -54,13 +54,15 @@ namespace genepi { // ----
 HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	_ped	 ,
 				      TransProbCache &	_tpCache ,
 				      const ThetaType *	_theta	 ) :
-	ped	      ( &_ped	  ) ,
-	tpCache	      ( &_tpCache ) ,
-	theta	      ( _theta	  ) ,
-	dirtyForwards ( true	  ) ,
-	dirtyBackwards( true	  ) ,
-	dirtyCondStateProbs( true )
+	ped		    ( &_ped	) ,
+	tpCache		    ( &_tpCache ) ,
+	theta		    ( _theta	) ,
+	dirtyForwards	    ( true	) ,
+	dirtyBackwards	    ( true	) ,
+	dirtyPi		    ( true	) ,
+	dirtyCondStateProbs ( true	)
     {
+
     #if USE_LIBOIL
 	oil_init();
     #endif
@@ -72,6 +74,7 @@ HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	_ped	 ,
     alpha.resize( getNLoci() );
     beta.resize( getNLoci() );
     condStateProbs.resize( getNLoci() );
+
     }
 
 
@@ -96,6 +99,7 @@ void HiddenMarkovModel::setTheta( const ThetaType * nv )
 void HiddenMarkovModel::thetaChanged() const
     {
     transProbsChanged();
+    dirtyPi = true;
     }
 
 
@@ -106,11 +110,13 @@ void HiddenMarkovModel::thetaChanged() const
 
 void HiddenMarkovModel::transProbsChanged() const
     {
+
     dirtyForwards = true;
     dirtyBackwards = true;
 
     // This is not really necessary, forwards-backwards recomputation invalidates this cache:
     dirtyCondStateProbs = true;
+
     }
 
 
@@ -135,6 +141,15 @@ void HiddenMarkovModel::computeForwardsBackwards() const
     {
 
     #if HMM_PARALLELIZE_FWD_BKWD && defined(_OPENMP)
+
+
+    // This is required by both computeForwards() and computeBackwards().  By
+    // doing it here, prior to entering the parallel sections, we avoid a race
+    // condition, without needing to create a mutex-protected critical-section.
+    if ( dirtyPi )
+	computeStationaryDistr( getPed().getStateProbs(0) );
+
+
       #pragma omp parallel default(shared)
       { // begin parallel
 
@@ -189,12 +204,17 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 /// @param z      Hidden variables index corresponding to the recursion level
 /// @param sz     Size of the probability vector having fixed the first z
 ///               hidden variables to a certain state
+/// @param isX	  Is the locus for which we are computing on the X chromosome?
+///		  FIXME-PED-XCHR: this is only needed for
+///			Pedigree::founderOfGameteIdx().  Alternatively,
+///			HVIterator could remember if it is on X chrom, and we
+///			could query it here.
 //-----------------------------------------------------------------------------
 
 void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
                                        double f, double g,
                                        const ThetaType& h,
-                                       HVIterator z, size_t sz) const {
+                                       HVIterator z, size_t sz, IsXChromType isX ) const {
 
   // Check if we've reached the bottom of the recursion
   if (z.leftToIterate() == 1) {
@@ -207,7 +227,7 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
     if (z.isOnAncestry()) {
 
       Pedigree::GameteType whichOne;
-      const Pedigree::FounderIdx idx = ped->founderOfGameteIdx(z.getCurrentAncestry(), whichOne);
+      const Pedigree::FounderIdx idx = ped->founderOfGameteIdx( z.getCurrentAncestry(), whichOne, isX );
 
       for (size_t i = 0; i < sz; ++i)
         res[i] = f * alpha[i] + h[idx][i] * asum;
@@ -240,7 +260,7 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
       // to one of the possible states for the current hidden variable
       const double *alpha_i = &alpha[i * sz];
       double *alpha_tilde_i = &alpha_tilde[i * sz];
-      transRecursion(alpha_i, alpha_tilde_i, f, g, h, z_p1, sz);
+      transRecursion( alpha_i, alpha_tilde_i, f, g, h, z_p1, sz, isX );
 
       // Accumulate the sum the alpha_tilde_i arrays
       for (size_t j = 0; j < sz; ++j)
@@ -251,7 +271,7 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
     if (z.isOnAncestry()) {
 
       Pedigree::GameteType whichOne;
-      const Pedigree::FounderIdx idx = ped->founderOfGameteIdx(z.getCurrentAncestry(), whichOne);
+      const Pedigree::FounderIdx idx = ped->founderOfGameteIdx( z.getCurrentAncestry(), whichOne, isX );
 
       for (size_t i = 0; i < sz * nValues; ++i)
         res[i] = f * alpha_tilde[i] + h[idx][i / sz] * asum[i % sz];
@@ -266,6 +286,68 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
 }
 
 
+
+
+//------------------------------------------------------------------------
+//
+// computeStationaryDistr() [private]
+//
+/// Computation of the stationary distribution (pi).
+//
+//------------------------------------------------------------------------
+
+void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 ) const
+    {
+
+    // Vectors for the stationary distribution and its inverse, of dimension
+    // equal to the full state-space size.
+    Pi	   .resize( hss_0.getNStates( CHR_IS_NOT_X ) );
+    piInv  .resize( hss_0.getNStates( CHR_IS_NOT_X ) );
+    Pi_X   .resize( hss_0.getNStates( CHR_IS_X	   ) );
+    piInv_X.resize( hss_0.getNStates( CHR_IS_X	   ) );
+
+    // Probability of any given IV is 1/(2^M): perhaps this should be cached in
+    // the pedigree or HSS?
+    const double prob_of_each_iv   = 1.0 / (1LL << getPed().getNMeiosis(CHR_IS_NOT_X));
+    const double prob_of_each_iv_x = 1.0 / (1LL << getPed().getNMeiosis(CHR_IS_X    ));
+
+
+    const ThetaType & th = *theta;
+
+
+    // Here we compute the stationary distribution (Pi) and store its inverse
+    // in piInv. To ensure that we compute it for all elements in the hidden
+    // state space, we force the iterator to not skip the elements for which
+    // the emission probability is zero by setting the second parameter of
+    // the constructor to false.
+
+    for ( HiddenStateSpace::Iterator it( hss_0, CHR_IS_NOT_X, false ) ; it ; ++it )
+	{
+	double pi = prob_of_each_iv;
+	const AncestryVector & av = it.getAV();
+	for ( AncestryVector::FGIdx idx = av.size(CHR_IS_NOT_X) ; idx-- != 0 ; )
+	    pi *= th[ av.founderOf(idx,CHR_IS_NOT_X) ] [ av.at(idx,CHR_IS_NOT_X) ];
+	Pi[ it.getOverallIndex() ] = pi;
+	piInv[ it.getOverallIndex() ] = 1 / pi;
+	}
+
+
+    for ( HiddenStateSpace::Iterator it( hss_0, CHR_IS_X, false ) ; it ; ++it )
+	{
+	double pi = prob_of_each_iv_x;
+	const AncestryVector & av = it.getAV();
+	for ( AncestryVector::FGIdx idx = av.size(CHR_IS_X) ; idx-- != 0 ; )
+	    pi *= th[ av.founderOf(idx,CHR_IS_X) ] [ av.at(idx,CHR_IS_X) ];
+	Pi_X[ it.getOverallIndex() ] = pi;
+	piInv_X[ it.getOverallIndex() ] = 1 / pi;
+	}
+
+    dirtyPi = false;
+
+    }
+
+
+
 //-----------------------------------------------------------------------------
 // recursionProbs()
 //
@@ -276,29 +358,58 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
 /// emission probability is zero.
 //-----------------------------------------------------------------------------
 
-void HiddenMarkovModel::recursionProbs( double	 		 f	   ,
-					double 	 		 g	   ,
-					const ThetaType &	 h	   ,
-					const HiddenStateSpace & fr_hss	   ,
-					const HiddenStateSpace & to_hss	   ,
-					const ProbsAtLocusType & frProbs   ,
-					ProbsAtLocusType &	 toProbs) const
+void HiddenMarkovModel::recursionProbs( double	 		 f	 ,
+					double 	 		 g	 ,
+					const ThetaType &	 h	 ,
+					const HiddenStateSpace & fr_hss	 ,
+					const HiddenStateSpace & to_hss	 ,
+					const ProbsAtLocusType & frProbs ,
+					ProbsAtLocusType &	 toProbs ,
+					IsXChromType		 isX	 ) const
     {
-    const int size = fr_hss.getNStates();
+
+    const size_t size = fr_hss.getNStates( isX );
+
     ProbsAtLocusType frProbsDense(size);
     ProbsAtLocusType toProbsDense(size);
 
     // Copy the nonzero elements of the sparse frProbs into frProbsDense
-    for ( HiddenStateSpace::Iterator it( fr_hss ) ; it ; ++it )
+    for ( HiddenStateSpace::Iterator it( fr_hss, isX ) ; it ; ++it )
 	frProbsDense[ it.getOverallIndex() ] = frProbs[ it.getNon0Index() ];
 
-    HVIterator z(getPed());
+    HVIterator z( getPed(), isX );
     transRecursion(frProbsDense.data_unsafe(), toProbsDense.data_unsafe(),
-		   f, g, h, z, size);
+		   f, g, h, z, size, isX );
 
     // Copy the nonzero elements of toProbsDense into the sparse toProbs
-    for ( HiddenStateSpace::Iterator it( to_hss ) ; it ; ++it )
+    for ( HiddenStateSpace::Iterator it( to_hss, isX ) ; it ; ++it )
 	toProbs[ it.getNon0Index() ] = toProbsDense[ it.getOverallIndex() ];
+
+    }
+
+
+
+//-----------------------------------------------------------------------------
+// initStaticAlpha()
+//-----------------------------------------------------------------------------
+
+void HiddenMarkovModel::initStaticAlpha( ProbsAtLocusType &	  alpha0	,
+					 const HiddenStateSpace & hss		,
+					 IsXChromType		  isX		,
+					 double &		  normalize_sum ) const
+    {
+
+    alpha0.resize( hss.getNNon0() );
+
+    const cvector<ProbType> & pi0 = (isX == CHR_IS_X) ? Pi_X : Pi;
+
+    for ( HiddenStateSpace::Iterator it( hss, isX ) ; it ; ++it )
+	{
+	const double val = it.getEProb() * pi0[ it.getOverallIndex() ];
+	alpha0[ it.getNon0Index() ] = val;
+	normalize_sum += val;
+	}
+
     }
 
 
@@ -316,55 +427,23 @@ void HiddenMarkovModel::computeForwards() const
 
     const SLocIdxType T = getNLoci();
 
+    const ThetaType & th = *theta;
+
+    const HiddenStateSpace & hss_0 = getPed().getStateProbs( 0 );
+
+    if ( dirtyPi )
+	computeStationaryDistr( hss_0 );
+
 
     //------------------------------------------------------------------------
     // Compute alpha_0 (forward probabilities for locus #0):
     //------------------------------------------------------------------------
 
-    const HiddenStateSpace & hss_0   = getPed().getStateProbs( 0 );
-    ProbsAtLocusType &	     alpha_0 = alpha[ 0 ];
+    ProbsAtLocusType & alpha_0 = alpha[ 0 ];
 
-    #if HMM_OTF_RENORM
-	double normalize_sum = 0.0;
-    #endif
+    double normalize_sum = 0.0;
 
-    alpha_0.resize( hss_0.getNNon0() );
-
-    // Vectors for the stationary distribution and its inverse, of dimension
-    // equal to the full state-space size.
-    Pi.resize( hss_0.getNStates() );
-    piInv.resize( hss_0.getNStates() );
-
-    // Probability of any given IV is 1/(2^M): perhaps this should be cached in
-    // the pedigree or HSS?
-    const double prob_of_each_iv = 1.0 / (1LL << getPed().getNMeiosis());
-
-    const ThetaType & th = *theta;
-
-    // Here we compute the stationary distribution (Pi) and store its inverse
-    // in piInv. To ensure that we compute it for all elements in the hidden
-    // state space, we force the iterator to not skip the elements for which
-    // the emission probability is zero by setting the second parameter of
-    // the constructor to false.
-    for ( HiddenStateSpace::Iterator it( hss_0, false ) ; it ; ++it )
-	{
-	double pi = prob_of_each_iv;
-	const AncestryVector & av = it.getAV();
-	for ( AncestryVector::FGIdx idx = av.size() ; idx-- != 0 ; )
-	    pi *= th[ av.founderOf(idx) ] [ av.at(idx) ];
-	Pi[ it.getOverallIndex() ] = pi;
-	piInv[ it.getOverallIndex() ] = 1 / pi;
-	}
-
-
-    for ( HiddenStateSpace::Iterator it( hss_0 ) ; it ; ++it )
-	{
-	const double val = it.getEProb() * Pi[ it.getOverallIndex() ];
-	alpha_0[ it.getNon0Index() ] = val;
-	#if HMM_OTF_RENORM
-	    normalize_sum += val;
-	#endif
-	}
+    initStaticAlpha( alpha_0, hss_0, getPed().getSLoci()[0].isXChrom(), normalize_sum );
 
 
 
@@ -372,67 +451,72 @@ void HiddenMarkovModel::computeForwards() const
     // Fill in the alpha array for the rest of the loci:
     //------------------------------------------------------------------------
 
-    #if HMM_OTF_RENORM
-	norm_log_sum_alpha = 0.0;
-    #endif
+    norm_log_sum_alpha = 0.0;
 
     for ( SLocIdxType t = 1 ; t < T ; ++t )
 	{
 
 	const SLocIdxType t_m1 = t - 1;
 
-	const HiddenStateSpace & hss_t	    = getPed().getStateProbs( t );
-	ProbsAtLocusType &	 alpha_t    = alpha[ t ];
+	const HiddenStateSpace & hss_t	 = getPed().getStateProbs( t );
+	ProbsAtLocusType &	 alpha_t = alpha[ t ];
+
+	const IsXChromType t_is_X    = getPed().getSLoci()[t].isXChrom();
+	const bool	   x_changed = (t_is_X != getPed().getSLoci()[t_m1].isXChrom());
+
 	const HiddenStateSpace & hss_t_m1   = getPed().getStateProbs( t_m1 );
 	ProbsAtLocusType &	 alpha_t_m1 = alpha[ t_m1 ];
 
-	#if HMM_OTF_RENORM
-	    norm_log_sum_alpha += log( normalize_sum );
-	    gp_assert( normalize_sum != 0.0 );
-	    normalize_sum = 1.0 / normalize_sum;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_m1.getNNon0() ; j-- != 0 ; )
-		alpha_t_m1[ j ] *= normalize_sum;
-	    normalize_sum = 0.0;
-	#endif
+	norm_log_sum_alpha += log( normalize_sum );
+	gp_assert( normalize_sum != 0.0 );
+	normalize_sum = 1.0 / normalize_sum;
+	for ( HiddenStateSpace::Non0IdxType j = hss_t_m1.getNNon0() ; j-- != 0 ; )
+	    alpha_t_m1[ j ] *= normalize_sum;
+	normalize_sum = 0.0;
 
-#if DEBUG_TRANSRECURSION
-        cout << "\n* alpha[" << t - 1 << "] norm\n";
-        for (size_t i = 0; i < alpha_t_m1.size(); ++i)
-          cout << alpha_t_m1[i] << endl;
-#endif
-
-	// This is the main recursion: compute alpha[t] from alpha[t-1]
-
-	// These factors should be pre-computed (as arrays) and cached; they
-	// only need be updated when theta changes (f,g,h) or when rho changes
-	// (f and h).
-	const double f = TransProbCache::computeF( getPed().getSLoci(), t_m1, tpCache->getRho() );
-	const double g = TransProbCache::computeG( getPed().getSLoci(), t_m1 );
-	ThetaType h( th );
-	h *= (1 - f);
-
-	// Do the matrix multiplication by the transition probabilities.  We
-	// assure that alpha[t] has been resized to the size of the
-	// hidden-state-space at locus t so that recursionProbs() knows how
-	// large the space is.
-	alpha_t.resize( hss_t.getNNon0() );
-	recursionProbs( f, g, h, hss_t_m1, hss_t, alpha_t_m1, alpha_t );
-
-#if DEBUG_TRANSRECURSION
-        cout << "\n* alpha[" << t - 1 << "] after\n";
-        for (size_t i = 0; i < alpha_t.size(); ++i)
-          cout << alpha_t[i] << endl;
-#endif
-
-	// Next multiply by the emission probabilities, simultaneously
-	// accumulating the normalization factor for the next iteration:
-	for ( HiddenStateSpace::Iterator to_it( hss_t ) ; to_it ; ++to_it )
+	if ( x_changed )
+	    initStaticAlpha( alpha_t, hss_t, t_is_X, normalize_sum );
+	else
 	    {
-	    double & val = alpha_t[ to_it->getNon0Index() ];
-	    val *= to_it->getEProb();
-	    #if HMM_OTF_RENORM
-		normalize_sum += val;
+
+	    #if DEBUG_TRANSRECURSION
+		cout << "\n* alpha[" << t - 1 << "] norm\n";
+		for (size_t i = 0; i < alpha_t_m1.size(); ++i)
+		  cout << alpha_t_m1[i] << endl;
 	    #endif
+
+	    // This is the main recursion: compute alpha[t] from alpha[t-1]
+
+	    // These factors should be pre-computed (as arrays) and cached; they
+	    // only need be updated when theta changes (f,g,h) or when rho changes
+	    // (f and h).
+	    const double f = TransProbCache::computeF( getPed().getSLoci(), t_m1, tpCache->getRho() );
+	    const double g = TransProbCache::computeG( getPed().getSLoci(), t_m1 );
+	    ThetaType h( th );
+	    h *= (1 - f);
+
+	    // Do the matrix multiplication by the transition probabilities.  We
+	    // assure that alpha[t] has been resized to the size of the
+	    // hidden-state-space at locus t so that recursionProbs() knows how
+	    // large the space is.
+	    alpha_t.resize( hss_t.getNNon0() );
+	    recursionProbs( f, g, h, hss_t_m1, hss_t, alpha_t_m1, alpha_t, t_is_X );
+
+	    #if DEBUG_TRANSRECURSION
+		cout << "\n* alpha[" << t - 1 << "] after\n";
+		for (size_t i = 0; i < alpha_t.size(); ++i)
+		  cout << alpha_t[i] << endl;
+	    #endif
+
+	    // Next multiply by the emission probabilities, simultaneously
+	    // accumulating the normalization factor for the next iteration:
+	    for ( HiddenStateSpace::Iterator to_it( hss_t, t_is_X ) ; to_it ; ++to_it )
+		{
+		double & val = alpha_t[ to_it->getNon0Index() ];
+		val *= to_it->getEProb();
+		normalize_sum += val;
+		}
+
 	    }
 
 	}
@@ -473,17 +557,22 @@ void HiddenMarkovModel::computeBackwards() const
 	beta_Tm1[ i ] = 1.0;
 
 
+    if ( dirtyPi )
+	computeStationaryDistr( hss_Tm1 );
+
+
     //------------------------------------------------------------------------
     // Fill in the beta array for the rest of the loci:
     //------------------------------------------------------------------------
 
-    #if HMM_OTF_RENORM
-	norm_log_sum_beta = 0.0;
-    #endif
+    norm_log_sum_beta = 0.0;
 
     SLocIdxType t_p1 = t; // t plus 1
     while ( t-- != 0 )
 	{
+
+	const IsXChromType t_is_X = getPed().getSLoci()[t].isXChrom();
+	const bool	   x_changed = (t_is_X != getPed().getSLoci()[t_p1].isXChrom());
 
 	const HiddenStateSpace & hss_t	   = getPed().getStateProbs( t );    // HSS at locus t
 	ProbsAtLocusType &	 beta_t	   = beta[ t ];			     // beta at locus t
@@ -492,53 +581,66 @@ void HiddenMarkovModel::computeBackwards() const
 
 
 	// Normalize the probabilities for beta at t+1
-	#if HMM_OTF_RENORM
+        double normalize_sum = 0.0;
+        for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNNon0() ; j-- != 0 ; )
+            normalize_sum += beta_t_p1[ j ];
 
-	    double normalize_sum = 0.0;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNNon0() ; j-- != 0 ; )
-		normalize_sum += beta_t_p1[ j ];
-
-	    norm_log_sum_beta += log( normalize_sum );
-	    gp_assert( normalize_sum != 0.0 );
-	    normalize_sum = 1.0 / normalize_sum;
-	    for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNNon0() ; j-- != 0 ; )
-		beta_t_p1[ j ] *= normalize_sum;
-
-	#endif
+        norm_log_sum_beta += log( normalize_sum );
+        gp_assert( normalize_sum != 0.0 );
+        normalize_sum = 1.0 / normalize_sum;
+        for ( HiddenStateSpace::Non0IdxType j = hss_t_p1.getNNon0() ; j-- != 0 ; )
+            beta_t_p1[ j ] *= normalize_sum;
 
 
-	// These factors should be pre-computed (as arrays) and cached; they
-	// only need be updated when theta changes (f,g,h) or when rho changes
-	// (f and h).
-	const double f = TransProbCache::computeF( getPed().getSLoci(), t, tpCache->getRho() );
-	const double g = TransProbCache::computeG( getPed().getSLoci(), t );
-	ThetaType h( *theta );
-	h *= (1 - f);
+	if ( x_changed )
+	    {
+	    beta_t.resize( hss_t.getNNon0() );
+	    for ( HiddenStateSpace::Non0IdxType i = hss_t.getNNon0() ; i-- != 0 ; )
+		beta_t[ i ] = 1.0;
+	    }
+
+	else
+	    {
 
 
-	// Pre-multiply beta[t+1] by the emission probabilities at t+1 (making a copy)
-	ProbsAtLocusType beta_t_p1_mult( beta_t_p1 );
-	for ( HiddenStateSpace::Iterator fr_it( hss_t_p1 ) ; fr_it ; ++fr_it )
-	    beta_t_p1_mult[ fr_it->getNon0Index() ] *= fr_it->getEProb() * Pi[ fr_it->getOverallIndex() ];
+	    // These factors should be pre-computed (as arrays) and cached; they
+	    // only need be updated when theta changes (f,g,h) or when rho changes
+	    // (f and h).
+	    const double f = TransProbCache::computeF( getPed().getSLoci(), t, tpCache->getRho() );
+	    const double g = TransProbCache::computeG( getPed().getSLoci(), t );
+	    ThetaType h( *theta );
+	    h *= (1 - f);
 
 
-	// Do the matrix multiplication by the transition probabilities.  We
-	// assure that beta[t] has been resized to the size of the
-	// hidden-state-space at locus t so that recursionProbs() knows how
-	// large the space is.
-	beta_t.resize( hss_t.getNNon0() );
-	recursionProbs( f, g, h, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
+	    const cvector<ProbType> & pi     = (t_is_X == CHR_IS_X) ? Pi_X    : Pi    ;
+	    const cvector<ProbType> & pi_inv = (t_is_X == CHR_IS_X) ? piInv_X : piInv ;
 
-	for ( HiddenStateSpace::Iterator fr_it( hss_t ) ; fr_it ; ++fr_it )
-	    beta_t[ fr_it->getNon0Index() ] *= piInv[ fr_it->getOverallIndex() ];
+	    // Pre-multiply beta[t+1] by the emission probabilities at t+1 (making a copy)
+	    ProbsAtLocusType beta_t_p1_mult( beta_t_p1 );
+	    for ( HiddenStateSpace::Iterator fr_it( hss_t_p1, t_is_X ) ; fr_it ; ++fr_it )
+		beta_t_p1_mult[ fr_it->getNon0Index() ] *= fr_it->getEProb() * pi[ fr_it->getOverallIndex() ];
 
-#if DEBUG_TRANSRECURSION
-        cout << "\n* beta[" << t << "] after\n";
-        for (size_t i = 0; i < beta_t.size(); ++i)
-          cout << beta_t[i] << endl;
-#endif
+
+	    // Do the matrix multiplication by the transition probabilities.  We
+	    // assure that beta[t] has been resized to the size of the
+	    // hidden-state-space at locus t so that recursionProbs() knows how
+	    // large the space is.
+	    beta_t.resize( hss_t.getNNon0() );
+	    recursionProbs( f, g, h, hss_t_p1, hss_t, beta_t_p1_mult, beta_t, t_is_X );
+
+	    for ( HiddenStateSpace::Iterator fr_it( hss_t, t_is_X ) ; fr_it ; ++fr_it )
+		beta_t[ fr_it->getNon0Index() ] *= pi_inv[ fr_it->getOverallIndex() ];
+
+	    #if DEBUG_TRANSRECURSION
+		cout << "\n* beta[" << t << "] after\n";
+		for (size_t i = 0; i < beta_t.size(); ++i)
+		  cout << beta_t[i] << endl;
+	    #endif
+
+	    }
 
 	t_p1 = t;
+
 	}
 
     dirtyBackwards = false;
@@ -554,6 +656,7 @@ void HiddenMarkovModel::computeBackwards() const
 
 double HiddenMarkovModel::getLogLikelihood() const
     {
+
     if ( dirtyForwards )
 	computeForwards();
 
@@ -579,9 +682,7 @@ double HiddenMarkovModel::getLogLikelihood() const
     #endif
 
     rv = log(rv);
-    #if HMM_OTF_RENORM
-	rv += norm_log_sum_alpha;
-    #endif
+    rv += norm_log_sum_alpha;
 
 
     //-----------------------------------------------------------------------------
@@ -617,6 +718,7 @@ double HiddenMarkovModel::getLogLikelihood() const
 
 
     return rv;
+
     }
 
 

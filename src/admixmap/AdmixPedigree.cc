@@ -476,7 +476,7 @@ double Pedigree::getLogLikelihood( const Options & , bool /*forceUpdate*/ , bool
 //
 //-----------------------------------------------------------------------------
 
-inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool isX,
+inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, IsXChromType is_xchrom,
 				const AncestryVector & av, const InheritanceVector & iv ) const
     {
 
@@ -507,9 +507,9 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool
     Ancestry ancStack[ getNMembers() ]; // See METHOD-NOTE *1*
 
 
-    if ( founderAt(fIdx).isHaploid(isX) )
+    if ( founderAt(fIdx).isHaploid( is_xchrom ) )
 	{
-	const PopIdx ancestry = av.at( fIdx, GT_SINGLE );
+	const PopIdx ancestry = av.at( fIdx, GT_SINGLE, is_xchrom );
 
 	// NOTE *X9*: Use the paternal slot to hold the ancestry in the case of
 	// a single-gamete founder.  This will later be recognized when tracing
@@ -518,8 +518,8 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool
 	}
     else
 	{
-	ancStack[fIdx].pAncestry = (av.at(fIdx,GT_PATERNAL) == k);
-	ancStack[fIdx].mAncestry = (av.at(fIdx,GT_MATERNAL) == k);
+	ancStack[fIdx].pAncestry = (av.at(fIdx,GT_PATERNAL,is_xchrom) == k);
+	ancStack[fIdx].mAncestry = (av.at(fIdx,GT_MATERNAL,is_xchrom) == k);
 	}
 
     #if 0
@@ -563,7 +563,7 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool
 	    if ( father != 0 )
 		{
 		const Ancestry & pAncestry = ancStack[ father->getPIdx() ];
-		if ( father->isHaploid(isX)				?
+		if ( father->isHaploid( is_xchrom )			?
 			    pAncestry.pAncestry				:
 			    pAncestry.hasAncOfType( iv.paternal(cIdx) ) )
 		    {
@@ -593,7 +593,7 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool
 	    if ( mother != 0 )
 		{
 		const Ancestry & mAncestry = ancStack[ mother->getPIdx() ];
-		if ( mother->isHaploid(isX)				?
+		if ( mother->isHaploid( is_xchrom )			?
 			    mAncestry.pAncestry				:
 			    mAncestry.hasAncOfType( iv.maternal(cIdx) ) )
 		    {
@@ -633,10 +633,10 @@ inline short Pedigree::calcNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool
 /// @a k from founder @a fIdx.
 ///
 /// Since our current assumption is that a two-gamete founder's ancestry is the
-/// same for both gametes, XXX.
+/// same for both gametes, [[write something here?]].
 //-----------------------------------------------------------------------------
 
-inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool isX,
+inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, IsXChromType is_xchrom,
 					      const AncestryVector & av, const InheritanceVector & iv ) const
     {
 
@@ -655,7 +655,7 @@ inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool is
 
 	    for ( PopIdx i_k = getK() ; i_k-- != 0 ; )
 		for ( FounderIdx i_f = getNFounders() ; i_f-- != 0 ; )
-		    (*aoCache).get(i_k,i_f) = calcNInheritedByAffected( i_k, i_f, isX, av, iv );
+		    (*aoCache).get(i_k,i_f) = calcNInheritedByAffected( i_k, i_f, xchrom, av, iv );
 
 	    }
 
@@ -664,7 +664,7 @@ inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, bool is
 
     #else // USE_AO_CACHE
 
-	return calcNInheritedByAffected( k, fIdx, isX, av, iv );
+	return calcNInheritedByAffected( k, fIdx, is_xchrom, av, iv );
 
     #endif
 
@@ -725,7 +725,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	    cerr << "\n=== AO-debug: locus " << t << " (" << loci[t].getName() << ")\n";
 	#endif
 
-	const bool isX = loci[t].isXChrom();
+	const IsXChromType is_xchrom = loci[t].isXChrom();
 
 	// If K==2, only evaluate for 1 population, otherwise for all of them.
 	// Existing code uses k==1 (not 0), so:
@@ -744,7 +744,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	    const HiddenStateSpace & hss	    = getStateProbs( t );
 	    const cvector<double> &  condStateProbs = getHMM().getCondStateProbsAtLocus( t );
 
-	    for ( HiddenStateSpace::Iterator stIt( hss ) ; stIt ; ++stIt )
+	    for ( HiddenStateSpace::Iterator stIt( hss, is_xchrom ) ; stIt ; ++stIt )
 		{
 
 		double stScore;
@@ -769,11 +769,11 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		    // an unrelated individual with no genotyped data.  This can
 		    // be removed if the score computation below is adjusted
 		    // accordingly.
-		    gp_assert( av.size() == 2 );
+		    gp_assert( av.size(is_xchrom) == 2 );
 
-		    if ( av.at(0) == k ) // Paternal ancestry
+		    if ( av.at(0,is_xchrom) == k ) // Paternal ancestry
 			stScore += 0.5;
-		    if ( av.at(1) == k ) // Maternal ancestry
+		    if ( av.at(1,is_xchrom) == k ) // Maternal ancestry
 			stScore += 0.5;
 
 		    stInfo = 0.5 * (1 - mu) * mu;
@@ -819,9 +819,9 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			// computations here.
 			//-------------------------------------------------------
 
-			if ( founder.isHaploid(isX) )
+			if ( founder.isHaploid( is_xchrom ) )
 			    {
-			    stScore += 0.5 * (((av.at(fIdx,GT_SINGLE) == k) ? 1 : 0) - mu);
+			    stScore += 0.5 * (((av.at(fIdx,GT_SINGLE,is_xchrom) == k) ? 1 : 0) - mu);
 			    stInfo += 0.25 * (1 - mu) * mu;
 			    }
 			else
@@ -829,9 +829,9 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			    // AncestryVector::isHetrozygousForPop() will return
 			    // false for haploid founders (i.e. those that we model
 			    // as a single gamete), so we need no special-case for them here.
-			    if ( av.isHetrozygousForPop( fIdx, k, isX ) )
+			    if ( av.isHetrozygousForPop( fIdx, k, is_xchrom ) )
 				{
-				const int m = getNInheritedByAffected( k, fIdx, isX, av, stIt.getIV() );
+				const int m = getNInheritedByAffected( k, fIdx, is_xchrom, av, stIt.getIV() );
 				stScore += 0.25 * (m - nAffOver2);
 				stInfo += nAffOver64;
 				#if DEBUG_AOTEST
@@ -839,7 +839,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 				#endif
 				}
 
-			    const int nFromK = av.nCopiesFromKAtFounder( fIdx, k, isX );
+			    const int nFromK = av.nCopiesFromKAtFounder( fIdx, k, is_xchrom );
 
 			    #if DEBUG_AOTEST
 				fprintf( stderr, "	fIdx:%zd st:%zd nFromK:%d hetro:%s nAff:%zd",
@@ -1721,15 +1721,6 @@ bool Pedigree::simpleGenotypeIsMissing( SLocIdxType slIdx ) const
 	{
 	if ( getNMembers() == 1 )
 	    return memberAt(0).getGType( sLocIdx ).isHaploid();
-	else
-	    throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
-	}
-
-    bool Pedigree::isHaploidIndividual() const
-	{
-	bool isX = false; // XXX
-	if ( getNMembers() == 1 )
-	    return memberAt(0).isHaploid(isX);
 	else
 	    throw std::runtime_error( "Pedigrees don't yet know what haploid is." );
 	}

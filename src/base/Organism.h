@@ -218,7 +218,10 @@ class Organism
 	const Genotype & getGType( SLocIdxType sLocIdx ) const;
 
 	/// Is the organism modeled by a single gamete?
-	bool isHaploid( bool onXChromosome ) const { return (onXChromosome && isMale()) || singleGameteModel; }
+	bool isHaploid( IsXChromType is_xchrom ) const
+	    {
+	    return ((is_xchrom == CHR_IS_X) && isMale()) || singleGameteModel;
+	    }
 	void setSingleGameteModel( bool nv ) { singleGameteModel = nv; }
 
 	/// Returns pointer to the father's record, or null if none/unknown.

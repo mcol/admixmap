@@ -35,10 +35,6 @@
 #include <bclib/cvector.h>
 
 
-/// Should the state probabilities be normalized "on the fly" (i.e. after each
-/// iteration of the forwards-backwards recursion algorithm?  In practice, they
-/// underflow almost immediately if this is not turned on.
-#define HMM_OTF_RENORM			1
 
 /// Should the forwards and backwards recursions be done in parallel?  When
 /// using the "big cache" model for TransProbCache, this has almost no
@@ -62,6 +58,7 @@ namespace genepi { // ----
 
 class HiddenMarkovModel
     {
+
     protected:
 	typedef double ProbType;
 	typedef double InvProbType;
@@ -71,6 +68,7 @@ class HiddenMarkovModel
 	/// indexed on hidden-state-index.
 	typedef cvector< ProbType	  > ProbsAtLocusType ;
 	typedef cvector< ProbsAtLocusType > ProbArrType	     ;
+	typedef cvector< ProbType	  > PiType	     ; ///< Indexed on "overall" state-index (including 0-prob states)
 	typedef Pedigree::ThetaType	    ThetaType	     ;
 
     private:
@@ -84,13 +82,12 @@ class HiddenMarkovModel
 
 	mutable bool dirtyForwards ; ///< Input parameters have changed since last compute; stored alpha is invalid
 	mutable bool dirtyBackwards; ///< Input parameters have changed since last compute; stored beta is invalid
+	mutable bool dirtyPi	   ; ///< Input parameters have changed since last compute; stored Pi is invalid
 
 	mutable ProbArrType alpha ; ///< Forward probability array: indexed on locus, then hidden-state-non0-index
 	mutable ProbArrType beta  ; ///< Forward probability array: indexed on locus, then hidden-state-non0-index
-	#if HMM_OTF_RENORM
-	    mutable double norm_log_sum_alpha;
-	    mutable double norm_log_sum_beta;
-	#endif
+	mutable double norm_log_sum_alpha;
+	mutable double norm_log_sum_beta;
 
 	/// Cached conditional state probabilities (these are just the
 	/// normalized element-wise product of alpha and beta, could be computed
@@ -100,17 +97,26 @@ class HiddenMarkovModel
 
 	/// Stationary distribution, calculated in computeForwards() and used
 	/// in computeBackwards(), indexed on all states
-	mutable cvector<ProbType> Pi;
+	mutable PiType Pi;
+	mutable PiType Pi_X;
 
 	/// Inverse of the stationary distribution, calculated in computeForwards()
 	/// and used in computeBackwards(), indexed on all states
 	mutable cvector<InvProbType> piInv;
+	mutable cvector<InvProbType> piInv_X;
 
 	/// Recursive function to multiply the transition-probability matrix
 	/// by the probability vector alpha
 	void transRecursion(const double *alpha, double *res,
 			    double f, double g, const ThetaType& h,
-			    HVIterator z, size_t sz) const;
+			    HVIterator z, size_t sz, IsXChromType isX ) const;
+
+	void computeStationaryDistr( const HiddenStateSpace & hss_0 ) const;
+
+	void initStaticAlpha( ProbsAtLocusType &       alpha0	,
+			      const HiddenStateSpace & hss	,
+			      IsXChromType	       isX	,
+			      double &		       norm_sum ) const;
 
 	/// Do the main forwards recursion
 	void computeForwards() const;
@@ -151,7 +157,8 @@ class HiddenMarkovModel
 			     const HiddenStateSpace & fr_hss	,
 			     const HiddenStateSpace & to_hss	,
 			     const ProbsAtLocusType & frProbs	,
-			     ProbsAtLocusType &	      toProbs	) const;
+			     ProbsAtLocusType &	      toProbs	,
+			     IsXChromType	      isX	) const;
 
 
 	void assureNotDirty() const;

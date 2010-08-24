@@ -45,6 +45,17 @@ namespace genepi { // ----
 
 
 
+/// "Boolean" datatype to indicate whether a given locus is on the X chromosome
+/// or some other chromosome.
+
+enum IsXChromType
+    {
+    CHR_IS_X	 ,
+    CHR_IS_NOT_X
+    };
+
+
+
 class SimpleLocus
     {
     friend class SimpleLocusParser;
@@ -66,8 +77,8 @@ class SimpleLocus
 	size_t		    getNumAlleles () const { return numAlleles	; }
 	const GDist &	    getDistance	  () const { return distance	; } ///< Distance to preceding locus
 	int		    getChromNum	  () const { return chromNum	; }
-	bool		    isXChrom	  () const { return (chromNum==SECRET_X_CHROM_NUM); }
-	std::string	    getChromLabel () const { return isXChrom() ? "X" : estr(chromNum); }
+	IsXChromType	    isXChrom	  () const { return (chromNum==SECRET_X_CHROM_NUM) ? CHR_IS_X : CHR_IS_NOT_X; }
+	std::string	    getChromLabel () const { return (chromNum==SECRET_X_CHROM_NUM) ? "X" : estr(chromNum); }
 	bool		    hasChromLabel () const { return (chromNum==SECRET_X_CHROM_NUM) || (chromNum>=0); }
 
 	bool isInComposite() const { return inComposite; }

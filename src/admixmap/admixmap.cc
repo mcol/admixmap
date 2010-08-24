@@ -195,8 +195,8 @@ int main( int argc , char** argv ){
       exit(1);
     }
 
-    // This shouldn't be required, but is due to the circular dependency
-    // between AdmixOptions and InputAdmixData.
+    // This is required due to the circular dependency between AdmixOptions and
+    // InputAdmixData.
     data.finishConstructing( options );
 
     //print user options to args.txt; must be done after all options are set

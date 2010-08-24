@@ -130,8 +130,11 @@ ostream & ped_sum( ostream & os, const Pedigree & ped )
 		<< ped.getNFounders() << '/' << ped.getNNonFndrs() << '/'
 		<< nSibs << " founders/offspring/siblings, "
 		<< ped.getNAffected() << '/' << ped.getNAffNonFndr() << " affected/offspring, "
-		<< ped.getNFounderGametes() << " founder-gametes, "
-		<< ped.getNMeiosis() << " meiosis)";
+		<< ped.getNFounderGametes(CHR_IS_NOT_X) << " founder-gametes(non-X), "
+		<< ped.getNFounderGametes(CHR_IS_X) << " founder-gametes(X), "
+		<< ped.getNMeiosis(CHR_IS_NOT_X) << " meiosis(non-X), "
+		<< ped.getNMeiosis(CHR_IS_X) << " meiosis(X)"
+		    ")";
     }
 
 
@@ -148,7 +151,7 @@ ostream & ped_sum_hss( ostream & os, const Pedigree & ped )
     for ( SLocIdxType sloc = ped.getSLoci().size() ; sloc-- != 0 ; )
 	{
 	const HiddenStateSpace & hss = ped.getStateProbs( sloc );
-	tot_ns += hss.getNStates();
+	tot_ns += hss.getNStates( CHR_IS_NOT_X );
 	tot_nz += hss.getNNon0();
 	}
 

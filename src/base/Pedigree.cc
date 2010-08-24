@@ -191,9 +191,8 @@ static int depthCompare( Pedigree::Member * const * lhs_ptr, Pedigree::Member * 
 			getId().c_str(), this );
 	for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
 	    {
-	    const bool onX = false; // XXX
 	    const Organism & founder = founderAt( fIdx );
-	    if ( founder.isHaploid( onX ) )
+	    if ( founder.isHaploid( CHR_IS_NOT_X /*FIXME-PED-XCHR*/ ) )
 		fprintf( stderr, "    fndr-idx %02zd (org #%d) ->   single-gamete %zd\n",
 		    fIdx, founder.getOrgId(), founderGameteOfFounder( fIdx, GT_SINGLE, onX ) );
 	    else
@@ -252,7 +251,8 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
     // counting the number of founders and traversing the parent-tree to compute
     // the depth value (maximum depth-to-founder) for each member:
     nFounders = 0;
-    FGameteIdx nFGametes = 0;
+    FGameteIdx nFGametes  = 0; // Counter for number of founder-gametes, non-X chroms
+    FGameteIdx nFGametesX = 0; // Counter for number of founder-gametes, on the X chrom
     Member * * mPtr = sortedMembers;
     while ( firstM != endM )
 	{
@@ -260,10 +260,10 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	Member & m = **firstM;
 	if ( m.isFounder() )
 	    {
-	    bool onXChromosome = false; // XXX
 	    gp_assert( m.getDepth() == 0 );
 	    ++nFounders;
-	    nFGametes += m.isHaploid(onXChromosome) ? 1 : 2;
+	    nFGametes  += m.isHaploid( CHR_IS_NOT_X ) ? 1 : 2;
+	    nFGametesX += m.isHaploid( CHR_IS_X	    ) ? 1 : 2;
 	    traverseChildTree( m );
 	    }
 
@@ -346,39 +346,56 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	}
 
 
+    // ----- SINGLE-GAMETE-FOUNDER MODEL -----
     // Since organisms now know their children, we can reduce certain founders
     // to be modeled as a single gamete: those without genotyped data and only a
     // single offspring in the pedigree.
     if ( getOptions().getSglGameteFounder() )
 	for ( Iterator it = getFirstFounder() ; it != getEndFounder() ; ++it )
 	    {
+
 	    Member & f = **it;
-	    bool onXChromosome = false; // XXX
-	    if ( (! f.isHaploid(onXChromosome)) &&
-		    (! f.isGenotyped()) &&
-		    (f.getChildren().size() == 1) )
+
+	    if ( (! f.isGenotyped()) && (f.getChildren().size() == 1) &&
+		    (! f.isHaploid( CHR_IS_NOT_X )) )
 		{
 		if ( getOptions().getDisplayLevel() > 3 )
 		    cout << "Pedigree " << getId()
 			<< ": using single-gamete model for founder "
-			<< f.getOrgId() << ".\n";
-		f.setSingleGameteModel( true );
+			<< f.getOrgId();
 		--nFGametes;
+		if ( ! f.isHaploid( CHR_IS_X ) )
+		    {
+		    if ( getOptions().getDisplayLevel() > 3 )
+			cout << " (both X & non-X chromosomes).\n";
+		    --nFGametesX;
+		    }
+		else
+		    {
+		    if ( getOptions().getDisplayLevel() > 3 )
+			cout << " (X chromosome was already haploid).\n";
+		    }
+		f.setSingleGameteModel( true );
 		}
+
 	    }
+
 
 
     // Build the founder-index to founder-gamete-index and founder-gamete-index
     // to founder-index mappings:
     fgMap.resize( nFounders );
     gfMap.resize( nFGametes );
+    gfMapX.resize( nFGametesX );
     FGMapEl fg = { 0, 0 };
     for ( FounderIdx fIdx = 0 ; fIdx < nFounders ; ++fIdx )
 	{
+
 	fgMap[ fIdx ] = fg;
 	const Organism & founder = founderAt( fIdx );
+
 	gfMap[fg.nonX].fIdx = fIdx;
-	if ( founder.isHaploid(false) )
+	if ( founder.isHaploid( CHR_IS_NOT_X ) )
 	    gfMap[fg.nonX++].whichOne = Pedigree::GT_SINGLE;
 	else
 	    {
@@ -386,10 +403,21 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	    gfMap[fg.nonX].fIdx = fIdx;
 	    gfMap[fg.nonX++].whichOne = Pedigree::GT_MATERNAL;
 	    }
-	fg.X += founder.isHaploid(true) ? 1 : 2;
+
+	gfMapX[fg.X].fIdx = fIdx;
+	if ( founder.isHaploid( CHR_IS_X ) )
+	    gfMapX[fg.X++].whichOne = Pedigree::GT_SINGLE;
+	else
+	    {
+	    gfMapX[fg.X++].whichOne = Pedigree::GT_PATERNAL;
+	    gfMapX[fg.X].fIdx = fIdx;
+	    gfMapX[fg.X++].whichOne = Pedigree::GT_MATERNAL;
+	    }
+
 	}
-    gp_assert_eq( fg.nonX, nFGametes );
-    gp_assert_eq( fgMap.size(), nFounders );
+    gp_assert_eq( fg.nonX     , nFGametes  );
+    gp_assert_eq( fg.X	      , nFGametesX );
+    gp_assert_eq( fgMap.size(), nFounders  );
 
 
     // Count the number of affected members (with separate count of
@@ -413,7 +441,8 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 
     // Sanity checking:
     gp_assert( nFounders != 0 );
-    gp_assert_ge( nFGametes, nFounders );
+    gp_assert_ge( nFGametes , nFounders );
+    gp_assert_ge( nFGametesX, nFounders );
     gp_assert_le( nFounders, nMembers );
     gp_assert_le( getNNonFndrs(), InheritanceVector::MAX_ORGANISMS );
     gp_assert( sortedMembers[0]->isFounder() );
@@ -443,6 +472,7 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	sortedMembers	  ( rhs.sortedMembers	  ) ,
 	fgMap		  ( rhs.fgMap		  ) ,
 	gfMap		  ( rhs.gfMap		  ) ,
+	gfMapX		  ( rhs.gfMapX		  ) ,
 	ivSpace		  ( rhs.ivSpace		  ) ,
 	nMendelErrs	  ( rhs.nMendelErrs	  ) ,
 	mendelErrsByLocus ( rhs.mendelErrsByLocus ) ,
@@ -485,6 +515,7 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     sortedMembers	= rhs.sortedMembers	;
     fgMap		= rhs.fgMap		;
     gfMap		= rhs.gfMap		;
+    gfMapX		= rhs.gfMapX		;
     ivSpace		= rhs.ivSpace		;
     nMendelErrs		= rhs.nMendelErrs	;
     mendelErrsByLocus	= rhs.mendelErrsByLocus ;
@@ -628,24 +659,25 @@ const char * Pedigree::gameteTypeDesc( GameteType gt )
 
 Genotype::AlleleType Pedigree::getGTypeOfFndrGamete( FGameteIdx fgIdx, SLocIdxType sLocIdx ) const
     {
+
     Genotype::AlleleType rv;
 
-    const bool isX = getSLoci()[sLocIdx].isXChrom();
+    const IsXChromType is_xchrom = getSLoci()[sLocIdx].isXChrom();
 
     GameteType whichOne;
-    const FounderIdx fIdx    = founderOfGameteIdx( fgIdx, whichOne, isX );
+    const FounderIdx fIdx    = founderOfGameteIdx( fgIdx, whichOne, is_xchrom );
     const Member &   founder = founderAt( fIdx );
     const Genotype & gType   = founder.getGType( sLocIdx );
 
     if ( whichOne == GT_SINGLE )
 	{
-	gp_assert( founder.isHaploid( isX ) );
+	gp_assert( founder.isHaploid( is_xchrom ) );
 	gp_assert( gType.isHaploid() );
 	rv = gType.getVal1();
 	}
     else
 	{
-	gp_assert( ! founder.isHaploid( isX ) );
+	gp_assert( ! founder.isHaploid( is_xchrom ) );
 	gp_assert( ! gType.isHaploid() );
 
 	// Is this right?  Arbitrarily call the first allele in the unphased
@@ -654,6 +686,7 @@ Genotype::AlleleType Pedigree::getGTypeOfFndrGamete( FGameteIdx fgIdx, SLocIdxTy
 	}
 
     return rv;
+
     }
 
 

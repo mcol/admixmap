@@ -165,7 +165,10 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	Pedigree::FGameteIdx maxFounderGametes = 0;
 	for ( int idx = 0 ; idx < int(getPeds().size()) ; ++idx )
 	    {
-	    const Pedigree::FGameteIdx nfg = getPed( idx ).getNFounderGametes();
+	    // We assume that the number of founder-gametes on a non-X
+	    // chromosome must be >= to that on an X chromosome; since we are
+	    // only looking for the maxmimum, we only check that value.
+	    const Pedigree::FGameteIdx nfg = getPed(idx).getNFounderGametes(CHR_IS_NOT_X);
 	    if ( nfg > maxFounderGametes )
 		maxFounderGametes = nfg;
 	    }
