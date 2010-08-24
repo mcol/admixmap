@@ -102,7 +102,7 @@ class GenotypeParser : public GFileLexer
 	    { pmap.insert( std::multimap<FamIdType,Organism*>::value_type( org.getFamId(), &org ) ); }
 
 
-	void validateOrg( Organism & org ) const;
+	void validateOrg( Organism & org, bool maleXHomozygWarn ) const;
 
 
     public:
@@ -214,7 +214,8 @@ class GenotypeParser : public GFileLexer
 	//---------------------------------------------------------------
 
 	/// Constructs the object, opens the file, and parses the data:
-	GenotypeParser( const char * fileName, const SimpleLocusArray & sLoci, bool outcomeIsBinary );
+	GenotypeParser( const char * fileName, const SimpleLocusArray & sLoci,
+			bool outcomeIsBinary, bool maleXHomozygWarn );
 	~GenotypeParser();
 
     };

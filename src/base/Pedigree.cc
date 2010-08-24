@@ -415,6 +415,7 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	    }
 
 	}
+
     gp_assert_eq( fg.nonX     , nFGametes  );
     gp_assert_eq( fg.X	      , nFGametesX );
     gp_assert_eq( fgMap.size(), nFounders  );

@@ -70,7 +70,7 @@ void InputData::ReadData( Options * options, LogWriter & Log )
 
 	SimpleLocusParser::parse( options->getLocusFilename(), simpleLoci );
 	genotypeLoader = new GenotypeParser( options->getGenotypesFilename(), simpleLoci,
-						options->getOutcomeIsBinary() );
+						options->getOutcomeIsBinary(), options->getMaleXHomozygWarn() );
 
 	// We used to generate the pedigrees here, but it turns out the number
 	// of populations is not yet known.  This is now called from

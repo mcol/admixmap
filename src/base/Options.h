@@ -37,6 +37,7 @@ private:
   bool warningsAreErrors; ///< Abort execution without running model if input data contains warnings.
   int  maxCPUsToUse	; ///< Maximum CPUs (cores) to use in parallel.  0 (default) for all available.
   unsigned maxPedigreeSize; ///< Maximum number of organisms in a pedigree (larger pedigrees will be reduced by removing non-founders).
+  bool maleXHomozygWarn ; ///< What to do if a male has diploid but homozygous genotyped data on the X-chromosome
 
   /// When parsing pedigree files, turn parent-IDs that refer to non-existent
   /// individuals into unknown-parent.  Otherwise there are errors.
@@ -169,8 +170,10 @@ private:
 								    ///< the input data generates and warnings.
     int	 getMaxCPUsToUse     () const { return maxCPUsToUse	; } ///< Maximum CPUs (cores) to use in parallel.
 								    ///< 0 (default) for all available.
-    unsigned getMaxPedigreeSize() const { return maxPedigreeSize  ; } ///< Maximum number of organisms in a pedigree (larger
+    unsigned getMaxPedigreeSize() const { return maxPedigreeSize; } ///< Maximum number of organisms in a pedigree (larger
 								    ///< pedigrees will be reduced by removing non-founders).
+    bool getMaleXHomozygWarn () const { return maleXHomozygWarn ; } ///< If a male has diploid but homozygous genotyped data
+								    ///< on the X-chromosome, warn or treat as haploid
 
     /// When parsing pedigree files, turn parent-IDs that refer to non-existent
     /// individuals into unknown-parent.  Otherwise there are errors.

@@ -339,7 +339,7 @@ void GenotypeParser::buildAndCheckPedGraphs()
 /// At this time, the mother and father have not yet been resolved to pointers.
 //-----------------------------------------------------------------------------
 
-void GenotypeParser::validateOrg( Organism & org ) const
+void GenotypeParser::validateOrg( Organism & org, bool maleXHomozygWarn ) const
     {
 
     const SimpleLocusArray & sLoci = getSLoci();
@@ -381,7 +381,12 @@ void GenotypeParser::validateOrg( Organism & org ) const
 			warn( estr("organism ") + org.idDesc() + " at locus " + locus.getName() +
 			    ": diploid heterozygous genotype data on male organism's X chromosome" );
 		    else
+			{
+			if ( maleXHomozygWarn )
+			    warn( estr("organism ") + org.idDesc() + " at locus " + locus.getName() +
+				": diploid homozygous genotype data on male organism's X chromosome" );
 			gType.forceHaploid();
+			}
 		    }
 		}
 	    }
@@ -422,7 +427,8 @@ void GenotypeParser::validateOrg( Organism & org ) const
 // Constructor:
 //-----------------------------------------------------------------------------
 
-GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & sLoci, bool outcomeIsBinary ) :
+GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & sLoci,
+				bool outcomeIsBinary, bool maleXHomozygWarn ) :
 	GFileLexer ( fileName ) ,
 	simpleLoci ( sLoci    )
     {
@@ -689,7 +695,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 		throwError( "spurious garbage at end of line (i.e. too many fields)" );
 
 
-	    validateOrg( row );
+	    validateOrg( row, maleXHomozygWarn );
 
 
 	    // Add the newly-parsed row to the container of organisms.  If we

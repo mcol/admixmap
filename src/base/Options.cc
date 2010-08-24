@@ -243,6 +243,7 @@ void Options::DefineOptions(){
   addOption( "outcome-is-binary"	  , outcomeIsBinary	 , false );
   addOption( "max-cpus"			  , maxCPUsToUse	 , 0	 );
   addOption( "max-pedigree-size"	  , maxPedigreeSize	 , 0	 );
+  addOption( "male-x-homozyg-warn"	  , maleXHomozygWarn	 , false );
   addOption( "exclude-mendelian-errors"	  , excludeMendelError	 , true  );
   addOption( "exclude-unaffected-sibs"	  , excludeUnaffectedSibs, false );
 
