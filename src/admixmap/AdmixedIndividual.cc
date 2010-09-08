@@ -413,25 +413,25 @@ double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options& option
 
     //getPosteriorMeans(ThetaBar, rhobar, options->getTotalSamples() - options->getBurnIn());
     unsigned size = NumHiddenStates * NumGametes;
-    for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (double) (options.getTotalSamples() - options.getBurnIn());
+    const double scale_factor = options.getTotalSamples() - options.getBurnIn();
+    for (unsigned i = 0; i < size; ++i)
+      SumSoftmaxTheta[i] /= scale_factor;
 
-    for(unsigned i = 0; i < sumlogrho.size(); ++i)
-      rhobar.push_back( exp(sumlogrho[i]/(double)(options.getTotalSamples() - options.getBurnIn())) );
+    for (unsigned i = 0; i < sumlogrho.size(); ++i)
+      rhobar.push_back( exp(sumlogrho[i]/scale_factor) );
 
     //apply softmax transformation to obtain thetabar
     double *a = new double[NumHiddenStates];
     bool* b = new bool[NumHiddenStates];
     for( unsigned int g = 0; g < NumGametes; g++ ){
       for(int k = 0; k < NumHiddenStates; ++k)
-	if (Theta[g][k] > 0.0) {
-	  b[k] = true; //to skip elements set to zero
-	} else b[k] = false;
+        b[k] = (Theta[g][k] > 0.0) ? true : false; // skip elements set to zero
       bclib::softmax(NumHiddenStates, a, SumSoftmaxTheta+g*NumHiddenStates, b);
-      for (int i = 0; i < NumHiddenStates; ++i)
-        if (b[i]) ThetaBar[g][i] = a[i];
-      //rescale sumsoftmaxtheta back
-      for(int k = 0; k < NumHiddenStates; ++k)
-	SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) (options.getTotalSamples() - options.getBurnIn());
+      for (int k = 0; k < NumHiddenStates; ++k) {
+        if (b[k]) ThetaBar[g][k] = a[k];
+        // rescale SumSoftmaxTheta back
+        SumSoftmaxTheta[g*NumHiddenStates + k] *= scale_factor;
+      }
     }
     delete[] a;
     delete[] b;
@@ -457,28 +457,29 @@ double AdmixedIndividual::getLogLikelihoodOnePop(){ //convenient for a single po
   return LogLikelihood;
 }
 
-void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, RhoType & rhoMean, unsigned samples)const{
+void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, RhoType& rhoMean,
+                                          unsigned samples) const {
   unsigned size = NumHiddenStates * NumGametes;
-  for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (double) samples;
+  const double dSamples = samples;
+  for (unsigned i = 0; i < size; ++i)
+    SumSoftmaxTheta[i] /= dSamples;
   rhoMean.clear();
   for(unsigned i = 0; i < sumlogrho.size(); ++i)
-    rhoMean.push_back( exp(sumlogrho[i]/(double)samples) );
+    rhoMean.push_back( exp(sumlogrho[i]/dSamples) );
 
-  //apply softmax transformation to obtain thetabar
-  if(ThetaMean == 0){
-    throw string("ERROR in AdmixedIndividual::getPosteriorMeans");
-    //TODO: some more helpful message here?
-  }
+  if (ThetaMean == 0)
+    throw string("ERROR in AdmixedIndividual::getPosteriorMeans: "
+                 "ThetaMean is NULL");
+
+  // apply softmax transformation to obtain thetabar
   bool* b = new bool[NumHiddenStates];
   for( unsigned int g = 0; g < NumGametes; g++ ){
     for(int k = 0; k < NumHiddenStates; ++k)
-      if (Theta[g][k] > 0.0) {
-      b[k] = true; //to skip elements set to zero
-    } else b[k] = false;
+      b[k] = (Theta[g][k] > 0.0) ? true : false; // skip elements set to zero
     bclib::softmax(NumHiddenStates, ThetaMean+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
-    //rescale sumsoftmaxtheta back
+    // rescale SumSoftmaxTheta back
     for(int k = 0; k < NumHiddenStates; ++k)
-      SumSoftmaxTheta[g*NumHiddenStates + k] *= (double) samples;
+      SumSoftmaxTheta[g*NumHiddenStates + k] *= dSamples;
   }
   delete[] b;
 }
