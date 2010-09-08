@@ -160,7 +160,7 @@ ostream & ped_sum_hss( ostream & os, const Pedigree & ped )
     return ped_sum( os, ped ) << " ("
 	<< ped.getNMendelErrs() << " Mendelian errors; "
 	<< tot_ns << '/' << tot_nz
-	<< "total/non-0 states; "
+	<< " total/non-0 states; "
 	<< (((tot_nz * 10 / ped.getSLoci().size()) + 5) / 10) << " ave. size; "
 	<< fixed << setprecision(1) << (double(tot_nz) * 100 / tot_ns) << "% ave. fill-factor)";
     }

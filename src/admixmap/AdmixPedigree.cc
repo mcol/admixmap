@@ -734,7 +734,8 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
 	    #define DEBUG_AOTEST 0
 	    #if DEBUG_AOTEST
-		fprintf( stderr, "ped:%s(%d) t:%zd k:%zd\n", getId().c_str(), getMyNumber(), t, k );
+		fprintf( stderr, "ped:%s(%d) t:%zd k:%zd %s\n", getId().c_str(), getMyNumber(), t, k,
+			 loci[t].isXChrom() == CHR_IS_X ? "(X chr)" : "" );
 	    #endif
 
 	    double scoreAvg   = 0.0;
