@@ -571,10 +571,13 @@ void AdmixedIndividual::SampleJumpIndicators(bool sampleArrivals){
   } //end chromosome loop
 }
 
-///uses an EM algorithm to search for posterior modes of individual parameters theta and rho
+/// Use an EM algorithm to search for posterior modes of individual parameters
+/// theta and rho
 // uses current values of allele freqs
-void AdmixedIndividual::FindPosteriorModes( const AdmixOptions & options, const AlphaType & alpha,
-				    double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile) {
+void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options,
+                                           const AlphaType& alpha,
+                                           double rhoalpha, double rhobeta,
+                                           AlleleFreqs* A, ofstream& modefile) {
   if( A->IsRandom() ) {
     // set genotype probs using HapPairProbsMAP and AlleleProbsMAP
     for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
@@ -611,7 +614,7 @@ void AdmixedIndividual::FindPosteriorModes( const AdmixOptions & options, const 
 
       //E-step: fix theta and rho, sample Locus Ancestry and Number of Arrivals
       NumEstepiters *= 2;
-      for(unsigned Estepiters = 0; Estepiters < (unsigned)NumEstepiters ; ++Estepiters) {
+      for (unsigned Estepiters = 0; Estepiters < NumEstepiters ; ++Estepiters) {
 	if(NumHiddenStates >1){
 	  ResetSufficientStats();
 	  SampleHiddenStates(options);
@@ -670,7 +673,8 @@ void AdmixedIndividual::FindPosteriorModes( const AdmixOptions & options, const 
     loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, false);
     double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
 
-    if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases
+    // accept update only if density increases
+    if (LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) {
       if(isadmixed) {
 	setAdmixtureProps(ThetaProposal);
 	copy(rhohat.begin(), rhohat.end(), _rho.begin());
@@ -684,38 +688,40 @@ void AdmixedIndividual::FindPosteriorModes( const AdmixOptions & options, const 
     delete[] SumLocusAncestryHat;
   } // end block conditional on isadmixed
 
-  //print values to file
+  // print values to file
   modefile<<setiosflags(ios::fixed)<<setprecision(3);
   modefile << getMyNumber() << "\t";
   if(!options.isGlobalRho()) {
-     for(unsigned i = 0; i < NumGametes; ++i) {
-      modefile<<_rho[i]<<"\t ";
-     }
+    for (unsigned i = 0; i < NumGametes; ++i)
+      modefile << _rho[i] << "\t ";
    }
-  for(unsigned i = 0; i < NumGametes; ++i) { //loop over populations within gametes
-    for(int k = 0; k < NumHiddenStates; ++k) modefile << Theta[i][k] << "\t ";
+  for (unsigned i = 0; i < NumGametes; ++i) {
+    for (int k = 0; k < NumHiddenStates; ++k)
+      modefile << Theta[i][k] << "\t ";
   }
 
   if(getIndex()==0 && options.getChibIndicator()){ // copy modes into hat arrays to use in Chib algorithm
     thetahat = Theta;
 
-    //check for zeros where not specified by prior
+    // check for zeros where not specified by prior
     for(unsigned i = 0; i < NumGametes; ++i) {
-      unsigned gg = i; // index of alpha to use: for second gamete and no indadmixhiermodel use 1
-      if(options.getIndAdmixHierIndicator()) gg = 0;
+
+      // index of alpha to use: if indadmixhiermodel use 0 for both gametes,
+      // otherwise use 1 for the second gamete
+      unsigned gg = options.getIndAdmixHierIndicator() ? 0 : i;
       double sum = 0.0;
-      for(int k = 0; k < NumHiddenStates; ++k) { // if prior not zero, and mode < 0.001, use 0.001
-        if (alpha[gg][k] > 0.0 && thetahat[i][k] < 0.001) {
+
+      for (int k = 0; k < NumHiddenStates; ++k) {
+        // if prior not zero and mode < 0.001, use 0.001
+        if (alpha[gg][k] > 0.0 && thetahat[i][k] < 0.001)
           thetahat[i][k] = 0.001;
-	}
-      }
-      for(int k = 0; k < NumHiddenStates; ++k) {
 	sum += thetahat[i][k];
       }
-      for(int k = 0; k < NumHiddenStates; ++k) { // re-normalize
-	thetahat[i][k] /= sum;
-      }
-    } //end gamete loop
+
+      // re-normalize
+      thetahat[i] /= sum;
+    }
+
     copy(_rho.begin(), _rho.end(), rhohat.begin());
   }
   // compute log likelihood at posterior modes

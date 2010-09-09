@@ -64,6 +64,8 @@ public:
 		    const AdmixOptions & options, const AlphaType & alpha,
 		    double DInvLink, double dispersion, CopyNumberAssocTest & ancestryAssocTest, bool RW, bool anneal);
 
+  /// Use an EM algorithm to search for posterior modes of individual
+  /// parameters theta and rho
   void FindPosteriorModes(const AdmixOptions& options, const AlphaType &alpha,
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);
   void resetStepSizeApproximator(int k);
