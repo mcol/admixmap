@@ -735,7 +735,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	    #define DEBUG_AOTEST 0
 	    #if DEBUG_AOTEST
 		fprintf( stderr, "ped:%s(%d) t:%zd k:%zd %s\n", getId().c_str(), getMyNumber(), t, k,
-			 loci[t].isXChrom() == CHR_IS_X ? "(X chr)" : "" );
+			 is_xchrom == CHR_IS_X ? "(X chr)" : "" );
 	    #endif
 
 	    double scoreAvg   = 0.0;
@@ -758,26 +758,38 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
 		    const double mu = getCurTheta()[ 0 ][ k ]; // Could move outside the inner HSS loop.
 
-		    stScore = -mu;
-
 		    //gp_assert( stId->getIV() == InheritanceVector::null_IV() );
 		    const AncestryVector & av = stIt.getAV();
 
-		    // Assert: the sole member (unrelated individual) is not a
-		    // single-gamete-founder, but rather has two gametes with
-		    // observed genotyped data.  This is not necessary, but it's
-		    // not clear (to me) why we would have in the input dataset
-		    // an unrelated individual with no genotyped data.  This can
-		    // be removed if the score computation below is adjusted
-		    // accordingly.
-		    gp_assert( av.size(is_xchrom) == 2 );
+		    if ( av.size(is_xchrom) == 2 )
+			{
 
-		    if ( av.at(0,is_xchrom) == k ) // Paternal ancestry
-			stScore += 0.5;
-		    if ( av.at(1,is_xchrom) == k ) // Maternal ancestry
-			stScore += 0.5;
+			// --- Diploid case.
 
-		    stInfo = 0.5 * (1 - mu) * mu;
+			stScore = -mu;
+			if ( av.at(0,is_xchrom) == k ) // Paternal ancestry
+			    stScore += 0.5;
+			if ( av.at(1,is_xchrom) == k ) // Maternal ancestry
+			    stScore += 0.5;
+
+			stInfo = 0.5 * (1 - mu) * mu;
+
+			}
+		    else
+			{
+
+			// --- Haploid case: male on X chromosome.
+			gp_assert_eq( av.size(is_xchrom), 1 );
+			gp_assert( (*getFirstMember())->isMale() );
+			gp_assert( is_xchrom == CHR_IS_X );
+
+			stScore = -0.5 * mu;
+			if ( av.at(0,is_xchrom) == k ) // Maternal ancestry
+			    stScore += 1.0;
+
+			stInfo = 0.25 * (1 - mu) * mu;
+
+			}
 
 		    }
 
