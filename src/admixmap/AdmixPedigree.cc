@@ -1553,12 +1553,6 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 	for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
 	    scaledSSMT[tIdx].softmax_gt0( thetabar[tIdx], 0.0 ); // Equivalent: scaledSSMT[tIdx].softmax( thetabar[tIdx], gt_0 );
 
-	#if 0
-	    llCache.parmsChanged();	   // No need since starting the proposal automatically invalidates
-	    getHMM().setTheta( thetabar ); // No need since we used a cache-proposal
-	    getHMM().thetaChanged();	   // No need since we used a cache-proposal
-	#endif
-
 	rv = llCache.getProposedVal(); // getHMM().getLogLikelihood(), but caches
 
 	#if NON_GLOBAL_RHO_WORKS
