@@ -47,18 +47,7 @@ AdmixtureProportions::AdmixtureProportions(int _nGametes, int _nHiddenStates) :
 
 /// Copy constructor
 AdmixtureProportions::AdmixtureProportions(const AdmixtureProportions& rhs) :
-  gametes(rhs.gametes.size()), vflat(NULL), isOk(true) {
-
-  const size_t G = gametes.size();
-  const size_t K = rhs.gametes[0].size();
-  for (size_t i = 0; i < G; ++i)
-    gametes[i].resize(K);
-
-  for (size_t g = 0; g < G; ++g) {
-    for (size_t k = 0; k < K; ++k)
-      gametes[g][k] = rhs[g][k];
-  }
-}
+  gametes(rhs.gametes), vflat(NULL), isOk(rhs.isOk) {}
 
 /// Destructor
 AdmixtureProportions::~AdmixtureProportions() {
@@ -70,16 +59,10 @@ AdmixtureProportions::~AdmixtureProportions() {
 AdmixtureProportions& AdmixtureProportions::operator=(const AdmixtureProportions& rhs) {
 
   if (this != &rhs) {
-
-    const size_t G = gametes.size();
-    const size_t K = gametes[0].size();
-    gp_assert(rhs.gametes.size() == G);
-    gp_assert(rhs[0].size() == K);
-
-    for (size_t g = 0; g < G; ++g) {
-      for (size_t k = 0; k < K; ++k)
-        gametes[g][k] = rhs[g][k];
-    }
+    gametes = rhs.gametes;
+    isOk = rhs.isOk;
+    delete[] vflat;
+    vflat = NULL;
   }
 
   return *this;
