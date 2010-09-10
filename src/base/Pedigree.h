@@ -553,7 +553,9 @@ class Pedigree : public PedBase // See NOTE *4*
     //=========================================================================
 
     protected:
-	void SetUniformAdmixtureProps(); // Set the initial values of theta
+
+	/// Set the initial values of theta to a uniform distribution.
+	void SetUniformAdmixtureProps();
 
 
     public:

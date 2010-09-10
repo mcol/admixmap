@@ -1613,16 +1613,8 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 
 void Pedigree::SetUniformAdmixtureProps()
     {
-    const size_t K	    = getK();
-    const double one_over_K = 1.0 / K;
-
-    for ( ThetaIdx fIdx = getNTheta() ; fIdx-- != 0 ; )
-	{
-	ThetaElType & thetaEl = getCurTheta()[ fIdx ];
-	thetaEl.resize( K );
-	for ( PopIdx k = K ; k-- != 0 ; )
-	    thetaEl[ k ] = one_over_K;
-	}
+    AdmixType& th = getCurTheta();
+    th.setTo( 1.0 / getK() );
     }
 
 
