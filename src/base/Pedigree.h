@@ -615,9 +615,9 @@ class Pedigree : public PedBase // See NOTE *4*
 	/// _vastly_ simplifies the code, and makes it much more robust.
 	//---------------------------------------------------------------------
 
-	ProposalRingBuffer<ThetaType> thetas;
-	const ThetaType & getCurTheta() const { return thetas.getCurrent(); } ///< Convenience.
-	ThetaType &	  getCurTheta()	      { return thetas.getCurrent(); } ///< Convenience.
+	ProposalRingBuffer<AdmixType> thetas;
+	const AdmixType & getCurTheta() const { return thetas.getCurrent(); } ///< Convenience.
+	AdmixType &	  getCurTheta()	      { return thetas.getCurrent(); } ///< Convenience.
 	double getCurThetaVal( FounderIdx f, PopIdx k ) const { return getCurTheta()[f][k]; } ///< Convenience.
 
 
@@ -690,7 +690,6 @@ class Pedigree : public PedBase // See NOTE *4*
 
 		void parmsChanged();
 	    };
-
 
 
 
@@ -779,7 +778,7 @@ class Pedigree : public PedBase // See NOTE *4*
 	// Combined proposal methods
 	//--------------------------------------------------------------------
 
-	ThetaType & startThetaProposal();
+	AdmixType & startThetaProposal();
 	void	    rejectThetaProposal();
 	void	    acceptThetaProposal();
 
@@ -817,7 +816,7 @@ class Pedigree : public PedBase // See NOTE *4*
 
     double getLogLikelihoodAtPosteriorMeans( const Options & options );
     double getLogLikelihoodOnePop() const;
-    void setAdmixtureProps( const ThetaType & rhs );
+    void setAdmixtureProps( const AdmixType & rhs );
 
 
 

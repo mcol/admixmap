@@ -69,16 +69,15 @@ class HiddenMarkovModel
 	typedef cvector< ProbType	  > ProbsAtLocusType ;
 	typedef cvector< ProbsAtLocusType > ProbArrType	     ;
 	typedef cvector< ProbType	  > PiType	     ; ///< Indexed on "overall" state-index (including 0-prob states)
-	typedef Pedigree::ThetaType	    ThetaType	     ;
+	typedef Pedigree::AdmixType	    AdmixType	     ;
 
     private:
 	const Pedigree * ped	 ; ///< Ref to ped for hidden state space, etc.
 	TransProbCache * tpCache ; ///< Transition probabilities.  These should perhaps
 				   ///< be retrieved from the Pedigree object itself
 
-	/// Theta probabilities for the founder-gametes, indexed on PopIdxType
-	/// AKA Theta
-	const ThetaType * theta;
+	/// Admixture probabilities for the founder-gametes
+	const AdmixType * theta;
 
 	mutable bool dirtyForwards ; ///< Input parameters have changed since last compute; stored alpha is invalid
 	mutable bool dirtyBackwards; ///< Input parameters have changed since last compute; stored beta is invalid
@@ -108,7 +107,7 @@ class HiddenMarkovModel
 	/// Recursive function to multiply the transition-probability matrix
 	/// by the probability vector alpha
 	void transRecursion(const double *alpha, double *res,
-			    double f, double g, const ThetaType& h,
+			    double f, double g, const AdmixType& h,
 			    HVIterator z, size_t sz, IsXChromType isX ) const;
 
 	void computeStationaryDistr( const HiddenStateSpace & hss_0 ) const;
@@ -153,7 +152,7 @@ class HiddenMarkovModel
 
 	void recursionProbs( double		      f		,
 			     double		      g		,
-			     const ThetaType &	      h		,
+			     const AdmixType &	      h		,
 			     const HiddenStateSpace & fr_hss	,
 			     const HiddenStateSpace & to_hss	,
 			     const ProbsAtLocusType & frProbs	,
@@ -185,7 +184,7 @@ class HiddenMarkovModel
 	/// Construct the model.
 	/// @parm theta - see setTheta()
 	HiddenMarkovModel( const Pedigree & ped , TransProbCache & tpCache ,
-			    const ThetaType * theta = 0 );
+			   const AdmixType * theta = 0 );
 
 	const Pedigree &       getPed() const { return *ped    ; } ///< Get reference to Pedigree
 	const TransProbCache & getTPC() const { return *tpCache; } ///< Get reference to TransProbCache
@@ -202,7 +201,7 @@ class HiddenMarkovModel
 	/// ownership; the vector must not be destroyed for as long as the model
 	/// continues to exist, or until a new theta vector is set.  We
 	/// @i really need a copy-on-write vector template.
-	void setTheta( const ThetaType * nv );
+	void setTheta( const AdmixType * nv );
 	void thetaChanged() const;
 
 

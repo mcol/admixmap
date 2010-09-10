@@ -133,11 +133,7 @@ class TransProbCache
 
     public:
 
-	#if 0
-	    typedef TwoDimArray<Pedigree::FounderIdxType,PopIdx,double> MuType;
-	#else
-	    typedef Pedigree::ThetaType MuType;
-	#endif
+	typedef Pedigree::AdmixType MuType;
 
     private:
 
@@ -223,6 +219,8 @@ class TransProbCache
 					  ///< so the calling code must keep the object in
 					  ///< existence until no longer needed.
 
+	    /// Retrieve \f$\mu\f$, the proportion of admixture from each
+	    /// population on each gamete.
 	    const MuType & getMu() const { return *mu; }
 
 

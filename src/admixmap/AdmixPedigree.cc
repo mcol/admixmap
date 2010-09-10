@@ -355,11 +355,10 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 
 
     const PopIdx K = getK();
-    for ( ProposalRingBuffer<ThetaType>::Iterator it = thetas.begin() ; it != thetas.end() ; ++it )
+    for ( ProposalRingBuffer<AdmixType>::Iterator it = thetas.begin() ;
+          it != thetas.end() ; ++it )
 	{
-	it->resize( getNTheta() );
-	for ( ThetaIdx fIdx = getNTheta() ; fIdx-- != 0 ; )
-	    (*it)[ fIdx ].resize( K );
+	it->setDimensions( getNTheta(), K );
 	}
 
 
@@ -1244,8 +1243,8 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
     // NOTE *M1*: Maybe this should be be allocated once for the class?
     pvectord a( K );
 
-    ThetaType & theta_proposal = startThetaProposal();
-    ThetaType & theta	       = thetas.getAccepted();
+    AdmixType & theta_proposal = startThetaProposal();
+    AdmixType & theta          = thetas.getAccepted();
 
     for ( ThetaIdx tIdx = 0 ; tIdx < getNTheta() ; ++tIdx )
 	{
@@ -1341,8 +1340,8 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
 void Pedigree::Accept_Reject_Theta( double logpratio, bool /*isRandomMatingModel*/, bool isRandomWalk )
     {
 
-    const ThetaType & theta	    = thetas.getAccepted();
-    const ThetaType & thetaProposal = thetas.getProposed();
+    const AdmixType & theta         = thetas.getAccepted();
+    const AdmixType & thetaProposal = thetas.getProposed();
 
 
     // Loop over populations: if any element of proposed Dirichlet parameter
@@ -1482,10 +1481,10 @@ void Pedigree::rejectRhoProposal()
 
 /// Allocates new theta on the ring-buffer for proposal and starts a new
 /// logLikelihood proposal.
-Pedigree::ThetaType & Pedigree::startThetaProposal()
+Pedigree::AdmixType & Pedigree::startThetaProposal()
     {
     llCache.startProposal();
-    ThetaType & rv = thetas.startNewProposal();
+    AdmixType & rv = thetas.startNewProposal();
     getHMM().setTheta( &rv );
     return rv;
     }
@@ -1529,7 +1528,7 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
       else
     #endif
 	{
-	ThetaType & thetabar = startThetaProposal();
+	AdmixType & thetabar = startThetaProposal();
 
 	// AdmixedIndividual's updateHMMInputs() only changes rho if not global-rho -- WHY???
 	#if NON_GLOBAL_RHO_WORKS

@@ -53,7 +53,7 @@ namespace genepi { // ----
 
 HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	_ped	 ,
 				      TransProbCache &	_tpCache ,
-				      const ThetaType *	_theta	 ) :
+				      const AdmixType * _theta	 ) :
 	ped		    ( &_ped	) ,
 	tpCache		    ( &_tpCache ) ,
 	theta		    ( _theta	) ,
@@ -83,7 +83,7 @@ HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	_ped	 ,
 // setTheta()
 //-----------------------------------------------------------------------------
 
-void HiddenMarkovModel::setTheta( const ThetaType * nv )
+void HiddenMarkovModel::setTheta( const AdmixType * nv )
     {
     theta = nv;
     tpCache->setMu( *nv );
@@ -213,7 +213,7 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 
 void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
                                        double f, double g,
-                                       const ThetaType& h,
+                                       const AdmixType& h,
                                        HVIterator z, size_t sz, IsXChromType isX ) const {
 
   // Check if we've reached the bottom of the recursion
@@ -312,7 +312,7 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 )
     const double prob_of_each_iv_x = 1.0 / (1LL << getPed().getNMeiosis(CHR_IS_X    ));
 
 
-    const ThetaType & th = *theta;
+    const AdmixType & th = *theta;
 
 
     // Here we compute the stationary distribution (Pi) and store its inverse
@@ -360,7 +360,7 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 )
 
 void HiddenMarkovModel::recursionProbs( double	 		 f	 ,
 					double 	 		 g	 ,
-					const ThetaType &	 h	 ,
+					const AdmixType &	 h	 ,
 					const HiddenStateSpace & fr_hss	 ,
 					const HiddenStateSpace & to_hss	 ,
 					const ProbsAtLocusType & frProbs ,
@@ -427,7 +427,7 @@ void HiddenMarkovModel::computeForwards() const
 
     const SLocIdxType T = getNLoci();
 
-    const ThetaType & th = *theta;
+    const AdmixType & th = *theta;
 
     const HiddenStateSpace & hss_0 = getPed().getStateProbs( 0 );
 
@@ -492,8 +492,8 @@ void HiddenMarkovModel::computeForwards() const
 	    // (f and h).
 	    const double f = TransProbCache::computeF( getPed().getSLoci(), t_m1, tpCache->getRho() );
 	    const double g = TransProbCache::computeG( getPed().getSLoci(), t_m1 );
-	    ThetaType h( th );
-	    h *= (1 - f);
+	    AdmixType h( th );
+	    h.scaleBy(1 - f);
 
 	    // Do the matrix multiplication by the transition probabilities.  We
 	    // assure that alpha[t] has been resized to the size of the
@@ -608,8 +608,8 @@ void HiddenMarkovModel::computeBackwards() const
 	    // (f and h).
 	    const double f = TransProbCache::computeF( getPed().getSLoci(), t, tpCache->getRho() );
 	    const double g = TransProbCache::computeG( getPed().getSLoci(), t );
-	    ThetaType h( *theta );
-	    h *= (1 - f);
+	    AdmixType h( *theta );
+	    h.scaleBy(1 - f);
 
 
 	    const cvector<ProbType> & pi     = (t_is_X == CHR_IS_X) ? Pi_X    : Pi    ;

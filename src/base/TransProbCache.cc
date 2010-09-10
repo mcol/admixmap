@@ -337,7 +337,7 @@ void TransProbCache::setMu( const MuType & nv )
 
 void TransProbCache::muChanged()
     {
-    gp_assert_eq( pedigree.getNFounders(), getMu().size() );
+    gp_assert_eq( pedigree.getNFounders(), getMu().getNGametes() );
     gp_assert_eq( pedigree.getK(), getMu()[0].size() );
     #if (TPC_CACHE_MODEL == TPC_BIG_CACHE)
 	cacheIsDirty = true;

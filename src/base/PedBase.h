@@ -35,6 +35,7 @@
 
 #include <bclib/Regression.h>
 
+#include "AdmixtureProportions.h"
 #include "HapPair.h"
 #include "Options.h"
 #include "CopyNumberAssocTest.h"
@@ -87,6 +88,7 @@ class PedBase
 	typedef cvector< bclib::pvector<double> > ThetaType	; ///< Alternatively, TwoDimArray<FounderIdx,PopIdx,double>
 								  ///< Size getNTheta() [effectively getNFounders()] by K
 	typedef genepi::cvector< double >	  PopThetaType	;
+	typedef AdmixtureProportions		  AdmixType	;
 
 
     public:
