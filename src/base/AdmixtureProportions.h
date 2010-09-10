@@ -57,6 +57,9 @@ class AdmixtureProportions {
   /// Set the dimensions of an existing object
   void setDimensions(int _nGametes, int _nHiddenStates);
 
+  /// Return the number of gametes for which we have allocated space
+  size_t getNGametes() const;
+
   /// Get direct write access to the pvector associated to the requested gamete
   bclib::pvector<double>& operator[](int idx);
 
@@ -65,6 +68,9 @@ class AdmixtureProportions {
 
   /// Set all elements to the specified value
   void setTo(double val);
+
+  /// Scale all elements by the specified value
+  void scaleBy(double val);
 
   /// Return a (read-only) flattened version of the internal vectors
   const double* flat() const;

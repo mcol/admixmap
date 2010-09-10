@@ -86,6 +86,13 @@ void AdmixtureProportions::setDimensions(int _nGametes, int _nHiddenStates) {
   isOk = true;
 }
 
+/// Return the number of gametes for which we have allocated space
+size_t AdmixtureProportions::getNGametes() const {
+
+  gp_assert(isOk);
+  return gametes.size();
+}
+
 /// Get direct write access to the pvector associated to the requested gamete
 pvector<double>& AdmixtureProportions::operator[](int idx) {
 
@@ -111,6 +118,19 @@ void AdmixtureProportions::setTo(double value) {
   for (size_t g = 0 ; g < G; ++g)
     for (size_t k = 0 ; k < K ; ++k)
       gametes[g][k] = value;
+}
+
+/// Scale all elements by the specified value
+void AdmixtureProportions::scaleBy(double value) {
+
+  gp_assert(isOk);
+
+  const size_t G = gametes.size();
+  const size_t K = gametes[0].size();
+
+  for (size_t g = 0 ; g < G; ++g)
+    for (size_t k = 0 ; k < K ; ++k)
+      gametes[g][k] *= value;
 }
 
 /// Return a (read-only) flattened version of the internal vectors
