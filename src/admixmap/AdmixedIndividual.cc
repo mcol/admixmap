@@ -339,8 +339,9 @@ const int *AdmixedIndividual::getSumLocusAncestry()const{
 const int *AdmixedIndividual::getSumLocusAncestryX()const{
   return SumLocusAncestry_X;
 }
-  //returns number of arrivals across genome
-const vector<unsigned>AdmixedIndividual::getSumNumArrivals()const{
+
+/// Return the number of arrivals across the genome
+const vector<unsigned> AdmixedIndividual::getSumNumArrivals() const {
   vector<unsigned> SumN(2,0);
   unsigned locus = 0;
   for(unsigned i = 0; i < numChromosomes; ++i){

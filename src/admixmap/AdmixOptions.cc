@@ -534,7 +534,7 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
       Log << "Model assuming assortative mating.\n";
     
     if( GlobalRho ) {
-      Log << "Model with global sum-intensities\n";
+      Log << "Model with global sum-intensities.\n";
       if(globalrhoPrior.size() != 2) {
 	Log.setDisplayMode(On);
 	Log << "ERROR: globalsumintensitiesprior must have length 2\n";
@@ -544,6 +544,11 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
 	  Log << "ERROR: all elements of globalsumintensitiesprior must be > 0\n";
 	  badOptions = true;
 	}  
+      }
+      if (chibIndicator) {
+        Log.setDisplayMode(On);
+        Log << "ERROR: globalrho = 1 is not compatible with chib = 1\n";
+        badOptions = true;
       }
     } else { // sumintensities at individual or gamete level
       if( RandomMatingModel )

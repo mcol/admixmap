@@ -94,6 +94,9 @@ private:
   double *SumSoftmaxTheta;
   AdmixtureProportions ThetaProposal; ///< proposal admixture proportions
   int *SumLocusAncestry, *SumLocusAncestry_X;
+
+  /// Number of arrivals between each pair of adjacent loci (used only for
+  /// models with individual-specific sum-intensities, that is globalrho=0)
   std::vector<unsigned> SumNumArrivals;
   genepi::RhoType rhohat;
   genepi::RhoType sumlogrho;
@@ -114,9 +117,12 @@ private:
   //void setAdmixturePropsX(const double* const, size_t);
   const int *getSumLocusAncestry()const;
   const int *getSumLocusAncestryX()const;
+
+  /// Return the number of arrivals across the genome
   const std::vector<unsigned> getSumNumArrivals()const;
   const std::vector<unsigned> getSumNumArrivals_X()const;
   void getSumNumArrivals(std::vector<unsigned> *sum)const;
+
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const PopAdmix::PopThetaType & poptheta,
 				     bool ModelIndicator, bclib::DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, int Populations, bool ModelIndicator, bool RW );
