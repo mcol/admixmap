@@ -800,8 +800,13 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
       locifile << (i != size - 1 ? ",\n" : "");
     }
 
-    locifile << "), .Dim=c(" << size << ", " << Loci->GetNumberOfCompositeLoci() << ", " <<
-      options.getPopulations() << ", 3))\n";
+    // write the dimensions and their names
+    locifile << "), .Dim=c(3, " << K << ", "
+             << Loci->GetNumberOfCompositeLoci() << ", " << size << "),"
+             << " .Dimnames=list(c(\"0\",\"1\",\"2\"), c(\"";
+    for (PopIdx k = 0; k < K; ++k)
+      locifile << PopLabels[k] << (k != K - 1 ? "\",\"" : "\"");
+    locifile << "), character(0), character(0)))\n";
 
     locifile.close();
   }
