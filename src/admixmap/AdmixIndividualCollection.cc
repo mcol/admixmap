@@ -708,35 +708,40 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
 
 #include "AdmixFilenames.h"
 ///write posterior means of individual admixture params to file
-void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels, Genome* Loci)const{
+void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
+                                                    const vector<string>& PopLabels,
+                                                    Genome* Loci) const {
+
+  const PopIdx K = options.getPopulations();
+  const bool isRandomMating = options.isRandomMatingModel();
+
   ofstream meanfile((options.getResultsDir() + "/" + IND_ADMIXTURE_POSTERIOR_MEANS).c_str());
-  //set 3 decimal places
+
+  // set 3 decimal places
   meanfile << std::setfill(' ');
   meanfile.setf(std::ios::fixed);
   meanfile.precision(3);
   meanfile.width(3);
 
-  //write header
-  for(int k = 0; k < options.getPopulations(); ++k){
+  // write header
+  for (PopIdx k = 0; k < K; ++k) {
     meanfile << PopLabels[k];
-    if(options.isRandomMatingModel())
+    if (isRandomMating)
       meanfile << "1";
     meanfile << "\t";
   }
-  if(options.isRandomMatingModel())
-    for(int k = 0; k < options.getPopulations(); ++k){
+  if (isRandomMating)
+    for (PopIdx k = 0; k < K; ++k)
       meanfile << PopLabels[k] << "2\t";
-    }
-  if(!options.isGlobalRho()){
+  if (!options.isGlobalRho()) {
     meanfile << "rho";
-    if(options.isRandomMatingModel()){
+    if (isRandomMating)
       meanfile << "1\trho2";
-    }
   }
   meanfile << endl;
 
   const unsigned samples = options.getTotalSamples() - options.getBurnIn();
-  for(unsigned int i = 0; i < size; i++ ){
+  for (unsigned int i = 0; i < size; ++i) {
     getElement(i).WritePosteriorMeans(meanfile, samples, options.isGlobalRho());
     meanfile << endl;
   }
@@ -755,44 +760,49 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
     xmeanfile.width(3);
 
     // write header
-    for(int k = 0; k < options.getPopulations(); ++k) {
+    for (PopIdx k = 0; k < K; ++k) {
       xmeanfile << PopLabels[k];
-      if(options.isRandomMatingModel())
+      if (isRandomMating)
         xmeanfile << "1";
       xmeanfile << "\t";
     }
-    if (options.isRandomMatingModel()) {
-      for (int k = 0; k < options.getPopulations(); ++k)
+    if (isRandomMating)
+      for (PopIdx k = 0; k < K; ++k)
         xmeanfile << PopLabels[k] << "2\t";
-    }
     xmeanfile << endl;
 
     // write the values
-    for(unsigned int i = 0; i < size; i++ ) {
+    for (unsigned int i = 0; i < size; ++i) {
       getElement(i).WritePosteriorMeansXChr(xmeanfile, samples);
       xmeanfile << endl;
     }
     xmeanfile.close();
   }
 
-  if(options.getLocusAncestryProbsIndicator()) {
+  if (options.getLocusAncestryProbsIndicator()) {
+
     // write posterior probs locus ancestry to file
-    ofstream locifile((options.getResultsDir() + "/" + LOCUS_ANCESTRY_POSTERIOR_PROBS).c_str());
-    //set 3 decimal places
+    ofstream locifile((options.getResultsDir() + "/" +
+                       LOCUS_ANCESTRY_POSTERIOR_PROBS).c_str());
+
+    // set 3 decimal places
     locifile << std::setfill(' ');
     locifile.setf(std::ios::fixed);
     locifile.precision(3);
     locifile.width(3);
-    locifile << "structure(c(";
 
-  for( unsigned int i = 0; i < size-1; ++i ){
-    getElement(i).WritePosteriorMeansLoci(locifile);
-    locifile << ",\n";
-  }
-  // do not append comma to values for last individual
-  getElement(size-1).WritePosteriorMeansLoci(locifile);
-  locifile << "), .Dim=c(" << size << ", " << Loci->GetNumberOfCompositeLoci() << ", " <<
-    options.getPopulations() << ", 3))\n";
-  locifile.close();
+    // write the values as an R object
+    locifile << "structure(c(";
+    for (unsigned int i = 0; i < size; ++i) {
+      getElement(i).WritePosteriorMeansLoci(locifile);
+
+      // do not append a comma after the values for last individual
+      locifile << (i != size - 1 ? ",\n" : "");
+    }
+
+    locifile << "), .Dim=c(" << size << ", " << Loci->GetNumberOfCompositeLoci() << ", " <<
+      options.getPopulations() << ", 3))\n";
+
+    locifile.close();
   }
 }
