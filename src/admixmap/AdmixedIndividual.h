@@ -101,7 +101,12 @@ private:
   genepi::RhoType rhohat;
   genepi::RhoType sumlogrho;
   double** GenotypeProbs;///<array to hold GenotypeProbs
-  double* SumProbs; // array to accumulate sums of unordered hidden state probs
+
+  /// Vector to accumulate the sums of unordered hidden state probabilities
+  /// (used only for LocusAncestryProbsIndicator). It's mutable so that it
+  /// can be updated in WritePosteriorMeans().
+  mutable genepi::cvector<double> SumProbs;
+
   std::vector<double> logPosterior[3]; // elements 0, 1, 2 are for theta, rho, freqs
 
   //RWM sampler for individual admixture
