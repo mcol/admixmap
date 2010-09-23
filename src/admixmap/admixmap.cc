@@ -149,12 +149,17 @@ int main( int argc , char** argv ){
     exit(1);
   }
 
+  // print a list of the available options
+  if (options.getFlag("options")) {
+    options.PrintAllOptions(cout);
+    exit(1);
+  }
+
   //if no options specified or help requested, print help message and list of options, then exit
   if(!options.hasOptions() || options.getFlag("help")){
     bclib::LogWriter LW;
     //PrintCopyrightNotice(LW);
     PrintUsage("admixmap");
-    //options.PrintAllOptions(cout);
     exit(1);
   }
 

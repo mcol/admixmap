@@ -248,6 +248,7 @@ void Options::DefineOptions(){
   addOption( "exclude-unaffected-sibs"	  , excludeUnaffectedSibs, false );
 
   addFlag('h', "help");
+  addFlag('o', "options");
   addFlag('v', "version");
   addFlag('c', "checkmode");
   addFlag('b', "printbuildinfo");
