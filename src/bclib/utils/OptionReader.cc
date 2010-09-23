@@ -488,19 +488,25 @@ void OptionReader::PrintUserFlags(ostream& os){
   }
 }
 
-//print all available options to cout
+/// Print all available options to the specified stream
 void OptionReader::PrintAllOptions(ostream& os)const{
-  const string typesAsStrings[] = {"null", "bool", "int", "long", "float", "double", "char", "string", "fvector", "dvector", "uivector", "range", "outputfile", "old"};
 
-  os << "This is a list of all valid options:" << endl
-       << "----------------------------------------" << endl;
+  // the order must respect that of the OptionType enum
+  const string typesAsStrings[] = {"null", "bool", "int", "long",
+                                   "float", "double", "char", "string",
+                                   "fvector", "dvector", "uivector", "range",
+                                   "outputfile", "old"};
+
+  os << "Valid flags:\n"
+     << "-------------------------------------------------------\n";
+  for (FlagMap::const_iterator f = Flags.begin(); f != Flags.end(); ++f)
+    os << "--" << f->first << endl;
+
+  os << "\nValid options:\n"
+     << "-------------------------------------------------------\n";
   for( OptionMap::const_iterator p = ProgOptions.begin(); p != ProgOptions.end(); ++p){
     os << p->first << " ( " << typesAsStrings[p->second.second] << " )" << endl;
   }
-  for(map<string, bool>::const_iterator f = Flags.begin(); f != Flags.end(); ++f){
-    os << f->first << " ( flag ) " << endl;
-  }
-
 }
 
 static string NullString = "";

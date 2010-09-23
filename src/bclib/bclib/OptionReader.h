@@ -63,13 +63,30 @@ BEGIN_BCLIB_NAMESPACE
  * @{ */
 
 
+/// The type of the parameter of an option
+enum OptionType{ nullOption       ,
+                 boolOption       ,
+                 intOption        ,
+                 longOption       ,
+                 floatOption      ,
+                 doubleOption     ,
+                 charOption       ,
+                 stringOption     ,
+                 fvectorOption    ,
+                 dvectorOption    ,
+                 uivectorOption   ,
+                 rangeOption      ,
+                 outputfileOption ,
+                 oldOption        };
 
-enum OptionType{nullOption, boolOption, intOption, longOption, floatOption, doubleOption, charOption, stringOption, fvectorOption, dvectorOption, uivectorOption, rangeOption, outputfileOption, oldOption};
+/// Pair to identify types of data members
+typedef pair<void*, OptionType> OptionPair;
 
-/// pair to identify types of data members
-typedef pair<void*,  OptionType> OptionPair;
-/// map to match a user option to a data member
-typedef map<string, OptionPair >OptionMap;
+/// Map to match a user option to a data member
+typedef map<string, OptionPair> OptionMap;
+
+/// Map to match a program flag to its setting
+typedef map<string, bool> FlagMap;
 
 /// Class to read program options and flags
 class OptionReader{
@@ -162,7 +179,9 @@ protected:
   /// map to hold user options
   map<string, string> useroptions;
   OptionMap ProgOptions;
-  map<string, bool> Flags;
+
+  /// Setting of each program flag
+  FlagMap Flags;
   vector<string> userflags;
   map<char, string> Short2LongMap;
   vector<string> RequiredOptions;
