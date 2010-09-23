@@ -289,15 +289,19 @@ bool OptionReader::ReadCommandLineArgs(const int argc, char** argv, const char* 
     
     if(fileargIndicator){
       //check for options file flag and read options from file
-      if(!strncmp(argv[i], fileargIndicator, 2)){
+      if (strncmp(argv[i], fileargIndicator, 2) == 0) {
 	const char* optionsFilename= 0;
 	if(strlen(argv[i])==strlen(fileargIndicator)){//space between indicator and the filename
 	  ++i;//move to the next arg and interpret as a filename
-	if(argv[i][0] == '-'){//oops, this is actually a new arg
-	  cerr << "ERROR: " << fileargIndicator << " requires an options filename as argument\n";
-	  exit(1);
-	}
-	optionsFilename = argv[i];
+
+          // oops, no filename has been given or this is actually a new flag
+          if (i == argc || argv[i][0] == '-') {
+            cerr << "ERROR: " << fileargIndicator
+                 << " requires a filename as argument\n";
+            badOptions = true;
+            break;
+          }
+          optionsFilename = argv[i];
 	}
 	else{//no space
 	  optionsFilename = argv[i]+2;
