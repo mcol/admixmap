@@ -102,7 +102,7 @@ static void startupOMPMessage( const AdmixOptions & options )
     #else
 
 	if ( options.getUsePedForInd() ) {;} // Suppress compiler warning
-	cout << "\n<<< serial-execution version >>>\n\n";
+	cout << "<<< serial-execution version >>>\n\n";
 
     #endif
     }
@@ -115,15 +115,6 @@ static void startupOMPMessage( const AdmixOptions & options )
 
 int main( int argc , char** argv ){
   AdmixOptions options(argc, argv);
-
-
-  if ( ! (options.CheckRequiredOptions() && options.SetOptions()) )
-    {
-    bclib::LogWriter LW;
-    PrintCopyrightNotice(LW);
-    return 1;
-    }
-
 
   #if defined(_OPENMP)
     const int n_cpus = options.getMaxCPUsToUse();
@@ -145,22 +136,39 @@ int main( int argc , char** argv ){
     bclib::LogWriter LW;
     PrintCopyrightNotice(LW);
     startupOMPMessage( options );
-    exit(1);
+    return 1;
   }
 
-  // print a list of the available options
+  // print a list of the available options, if requested, and exit
   if (options.getFlag("options")) {
+    bclib::LogWriter LW;
+    PrintCopyrightNotice(LW);
     options.PrintAllOptions(cout);
-    exit(1);
+    return 1;
   }
 
-  //if no options specified or help requested, print help message and list of options, then exit
+  // print the compilation settings, if requested, and exit
+  if (options.getFlag("printbuildinfo")) {
+    bclib::LogWriter LW;
+    PrintCopyrightNotice(LW);
+    PrintBuildInfo(LW);
+    return 1;
+  }
+
+  // if no options specified or help requested, print help message and exit
   if(!options.hasOptions() || options.getFlag("help")){
     bclib::LogWriter LW;
-    //PrintCopyrightNotice(LW);
+    PrintCopyrightNotice(LW);
     PrintUsage("admixmap");
-    exit(1);
+    return 1;
   }
+
+  // check that the options are defined, and those required have been specified
+  if ( ! (options.CheckRequiredOptions() && options.SetOptions()) )
+    {
+    return 1;
+    }
+
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
 
@@ -174,7 +182,6 @@ int main( int argc , char** argv ){
   //if(options.getDisplayLevel()>0 )
   PrintCopyrightNotice(Log);
   startupOMPMessage( options );
-  if(options.getFlag("printbuildinfo"))PrintBuildInfo(Log);
   Log.StartMessage();
  
 
@@ -384,15 +391,16 @@ int main( int argc , char** argv ){
 
 void PrintCopyrightNotice(bclib::LogWriter& Log){
   Log.setDisplayMode(bclib::On);
-  cout << endl;
   Log << "-------------------------------------------------------\n"
       << "            ** ADMIXMAP (v" ADMIXMAP_VERSION "." SUBVERSION << SVN_VERSION << ") **\n"
       << "-------------------------------------------------------\n";
   Log.setDisplayMode(bclib::Quiet);
   cout << "Copyright(c) 2002-2007 " << endl
        << "David O'Donnell, Clive Hoggart and Paul McKeigue" << endl
-       << "-------------------------------------------------------"<<endl
+       << "-------------------------------------------------------\n"
        << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl
        << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl
-       << "-------------------------------------------------------" << endl;
+       << "-------------------------------------------------------\n";
+  Log.setDisplayMode(bclib::On);
+  Log << "\n";
 }
