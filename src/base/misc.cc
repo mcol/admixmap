@@ -27,8 +27,7 @@ void PrintUsage(const char* ProgName) {
        << "   " << ProgName << " <options-file>" << endl
        << "or " << ProgName << " -f<optionsfile> [extra options]" << endl
     //       << "or " << ProgName << "<options> (deprecated)" << endl
-       << "Consult the manual for details of user options."
-       << endl << endl;
+       << endl << "Consult the manual for details of user options." << endl;
 }
 
 /**
@@ -133,7 +132,7 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
 void PrintBuildInfo(bclib::LogWriter& Log){
   Log << bclib::On
 #ifdef HAVE_CONFIG_H 
-        << "Build Info\n"
+        << "Build Info:\n"
 #ifdef _compiler_name
 	<< "Compiler       = " << _compiler_name << "\n"
 #endif
@@ -141,13 +140,18 @@ void PrintBuildInfo(bclib::LogWriter& Log){
 	<< "Compiler Flags = " << _compiler_flags << "\n"
 #endif
 #ifdef _host
-	<< "host           = " << _host << "\n"
+	<< "Host           = " << _host << "\n"
 #endif
 #ifdef _platform
-	<< "target         = " << _platform << "\n"
+	<< "Target         = " << _platform << "\n"
+#endif
+#if defined(_OPENMP)
+	<< "OpenMP support = " << "enabled" << "\n"
+#else
+	<< "OpenMP support = " << "disabled" << "\n"
 #endif
 #ifdef _config_date
-	<< "config data    = " << _config_date << "\n"
+	<< "Config date    = " << _config_date << "\n"
 #endif
         << "-------------------------------------------------------\n"
 #endif

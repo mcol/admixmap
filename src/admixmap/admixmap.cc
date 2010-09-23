@@ -121,7 +121,6 @@ int main( int argc , char** argv ){
     {
     bclib::LogWriter LW;
     PrintCopyrightNotice(LW);
-    startupOMPMessage( options );
     return 1;
     }
 
