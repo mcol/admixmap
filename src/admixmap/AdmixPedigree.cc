@@ -708,7 +708,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
     const double nAffOver2	= double(nAff) / 2;
     const double negNAffOver2	= - nAffOver2;
     const double nAffOver4	= double(nAff) / 4;
-    const double nAffOver64	= double(nAff) / 64;
+    const double nAffOver16	= double(nAff) / 16;
     const double nAffSqOver8	= double(nAff * nAff) / 8;
 
     const SimpleLocusArray & loci = getSLoci();
@@ -844,8 +844,8 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			    if ( av.isHetrozygousForPop( fIdx, k, is_xchrom ) )
 				{
 				const int m = getNInheritedByAffected( k, fIdx, is_xchrom, av, stIt.getIV() );
-				stScore += 0.25 * (m - nAffOver2);
-				stInfo += nAffOver64;
+				stScore += 0.5 * (m - nAffOver2);
+				stInfo += nAffOver16;
 				#if DEBUG_AOTEST
 				    fprintf( stderr, " hetro-m:%d; score:%.12lf; info:%.12lf", m, stScore, stInfo );
 				#endif
