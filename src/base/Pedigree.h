@@ -652,7 +652,8 @@ class Pedigree : public PedBase // See NOTE *4*
 		// constructed), we will rather keep a reference to the pedigree
 		// and get the HMM from it, rather than keep a reference to the HMM.
 		Pedigree & ped;
-		genepi::HiddenMarkovModel & getHMM() { return ped.getHMM(); }
+
+		double getHMM_LL();
 
 		double accVal	    ; ///< Last accepted value
 		bool   accValIsValid; ///< Does curVal correspond to the last accepted
@@ -757,8 +758,9 @@ class Pedigree : public PedBase // See NOTE *4*
 	mutable genepi::TransProbCache * tpCache;
 	genepi::TransProbCache & getTPC() const;
 
-	mutable genepi::HiddenMarkovModel * hmm;
-	genepi::HiddenMarkovModel & getHMM() const;
+	mutable genepi::HiddenMarkovModel * hmm_notX;
+	mutable genepi::HiddenMarkovModel * hmm_x;
+	genepi::HiddenMarkovModel & getHMM( IsXChromType isX ) const;
 	void freeHMM() const;
 
 	LLBuf llCache;

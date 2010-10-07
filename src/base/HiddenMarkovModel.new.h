@@ -62,6 +62,7 @@ class HiddenMarkovModel
     protected:
 	typedef double ProbType;
 	typedef double InvProbType;
+	typedef size_t IntSLocIdx;
 
 	/// Probability array type, for the forward (alpha) and backwards(beta)
 	/// probabilities: indexed on locus-index (t); within each locus,
@@ -75,9 +76,15 @@ class HiddenMarkovModel
 	const Pedigree * ped	 ; ///< Ref to ped for hidden state space, etc.
 	TransProbCache * tpCache ; ///< Transition probabilities.  These should perhaps
 				   ///< be retrieved from the Pedigree object itself
+	IsXChromType	 isX	 ;
 
 	/// Admixture probabilities for the founder-gametes
 	const AdmixType * theta;
+
+	// Range of loci to use for this model: typically, either the X
+	// chromosome, or all of the non-X chromosomes combined.
+	SLocIdxType firstLocus ;
+	SLocIdxType nLoci      ;
 
 	mutable bool dirtyForwards ; ///< Input parameters have changed since last compute; stored alpha is invalid
 	mutable bool dirtyBackwards; ///< Input parameters have changed since last compute; stored beta is invalid
@@ -97,24 +104,21 @@ class HiddenMarkovModel
 	/// Stationary distribution, calculated in computeForwards() and used
 	/// in computeBackwards(), indexed on all states
 	mutable PiType Pi;
-	mutable PiType Pi_X;
 
 	/// Inverse of the stationary distribution, calculated in computeForwards()
 	/// and used in computeBackwards(), indexed on all states
 	mutable cvector<InvProbType> piInv;
-	mutable cvector<InvProbType> piInv_X;
 
 	/// Recursive function to multiply the transition-probability matrix
 	/// by the probability vector alpha
 	void transRecursion(const double *alpha, double *res,
 			    double f, double g, const AdmixType& h,
-			    HVIterator z, size_t sz, IsXChromType isX ) const;
+			    HVIterator z, size_t sz ) const;
 
 	void computeStationaryDistr( const HiddenStateSpace & hss_0 ) const;
 
 	void initStaticAlpha( ProbsAtLocusType &       alpha0	,
 			      const HiddenStateSpace & hss	,
-			      IsXChromType	       isX	,
 			      double &		       norm_sum ) const;
 
 	/// Do the main forwards recursion
@@ -156,8 +160,7 @@ class HiddenMarkovModel
 			     const HiddenStateSpace & fr_hss	,
 			     const HiddenStateSpace & to_hss	,
 			     const ProbsAtLocusType & frProbs	,
-			     ProbsAtLocusType &	      toProbs	,
-			     IsXChromType	      isX	) const;
+			     ProbsAtLocusType &	      toProbs	) const;
 
 
 	void assureNotDirty() const;
@@ -184,6 +187,7 @@ class HiddenMarkovModel
 	/// Construct the model.
 	/// @parm theta - see setTheta()
 	HiddenMarkovModel( const Pedigree & ped , TransProbCache & tpCache ,
+			   IsXChromType isX,
 			   const AdmixType * theta = 0 );
 
 	const Pedigree &       getPed() const { return *ped    ; } ///< Get reference to Pedigree
@@ -191,7 +195,35 @@ class HiddenMarkovModel
 
 
 	/// Get the number of loci to model.
-	SLocIdxType getNLoci() const { return getPed().getSLoci().size(); }
+	SLocIdxType getNLoci() const { return nLoci; }
+
+	/// Translate our internal (relative) locus-index to "external"
+	/// (absolute) locus-index.
+	SLocIdxType extLoc( IntSLocIdx idx ) const
+	    {
+	    gp_assert_lt( idx, nLoci );
+	    return firstLocus + idx;
+	    }
+
+	/// Translate an "external" (absolute) locus-index our internal
+	/// (relative) locus-index.
+	IntSLocIdx intLoc( SLocIdxType idx ) const
+	    {
+	    IntSLocIdx rv = idx - firstLocus;
+	    gp_assert_lt( rv, nLoci );
+	    return rv;
+	    }
+
+	const SimpleLocus & locus( IntSLocIdx t ) const
+	    {
+	    return getPed().getSLoci()[ extLoc(t) ];
+	    }
+
+	const HiddenStateSpace & getHSS( IntSLocIdx t ) const
+	    {
+	    return getPed().getStateProbs( extLoc(t) );
+	    }
+
 
 
 	void transProbsChanged() const;

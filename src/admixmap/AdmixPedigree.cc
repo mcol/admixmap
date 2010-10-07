@@ -197,6 +197,7 @@ Pedigree::LLBuf::LLBuf( Pedigree & _ped, const LLBuf & rhs ) :
     }
 
 
+// When does this happen?
 Pedigree::LLBuf & Pedigree::LLBuf::operator=( const LLBuf & rhs )
     {
     accVal	  = rhs.accVal	      ;
@@ -206,6 +207,12 @@ Pedigree::LLBuf & Pedigree::LLBuf::operator=( const LLBuf & rhs )
     gp_assert( ! rhs.propActive );
 
     return *this;
+    }
+
+
+double Pedigree::LLBuf::getHMM_LL()
+    {
+    return ped.getHMM(CHR_IS_X).getLogLikelihood() + ped.getHMM(CHR_IS_NOT_X).getLogLikelihood();
     }
 
 
@@ -228,7 +235,7 @@ void Pedigree::LLBuf::acceptProposal()
     if ( propIsValid )
 	accVal = propVal;
     else
-	accVal = getHMM().getLogLikelihood();
+	accVal = getHMM_LL();
     propActive = false;
     }
 
@@ -247,7 +254,7 @@ double Pedigree::LLBuf::getAcceptedVal()
     if ( ! accValIsValid )
 	{
 	gp_assert( ! propActive ); // Maybe not, could the first time be during a proposal?
-	accVal = getHMM().getLogLikelihood();
+	accVal = getHMM_LL();
 	accValIsValid = true;
 	}
     return accVal;
@@ -260,7 +267,7 @@ double Pedigree::LLBuf::getProposedVal()
     gp_assert( propActive );
     if ( ! propIsValid )
 	{
-	propVal = getHMM().getLogLikelihood();
+	propVal = getHMM_LL();
 	propIsValid = true;
 	}
     return propVal;
@@ -742,7 +749,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	    double infoAvg    = 0.0;
 
 	    const HiddenStateSpace & hss	    = getStateProbs( t );
-	    const cvector<double> &  condStateProbs = getHMM().getCondStateProbsAtLocus( t );
+	    const cvector<double> &  condStateProbs = getHMM(is_xchrom).getCondStateProbsAtLocus( t );
 
 	    for ( HiddenStateSpace::Iterator stIt( hss, is_xchrom ) ; stIt ; ++stIt )
 		{
@@ -949,19 +956,24 @@ TransProbCache & Pedigree::getTPC() const
 /// Allocate the HiddenMarkovModel for the Pedigree object (only if have one HMM
 /// for each pedigree rather than one per chromosome).
 
-HiddenMarkovModel & Pedigree::getHMM() const
+HiddenMarkovModel & Pedigree::getHMM( IsXChromType isX ) const
     {
-    if ( hmm == 0 )
-	hmm = new HiddenMarkovModel( *this, getTPC(), &getCurTheta() );
-    return *hmm;
+    if ( hmm_x == 0 )
+	{
+	hmm_x	 = new HiddenMarkovModel( *this, getTPC(), CHR_IS_X	, &getCurTheta() );
+	hmm_notX = new HiddenMarkovModel( *this, getTPC(), CHR_IS_NOT_X , &getCurTheta() );
+	}
+    return *( (isX == CHR_IS_X) ? hmm_x : hmm_notX );
     }
 
 void Pedigree::freeHMM() const
     {
     delete tpCache;
     tpCache = 0;
-    delete hmm;
-    hmm = 0;
+    delete hmm_x;
+    hmm_x = 0;
+    delete hmm_notX;
+    hmm_notX = 0;
     }
 
 
@@ -1449,7 +1461,8 @@ void Pedigree::setRho( double nv )
     {
     getGlobalRhoVal() = nv;
     getTPC().setRho( nv );
-    getHMM().transProbsChanged();
+    getHMM(CHR_IS_X    ).transProbsChanged();
+    getHMM(CHR_IS_NOT_X).transProbsChanged();
     llCache.parmsChanged();
     }
 
@@ -1470,7 +1483,8 @@ void Pedigree::rejectRhoProposal()
     llCache.rejectProposal();
     rhos.rejectProposal();
     getTPC().setRho( getGlobalRhoVal() );
-    getHMM().transProbsChanged();
+    getHMM(CHR_IS_X    ).transProbsChanged();
+    getHMM(CHR_IS_NOT_X).transProbsChanged();
     }
 
 
@@ -1485,7 +1499,8 @@ Pedigree::AdmixType & Pedigree::startThetaProposal()
     {
     llCache.startProposal();
     AdmixType & rv = thetas.startNewProposal();
-    getHMM().setTheta( &rv );
+    getHMM(CHR_IS_X	).setTheta( &rv );
+    getHMM(CHR_IS_NOT_X ).setTheta( &rv );
     return rv;
     }
 
@@ -1494,7 +1509,8 @@ void Pedigree::rejectThetaProposal()
     {
     llCache.rejectProposal();
     thetas.rejectProposal();
-    getHMM().setTheta( &getCurTheta() );
+    getHMM(CHR_IS_X	).setTheta( &getCurTheta() );
+    getHMM(CHR_IS_NOT_X ).setTheta( &getCurTheta() );
     }
 
 /// Accept Theta Proposal.

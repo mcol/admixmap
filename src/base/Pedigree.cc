@@ -248,7 +248,8 @@ Pedigree::Pedigree( const OrganismArray &	pool	,
 	w		  ( 1			     ) ,
 	NumGametes	  ( 2			     ) ,
 	tpCache		  ( 0			     ) ,
-	hmm		  ( 0			     ) ,
+	hmm_notX	  ( 0			     ) ,
+	hmm_x		  ( 0			     ) ,
 	llCache		  ( *this		     ) ,
 	aoCache		  ( 0			     )
     {
@@ -496,7 +497,8 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	ThetaTuner	  ( rhs.ThetaTuner	  ) , // See NOTE *2*
 	NumGametes	  ( rhs.NumGametes	  ) , // See NOTE *2*
 	tpCache		  ( rhs.tpCache		  ) , // See NOTE *2*
-	hmm		  ( rhs.hmm		  ) , // See NOTE *2*
+	hmm_notX	  ( rhs.hmm_notX	  ) , // See NOTE *2*
+	hmm_x		  ( rhs.hmm_x		  ) , // See NOTE *2*
 	llCache		  ( *this, rhs.llCache	  ) ,
 	aoCache		  ( rhs.aoCache		  )
     {
@@ -506,7 +508,8 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
     const_cast<Pedigree&>(rhs).mendelErrsByLocus = 0;
     const_cast<Pedigree&>(rhs).stateProbs	 = 0;
     const_cast<Pedigree&>(rhs).tpCache		 = 0; // See NOTE *2*
-    const_cast<Pedigree&>(rhs).hmm		 = 0; // See NOTE *2*
+    const_cast<Pedigree&>(rhs).hmm_notX		 = 0; // See NOTE *2*
+    const_cast<Pedigree&>(rhs).hmm_x		 = 0; // See NOTE *2*
 
     setMyNumber( rhs.myNumber ); // See NOTE *2*
     }
@@ -544,7 +547,8 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
 
 
     tpCache		= rhs.tpCache		;
-    hmm			= rhs.hmm		;
+    hmm_notX		= rhs.hmm_notX		;
+    hmm_x		= rhs.hmm_x		;
 
     llCache		= rhs.llCache		;
 
@@ -557,7 +561,8 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     const_cast<Pedigree&>(rhs).mendelErrsByLocus = 0;
     const_cast<Pedigree&>(rhs).stateProbs	 = 0;
     const_cast<Pedigree&>(rhs).tpCache		 = 0; // See NOTE *2*
-    const_cast<Pedigree&>(rhs).hmm		 = 0; // See NOTE *2*
+    const_cast<Pedigree&>(rhs).hmm_x		 = 0; // See NOTE *2*
+    const_cast<Pedigree&>(rhs).hmm_notX		 = 0; // See NOTE *2*
 
     return *this;
     }
@@ -574,8 +579,7 @@ Pedigree::~Pedigree()
     delete ivSpace;
     delete[] stateProbs;
     delete[] mendelErrsByLocus;
-    delete tpCache; // See NOTE *2*
-    delete hmm;	    // See NOTE *2*
+    freeHMM(); // NOTE *2*
     }
 
 
