@@ -46,6 +46,10 @@
 #include <vector>
 
 
+// C++0x allows variadic templates, thus vector::emplace().
+#define PED_USE_EMPLACE		((__cplusplus > 199711) || defined(__GXX_EXPERIMENTAL_CXX0X__))
+
+
 
 //---------------------------------------------------------------------------
 // Forward references
@@ -303,10 +307,16 @@ class Pedigree : public PedBase // See NOTE *4*
 	/// @param max_n If non-0, pedigrees with sizes exceeding max_n with be
 	///	reduced to size max_n by eliminating non-founders; if there are
 	///	more than max_n founders, an exception will be thrown.
+    #if PED_USE_EMPLACE
+      public:
+    #endif
 	Pedigree( const OrganismArray &	      pool	,
 		  OrganismArray::ConstPedIter firstM	,
 		  OrganismArray::ConstPedIter endM	,
 		  MemberIdx		      max_n = 0 );
+    #if PED_USE_EMPLACE
+      protected:
+    #endif
 
 
 	// Range-checking:

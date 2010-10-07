@@ -74,10 +74,16 @@
 
 
 
-// No C++ auto-boxing with STL, so:
-#define PED_PB(rv, organisms, firstInd, lastInd, max_n ) \
+#if PED_USE_EMPLACE
+  //#warning Pedigree is using c++0x vector::emplace() (and has a public constructor)
+  #define PED_PB(rv, organisms, firstInd, lastInd, max_n ) \
+	rv.emplace_back( organisms, firstInd, lastInd, max_n ) , \
+	rv.back().setMyNumber( rv.size() );
+#else
+  #define PED_PB(rv, organisms, firstInd, lastInd, max_n ) \
 	rv.push_back( Pedigree( organisms, firstInd, lastInd, max_n ) ) , \
 	rv.back().setMyNumber( rv.size() );
+#endif
 
 
 

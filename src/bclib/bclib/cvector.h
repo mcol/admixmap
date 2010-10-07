@@ -132,9 +132,6 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 	T &	  at_unsafe( size_t el )       { return v[el]; }
 	const T & at_unsafe( size_t el ) const { return v[el]; }
 
-	void push_back ( const T & el ) { v.push_back( el ); }
-	void pop_back  ( const T & el ) { v.pop_back ( el ); }
-
 
 	// Iterators:
 	typedef typename std::vector<T,Alloc>::iterator	      iterator;
@@ -152,6 +149,19 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 	T &		last ()	      { return back(); } ///< synonym for back()
 	const T &	last () const { return back(); } ///< synonym for back()
 
+
+	// Insertion:
+	void push_back ( const T & el ) { v.push_back( el ); }
+	void pop_back  ( const T & el ) { v.pop_back ( el ); }
+
+	#if (__cplusplus > 199711) || defined(__GXX_EXPERIMENTAL_CXX0X__)
+	  template<typename... _Args> iterator emplace( iterator position, _Args &&...args )
+		{ return v.emplace( position, args... ); }
+	  template<typename... _Args> void emplace_back( _Args &&...args ) { v.emplace_back( args... ); }
+	#endif
+
+
+	// Sizing:
 	void reserve( size_t expected_size )	  { v.reserve( expected_size ); }
 	void assign( size_t size, const T & el )  { v.assign( size, el ); }
 	void resize( size_t size )		  { v.resize( size ); }
@@ -216,6 +226,7 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 	return v[el];
 	}
 #endif
+
 
 
 
