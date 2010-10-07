@@ -384,7 +384,7 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
     #if ! NON_GLOBAL_RHO_WORKS
 	if ( ! options.isGlobalRho() )
 	    throw std::runtime_error( "Only global-rho currently is supported"
-					"with pedigrees." );
+					" with pedigrees." );
     #endif
 
     #if ! NOT_NEEDED_UNLESS_CONJUGATE_UPDATE
@@ -863,7 +863,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			    #if DEBUG_AOTEST
 				fprintf( stderr, "	fIdx:%zd st:%zd nFromK:%d hetro:%s nAff:%zd",
 					fIdx, stIt.getNon0Index(), nFromK,
-					av.isHetrozygousForPop(fIdx,k) ? "yes" : "no", nAff );
+					av.isHetrozygousForPop(fIdx,k,is_xchrom) ? "yes" : "no", nAff );
 			    #endif
 
 			    stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
