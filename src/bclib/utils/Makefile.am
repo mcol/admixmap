@@ -2,7 +2,8 @@ AM_CPPFLAGS = -I$(srcdir)/..
 LDFLAGS=
 SUFFIXES=.cc .o
 OPTFLAGS=-fexceptions
-AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
+AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS) -std=c++0x
+
 
 if USE_OPENMP
     AM_CXXFLAGS+=-fopenmp
