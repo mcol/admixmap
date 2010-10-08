@@ -679,17 +679,17 @@ inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, IsXChro
 
 
 //-----------------------------------------------------------------------------
-// accumAAScore()
+// accumAOScore()
 //-----------------------------------------------------------------------------
 
 
 // Static helper:
-static inline double aa_score( int nFromK, double nAffOver2, double negNAffOver2, double nAffOver4, double mu )
+static inline double ao_score( int nFromK, double nAffOver2, double nAffOver4, double mu )
     {
     if ( nFromK == 0 )
-	return (mu * negNAffOver2);
+	return -mu * nAffOver2;
     else if ( nFromK == 1 )
-	return nAffOver4 + (negNAffOver2 * mu);
+	return nAffOver4 - nAffOver2 * mu;
     else
 	{
 	AGGRESSIVE_ONLY( if ( nFromK != 2 ) throw std::logic_error( "invalid nFromK" ); )
@@ -713,7 +713,6 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
     // Precompute invariants outside the loop:
     const double nAffOver2	= double(nAff) / 2;
-    const double negNAffOver2	= - nAffOver2;
     const double nAffOver4	= double(nAff) / 4;
     const double nAffOver16	= double(nAff) / 16;
     const double nAffSqOver8	= double(nAff * nAff) / 8;
@@ -866,7 +865,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 					av.isHetrozygousForPop(fIdx,k,is_xchrom) ? "yes" : "no", nAff );
 			    #endif
 
-			    stScore += aa_score( nFromK, nAffOver2, negNAffOver2, nAffOver4, mu );
+			    stScore += ao_score( nFromK, nAffOver2, nAffOver4, mu );
 			    stInfo  += nAffSqOver8 * (1 - mu) * mu;
 
 			    #if DEBUG_AOTEST
