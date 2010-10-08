@@ -154,6 +154,8 @@ class HiddenStateSpace
 	/// Get the number of states, including those with 0 probability.  See
 	/// also stateAtIdx().
 	StateIdxType getNStates ( IsXChromType isX ) const { return aSize(isX); }
+
+	/// Get the number of non-0 probability states.
 	Non0IdxType  getNNon0	(		   ) const { return nNon0     ; }
 
 

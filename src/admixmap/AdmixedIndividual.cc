@@ -831,7 +831,7 @@ void AdmixedIndividual::SamplePsi(const AdmixOptions& options,
     if( !(NumberOfPsiUpdates % w) )
       psistep[el] = TunePsiSampler[el].UpdateStepSize(exp(LogAccProbRatio));
 
-    // Accumulate sum of log of sumintensities after burnin
+    // Accumulate sum of log psi after burnin
     if (updateSumLogPsi)
       SumLogPsi[el] += logpsi;
   }
