@@ -43,7 +43,7 @@ class AdmixtureProportions {
   AdmixtureProportions() : vflat(NULL), isOk(false) { };
 
   /// Constructor
-  AdmixtureProportions(int _nGametes, int _nHiddenStates);
+  AdmixtureProportions(int _nGametes, int _nPopulations);
 
   /// Copy constructor
   AdmixtureProportions(const AdmixtureProportions& rhs);
@@ -55,7 +55,7 @@ class AdmixtureProportions {
   AdmixtureProportions& operator=(const AdmixtureProportions& rhs);
 
   /// Set the dimensions of an existing object
-  void setDimensions(int _nGametes, int _nHiddenStates);
+  void setDimensions(int _nGametes, int _nPopulations);
 
   /// Return the number of gametes for which we have allocated space
   size_t getNGametes() const;

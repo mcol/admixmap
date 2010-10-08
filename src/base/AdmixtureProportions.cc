@@ -35,14 +35,14 @@ static void oddsratios2xKtocolratios(const cvector<double>& psi,
                                      double Q, cvector<double>& r);
 
 /// Constructor
-AdmixtureProportions::AdmixtureProportions(int _nGametes, int _nHiddenStates) :
+AdmixtureProportions::AdmixtureProportions(int _nGametes, int _nPopulations) :
   gametes(_nGametes), vflat(NULL), isOk(true) {
 
   gp_assert(_nGametes >= 1);
-  gp_assert(_nHiddenStates >= 1);
+  gp_assert(_nPopulations >= 1);
 
   for (int i = 0; i < _nGametes; ++i)
-    gametes[i].resize(_nHiddenStates);
+    gametes[i].resize(_nPopulations);
 }
 
 /// Copy constructor
@@ -69,14 +69,14 @@ AdmixtureProportions& AdmixtureProportions::operator=(const AdmixtureProportions
 }
 
 /// Set the dimensions of an existing object
-void AdmixtureProportions::setDimensions(int _nGametes, int _nHiddenStates) {
+void AdmixtureProportions::setDimensions(int _nGametes, int _nPopulations) {
 
   gp_assert(_nGametes >= 1);
-  gp_assert(_nHiddenStates >= 1);
+  gp_assert(_nPopulations >= 1);
 
   gametes.resize(_nGametes);
   for (int i = 0; i < _nGametes; ++i)
-    gametes[i].resize(_nHiddenStates);
+    gametes[i].resize(_nPopulations);
 
   if (vflat) {
     delete[] vflat;
@@ -157,7 +157,7 @@ const double* AdmixtureProportions::flat() const {
 const double* AdmixtureProportions::flatXChromosome(const cvector<double>& psi) const {
 
   gp_assert(isOk);
-  gp_assert(psi.size() == gametes[0].size());
+  gp_assert_eq(psi.size(), gametes[0].size());
 
   const size_t G = gametes.size();
   const size_t K = gametes[0].size();
@@ -218,11 +218,11 @@ void oddsratios2xKtocolratios(const cvector<double>& psi,
 #ifdef DEBUG_BISECTION
   int iter = 0;
   for (size_t i = 0; i < P.size(); ++i)
-    gp_assert(psi[i] > 0.0);
+    gp_assert_gt(psi[i], 0.0);
 #endif
 
-  gp_assert(Q > 0.0);
-  gp_assert(Q < 1.0);
+  gp_assert_gt(Q, 0.0);
+  gp_assert_lt(Q, 1.0);
 
   const int K = (int) P.size();
 
@@ -289,7 +289,7 @@ void oddsratios2xKtocolratios(const cvector<double>& psi,
         printf("\n");
       }
 #endif
-      gp_assert(fabs(fmid) < 2 * epsilon);
+      gp_assert_lt(fabs(fmid), 2 * epsilon);
       break;
     }
 
