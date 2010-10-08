@@ -373,7 +373,6 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 )
 
 void HiddenMarkovModel::recursionProbs( double	 		 f	 ,
 					double 	 		 g	 ,
-					const AdmixType &	 h	 ,
 					const HiddenStateSpace & fr_hss	 ,
 					const HiddenStateSpace & to_hss	 ,
 					const ProbsAtLocusType & frProbs ,
@@ -389,9 +388,16 @@ void HiddenMarkovModel::recursionProbs( double	 		 f	 ,
     for ( HiddenStateSpace::Iterator it( fr_hss, isX ) ; it ; ++it )
 	frProbsDense[ it.getOverallIndex() ] = frProbs[ it.getNon0Index() ];
 
+    AdmixType h( *theta );
+    h.scaleBy(1 - f);
+
     HVIterator z( getPed(), isX );
     transRecursion(frProbsDense.data_unsafe(), toProbsDense.data_unsafe(),
 		   f, g, h, z, size );
+
+    // Ensure that the probability vector has been resized to the size of
+    // the hidden-state-space
+    toProbs.resize( to_hss.getNNon0() );
 
     // Copy the nonzero elements of toProbsDense into the sparse toProbs
     for ( HiddenStateSpace::Iterator it( to_hss, isX ) ; it ; ++it )
@@ -433,8 +439,6 @@ void HiddenMarkovModel::computeForwards() const
     // Verify that all input for the model has been specified:
     gp_assert( theta != 0 );
 
-
-    const AdmixType & th = *theta;
 
     const HiddenStateSpace & hss_0 = getHSS( 0 );
 
@@ -487,19 +491,13 @@ void HiddenMarkovModel::computeForwards() const
 	// This is the main recursion: compute alpha[t] from alpha[t-1]
 
 	// These factors should be pre-computed (as arrays) and cached; they
-	// only need be updated when theta changes (f,g,h) or when rho changes
-	// (f and h).
+	// only need be updated when theta changes (f and g) or when rho
+	// changes (f).
 	const double f = TransProbCache::computeF( getPed().getSLoci(), extLoc(t_m1), tpCache->getRho() );
 	const double g = TransProbCache::computeG( getPed().getSLoci(), extLoc(t_m1) );
-	AdmixType h( th );
-	h.scaleBy(1 - f);
 
-	// Do the matrix multiplication by the transition probabilities.  We
-	// assure that alpha[t] has been resized to the size of the
-	// hidden-state-space at locus t so that recursionProbs() knows how
-	// large the space is.
-	alpha_t.resize( hss_t.getNNon0() );
-	recursionProbs( f, g, h, hss_t_m1, hss_t, alpha_t_m1, alpha_t );
+	// Do the matrix multiplication by the transition probabilities.
+	recursionProbs( f, g, hss_t_m1, hss_t, alpha_t_m1, alpha_t );
 
 	#if DEBUG_TRANSRECURSION
 	    cout << "\n* alpha[" << t - 1 << "] after\n";
@@ -585,26 +583,18 @@ void HiddenMarkovModel::computeBackwards() const
 
 
 	// These factors should be pre-computed (as arrays) and cached; they
-	// only need be updated when theta changes (f,g,h) or when rho changes
-	// (f and h).
+	// only need be updated when theta changes (f and g) or when rho
+	// changes (f).
 	const double f = TransProbCache::computeF( getPed().getSLoci(), extLoc(t), tpCache->getRho() );
 	const double g = TransProbCache::computeG( getPed().getSLoci(), extLoc(t) );
-	AdmixType h( *theta );
-	h.scaleBy(1 - f);
-
 
 	// Pre-multiply beta[t+1] by the emission probabilities at t+1 (making a copy)
 	ProbsAtLocusType beta_t_p1_mult( beta_t_p1 );
 	for ( HiddenStateSpace::Iterator fr_it( hss_t_p1, isX ) ; fr_it ; ++fr_it )
 	    beta_t_p1_mult[ fr_it->getNon0Index() ] *= fr_it->getEProb() * Pi[ fr_it->getOverallIndex() ];
 
-
-	// Do the matrix multiplication by the transition probabilities.  We
-	// assure that beta[t] has been resized to the size of the
-	// hidden-state-space at locus t so that recursionProbs() knows how
-	// large the space is.
-	beta_t.resize( hss_t.getNNon0() );
-	recursionProbs( f, g, h, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
+	// Do the matrix multiplication by the transition probabilities.
+	recursionProbs( f, g, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
 
 	for ( HiddenStateSpace::Iterator fr_it( hss_t, isX ) ; fr_it ; ++fr_it )
 	    beta_t[ fr_it->getNon0Index() ] *= piInv[ fr_it->getOverallIndex() ];

@@ -139,11 +139,6 @@ class HiddenMarkovModel
 	/// used both for the forwards and backwards recursions.
 	///	@param f	The probability of 0 arrivals at the destination locus (toProbs)
 	///	@param g	"g" factor at the destination locus (toProbs)
-	///	@param h	The admixture proportions (i.e. arrival proportions,
-	///			    called \f$\mu\f$ in the transition-probability
-	///			    context) scaled by (1-f) and cached to avoid
-	///			    repeated recalculations.
-	///			    h=(1-f)*theta   <BR>  \f$h \equiv (1-f)\theta\f$
 	///	@param fr_hss	The hidden-state-space at the "from" locus.  This
 	///			    is necessary to find the values of the
 	///			    ancestry-vector and inheritance-vector for
@@ -156,7 +151,6 @@ class HiddenMarkovModel
 
 	void recursionProbs( double		      f		,
 			     double		      g		,
-			     const AdmixType &	      h		,
 			     const HiddenStateSpace & fr_hss	,
 			     const HiddenStateSpace & to_hss	,
 			     const ProbsAtLocusType & frProbs	,
