@@ -195,9 +195,15 @@ void Pedigree::accumStateInArray( const Pedigree &	    ped		    ,
     {
 
     if ( emProb == 0.0 )
-	cerr << "Strangeness: pedigree " << ped.getId() << " at locus " << sLocIdx << " (" <<
-	    ped.getSLoci()[sLocIdx].getName() << ") received a zero emission-probability.\n";
-
+	{
+    #if DEBUG_EMISSION_PROBS
+	if ( dEmission )
+	    cerr << "Strangeness: pedigree " << ped.getId()
+                 << " at locus " << sLocIdx << " ("
+                 << ped.getSLoci()[sLocIdx].getName()
+                 << ") received a zero emission-probability.\n";
+    #endif
+	}
     else
 	{
     // stateProbs is mutable, so we don't need to const_cast<> here:
