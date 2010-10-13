@@ -3,6 +3,7 @@
  *   PopAdmix.cc
  *   Class to hold and update population admixture and sumintensities parameters and their priors
  *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Portions Copyright (c) 2009-2010 Marco Colombo
  *
  * This program is free software distributed WITHOUT ANY WARRANTY.
  * You can redistribute it and/or modify it under the terms of the GNU General Public License,
@@ -22,6 +23,10 @@
 
 using namespace std;
 using namespace genepi;
+
+
+// Print the details of the update of the odds ratios vector psi
+#define DEBUG_UPDATE_ODDS_RATIOS 0
 
 
 PopAdmix::PopAdmix( const AdmixOptions& op, Genome& loci) :
@@ -441,6 +446,16 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
     // generic Metropolis step
     const bool accept = (LogAccProbRatio >= 0) ||
                         (log(Rand::myrand()) < LogAccProbRatio);
+
+#if DEBUG_UPDATE_ODDS_RATIOS
+    fprintf(stderr, "Current psi[%d]: %.9lf  Proposed: %.9lf\n",
+            el, psi[el], psiprop);
+    fprintf(stderr, "Curr-LL: %.6lf  Prop-LL: %.6lf"
+                    "  Ratio: %.6lf  PriorRat: %.6lf\n",
+            LogLikelihood, LogLikelihoodAtProposal,
+            LogLikelihoodRatio, LogPriorRatio);
+    fprintf(stderr, "Accept: %s\n", accept ? "yes" : "no");
+#endif
 
     if (!accept) {
       psi[el] = storepsi;
