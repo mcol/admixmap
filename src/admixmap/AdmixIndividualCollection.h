@@ -91,8 +91,14 @@ public:
   AdmixedIndividual* getIndividual(int)const;
   //void setAdmixtureProps(const double* const, size_t);
   double GetSumrho()const;
-  double getSumLogTheta(int)const;
-  const double *getSumLogTheta()const;
+
+  double getSumLogTheta(int i) const {
+    return SumLogTheta[i];
+  }
+
+  const double* getSumLogTheta() const {
+    return SumLogTheta;
+  }    
 
 //  double getLogLikelihood(const AdmixOptions* const options, bool forceupdate);
   //double getEnergy(const AdmixOptions* const options, const vector<bclib::Regression*> &R,
@@ -108,7 +114,11 @@ public:
   double* getSumEnergySq()const;
   void ResetChib();
   void OutputErgodicChib(std::ofstream *avgstream, bool fixedfreqs);
-  const chib* getChib()const;
+
+  /// Obtain a reference to the MargLikelihood object of class chib
+  const chib* getChib() const {
+    return &MargLikelihood;
+  }
 
 private:
   PedBase * * TestInd;// pointer to individual for whom to estimate marginal likelihood

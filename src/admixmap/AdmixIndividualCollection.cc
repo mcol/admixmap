@@ -522,6 +522,7 @@ void AdmixIndividualCollection::FindPosteriorModes(const AdmixOptions& options,
   modefile.close();
 }
 
+
 // ************** ACCESSORS **************
 
 double AdmixIndividualCollection::GetSumrho()const
@@ -532,20 +533,8 @@ double AdmixIndividualCollection::GetSumrho()const
    return Sumrho;
 }
 
-double AdmixIndividualCollection::getSumLogTheta(int i)const{
-  return SumLogTheta[i];
-}
-const double* AdmixIndividualCollection::getSumLogTheta()const{
-  return SumLogTheta;
-}
 
-// returns a reference to the object MargLikelihood of class chib
-const chib* AdmixIndividualCollection::getChib()const{
-  return &MargLikelihood;
-}
 // ************** OUTPUT **************
-
-
 
 void AdmixIndividualCollection::OutputIndAdmixture()
 {
