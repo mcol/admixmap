@@ -33,6 +33,10 @@ using genepi::RhoType;
 using std::vector;
 
 
+// Print the first drawing of the admixture proportions
+#define DEBUG_INITIAL_ADMIXTURE_PROPS 0
+
+
 #if 0
     #define DEBUG_TH_PROP(X) X
 #else
@@ -244,12 +248,13 @@ void AdmixedIndividual::drawInitialAdmixtureProps( const AlphaType & alpha ) {
     }
     // draw theta from Dirichlet with parameters dirparams
     Rand::gendirichlet( K, dirparams, Theta[g] );
-    /*
-    for(size_t k = 0; k < K; ++k) {
+
+#if DEBUG_INITIAL_ADMIXTURE_PROPS
+    cout << "drawInitialAdmixtureProps " << getMyNumber() << ": ";
+    for (size_t k = 0; k < K; ++k)
       cout << Theta[g][k] << " ";
-    }
-    //cout << endl;
-    */
+    cout << endl;
+#endif
   }
 }
 

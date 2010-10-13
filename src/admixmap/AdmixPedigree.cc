@@ -63,6 +63,9 @@
 // Print the details of the M-calculation
 #define DEBUG_CALC_M 0
 
+// Print the first drawing of the admixture proportions
+#define DEBUG_INITIAL_ADMIXTURE_PROPS 0
+
 
 #if 0
     #define DEBUG_TH_PROP(X) X
@@ -1866,6 +1869,13 @@ void Pedigree::drawInitialAdmixtureProps( const AlphaType & alpha )
 	{
 	// Draw theta from Dirichlet with dirichlet parameters alpha:
 	bclib::Rand::gendirichlet( K, alpha[0].getVector_unsafe(), getCurTheta()[fIdx] );
+
+	#if DEBUG_INITIAL_ADMIXTURE_PROPS
+	    cout << "drawInitialAdmixtureProps " << getMyNumber() << ": ";
+	    for ( PopIdx k = 0; k < K; ++k )
+		cout << getCurTheta()[fIdx][k] << " ";
+	    cout << endl;
+	#endif
 	}
 
     }

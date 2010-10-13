@@ -164,9 +164,13 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
    if( options.getPopulations() > 1 && individuals->getSize() > 1 &&
        options.getIndAdmixHierIndicator() ){
      const double* sumlogtheta = individuals->getSumLogTheta();
-     //sample alpha conditional on individual admixture proportions
-     //cout << "alpha " << alpha[0][0] << " " << alpha[0][1] <<  " sumlogtheta "
-     //	    << individuals->getSumLogTheta()[0] << " " <<  individuals->getSumLogTheta()[1] << endl;
+
+#if 0
+     cout << "alpha " << alpha[0][0] << " " << alpha[0][1]
+          << " sumlogtheta " << sumlogtheta[0] << " " << sumlogtheta[1] << endl;
+#endif
+
+     // sample alpha conditional on individual admixture proportions
      try{
        if(options.PopAdmixturePropsAreEqual())
 	 //sample only dispersion
