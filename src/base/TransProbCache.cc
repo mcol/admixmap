@@ -357,14 +357,21 @@ void TransProbCache::muChanged()
 
 double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxType t, double rho )
     {
-    // The distance from one chromosome to another is effectively infinity;
-    // therefore e^-x is 0.  We make an explicit check for this here.
 
     const SimpleLocus & locTPlusOne = loci[ t + 1 ];
 
-    return locTPlusOne.startsNewChromosome()		     ?
-	0.0						     :
-	exp( - rho * locTPlusOne.getDistance().inMorgans() ) ;
+    // The distance from one chromosome to another is effectively infinity;
+    // therefore e^-x is 0.  We make an explicit check for this here.
+    if ( locTPlusOne.startsNewChromosome() )
+	return 0.0;
+
+    // The sum-intensities parameter on the X chromosome is set to half the
+    // autosomal value
+    const IsXChromType isX = loci[t].isXChrom();
+    if ( isX == CHR_IS_X )
+	rho *= 0.5;
+
+    return exp( - rho * locTPlusOne.getDistance().inMorgans() ) ;
     }
 
 
