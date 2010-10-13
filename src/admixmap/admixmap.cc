@@ -284,37 +284,39 @@ int main( int argc , char** argv ){
 	    for ( SLocIdxType sLocIdx = 0 ; sLocIdx < loci.size() ; ++sLocIdx )
 		{
 		const HiddenStateSpace & space = ped.getStateProbs( sLocIdx );
+		const IsXChromType is_xchrom = loci[sLocIdx].isXChrom();
 
-		if ( print_eprobs || (print_ssize && (space.getNStates() > 65)) )
+		if ( print_eprobs || (print_ssize && (space.getNStates( is_xchrom ) > 65)) )
 		    cout << (print_eprobs ? "\n" : "  ") << "Simple-locus \"" << loci[ sLocIdx ].getName() << "\":";
 
 		size_t n_states = 0;
 
-		for ( HiddenStateSpace::Iterator it(space); it; ++it )
+		for ( HiddenStateSpace::Iterator it(space, is_xchrom); it; ++it )
 		    {
 		    ++n_states;
 		    if ( print_eprobs && ((max_print_states == 0) || (n_states <= size_t(max_print_states))) )
 			{
 			const HiddenStateSpace::State & st = *it;
-			cout << "\n  " << st.av << ' ' << st.iv << "  " << setw(10) << setprecision(8) << st.emProb;
+			cout << "\n  " /* << st.av << ' ' */ << st.iv << "  "
+			     << setw(10) << setprecision(8) << st.emProb;
 			}
 		    }
 
 		if ( print_eprobs )
 		    cout << "\n  ";
 
-		st_total += space.getNStates();
+		st_total += space.getNStates( is_xchrom );
 		nz_total += n_states;
 
 		tot_trans_prob_nz += (n_states * prev_non_zero);
 		prev_non_zero = n_states;
-		tot_trans_prob += (space.getNStates() * prev_possible);
-		prev_possible = space.getNStates();
+		tot_trans_prob += (space.getNStates( is_xchrom ) * prev_possible);
+		prev_possible = space.getNStates( is_xchrom );
 
-		if ( print_eprobs || (print_ssize && (space.getNStates() > 65)) ) // && (n_states != space.getNStates())) )
+		if ( print_eprobs || (print_ssize && (space.getNStates( is_xchrom ) > 65)) ) // && (n_states != space.getNStates( is_xchrom ))) )
 		    {
-		    const unsigned long percent = ((n_states * 1000) + (space.getNStates()>>1)) / space.getNStates();
-		    cout << ' ' << space.getNStates() << " states, of which "
+		    const unsigned long percent = ((n_states * 1000) + (space.getNStates( is_xchrom )>>1)) / space.getNStates( is_xchrom );
+		    cout << ' ' << space.getNStates( is_xchrom ) << " states, of which "
 			<< n_states << " have non-zero emission probability"
 			    " (" << (percent/10) << '.' << (percent % 10) << "%)\n";
 		    }
