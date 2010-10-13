@@ -315,8 +315,6 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
   sumfactor = 0.0; // accumulates log-likelihood
-  double Sum = 0.0;
-  double scaleFactor = 0.0;
   
   if(!missingGenotypes[0]) {
     for(int j = 0; j < nStates; ++j) {
@@ -330,12 +328,12 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
 
   for( int t = 1; t < Transitions; ++t ){
     if(!missingGenotypes[t-1]) {
-      Sum = 0.0;
+      double Sum = 0.0;
       //scale previous alpha to sum to 1
       for( int j = 0; j <  nStates; ++j ) {
 	Sum += alpha[(t-1)*nStates +j];
       }
-      scaleFactor = 1.0 / Sum;
+      const double scaleFactor = 1.0 / Sum;
       for( int j = 0; j <  nStates; ++j ) {
 	alpha[(t-1)*nStates +j] *= scaleFactor;
       }
@@ -363,8 +361,6 @@ void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
   if(!LambdaBeta)
     LambdaBeta = new double[ nStates ];
 
-  double scaleFactor, Sum;
-  
   for(int j = 0; j < nStates; ++j){
     //set beta(T) = 1
     beta[(Transitions - 1)*nStates + j] = 1.0;
@@ -372,13 +368,13 @@ void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
   
   for( int t = Transitions-2; t >= 0; --t ) {
     double f2[2] = {f[2*t + 2], f[2*t + 3]};
-    Sum = 0.0;
+    double Sum = 0.0;
     for(int j = 0; j < nStates; ++j){
       LambdaBeta[j] = Lambda[(t+1)*nStates + j] * beta[(t+1)*nStates + j] * pi[j];
       Sum += LambdaBeta[j];
     }
     //scale LambdaBeta to sum to 1
-    scaleFactor = 1.0 / Sum;
+    const double scaleFactor = 1.0 / Sum;
     for( int j = 0; j <  nStates; ++j ) {
       LambdaBeta[j] *= scaleFactor;
     }
@@ -398,8 +394,6 @@ void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
 void HiddenMarkovModel::UpdateForwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   sumfactor = 0.0;
-  double Sum = 0.0;
-  double scaleFactor = 0.0;
 
   //   for(int t = 0; t < Transitions; ++t) {
   //     cout << "t " << t << " ";
@@ -415,12 +409,12 @@ void HiddenMarkovModel::UpdateForwardProbsHaploid(){
   
   for( int t = 1; t < Transitions; t++ ) {
     if(!missingGenotypes[t-1]) {
-      Sum = 0.0;
+      double Sum = 0.0;
       //scale previous alpha to sum to 1
       for(int j = 0; j < K; ++j){
 	Sum += alpha[(t-1)*K + j];
       }
-      scaleFactor = 1.0 / Sum;
+      const double scaleFactor = 1.0 / Sum;
       for( int j = 0; j <  K; ++j ) {
 	alpha[(t-1)*K +j] *= scaleFactor;
       }
@@ -443,13 +437,13 @@ void HiddenMarkovModel::UpdateBackwardProbsHaploid(){
   }
   if(!LambdaBeta)
     LambdaBeta = new double[ nStates ];
-  double Sum = 0.0;
+
   for(int j = 0; j < K; ++j){
     beta[(Transitions-1)*K + j] = 1.0;
   }
   
   for( int t = Transitions-2; t >=0; t-- ){
-    Sum = 0.0;
+    double Sum = 0.0;
     for(int j = 0; j < K; ++j){
       LambdaBeta[j] = Lambda[(t+1)*K + j]*beta[(t+1)*K + j];
       Sum += theta[j]*LambdaBeta[j];
@@ -504,21 +498,20 @@ void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2],
 /// Version of RecursionProbs specialized for 2 populations
 void HiddenMarkovModel::RecursionProbs2(const double ff, const double f2[2],
                                         const double* const stateArrivalProbs0,
-					const double* const stateArrivalProbs1, 
-					const double* const oldProbs, double *newProbs) {
-
-  double row0Prob;
-  double col0Prob;
-  double Exp0;
-  double Exp1;
+                                        const double* const stateArrivalProbs1,
+                                        const double* const oldProbs,
+                                        double *newProbs) {
   // sum row 0 and col 0  
-  row0Prob = ( oldProbs[0] + oldProbs[2] );
-  col0Prob = ( oldProbs[0] + oldProbs[1] );
+  double row0Prob = oldProbs[0] + oldProbs[2];
+  double col0Prob = oldProbs[0] + oldProbs[1];
+
   // calculate expectations of indicator variables for ancestry=0 on each gamete
-  Exp0 = f2[0]*row0Prob + stateArrivalProbs0[0]; // paternal gamete
-  Exp1 = f2[1]*col0Prob + stateArrivalProbs1[0]; // maternal gamete
-  // calculate covariance of indicator variables as ff * deviation from product of row and col probs
-  newProbs[0] = Exp0 * Exp1 + ff * ( oldProbs[0] - row0Prob * col0Prob );; 
+  double Exp0 = f2[0]*row0Prob + stateArrivalProbs0[0]; // paternal gamete
+  double Exp1 = f2[1]*col0Prob + stateArrivalProbs1[0]; // maternal gamete
+
+  // calculate covariance of indicator variables as ff * deviation from
+  // product of row and col probs
+  newProbs[0] = Exp0 * Exp1 + ff * ( oldProbs[0] - row0Prob * col0Prob );
   newProbs[1] = Exp0 - newProbs[0]; //prob paternal ancestry=1, maternal=0 
   newProbs[2] = Exp1 - newProbs[0]; //prob paternal ancestry=0, maternal=1 
   newProbs[3] = 1 - Exp0 - Exp1 + newProbs[0];
