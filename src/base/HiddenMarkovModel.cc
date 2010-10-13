@@ -63,7 +63,7 @@ HiddenMarkovModel::HiddenMarkovModel( int _transitions, size_t _K, size_t _nStat
   gp_assert_eq( _nStates, _K*_K );
 
   SetNullValues();
-  SetDimensions(_f, true);
+  SetDimensions(_f);
   }
 
 
@@ -84,9 +84,9 @@ HiddenMarkovModel::~HiddenMarkovModel()
   delete[] cov; //free_matrix(cov, K);
 }
 
-///allocate arrays and set f pointer
-void HiddenMarkovModel::SetDimensions( const double * const fin, bool)
-{
+/// Allocate the arrays and set the pointer of locus correlations f
+void HiddenMarkovModel::SetDimensions(const double* const fin) {
+
   alpha = new double[Transitions* nStates];
   p = new double[Transitions];
   f = fin;

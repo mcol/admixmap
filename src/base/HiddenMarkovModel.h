@@ -143,7 +143,8 @@ private:
   double *Expectation1;
   double *cov;
 
-  virtual void SetDimensions( const double* const fin, bool diploid);
+  /// Allocate the arrays and set the pointer of locus correlations f
+  virtual void SetDimensions(const double* const fin);
 
   // UNIMPLEMENTED
   // to avoid use
