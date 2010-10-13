@@ -85,9 +85,13 @@ public:
   HiddenMarkovModel &	    getHMM()	   { return *HMM; }
   const HiddenMarkovModel & getHMM() const { return *HMM; }
 
-  double LocusCorrelation(unsigned locus, double drho);
 
 private:
+
+  /// Compute the locus correlation at a given locus given the value of the
+  /// sum-intensities parameter rho
+  double LocusCorrelation(unsigned locus, double drho);
+
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
   // With a global rho model, this array is same for all individuals and calculated only once.
   // required to calculate transition matrices 

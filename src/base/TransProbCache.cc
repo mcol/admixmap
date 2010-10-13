@@ -357,7 +357,6 @@ void TransProbCache::muChanged()
 
 double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxType t, double rho )
     {
-
     const SimpleLocus & locTPlusOne = loci[ t + 1 ];
 
     // The distance from one chromosome to another is effectively infinity;
@@ -366,7 +365,7 @@ double TransProbCache::computeF( const SimpleLocusArray & loci, SLocIdxType t, d
 	return 0.0;
 
     // The sum-intensities parameter on the X chromosome is set to half the
-    // autosomal value
+    // autosomal value.
     const IsXChromType isX = loci[t].isXChrom();
     if ( isX == CHR_IS_X )
 	rho *= 0.5;

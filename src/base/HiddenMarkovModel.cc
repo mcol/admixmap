@@ -461,10 +461,14 @@ void HiddenMarkovModel::UpdateBackwardProbsHaploid(){
   betaIsBad = false;
 }
 
-// argument oldProbs is square array of size K * K
-// for forward recursions, pass alpha_t and multiply newProbs by emission probs lambda_t 
-// for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
-void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2], const double* const stateArrivalProbs0, 
+/// @param f2        Locus correlations
+/// @param oldProbs  Square array of size K * K:
+///                  For forward recursions, pass alpha_t and multiply newProbs
+///                    by emission probs lambda_t
+///                  For backward recursions, pass the array of products
+///                    lambda_t+1[jj] * beta_t+1[jj]
+void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2],
+                                       const double* const stateArrivalProbs0,
 				       const double* const stateArrivalProbs1, 
 				       const double* const oldProbs, double *newProbs) {
   if (K==2)
@@ -496,11 +500,13 @@ void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2], cons
     }
   }//end else
 }
- 
-void HiddenMarkovModel::RecursionProbs2(const double ff, const double f2[2], const double* const stateArrivalProbs0, 
+
+/// Version of RecursionProbs specialized for 2 populations
+void HiddenMarkovModel::RecursionProbs2(const double ff, const double f2[2],
+                                        const double* const stateArrivalProbs0,
 					const double* const stateArrivalProbs1, 
 					const double* const oldProbs, double *newProbs) {
-  // version for 2 subpopulations
+
   double row0Prob;
   double col0Prob;
   double Exp0;

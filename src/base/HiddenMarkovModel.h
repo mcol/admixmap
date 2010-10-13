@@ -95,6 +95,8 @@ public:
   virtual void SampleJumpIndicators(const int* const , unsigned int, int *)const{};
 
 protected:
+
+  /// Number of populations
   const int K;
   const int nStates; ///< Number of hidden states (for diploid individual, K*K)
   const int Transitions; //length of chain
@@ -107,11 +109,20 @@ protected:
   double *alpha, *beta, *LambdaBeta;
   double *p;
   double* StateArrivalProbs[2];
+
+  /// Stationary distribution
   double* pi;
+
+  /// Inverse of the stationary distribution
   double* piInv;
 
+  /// Locus correlations
   const double* f;
+
+  /// Admixture probabilities
   const double* theta;
+
+  /// Emission probabilities
   const double* Lambda;
   const bool* missingGenotypes;
   bool alphaIsBad, betaIsBad;

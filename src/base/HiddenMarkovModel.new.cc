@@ -341,7 +341,7 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 )
     // Here we compute the stationary distribution (Pi) and store its inverse
     // in piInv. To ensure that we compute it for all elements in the hidden
     // state space, we force the iterator to not skip the elements for which
-    // the emission probability is zero by setting the second parameter of
+    // the emission probability is zero by setting the third parameter of
     // the constructor to false.
 
     for ( HiddenStateSpace::Iterator it( hss_0, isX, false ) ; it ; ++it )
