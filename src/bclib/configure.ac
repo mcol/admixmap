@@ -5,6 +5,8 @@ AC_INIT([bclib],[1.3])
 #put auxiliary files here
 AC_CONFIG_AUX_DIR(config)
 
+AC_CONFIG_MACRO_DIR([m4])
+
 #Compute the canonical target-system type variable, target
 AC_CANONICAL_TARGET
 
@@ -14,6 +16,8 @@ AC_MSG_NOTICE([
 
 Configuring $PACKAGE_STRING for $target
 ])
+
+AM_CONDITIONAL([USE_OPENMP],[test "$enable_openmp" = yes])
 
 # C++ compilers
 #AC_PROG_CXX

@@ -31,7 +31,9 @@
 
 #include <stdexcept>	// std::out_of_range
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"	// AGGRESSIVE_RANGE_CHECK
+#endif
 
 #include "bclib/exceptions.h"
 

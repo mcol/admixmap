@@ -34,7 +34,10 @@
 
 
 #include <stdexcept>
+
+#ifdef HAVE_CONFIG_H
 #include "config.h"	// AGGRESSIVE_RANGE_CHECK
+#endif
 
 #include "estr.h"
 
