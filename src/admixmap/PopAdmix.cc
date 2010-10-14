@@ -10,20 +10,19 @@
  * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
  */
+
 #include "PopAdmix.h"
 #include "Chromosome.h"
 #include "AdmixIndividualCollection.h"
-#include "bclib/misc.h"
-#include "bclib/dist.h"//for log gamma density
 #include <algorithm>
-#include <numeric>
-#include "gsl/gsl_math.h"
-#include "gsl/gsl_specfunc.h"
 
 
 using namespace std;
 using namespace genepi;
 
+
+// Print the details of the update of the sum intensities parameter rho
+#define DEBUG_UPDATE_GLOBAL_SUM_INTENSITIES 0
 
 // Print the details of the update of the odds ratios vector psi
 #define DEBUG_UPDATE_ODDS_RATIOS 0
@@ -281,6 +280,16 @@ void PopAdmix::UpdateGlobalSumIntensities( const AdmixIndividualCollection & IC,
 
     // generic Metropolis step
     const bool accept = (LogAccProbRatio >= 0) || (log(Rand::myrand()) < LogAccProbRatio);
+
+#if DEBUG_UPDATE_GLOBAL_SUM_INTENSITIES
+    fprintf(stderr, "Current rho: %.9lf  Proposed: %.9lf  Step: %.9lf\n",
+            rho[0], rhoprop, step);
+    fprintf(stderr, "Curr-LL: %.6lf  Prop-LL: %.6lf"
+                    "  Ratio: %.6lf  PriorRat: %.6lf\n",
+            LogLikelihood, LogLikelihoodAtProposal,
+            LogLikelihoodRatio, LogPriorRatio);
+    fprintf(stderr, "Accept: %s\n", accept ? "yes" : "no");
+#endif
 
     if ( accept ) {
       rho[0] = rhoprop;
