@@ -458,7 +458,7 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
 
 #if DEBUG_UPDATE_ODDS_RATIOS
     fprintf(stderr, "Current psi[%d]: %.9lf  Proposed: %.9lf\n",
-            el, psi[el], psiprop);
+            el, storepsi, psiprop);
     fprintf(stderr, "Curr-LL: %.6lf  Prop-LL: %.6lf"
                     "  Ratio: %.6lf  PriorRat: %.6lf\n",
             LogLikelihood, LogLikelihoodAtProposal,
