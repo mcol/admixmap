@@ -78,7 +78,6 @@ public:
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
 
-  void SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs);
   void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
   void AnnealGenotypeProbs(int j, const double coolness);
 

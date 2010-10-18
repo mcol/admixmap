@@ -266,44 +266,46 @@ void AdmixedIndividual::setAdmixtureProps(const AdmixtureProportions& rhs) {
 }
 
 
-void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator ){
-  //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
-  //instead of HapPairProbs when allelefreqs are not fixed.
-  if( !GenotypesMissing[j][jj] ) {
-    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-      (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*NumHiddenStates*NumHiddenStates, PossibleHapPairs[locus],
-				       chibindicator);
-      //       if(chibindicator) {
-      //for( int k = 0; k < NumHiddenStates; ++k ) cout << GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates + k] << " ";
-      //       }
-    } else {//haploid genotype
-      (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j]+jj*NumHiddenStates, PossibleHapPairs[locus],
-					      chibindicator);
-      // cout << "locus " << locus << " " << "chr " << j << " ";
-      // for( int k = 0; k < NumHiddenStates; ++k ) cout << GenotypeProbs[j][jj*NumHiddenStates + k] << " ";
-      //       cout << "\n";
-    }
-  } else {
-    if( !isHaploid && (j!=(int)X_posn || SexIsFemale))  //diploid genotype
-      for( int k = 0; k < NumHiddenStates*NumHiddenStates; ++k ) GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates + k] = 1.0;
-    else //haploid genotype
-      for( int k = 0; k < NumHiddenStates; ++k ) GenotypeProbs[j][jj*NumHiddenStates + k] = 1.0;
-  }
+// chibindicator is passed to the CompositeLocus object: if set to true,
+// CompositeLocus will use HapPairProbsMAP instead of HapPairProbs when the
+// allele frequencies are not fixed.
+void AdmixedIndividual::SetGenotypeProbs(int j, int jj,
+                                         unsigned locus, bool chibindicator) {
 
+  const bool diploid = !isHaploid && (j != (int)X_posn || SexIsFemale);
+  const int K = diploid ? NumHiddenStates*NumHiddenStates : NumHiddenStates;
+
+  if (!GenotypesMissing[j][jj]) {
+    if (diploid)
+      (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j] + jj*K,
+                                       PossibleHapPairs[locus],
+                                       chibindicator);
+    else
+      (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j] + jj*K,
+                                              PossibleHapPairs[locus],
+                                              chibindicator);
+  }
+  else {
+    for (int k = 0; k < K; ++k)
+      GenotypeProbs[j][jj * K + k] = 1.0;
+  }
 }
 
 
+/// Called after energy has been evaluated, before updating model parameters
 void AdmixedIndividual::AnnealGenotypeProbs(int j, const double coolness) {
-  // called after energy has been evaluated, before updating model parameters
+
   int locus = Loci->getChromosome(j)->GetLocus(0);
-  for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
-    if( !GenotypesMissing[j][jj] ) {
-      if(!isHaploid && ( j!=(int)X_posn || SexIsFemale))  //diploid genotype
-	for(int k = 0; k < NumHiddenStates*NumHiddenStates; ++k) // loop over ancestry states
-	  GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates+k] = pow(GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates+k], coolness);
-      else //haploid genotype
-	for(int k = 0; k < NumHiddenStates; ++k) // loop over ancestry states
-	  GenotypeProbs[j][jj*NumHiddenStates+k] = pow(GenotypeProbs[j][jj*NumHiddenStates+k], coolness);
+
+  const bool diploid = !isHaploid && (j != (int)X_posn || SexIsFemale);
+  const int K = diploid ? NumHiddenStates*NumHiddenStates : NumHiddenStates;
+
+  // loop over composite loci
+  for (unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); ++jj) {
+
+    if (!GenotypesMissing[j][jj]) {
+      for (int k = 0; k < K; ++k) // loop over ancestry states
+        GenotypeProbs[j][jj*K + k] = pow(GenotypeProbs[j][jj*K + k], coolness);
     }
     locus++;
   }
