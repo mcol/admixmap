@@ -1927,14 +1927,8 @@ void Pedigree::UpdateScores( const AdmixOptions & options, bclib::DataMatrix *, 
 // DDF: code is adapted from code copied from AdmixedIndividual::getPosteriorMeans().
 //-----------------------------------------------------------------------------
 
-void Pedigree::getPosteriorMeans( ThetaType & thetaBar, RhoType & rhoMean, unsigned int samples ) const
+void Pedigree::getPosteriorMeansTheta( ThetaType & thetaBar, double dSamples ) const
     {
-
-    const double dSamples = samples;
-
-    rhoMean.resize( sumlogrho.size() );
-    for ( size_t i = sumlogrho.size() ; i-- != 0 ; )
-	rhoMean[i] = exp( sumlogrho[i] / dSamples );
 
     if ( thetaBar.size() != getNTheta() )
 	thetaBar.resize( getNTheta() );
@@ -2006,6 +2000,15 @@ void Pedigree::getPosteriorMeans( ThetaType & thetaBar, RhoType & rhoMean, unsig
     }
 
 
+void Pedigree::getPosteriorMeansRho( RhoType & rhoMean, double dSamples ) const
+    {
+
+    rhoMean.resize( sumlogrho.size() );
+    for ( size_t i = sumlogrho.size() ; i-- != 0 ; )
+	rhoMean[i] = exp( sumlogrho[i] / dSamples );
+
+    }
+
 
 //-----------------------------------------------------------------------------
 // WritePosteriorMeans()
@@ -2015,16 +2018,18 @@ void Pedigree::getPosteriorMeans( ThetaType & thetaBar, RhoType & rhoMean, unsig
 void Pedigree::WritePosteriorMeans( ostream& os, unsigned int samples, bool globalrho ) const
     {
 
-    ThetaType thetaBar	;
-    RhoType   rhobar	;
-
-    getPosteriorMeans( thetaBar, rhobar, samples );
+    ThetaType thetaBar;
+    getPosteriorMeansTheta( thetaBar, samples );
 
     for ( ThetaType::iterator it = thetaBar.begin() ; it != thetaBar.end() ; ++it )
 	copy( it->begin(), it->end(), ostream_iterator<double>(os, "\t") );
 
     if ( ! globalrho )
+	{
+	RhoType rhobar;
+	getPosteriorMeansRho( rhobar, samples );
 	copy( rhobar.begin(), rhobar.end(), ostream_iterator<double>(os, "\t") );
+	}
 
     }
 

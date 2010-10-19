@@ -157,7 +157,9 @@ private:
   double getLogLikelihood(const Options& options,
                           const AdmixtureProportions& theta,
                           const genepi::RhoType& rho, bool updateHMM);
-  void getPosteriorMeans( double * ThetaMean, genepi::RhoType & rhoMean /* output parameter? */, unsigned samples ) const;
+  void getPosteriorMeansTheta(genepi::cvector<double>& ThetaMean,
+                              double dSamples) const;
+  void getPosteriorMeansRho(genepi::RhoType& rhoMean, double dSamples) const;
 
 
     // ====== DEBUGGING METHODS (overridden from PedBase) ======

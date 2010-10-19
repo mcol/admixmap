@@ -859,7 +859,8 @@ class Pedigree : public PedBase // See NOTE *4*
 
 
     /// Copied from AdmixedIndividual because it is used by WritePosteriorMeans().
-    void getPosteriorMeans( ThetaType & ThetaMean, RhoType & rhoMean /* output parameter? */, unsigned int samples ) const;
+    void getPosteriorMeansTheta( ThetaType & ThetaMean, double dSamples ) const;
+    void getPosteriorMeansRho( RhoType & rhoMean, double dSamples ) const;
 
 
     /// Overridden from PedBase (body is adapted from code copied from

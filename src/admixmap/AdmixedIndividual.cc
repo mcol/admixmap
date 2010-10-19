@@ -454,26 +454,23 @@ double AdmixedIndividual::getLogLikelihoodOnePop(){ //convenient for a single po
   return LogLikelihood;
 }
 
-void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, RhoType& rhoMean,
-                                          unsigned samples) const {
+void AdmixedIndividual::getPosteriorMeansTheta(cvector<double>& ThetaMean,
+                                               double dSamples) const {
   unsigned size = NumHiddenStates * NumGametes;
-  const double dSamples = samples;
+
   for (unsigned i = 0; i < size; ++i)
     SumSoftmaxTheta[i] /= dSamples;
-  rhoMean.clear();
-  for(unsigned i = 0; i < sumlogrho.size(); ++i)
-    rhoMean.push_back( exp(sumlogrho[i]/dSamples) );
 
-  if (ThetaMean == 0)
-    throw string("ERROR in AdmixedIndividual::getPosteriorMeans: "
-                 "ThetaMean is NULL");
+  if (ThetaMean.size() != size)
+    ThetaMean.resize(size);
 
   // apply softmax transformation to obtain thetabar
   bool* b = new bool[NumHiddenStates];
   for( unsigned int g = 0; g < NumGametes; g++ ){
     for(int k = 0; k < NumHiddenStates; ++k)
       b[k] = (Theta[g][k] > 0.0) ? true : false; // skip elements set to zero
-    bclib::softmax(NumHiddenStates, ThetaMean+g*NumHiddenStates, SumSoftmaxTheta+g*NumHiddenStates, b);
+    bclib::softmax(NumHiddenStates, ThetaMean.data_unsafe() + g*NumHiddenStates,
+                   SumSoftmaxTheta + g*NumHiddenStates, b);
     // rescale SumSoftmaxTheta back
     for(int k = 0; k < NumHiddenStates; ++k)
       SumSoftmaxTheta[g*NumHiddenStates + k] *= dSamples;
@@ -481,17 +478,26 @@ void AdmixedIndividual::getPosteriorMeans(double* ThetaMean, RhoType& rhoMean,
   delete[] b;
 }
 
-void AdmixedIndividual::WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const{
-  double* ThetaBar = new double[NumGametes*NumHiddenStates];
-  cvector<double> rhobar;
+void AdmixedIndividual::getPosteriorMeansRho(RhoType& rhoMean,
+                                             double dSamples) const {
+  rhoMean.clear();
+  for (unsigned i = 0; i < sumlogrho.size(); ++i)
+    rhoMean.push_back( exp(sumlogrho[i]/dSamples) );
+}
 
-  getPosteriorMeans(ThetaBar, rhobar, samples);
+void AdmixedIndividual::WritePosteriorMeans(ostream& os, unsigned samples,
+                                            bool globalrho) const {
 
-  copy(ThetaBar, ThetaBar + NumHiddenStates * NumGametes, ostream_iterator<double>(os, "\t"));
-  if(!globalrho)
+  cvector<double> ThetaMean(NumGametes*NumHiddenStates);
+
+  getPosteriorMeansTheta(ThetaMean, samples);
+
+  copy(ThetaMean.begin(), ThetaMean.end(), ostream_iterator<double>(os, "\t"));
+  if (!globalrho) {
+    cvector<double> rhobar;
+    getPosteriorMeansRho(rhobar, samples);
     copy(rhobar.begin(), rhobar.end(), ostream_iterator<double>(os, "\t"));
-
-  delete[] ThetaBar;
+  }
 
   if ( AncestryProbs )
     SumProbs /= (double) samples;
@@ -507,11 +513,10 @@ void AdmixedIndividual::WritePosteriorMeansXChr(ostream& os, unsigned samples) c
 
   const unsigned size = NumGametes * NumHiddenStates;
   AdmixtureProportions ThetaPosteriorMeans(NumGametes, NumHiddenStates);
-  double *ThetaMean = new double[size];
-  cvector<double> rhobar;
+  cvector<double> ThetaMean;
 
   // get the autosomal posterior means and store them
-  getPosteriorMeans(ThetaMean, rhobar, samples);
+  getPosteriorMeansTheta(ThetaMean, samples);
   for (unsigned int g = 0; g < NumGametes; ++g)
     for (int k = 0; k < NumHiddenStates; ++k)
       ThetaPosteriorMeans[g][k] = ThetaMean[NumHiddenStates * g + k];
@@ -519,8 +524,6 @@ void AdmixedIndividual::WritePosteriorMeansXChr(ostream& os, unsigned samples) c
   // get the X chromosome posterior means
   const double *ThetaMeanX = ThetaPosteriorMeans.flatXChromosome(psi);
   copy(ThetaMeanX, ThetaMeanX + size, ostream_iterator<double>(os, "\t"));
-
-  delete[] ThetaMean;
 }
 
 void AdmixedIndividual::WritePosteriorMeansLoci(ostream& os)const{
