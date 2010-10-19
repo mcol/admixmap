@@ -85,8 +85,10 @@ void AlleleFreqs::Initialise(Options* const options, InputData* const data,
     }
   }
 
-  //allocate frequency arrays
+  // allocate frequency arrays
   Freqs.array = new double*[NumberOfCompositeLoci];
+  for (unsigned locus = 0; locus < NumberOfCompositeLoci; ++locus)
+    Freqs.array[locus] = 0;
   AlleleFreqsMAP.array = Freqs.array;
 
   LoadAlleleFreqs(options, data, Log);
@@ -119,10 +121,8 @@ void AlleleFreqs::Initialise(Options* const options, InputData* const data,
       (*Loci)(i)->InitialiseHapPairProbsMAP();
     }
   }//end comp locus loop
-  
 
   AllocateAlleleCountArrays(options->getPopulations());
-
 }
 
 void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
@@ -143,7 +143,6 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
     }
     else hetCounts.array[i] = 0;//set to null pointer for safety
   }
-
 }
 
 ///reads initial values of allele freqs from file
@@ -195,6 +194,7 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, bclib::LogWriter &
     exit(1);
   }
 }
+
 /**
  * Initialises the frequencies of each haplotype in the ith
  * composite locus, given Dirichlet priors (oldformat=false) or frequencies (oldformat=true)in matrix New.  
@@ -262,9 +262,7 @@ void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, boo
       for(unsigned col = 0; col < Populations; ++col){
         PriorParams[i][col*NumberOfStates + row] = convertValueFromFile(New[row0+row][col+1]);//New.get(row0+row, col+1); 
       }
-
   }
-
 }
 
 /**
