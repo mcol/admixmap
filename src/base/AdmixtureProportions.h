@@ -72,6 +72,13 @@ class AdmixtureProportions {
   /// Scale all elements by the specified value
   void scaleBy(double val);
 
+  /// Return a copy of the internal vectors
+  genepi::cvector< bclib::pvector<double> > getTheta() const;
+
+  /// Return a copy of the internal vectors, adjusted to account for the
+  /// admixture ratio of the X chromosome
+  genepi::cvector< bclib::pvector<double> > getTheta(const genepi::cvector<double>& psi) const;
+
   /// Return a (read-only) flattened version of the internal vectors
   const double* flat() const;
 

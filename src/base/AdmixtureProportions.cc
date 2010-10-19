@@ -120,6 +120,37 @@ void AdmixtureProportions::setTo(double value) {
       gametes[g][k] = value;
 }
 
+/// Return a copy of the internal vectors
+cvector<pvector<double> > AdmixtureProportions::getTheta() const {
+
+  gp_assert(isOk);
+  return gametes;
+}
+
+/// Return a copy of the internal vectors, adjusted to account for the
+/// admixture ratio of the X chromosome
+cvector<pvector<double> > AdmixtureProportions::getTheta(const cvector<double>& psi) const {
+
+  gp_assert(isOk);
+  gp_assert_eq(psi.size(), gametes[0].size());
+
+  const size_t G = gametes.size();
+  const size_t K = gametes[0].size();
+  const double Q = 0.5;
+  cvector<double> r(K);
+  cvector<pvector<double> > th(gametes);
+
+  for (size_t g = 0 ; g < G; ++g) {
+
+    oddsratios2xKtocolratios(psi, gametes[g], Q, r);
+
+    for (size_t k = 0 ; k < K ; ++k)
+      th[g][k] = 2.0 * th[g][k] * (1.0 + 2.0 * r[k]) / (3.0 * (1.0 + r[k]));
+  }
+
+  return th;
+}
+
 /// Scale all elements by the specified value
 void AdmixtureProportions::scaleBy(double value) {
 
