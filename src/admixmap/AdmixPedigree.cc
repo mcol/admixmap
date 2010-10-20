@@ -215,7 +215,8 @@ Pedigree::LLBuf & Pedigree::LLBuf::operator=( const LLBuf & rhs )
 
 double Pedigree::LLBuf::getHMM_LL()
     {
-    return ped.getHMM(CHR_IS_X).getLogLikelihood() + ped.getHMM(CHR_IS_NOT_X).getLogLikelihood();
+    return ped.getHMM(CHR_IS_NOT_X).getLogLikelihood() +
+           ped.getHMM(CHR_IS_X    ).getLogLikelihood();
     }
 
 
