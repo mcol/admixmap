@@ -859,12 +859,11 @@ double AdmixedIndividual::ProposeThetaWithRandomWalk( const AdmixOptions& option
   //generate proposals
   for( unsigned int g = 0; g < NumGametes; g++ ){
     if(options.isAdmixed(g)){
-      // inverse softmax transformation from proportions to numbers on real line that sum to 0
-      for(int k = 0; k < NumHiddenStates; ++k) {
-	if (Theta[g][k] > 0.0) {
-	  b[k] = true; //to skip elements set to zero
-	} else b[k] = false;
-      }
+      // inverse softmax transformation from proportions to numbers on the
+      // real line that sum to 0
+      for (int k = 0; k < NumHiddenStates; ++k)
+        b[k] = (Theta[g][k] > 0.0) ? true : false; // skip elements set to zero
+
       Theta[g].inv_softmax_gt0(a);
 
       DEBUG_TH_PROP(
