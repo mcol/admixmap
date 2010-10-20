@@ -652,6 +652,12 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
       useroptions.erase("allelefreqoutputfile");
       OutputAlleleFreq = false;
     }
+    if (correlatedallelefreqs) {
+      Log.setDisplayMode(On);
+      Log << "ERROR: correlatedallelefreqs option is not valid "
+          << "with fixed allele frequencies.\n";
+      badOptions = true;
+    }
   }
   //prior allele freqs
   else if( PriorAlleleFreqFilename.length() && !fixedallelefreqs ){
