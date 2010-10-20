@@ -225,8 +225,9 @@ AdmixedIndividual::~AdmixedIndividual() {
   delete[] dirparams;
   delete[] SumLocusAncestry;
   delete[] SumLocusAncestry_X;
-  //this might not work, relies on Loci still being in scope in top level
-  //GPArray.dealloc(Loci->GetNumberOfCompositeLoci());
+  for (unsigned int j = 0; j < numChromosomes; ++j)
+    delete[] GenotypeProbs[j];
+  delete[] GenotypeProbs;
 }
 
 void AdmixedIndividual::SetStaticMembers( Genome & pLoci, const Options & options ){
