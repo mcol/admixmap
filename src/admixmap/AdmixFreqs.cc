@@ -28,7 +28,8 @@ using bclib::Rand;
 
 double AdmixFreqs::convertValueFromFile(const string s){
   double d = atof(s.c_str());
-  if(d < 0.000001) d = 0.000001;//values must be strictly positive
+  if (d < 0.0)
+    throw("Negative value in the allele frequency file.");
   return d;
 }
 
