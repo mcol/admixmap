@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/** 
- *   ResidualLDTest.h 
- *   header file for ResidualLDTest class
- */
-
 /*
  *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -13,6 +8,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file ResidualLDTest.h
+/// Definition of the ResidualLDTest class.
+//=============================================================================
+
 #ifndef RESIDUALLDTEST_H
 #define RESIDUALLDTEST_H 1
 

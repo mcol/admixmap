@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/**
- *   HWTest.h
- *   header file for HWTest class
- */
-
 /*=========================================================================
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *
@@ -21,6 +16,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  =========================================================================*/
+
+//=============================================================================
+/// \file HWTest.h
+/// Definition of the HWTest class.
+//=============================================================================
 
 #ifndef HWTEST_H
 #define HWTEST_H 1

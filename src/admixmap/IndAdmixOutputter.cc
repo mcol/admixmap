@@ -1,4 +1,4 @@
-/**
+/*
  *   ADMIXMAP
  *   IndAdmixOutputter.cc
  *   Class to output individual admix parameters
@@ -10,6 +10,13 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file IndAdmixOutputter.cc
+/// Implementation of the IndAdmixOutputter class.
+//=============================================================================
+
+#include <iostream>
 #include "IndAdmixOutputter.h"
 #include "AdmixIndividualCollection.h"
 

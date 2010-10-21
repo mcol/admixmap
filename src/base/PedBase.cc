@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file PedBase.cc
-/// Implementation of the PedBase class.
+/// Implementation of the genepi::PedBase class.
 //=============================================================================
 
 #pragma implementation

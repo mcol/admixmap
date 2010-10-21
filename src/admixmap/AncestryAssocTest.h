@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   AncestryAssocTest.h 
  *   Class to implement score test for association of trait with ancestry
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AncestryAssocTest.h
+/// Definition of the AncestryAssocTest class.
+//=============================================================================
+
 #ifndef ANCESTRYASSOCTEST_H
 #define ANCESTRYASSOCTEST_H
 

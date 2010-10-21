@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   AdmixFreqs.cc
  *   Class to hold and update allele frequencies, their prior parameters, allele counts and sums. Also holds and updates dispersion
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AdmixFreqs.cc
+/// Implementation of the AdmixFreqs class.
+//=============================================================================
+
 #include "AdmixFreqs.h"
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"

@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/* 
- *   Options.h 
- *   header file for Options base class
- */
-
 /*
  *   Copyright (c) 2006, 2007 David O'Donnell
  *  
@@ -13,6 +8,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Options.h
+/// Definition of the Options class.
+//=============================================================================
 
 #ifndef OPTIONS_H
 #define OPTIONS_H 1

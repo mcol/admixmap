@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/**
- *   CompositeLocus.h
- *   header file for CompositeLocus class
- */
-
 /*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *
@@ -13,6 +8,11 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file Haplotype.h
+/// Definition of the Haplotype class.
+//=============================================================================
 
 #ifndef HAPLOTYPE_H
 #define HAPLOTYPE_H 1

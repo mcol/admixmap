@@ -1,6 +1,8 @@
 // *-*-C++-*-*
-
+//=============================================================================
 /// \file common.h
+//=============================================================================
+
 /// <B>Many</B> standard-library (STL, iostream, etc.) include files are
 /// included from here, as well as some types defined.
 ///

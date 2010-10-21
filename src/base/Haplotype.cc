@@ -1,4 +1,4 @@
-/** 
+/*
  *   Haplotypes.cc 
  *   Class to set Possible Haplotypes/Haplotype Pairs
  *   Copyright (c) 2007 David O'Donnell
@@ -9,6 +9,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Haplotype.cc
+/// Implementation of the Haplotype class.
+//=============================================================================
 
 #include "Haplotype.h"
 

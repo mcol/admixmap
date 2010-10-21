@@ -1,9 +1,9 @@
 // *-*-C++-*-*
 
-/**
- *  @file AdmixFilenames.h
- *  Default output filenames for ADMIXMAP
- */
+//=============================================================================
+/// \file AdmixFilenames.h
+/// Default output filenames for ADMIXMAP.
+//=============================================================================
 
 #define ANCESTRYASSOCTEST_PVALUES "TestAncestryAssocPValues.txt"
 #define ANCESTRYASSOCTEST_FINAL   "TestAncestryAssocFinal.txt"

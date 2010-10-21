@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/**
- *   Individual.h
- *   header file for Individual class
- */
-
 /*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *
@@ -14,6 +9,10 @@
  *
  */
 
+//=============================================================================
+/// \file Individual.h
+/// Definition of the Individual class.
+//=============================================================================
 
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H 1

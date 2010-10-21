@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/** 
- *   Chromosome.h 
- *   header file for Chromosome class
- */
-
 /*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -13,6 +8,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Chromosome.h
+/// Definition of the Chromosome class.
+//=============================================================================
+
 #ifndef CHROMOSOME_H
 #define CHROMOSOME_H 1
 

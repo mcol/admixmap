@@ -1,4 +1,4 @@
-/**
+/*
  *   ADMIXMAP
  *   AdmixedIndividual.cc
  *   Class to represent an individual in an admixture model and update individual-level parameters
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file AdmixedIndividual.cc
+/// Implementation of the AdmixedIndividual class.
+//=============================================================================
+
 #include "AdmixedIndividual.h"
 #include "config.h" // USE_GENOTYPE_PARSER
 #include "AdmixOptions.h"

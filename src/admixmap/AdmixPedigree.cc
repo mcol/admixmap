@@ -20,18 +20,14 @@
 //=============================================================================
 
 //=============================================================================
-//
-/// \file PedigreeAdmix.cc
+/// \file AdmixPedigree.cc
 /// Implementation of the admixmap-specific methods of the Pedigree class.
 ///
 /// Additional methods to run the admixmap model.  These should be moved
 /// into a derived class, not here in Pedigree.
-//
 //=============================================================================
 
-
 #include "Pedigree.h"
-
 
 #include <cmath>    // exp(), log()
 #include <limits>   // numeric_limits<>

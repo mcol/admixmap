@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   ADMIXMAP
  *   StratificationTest.h 
  *   Class to implement a test for residual population stratification
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file StratificationTest.h
+/// Definition of the StratificationTest class.
+//=============================================================================
+
 #ifndef STRATIFICATIONTEST
 #define STRATIFICATIONTEST 1
 

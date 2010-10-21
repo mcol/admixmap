@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file AncestryVector.cc
-/// Implementation of the AncestryVector class
+/// Implementation of the genepi::AncestryVector class
 //=============================================================================
 
 #include "AncestryVector.h"

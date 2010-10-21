@@ -1,6 +1,6 @@
 /* 
  *   Annealer.cc
- *   Classs to implement simulated annealing and thermodynamic integration
+ *   Class to implement simulated annealing and thermodynamic integration
  *   Copyright (c) 2006 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Annealer.cc
+/// Implementation of the Annealer class.
+//=============================================================================
+
 #include "Annealer.h"
 #include <iostream>
 #include <iomanip>

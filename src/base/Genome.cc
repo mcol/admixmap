@@ -1,8 +1,6 @@
-/** 
- * \file Genome.cc (formerly GeneticArray.cc)
- * Class to hold and access (pointers to) Composite Locus objects and information about the genome.
- */
 /*
+ * Genome.cc (formerly GeneticArray.cc)
+ * Class to hold and access (pointers to) Composite Locus objects and information about the genome.
  * Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  * Portions copyright (C) 2009  David D. Favro
  *  
@@ -12,6 +10,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Genome.cc
+/// Implementation of the Genome class.
+//=============================================================================
 
 #include "Genome.h"
 

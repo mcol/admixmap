@@ -1,4 +1,4 @@
-/** 
+/*
  *   AlleleFreqSampler.cc 
  *   Class to sample allele/haplotype frequencies.
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AlleleFreqSampler.cc
+/// Implementation of the AlleleFreqSampler class.
+//=============================================================================
+
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
 #include "bclib/dist.h"//for Dirichlet log density

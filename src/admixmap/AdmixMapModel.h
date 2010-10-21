@@ -12,6 +12,11 @@
  * 
  */
 
+//=============================================================================
+/// \file AdmixMapModel.h
+/// Definition of the AdmixMapModel class.
+//=============================================================================
+
 #ifndef ADMIXMAPMODEL_H
 #define ADMIXMAPMODEL_H 1
 

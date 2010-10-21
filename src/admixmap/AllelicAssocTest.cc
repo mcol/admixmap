@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   AllelicAssocTest.cc 
  *   Class implements 
@@ -13,6 +13,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AllelicAssocTest.cc
+/// Implementation of the AllelicAssocTest class.
+//=============================================================================
 
 #include "AllelicAssocTest.h"
 #include "bclib/DelimitedFileWriter.h"

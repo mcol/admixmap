@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file GFileLexer.cc
-/// Implementation of the GFileLexer class.
+/// Implementation of the genepi::GFileLexer class.
 //=============================================================================
 
 

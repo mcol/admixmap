@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file GenotypeParser.cc
-/// Implementation of the GenotypeParser class
+/// Implementation of the genepi::GenotypeParser class.
 //=============================================================================
 
 #pragma implementation

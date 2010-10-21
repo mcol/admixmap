@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file HVIterator.cc
-/// Implementation of the HVIterator class.
+/// Implementation of the genepi::HVIterator class.
 //=============================================================================
 
 

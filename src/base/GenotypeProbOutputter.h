@@ -1,4 +1,10 @@
 // *-*-C++-*-*
+
+//=============================================================================
+/// \file GenotypeProbOutputter.h
+/// Definition of the GenotypeProbOutputter class.
+//=============================================================================
+
 #ifndef GPOUTPUTTER_H
 #define GPOUTPUTTER_H
 

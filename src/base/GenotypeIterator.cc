@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file GenotypeIterator.cc
-/// Implementation of the GenotypeIterator class
+/// Implementation of the GenotypeIterator class.
 //=============================================================================
 
 #include "GenotypeIterator.h"

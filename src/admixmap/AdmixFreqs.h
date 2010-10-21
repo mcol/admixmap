@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   AdmixFreqs.h
  *   header file for AdmixFreqs class
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AdmixFreqs.h
+/// Definition of the AdmixFreqs class.
+//=============================================================================
+
 #ifndef ADMIXFREQS_H
 #define ADMIXFREQS_H 1
 

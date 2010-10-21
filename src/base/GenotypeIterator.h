@@ -1,4 +1,10 @@
 // *-*-C++-*-*
+
+//=============================================================================
+/// \file GenotypeIterator.h
+/// Definition of the GenotypeIterator class.
+//=============================================================================
+
 #ifndef GENOTYPE_ITERATOR_H
 #define GENOTYPE_ITERATOR_H
 

@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file TransProbCache.h
-/// Definition of the TransProbCache class.
+/// Definition of the genepi::TransProbCache class.
 //=============================================================================
 
 #ifndef __base_TransProbCache_h

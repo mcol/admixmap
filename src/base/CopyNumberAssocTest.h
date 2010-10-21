@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/** 
- *   CopyNumberAssocTest.h 
- *   header file for CopyNumberAssocTest class
- */
-
 /*
  *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -13,6 +8,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file CopyNumberAssocTest.h
+/// Definition of the CopyNumberAssocTest class.
+//=============================================================================
+
 #ifndef COPYNUMBERASSOCTEST_H
 #define COPYNUMBERASSOCTEST_H 1
 

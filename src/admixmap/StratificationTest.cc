@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   StratificationTest.cc 
  *   Class to implement a test for residual population stratification
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file StratificationTest.cc
+/// Implementation of the StratificationTest class.
+//=============================================================================
+
 #include "StratificationTest.h"
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"

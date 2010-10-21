@@ -1,4 +1,4 @@
-/** 
+/*
  *   AlleleFreqs.cc
  *   Class to hold and update allele frequencies, their prior parameters, allele counts and sums. Also holds and updates dispersion
  *   parameter eta and its prior parameters, for a dispersion model. Also computes Fst if required.
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AlleleFreqs.cc
+/// Implementation of the AlleleFreqs class.
+//=============================================================================
+
 #include "AlleleFreqs.h"
 //#include "bclib/AdaptiveRejection.h"
 //#include "bclib/misc.h"

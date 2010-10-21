@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file TransProbCache.cc
-/// Implementation of the TransProbCache class.
+/// Implementation of the genepi::TransProbCache class.
 //=============================================================================
 
 #pragma implementation

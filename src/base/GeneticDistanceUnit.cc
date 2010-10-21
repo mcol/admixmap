@@ -20,6 +20,7 @@
 
 //=============================================================================
 /// \file GeneticDistanceUnit.cc
+/// Implementation of the GeneticDistanceUnit methods.
 //=============================================================================
 
 #pragma implementation

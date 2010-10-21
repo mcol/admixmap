@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   AdmixOptions.cc 
  *   Class to hold program options
@@ -10,6 +10,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AdmixOptions.cc
+/// Implementation of the AdmixOptions class.
+//=============================================================================
 
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"

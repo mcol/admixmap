@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/**
- *   AlleleFreqs.h
- *   header file for AlleleFreqs class
- */
-
 /*
  *   Copyright (c) 2005 - 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *
@@ -13,6 +8,12 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file AlleleFreqs.h
+/// Definition of the AlleleFreqs class.
+//=============================================================================
+
 #ifndef ALLELEFREQS_H
 #define ALLELEFREQS_H 1
 

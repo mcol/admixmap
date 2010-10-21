@@ -1,4 +1,4 @@
-/**
+/*
  *   InputData.cc
  *   Class to read and check all input data files
  *   Copyright (c) 2005 - 2007 David O'Donnell and Paul McKeigue
@@ -10,6 +10,11 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file InputData.h
+/// Definition of the InputData class.
+//=============================================================================
 
 #include "InputData.h"
 

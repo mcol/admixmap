@@ -1,4 +1,4 @@
-/** 
+/*
  *   Chromosome.cc 
  *   Class to perform chromosome-wise updates and implement HMM class.
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Chromosome.cc
+/// Implementation of the Chromosome class.
+//=============================================================================
+
 #include "Chromosome.h"
 #include <iostream>
 #include "bclib/misc.h"

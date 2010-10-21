@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file PairSecIter.h
-/// Definition of the PairSecIter class.
+/// Definition of the genepi::PairSecIter class.
 //=============================================================================
 
 #ifndef __base_PairSecIter_h

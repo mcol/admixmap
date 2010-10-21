@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   ADMIXMAP
  *   PopAdmix.h 
  *   header file for PopAdmix class
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file PopAdmix.h
+/// Definition of the PopAdmix class.
+//=============================================================================
+
 #ifndef POPADMIX_H
 #define POPADMIX_H 1
 

@@ -1,6 +1,4 @@
-/** 
- *   misc.cc 
- *   miscellaneous functions
+/*
  *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -9,6 +7,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file misc.cc
+/// Miscellaneoud functions.
+//=============================================================================
 
 #include <cstdlib>
 #include <iostream>

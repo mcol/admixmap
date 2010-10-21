@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   InputAdmixData.cc 
  *   class to read ADMIXMAP data
@@ -11,6 +11,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file InputAdmixData.cc
+/// Implementation of the InputAdmixData class.
+//=============================================================================
 
 #include "InputAdmixData.h"
 

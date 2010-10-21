@@ -1,4 +1,4 @@
-/** 
+/*
  *   CopyNumberAssocTest.h 
  *   Class to implement score test for association of trait with copy number
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file CopyNumberAssocTest.cc
+/// Implementation of the CopyNumberAssocTest class.
+//=============================================================================
+
 #include "CopyNumberAssocTest.h"
 #include "Genome.h"
 #include "bclib/linalg.h"

@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   ADMIXMAP
  *   ScoreTests.h 
  *   header file for Scoretests class
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file ScoreTests.h
+/// Definition of the ScoreTests class.
+//=============================================================================
+
 #ifndef SCORETESTS_H
 #define SCORETESTS_H 1
 

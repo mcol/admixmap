@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file ScoreTestBase.cc
+/// Implementation of the ScoreTestBase class.
+//=============================================================================
+
 #include "ScoreTestBase.h"
 #include <sstream>
 #include <iomanip>

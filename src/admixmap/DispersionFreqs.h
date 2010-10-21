@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   DispersionFreqs.h
  *   header file for DispersionFreqs class
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file DispersionFreqs.h
+/// Definition of the DispersionFreqs class.
+//=============================================================================
+
 #ifndef DISPFREQS_H
 #define DISPFREQS_H 1
 

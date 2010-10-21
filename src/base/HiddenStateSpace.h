@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file HiddenStateSpace.h
-/// Definition of the HiddenStateSpace class.
+/// Definition of the genepi::HiddenStateSpace class.
 //=============================================================================
 
 #ifndef __base_HiddenStateSpace_h

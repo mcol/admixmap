@@ -1,5 +1,5 @@
 /*
- *   AncestryAssocTest.h 
+ *   AncestryAssocTest.cc
  *   Class to implement score test for association of trait with ancestry
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AncestryAssocTest.cc
+/// Implementation of the AncestryAssocTest class.
+//=============================================================================
+
 #include "AncestryAssocTest.h"
 #include "Genome.h"
 #include "bclib/LogWriter.h"

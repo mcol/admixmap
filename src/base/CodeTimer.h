@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file CodeTimer.h
-/// Interface of the CodeTimer class.
+/// Interface of the genepi::CodeTimer class.
 //=============================================================================
 
 #ifndef __base_CodeTimer_h

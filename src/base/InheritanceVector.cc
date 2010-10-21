@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file InheritanceVector.cc
-/// Implementation of the InheritanceVector class
+/// Implementation of the genepi::InheritanceVector class.
 //=============================================================================
 
 #include "InheritanceVector.h"

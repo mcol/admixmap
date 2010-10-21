@@ -1,8 +1,8 @@
 // *-*-C++-*-*
-/**
-   /file Filenames.h
-   /brief default output filenames for ADMIXMAP/HAPMIXMAP
-*/
+//=============================================================================
+/// \file Filenames.h
+/// Default output filenames for ADMIXMAP/HAPMIXMAP.
+//=============================================================================
 
 #define PARAMFILE_ROBJECT "paramsAsRobject.txt"
 #define LOCUS_F_VALUES	  "LocusfValues.txt"

@@ -12,6 +12,11 @@
  * 
  */
 
+//=============================================================================
+/// \file AdmixOptions.h
+/// Definition of the AdmixOptions class.
+//=============================================================================
+
 #ifndef ADMIX_OPTIONS_H
 #define ADMIX_OPTIONS_H 1
 

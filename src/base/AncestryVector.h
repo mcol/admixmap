@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file AncestryVector.h
-/// Definition of the AncestryVector class.
+/// Definition of the genepi::AncestryVector class.
 //=============================================================================
 
 #ifndef __base_AncestryVector_h

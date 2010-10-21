@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file AlleleFreqParser.h
-/// Definition of the AlleleFreqParser class.
+/// Definition of the genepi::AlleleFreqParser class.
 //=============================================================================
 
 #ifndef __base_AlleleFreqParser_h

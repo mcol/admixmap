@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file SimpleLocusParser.h
-/// Defines the SimpleLocusParser class
+/// Definition of the genepi::SimpleLocusParser class.
 //=============================================================================
 
 #ifndef __base_SimpleLocusParser_h

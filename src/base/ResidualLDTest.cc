@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file ResidualLDTest.cc
+/// Implementation of the ResidualLDTest class.
+//=============================================================================
+
 #include "ResidualLDTest.h"
 #include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"

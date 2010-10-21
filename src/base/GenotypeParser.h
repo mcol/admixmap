@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file GenotypeParser.h
-/// Definition of the GenotypeParser class.
+/// Definition of the genepi::GenotypeParser class.
 //=============================================================================
 
 

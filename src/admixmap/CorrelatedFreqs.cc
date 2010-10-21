@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   CorrelatedFreqs.cc
  *   Class to hold and update allele frequencies in a correlated frequencies model
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file CorrelatedFreqs.cc
+/// Implementation of the CorrelatedFreqs class.
+//=============================================================================
+
 #include "CorrelatedFreqs.h"
 #include "AdmixOptions.h"
 #include "InputAdmixData.h"

@@ -20,6 +20,7 @@
 
 //=============================================================================
 /// \file OrganismArray.h
+/// Definition of the genepi::OrganismArray typedef.
 //=============================================================================
 
 #ifndef __base_OrganismArray_h

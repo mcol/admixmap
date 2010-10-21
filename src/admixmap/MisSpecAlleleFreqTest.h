@@ -1,7 +1,7 @@
 // *-*-C++-*-*
-/** 
+/*
  *   ADMIXMAP
- *   AdmixOptions.h 
+ *   MisSpecAlleleFreqTest.h 
  *   header file for MisSpecAlleleFreqTest class
  *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file MisSpecAlleleFreqTest.h
+/// Definition of the MisSpecAlleleFreqTest class.
+//=============================================================================
+
 #ifndef MISSPECALLELEFREQTEST_H
 #define MISSPECALLELEFREQTEST_H 1
 

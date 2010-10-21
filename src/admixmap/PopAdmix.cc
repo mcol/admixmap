@@ -1,4 +1,4 @@
-/**
+/*
  *   ADMIXMAP
  *   PopAdmix.cc
  *   Class to hold and update population admixture and sumintensities parameters and their priors
@@ -10,6 +10,11 @@
  * version 2 or later, as published by the Free Software Foundation.
  * See the file COPYING for details.
  */
+
+//=============================================================================
+/// \file PopAdmix.cc
+/// Implementation of the PopAdmix class.
+//=============================================================================
 
 #include "PopAdmix.h"
 #include "Chromosome.h"

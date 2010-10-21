@@ -19,14 +19,11 @@
 //=============================================================================
 
 //=============================================================================
-//
 /// \file AdmixmapGenotypeConverter.h
 /// Definition of the
 /// genepi::convert(const Organism&org,const Genome&loci,std::vector<genotype> &genotypes,bool**missing)
-/// function
-//
+/// function.
 //=============================================================================
-
 
 #ifndef __base_AdmixmapGenotypeConverter_h
 #define __base_AdmixmapGenotypeConverter_h

@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file AlleleArray.h
-/// Interface of AlleleArray class.
+/// Definition of genepi::AlleleArray class.
 //=============================================================================
 
 #ifndef __base_AlleleArray_h

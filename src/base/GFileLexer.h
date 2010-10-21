@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file GFileLexer.h
-/// Definition of the GFileLexer class
+/// Definition of the genepi::GFileLexer class
 //=============================================================================
 
 

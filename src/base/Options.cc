@@ -1,4 +1,4 @@
-/** 
+/*
  *   Options.cc 
  *   Base for classes to hold program options
  *   Copyright (c) 2006, 2007 David O'Donnell
@@ -9,6 +9,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Options.cc
+/// Implementation of the Options class.
+//=============================================================================
 
 #include "Options.h"
 #include "bclib/StringConvertor.h"

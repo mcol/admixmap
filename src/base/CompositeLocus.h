@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/** 
- *   CompositeLocus.h 
- *   header file for CompositeLocus class
- */
-
 /*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -13,6 +8,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file CompositeLocus.h
+/// Definition of the CompositeLocus class.
+//=============================================================================
 
 #ifndef COMPOSITE_LOCUS_H
 #define COMPOSITE_LOCUS_H 1

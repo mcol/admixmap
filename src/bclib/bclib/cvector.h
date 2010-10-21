@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file cvector.h
-/// Definition of the cvector template.
+/// Definition of the genepi::cvector template.
 //=============================================================================
 
 #ifndef __bclib_cvector_h

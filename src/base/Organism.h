@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file Organism.h
-/// Definition of the Organism class.
+/// Definition of the genepi::Organism class.
 //=============================================================================
 
 #ifndef __base_Organism_h

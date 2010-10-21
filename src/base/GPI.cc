@@ -1,4 +1,4 @@
-/** 
+/*
  *   GPI.cc 
  *   (G)enotype(P)robability(I)terator class
  *   Copyright (c) 2007 David O'Donnell
@@ -9,6 +9,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file GPI.cc
+/// Implementation of the GenotypeProbIterator class.
+//=============================================================================
 
 #include "GPI.h"
 #include "bclib/ColumnIter.h"

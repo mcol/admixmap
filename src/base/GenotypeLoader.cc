@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file GenotypeLoader.cc
+/// Implementation of the GenotypeLoader class.
+//=============================================================================
+
 #define USE_GENOTYPE_PARSER 0
 #include "GenotypeLoader.h"
 #include "bclib/LogWriter.h"

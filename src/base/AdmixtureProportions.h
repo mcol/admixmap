@@ -18,10 +18,10 @@
  *  MA 02110-1301, USA.
  */
 
-/**
- *  @file AdmixtureProportions.h
- *  Header file for AdmixtureProportions class.
- */
+//=============================================================================
+/// \file AdmixtureProportions.h
+/// Definition of the AdmixtureProportions class.
+//=============================================================================
 
 #ifndef ADMIXTUREPROPORTIONS_H
 #define ADMIXTUREPROPORTIONS_H 1

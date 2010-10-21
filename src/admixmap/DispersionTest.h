@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   ADMIXMAP
  *   DispersionTest.h 
  *   header file for DispersionTest class
@@ -19,6 +19,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+//=============================================================================
+/// \file DispersionTest.h
+/// Definition of the DispersionTest class.
+//=============================================================================
+
+
 #ifndef DISPTEST_H
 #define DISPTEST_H 1
 

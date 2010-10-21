@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   AffectedsOnlyTest.cc 
  *   Class implements affecteds-only score test for linkage with locus ancestry
@@ -10,6 +10,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AffectedsOnlyTest.cc
+/// Implementation of the AffectedsOnlyTest class.
+//=============================================================================
 
 #include "AffectedsOnlyTest.h"
 #include "Genome.h"
@@ -99,7 +104,8 @@ void AffectedsOnlyTest::Initialise(const char* filename, const int NumPopulation
   fill(SumAffectedsVarScore, SumAffectedsVarScore + dim, 0.0);
 }
 
-///resets arrays holding sums of scores and info over individuals to zero; invoked at start of each iteration after burnin.
+/// Resets arrays holding sums of scores and info over individuals to zero;
+/// invoked at start of each iteration after burnin.
 void AffectedsOnlyTest::Reset(){
   if( test ){
     for(unsigned j = 0; j < L*K; ++j){

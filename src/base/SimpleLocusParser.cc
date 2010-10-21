@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file SimpleLocusParser.cc
-/// Implementation of SimpleLocusParser class
+/// Implementation of genepi::SimpleLocusParser class
 //=============================================================================
 
 

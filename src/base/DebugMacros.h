@@ -1,3 +1,8 @@
+//=============================================================================
+/// \file DebugMacros.h
+/// Definition of some debugging macros.
+//=============================================================================
+
 #ifndef DEBUGMACROS_H_
 #define DEBUGMACROS_H_
 

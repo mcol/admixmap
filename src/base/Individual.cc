@@ -1,4 +1,4 @@
-/**
+/*
  *   Individual.cc
  *   Class to represent an individual and update individual-level parameters
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file Individual.cc
+/// Implementation of the Individual class.
+//=============================================================================
+
 #include "Individual.h"
 //#include "bclib/Regression.h"
 #include "config.h" // AGGRESSIVE_RANGE_CHECK, USE_GENOTYPE_PARSER

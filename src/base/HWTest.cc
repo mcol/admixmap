@@ -1,4 +1,4 @@
-/** 
+/*
  *   HWTest.cc 
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -13,6 +13,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file HWTest.cc
+/// Implementation of the HWTest class.
+//=============================================================================
+
 #include "HWTest.h"
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"

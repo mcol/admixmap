@@ -1,10 +1,7 @@
 // *-*-C++-*-*
-/**
- * \file AlleleFreqSampler.h
- * Class to sample allele/haplotype frequencies at a given composite locus.
- */
-
 /*
+ * AlleleFreqSampler.h
+ * Class to sample allele/haplotype frequencies at a given composite locus.
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,6 +10,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AlleleFreqSampler.h
+/// Definition of the AlleleFreqSampler class.
+//=============================================================================
 
 #ifndef ALLELEFREQSAMPLER_H
 #define ALLELEFREQSAMPLER_H

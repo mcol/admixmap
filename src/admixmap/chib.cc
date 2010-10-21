@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   chib.cc
  *   generic class for the Chib algorithm 
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file chib.cc
+/// Implementation of the chib class.
+//=============================================================================
+
 #include "chib.h"
 #include "bclib/misc.h"
 #include "bclib/LogWriter.h"

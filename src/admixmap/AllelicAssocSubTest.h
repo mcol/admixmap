@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AllelicAssocSubTest.h
+/// Definition of the AllelicAssocSubTest class.
+//=============================================================================
+
 #ifndef ALLELICASSOCSUBTEST_H
 #define ALLELICASSOCSUBTEST_H 1
 

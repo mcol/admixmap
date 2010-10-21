@@ -9,6 +9,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file HiddenMarkovModel.cc
+/// Implementation of the HiddenMarkovModel class.
+//=============================================================================
+
 #include "HiddenMarkovModel.h"
 #include <cmath>
 #include "bclib/rand.h"

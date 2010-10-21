@@ -1,10 +1,7 @@
 // *-*-C++-*-*
-/** 
- *   \file GPI.h 
- *   (G)enotype(P)robability(I)terator class
- */
-
 /*
+ *   GPI.h 
+ *   (G)enotype(P)robability(I)terator class
  *   Copyright (c) 2007 David O'Donnell
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,6 +10,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file GPI.h
+/// Definition of the GenotypeProbIterator class.
+//=============================================================================
 
 #ifndef GPI_H
 #define GPI_H

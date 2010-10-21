@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file GeneticDistance.cc
-/// Implementation of the GeneticDistance class.
+/// Implementation of the genepi::GeneticDistance class.
 //=============================================================================
 
 #include "GeneticDistance.h"

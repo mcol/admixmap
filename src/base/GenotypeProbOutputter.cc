@@ -1,3 +1,8 @@
+//=============================================================================
+/// \file GenotypeProbOutputter.cc
+/// Implementation of the GenotypeProbOutputter class.
+//=============================================================================
+
 #include "GenotypeProbOutputter.h"
 #include <string>
 #include <cmath>

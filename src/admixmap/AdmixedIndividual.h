@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/**
+/*
  *   ADMIXMAP
  *   AdmixedIndividual.h
  *   header file for Individual class
@@ -11,8 +11,15 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file AdmixedIndividual.h
+/// Definition of the AdmixedIndividual class.
+//=============================================================================
+
 #ifndef ADMIXED_INDIVIDUAL_H
 #define ADMIXED_INDIVIDUAL_H 1
+
 #include "Individual.h"
 #include "bclib/StepSizeTuner.h"
 #include "chib.h"

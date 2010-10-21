@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/*
- *   HiddenMarkovModel.h 
- *   Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
- */
-
 /*=============================================================================
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -14,6 +9,10 @@
  * 
  *============================================================================*/
 
+//=============================================================================
+/// \file HiddenMarkovModel.h
+/// Definition of the HiddenMarkovModel class.
+//=============================================================================
 
 #ifndef HIDDENMARKOVMODEL_H
 #define HIDDENMARKOVMODEL_H 1

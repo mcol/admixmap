@@ -1,3 +1,8 @@
+//=============================================================================
+/// \file AllelicAssocSubTest.cc
+/// Implementation of the AllelicAssocSubTest class.
+//=============================================================================
+
 #include "AllelicAssocSubTest.h"
 #include "CompositeLocus.h"
 #include "ScoreTestBase.h"

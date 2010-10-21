@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   DispersionFreqs.h
  *   Class to hold and update allele frequencies in a correlated frequencies model
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file CorrelatedFreqs.h
+/// Definition of the CorrelatedFreqs class.
+//=============================================================================
+
 #ifndef CORRELATEDFREQS_H
 #define CORRELATEDFREQS_H
 

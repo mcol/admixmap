@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/** 
- *   Genome.h
- *   header file for Genome class (formerly known as GeneticArray)
- */
-
 /*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -13,6 +8,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Genome.h
+/// Definition of the Genome class.
+//=============================================================================
 
 #ifndef GENETIC_ARRAY_H
 #define GENETIC_ARRAY_H 1

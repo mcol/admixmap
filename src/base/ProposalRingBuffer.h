@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file ProposalRingBuffer.h
-/// Definition of the ProposalRingBuffer class.
+/// Definition of the genepi::ProposalRingBuffer class.
 //=============================================================================
 
 

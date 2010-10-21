@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file HiddenStateSpace.cc
-/// Implementation of the HiddenStateSpace class.
+/// Implementation of the genepi::HiddenStateSpace class.
 //=============================================================================
 
 #pragma implementation

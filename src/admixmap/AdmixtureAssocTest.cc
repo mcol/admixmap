@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   AdmixtureAssocTest.cc 
  *   Class implements the score test for admixture association (admixturescoretest)
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AdmixtureAssocTest.cc
+/// Implementation of the AdmixtureAssocTest class.
+//=============================================================================
+
 #include "AdmixtureAssocTest.h"
 #include "bclib/LogWriter.h"
 #include <math.h>//for sqrt

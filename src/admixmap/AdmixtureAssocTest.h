@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   ADMIXMAP
  *   AdmixtureAssocTest.h 
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AdmixtureAssocTest.h
+/// Definition of the AdmixtureAssocTest class.
+//=============================================================================
+
 #ifndef ADMIXTUREASSOCTEST_H
 #define ADMIXTUREASSOCTEST_H 1
 

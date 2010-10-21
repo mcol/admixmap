@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file GeneticDistance.h
-/// Definition of the GeneticDistance class.
+/// Definition of the genepi::GeneticDistance class.
 //=============================================================================
 
 #ifndef __base_GeneticDistance_h

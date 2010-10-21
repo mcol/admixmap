@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   ADMIXMAP
  *   chib.h
  *   a generic class for the Chib algorithm 
@@ -12,6 +12,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file chib.h
+/// Definition of the chib class.
+//=============================================================================
+
 #ifndef CHIB_H
 #define CHIB_H 1
 

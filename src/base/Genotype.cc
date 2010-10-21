@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file Genotype.cc
-/// Implementation of the Genotype class.
+/// Implementation of the genepi::Genotype class.
 //=============================================================================
 
 #include "Genotype.h"

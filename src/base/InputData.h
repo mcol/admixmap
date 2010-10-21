@@ -1,9 +1,4 @@
 // *-*-C++-*-*
-/**
- *   InputData.h
- *   header file for InputData class
- */
-
 /*
  *   Copyright (c) 2005 - 2007 David O'Donnell and Paul McKeigue
  *
@@ -13,6 +8,12 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file InputData.cc
+/// Implementationtion of the InputData class.
+//=============================================================================
+
 #ifndef INPUT_DATA_H
 #define INPUT_DATA_H 1
 

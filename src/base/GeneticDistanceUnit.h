@@ -1,4 +1,9 @@
 // *-*-C++-*-*
+//=============================================================================
+/// \file GeneticDistanceUnit.h
+/// Definition of the GeneticDistanceUnit methods.
+//=============================================================================
+
 #ifndef GENETICDISTANCEUNIT_H_
 #define GENETICDISTANCEUNIT_H_
 

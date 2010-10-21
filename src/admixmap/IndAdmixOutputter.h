@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/**
+/*
  *   ADMIXMAP
  *   IndAdmixOutputter.h
  *   Class to output individual admix parameters
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file IndAdmixOutputter.h
+/// Definition of the IndAdmixOutputter class.
+//=============================================================================
+
 #ifndef IND_ADMIX_OUTPUTTER
 #define IND_ADMIX_OUTPUTTER 1
 

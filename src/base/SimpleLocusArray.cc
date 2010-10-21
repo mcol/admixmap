@@ -20,6 +20,7 @@
 
 //=============================================================================
 /// \file SimpleLocusArray.cc
+/// Implementation of the genepi::SimpleLocusArray class.
 //=============================================================================
 
 #include "SimpleLocusArray.h"

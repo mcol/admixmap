@@ -1,8 +1,6 @@
-/** 
+/*
  *   CompositeLocus.cc 
  *   Class to represent a composite locus
- */
-/*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -11,6 +9,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file CompositeLocus.cc
+/// Implementation of the CompositeLocus class.
+//=============================================================================
 
 #include "CompositeLocus.h"
 #include "bclib/rand.h"

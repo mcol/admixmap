@@ -21,7 +21,7 @@
 
 //=============================================================================
 /// \file HiddenMarkovModel.new.cc
-/// Implementation of the HiddenMarkovModel class.
+/// Implementation of the genepi::HiddenMarkovModel class.
 //=============================================================================
 
 #include "HiddenMarkovModel.new.h"

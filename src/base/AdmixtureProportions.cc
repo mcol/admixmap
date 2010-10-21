@@ -18,10 +18,10 @@
  *  MA 02110-1301, USA.
  */
 
-/**
- *  @file AdmixtureProportions.cc
- *  Implementation of the AdmixtureProportions class.
- */
+//=============================================================================
+/// \file AdmixtureProportions.cc
+/// Implementation of the AdmixtureProportions class.
+//=============================================================================
 
 #include <cmath>
 #include "AdmixtureProportions.h"

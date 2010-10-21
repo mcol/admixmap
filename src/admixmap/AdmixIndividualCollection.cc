@@ -1,4 +1,4 @@
-/**
+/*
  *   ADMIXMAP
  *   AdmixIndividualCollection.cc
  *   Class to hold an array of AdmixedIndividuals
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file AdmixIndividualCollection.cc
+/// Implementation of the AdmixIndividualCollection class.
+//=============================================================================
+
 #include "AdmixIndividualCollection.h"
 #include "InputAdmixData.h"
 #include "bclib/Regression.h"

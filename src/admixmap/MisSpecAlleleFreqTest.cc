@@ -1,9 +1,8 @@
-/**
+/*
  *   ADMIXMAP
  *   MisSpecAlleleFreqTest.cc
  *   Implements score tests for mis-specified allele frequencies
  *   Only used with fixed allele frequencies and only for monitoring.
-
  * There are currently two tests:
  * 1. scalar test carried out only at composite loci with a single locus
  * 2. a generalized test , not fully implemented yet
@@ -16,6 +15,11 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file MisSpecAlleleFreqTest.cc
+/// Implementation of the MisSpecAlleleFreqTest class.
+//=============================================================================
 
 #include "MisSpecAlleleFreqTest.h"
 #include "AdmixFilenames.h"

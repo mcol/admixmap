@@ -1,10 +1,4 @@
 // *-*-C++-*-*
-
-/*
- *  GenotypeLoader.h
- *  class to load and assign genotypes
- */
-
 /*
  * Copyright (c) 2007 David O'Donnell and Paul McKeigue
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -14,6 +8,10 @@
  *
  */
 
+//=============================================================================
+/// \file GenotypeLoader.h
+/// Definition of the GenotypeLoader class.
+//=============================================================================
 
 #ifndef GENOTYPELOADER_H
 #define GENOTYPELOADER_H

@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   DispersionTest.cc 
  *   Class to implement test for dispersion of allele frequencies between the unadmixed populations sampled 
@@ -13,6 +13,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file DispersionTest.cc
+/// Implementation of the DispersionTest class.
+//=============================================================================
 
 #include "DispersionTest.h"
 #include <numeric>

@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file SimpleLocus.h
-/// Definition of SimpleLocus class.
+/// Definition of the genepi::SimpleLocus class.
 //=============================================================================
 
 #ifndef __base_SimpleLocus_h

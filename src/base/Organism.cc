@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file Organism.cc
-/// Implementation of the Organism class.
+/// Implementation of the genepi::Organism class.
 //=============================================================================
 
 #include "Organism.h"

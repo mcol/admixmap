@@ -1,8 +1,4 @@
 // *-*-C++-*-*
-/**
- *   Model.h
- **/
-
 /*
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -12,6 +8,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Model.h
+/// Definition of the Model class.
+//=============================================================================
 
 #ifndef MODEL_TOP_H
 #define MODEL_TOP_H 1

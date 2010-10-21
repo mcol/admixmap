@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   ScoreTests.cc 
  *   Class acts as a container for the following tests:
@@ -16,6 +16,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file ScoreTests.cc
+/// Implementation of the ScoreTests class.
+//=============================================================================
 
 #include "ScoreTests.h"
 #include "AdmixFilenames.h"

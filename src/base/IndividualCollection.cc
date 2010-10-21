@@ -1,4 +1,4 @@
-/**
+/*
  *   IndividualCollection.cc
  *   Class to hold an array of Individuals
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -9,6 +9,11 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file IndividualCollection.cc
+/// Implementation of the IndividualCollection class.
+//=============================================================================
 
 #include "IndividualCollection.h"
 #include "bclib/Regression.h"

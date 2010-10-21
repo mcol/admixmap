@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   AllelicAssocTest.h 
  *   header file for AllelicAssocTest class
  *   Copyright (c) 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -10,6 +10,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AllelicAssocTest.h
+/// Definition of the AllelicAssocTest class.
+//=============================================================================
+
 #ifndef ALLELICASSOCTEST_H
 #define ALLELICASSOCTEST_H 1
 

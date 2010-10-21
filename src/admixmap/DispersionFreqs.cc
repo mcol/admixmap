@@ -1,4 +1,4 @@
-/** 
+/*
  *   ADMIXMAP
  *   DispersionFreqs.cc
  *   Class to hold and update allele frequencies in a dispersion model
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file DispersionFreqs.cc
+/// Implementation of the DispersionFreqs class.
+//=============================================================================
+
 #include "DispersionFreqs.h"
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"

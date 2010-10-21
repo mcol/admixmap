@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/*
  *   ADMIXMAP
  *   AffectedsOnlyTest.h 
  *   header file for AffectedsOnly class
@@ -11,6 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file AffectedsOnlyTest.h
+/// Definition of the AffectedsOnlyTest class.
+//=============================================================================
+
 #ifndef AFFECTEDSONLYTEST_H
 #define AFFECTEDSONLYTEST_H 1
 

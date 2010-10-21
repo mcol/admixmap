@@ -11,6 +11,11 @@
  *
  */
 
+//=============================================================================
+/// \file AdmixMapModel.cc
+/// Implementation of the AdmixMapModel class.
+//=============================================================================
+
 #include "AdmixMapModel.h"
 #include "AdmixFilenames.h"
 #include "bclib/LogWriter.h"

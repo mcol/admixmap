@@ -1,8 +1,3 @@
-/** 
- *   ADMIXMAP
- *   \file admixmap.cc
- *   Top-level source file, containing the main() program for admixmap
- */
 /*
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -12,6 +7,12 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file admixmap.cc
+/// Top-level source file, containing the main() program for admixmap.
+//=============================================================================
+
 #include "AdmixMapModel.h"
 #include "config.h" // USE_GENOTYPE_PARSER
 #if USE_GENOTYPE_PARSER

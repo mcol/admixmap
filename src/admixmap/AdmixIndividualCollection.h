@@ -12,6 +12,12 @@
  * See the file COPYING for details.
  *
  */
+
+//=============================================================================
+/// \file AdmixIndividualCollection.h
+/// Definition of the AdmixIndividualCollection class.
+//=============================================================================
+
 #ifndef ADMIX_INDIVIDUAL_COLLECTION_H
 #define ADMIX_INDIVIDUAL_COLLECTION_H 1
 

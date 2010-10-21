@@ -1,10 +1,7 @@
 // *-*-C++-*-*
-/**
+/*
  *   Annealer.h 
  *   Class to implement simulated annealing and thermodynamic integration
- */
-
-/*
  *   Copyright (c) 2007 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -13,6 +10,11 @@
  * See the file COPYING for details.
  * 
  */
+
+//=============================================================================
+/// \file Annealer.h
+/// Definition of the Annealer class.
+//=============================================================================
 
 #ifndef THERMO_H
 #define THERMO_H 1

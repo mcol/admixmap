@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file CodeTimer.cc
-/// Implementation of the CodeTimer class.
+/// Implementation of the genepi::CodeTimer class.
 //=============================================================================
 
 #include "CodeTimer.h"
