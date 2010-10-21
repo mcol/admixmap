@@ -705,12 +705,14 @@ const cvector<double> & HiddenMarkovModel::getCondStateProbsAtLocus( SLocIdxType
 	computeForwardsBackwards();
 
     if ( dirtyCondStateProbs )
+	{
+
+	gp_assert_eq( getNLoci(), alpha.size() );
+	gp_assert_eq( getNLoci(), beta.size() );
+	gp_assert_eq( getNLoci(), condStateProbs.size() );
+
 	for ( IntSLocIdx sLoc = getNLoci() ; sLoc-- != 0 ; )
 	    {
-
-	    gp_assert_eq( getNLoci(), alpha.size() );
-	    gp_assert_eq( getNLoci(), beta.size() );
-	    gp_assert_eq( getNLoci(), condStateProbs.size() );
 
 	    ProbsAtLocusType & locAlpha = alpha		[ sLoc ];
 	    ProbsAtLocusType & locBeta	= beta		[ sLoc ];
@@ -745,6 +747,7 @@ const cvector<double> & HiddenMarkovModel::getCondStateProbsAtLocus( SLocIdxType
 	    #endif
 
 	    }
+ 	}
 
     dirtyCondStateProbs = false;
 
