@@ -18,7 +18,6 @@
 #include "ScoreTestBase.h"
 #include <sstream>
 #include <iomanip>
-#include <numeric>
 #include <limits>
 #include "gsl/gsl_cdf.h"
 #include <math.h>
@@ -33,7 +32,7 @@ ScoreTestBase::ScoreTestBase(){
 ScoreTestBase::~ScoreTestBase(){
 }
 
-///generic scalar score test
+/// Generic scalar score test
 void ScoreTestBase::OutputScalarScoreTest( int iterations, bclib::DelimitedFileWriter& outputstream, string label,
 					const double score, const double scoresq, const double info, bool final)
 {
@@ -71,9 +70,12 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, bclib::DelimitedFileW
 	outputstream << "NA";
     }
 
-  }// negative CI or MissingInfo > CompleteInfo
-  else{                       //%Info        z-score
-    if(final)outputstream << "NA" << "NA" ;
+  }
+
+  // negative CompleteInfo or MissingInfo > CompleteInfo
+  else {
+    if (final)
+      outputstream << "NA" << "NA"; // %Info,  z-score
     //NA for (log)p-value
     outputstream << "NA" ;
   }
@@ -95,32 +97,34 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  bclib::DelimitedFileWriter
   const double VU = varscore * scaleFactor;
   const double missing = scoresq * scaleFactor - EU * EU + VU;
   const double complete =  info * scaleFactor;
-  
-  if(final){
-    outputstream << double2R(EU, 3)                 //score
-		  << double2R(complete, 3)           //complete info
-		  << double2R(complete - missing, 3);//observed info
+  const double observed = complete - missing;
 
-  }
+  if (final)
+    outputstream << double2R(EU, 3)        // score
+                 << double2R(complete, 3)  // complete info
+                 << double2R(observed, 3); // observed info
+
   if(complete > 0.0){
-    const double PercentInfo = 100.0*(complete - missing)/complete;
-    if(final){
-      if(PercentInfo >= 0.0)
-	outputstream << double2R(PercentInfo, 2) ;//%observed info
-      else
-	outputstream << "NA" ;
-      outputstream << double2R(100.0*(VU/complete), 2)         //%missing info attributable to hidden state
-		    << double2R(100.0*(missing-VU)/complete, 2);//%remainder of missing info      
+
+    // observed info (%)
+    const double PercentInfo = 100.0 * observed / complete;
+
+    // missing info attributable to hidden state (%)
+    const double Missing1 = 100.0 * VU / complete;
+
+    // remainder of missing info (%)
+    const double Missing2 = 100.0 * (missing - VU) /complete;
+
+    if (final) {
+      outputstream << (PercentInfo >= 0.0) ? double2R(PercentInfo, 2) : "NA";
+      outputstream << double2R(Missing1, 2) << double2R(Missing2, 2);
     }
     if(missing < complete) {
       if(PercentInfo >= 10.0){ //only output p-values if >10% info extracted
-	const double zscore = EU / sqrt( complete - missing );
+	const double zscore = EU / sqrt(observed);
 	const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	if(final){
-	  //output zscore and pvalue in final table
-	  outputstream << double2R(zscore,3) 
-			<< double2R(pvalue) ;
-	}
+	if (final) //output zscore and pvalue in final table
+	  outputstream << double2R(zscore, 3) << double2R(pvalue);
 	else //not final table - output log p-value
 	  outputstream << double2R(-log10(pvalue));
       }
@@ -136,7 +140,9 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  bclib::DelimitedFileWriter
       outputstream << "NA";
     }
   }
-  else{//complete info <= 0
+
+  // complete info <= 0
+  else {
     if(final)
       outputstream << "NA" << "NA" << "NA" << "NA" ;
     outputstream << "NA" ; 
@@ -144,7 +150,7 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  bclib::DelimitedFileWriter
   outputstream << bclib::newline;
 }
 
-///generic vector score test
+/// Generic vector score test
 void ScoreTestBase::OutputScoreTest( int iterations,  bclib::DelimitedFileWriter& outputstream, unsigned dim, vector<string> labels,
 				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
 {

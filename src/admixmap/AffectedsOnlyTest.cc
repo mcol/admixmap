@@ -20,7 +20,6 @@
 #include "Genome.h"
 #include "bclib/DelimitedFileWriter.h"
 #include "bclib/LogWriter.h"
-#include <gsl/gsl_cdf.h>
 #include <math.h>
 
 using namespace std;
@@ -66,9 +65,11 @@ AffectedsOnlyTest::~AffectedsOnlyTest(){
   }
 }
 
-void AffectedsOnlyTest::Initialise(const char* filename, const int NumPopulations, const int NumLoci){
+void AffectedsOnlyTest::Initialise(const char* filename,
+                                   int NumPopulations, int NumLoci) {
   test = true;
-  //K is the number of populations for which to perform test. For 2-way admixture, we only want 2nd population.
+  // K is the number of populations for which to perform test. For 2-way
+  // admixture, we only want 2nd population.
   K = NumPopulations;
   firstpoplabel = 0;
   if(NumPopulations == 2){
@@ -126,15 +127,19 @@ void AffectedsOnlyTest::Reset(){
 
 void AffectedsOnlyTest::Output(const Vector_s& PopLabels, const Genome& Loci){
   OutputAffectedsOnlyTest(R, PopLabels, Loci, ",", false);
-    ++numPrintedIterations;
+  ++numPrintedIterations;
 }
 
-void AffectedsOnlyTest::WriteFinalTable(const char* filename, const Vector_s& PopLabels, 
-					const Genome& Loci, bclib::LogWriter& Log){
+void AffectedsOnlyTest::WriteFinalTable(const char* filename,
+                                        const Vector_s& PopLabels,
+                                        const Genome& Loci,
+                                        bclib::LogWriter& Log) {
   bclib::DelimitedFileWriter finaltable(filename);
-  Log << bclib::Quiet << "Affected-only tests for association written to " << filename << "\n";
-  finaltable <<"Locus" << "Population" << "Score" << "CompleteInfo" << "ObservedInfo" 
-	     << "PercentInfo" << "Missing1" << "Missing2" << "StdNormal" << "PValue"
+  Log << bclib::Quiet << "Affected-only tests for association written to "
+      << filename << "\n";
+  finaltable << "Locus" << "Population" << "Score"
+             << "CompleteInfo" << "ObservedInfo" << "PercentInfo"
+             << "Missing1" << "Missing2" << "StdNormal" << "PValue"
 	     << bclib::newline;
 
   OutputAffectedsOnlyTest(finaltable, PopLabels, Loci, "\t", true);
@@ -159,7 +164,8 @@ void AffectedsOnlyTest::OutputAffectedsOnlyTest(bclib::DelimitedFileWriter& outf
 /**
    Updates score, variance of score and info for a single individual at a single locus
 */
-void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const Theta, 
+void AffectedsOnlyTest::Update(unsigned int locus, int k0,
+                               const double* const Theta,
 			       bool RandomMatingModel, bool diploid, 
 			       const vector<vector<double> >& AProbs){
   // k0 should be passed as 1 if K==1 
@@ -188,7 +194,7 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
 	}
       else
 	theta[1] = theta[0];
-      
+
 #define DEBUG_AOTEST 0
 #if DEBUG_AOTEST
   fprintf( stderr, "AProbs: %zd\n", AProbs.size() );
@@ -200,7 +206,8 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
 	fprintf( stderr, " %.9lf", apRow[idx2] );
     putc( '\n', stderr );
     }
-  fprintf(stderr, "AOT-debug-2: t=%d,k=%d,k0=%d mu[0]=%.12lf mu[1]=%.12lf", locus, k, k0, theta[0], theta[1] );
+  fprintf(stderr, "AOT-debug-2: t:%d k:%d k0:%d\n\tmu[0]=%.12lf mu[1]=%.12lf",
+          locus, k, k0, theta[0], theta[1] );
   fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[idxLocus + k]);
 #endif
       //accumulate score, score variance, and info
@@ -209,7 +216,7 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
       AffectedsInfo[idxLocus + k] += 0.25 * (theta[0]*(1.0 - theta[0]) + theta[1]*(1.0 - theta[1]));
       
 #if DEBUG_AOTEST
-      fprintf(stderr, " cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n",
+      fprintf(stderr, "\n==> cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n",
               AffectedsScore[idxLocus + k],
               AffectedsVarScore[idxLocus + k],
               AffectedsInfo[idxLocus + k]);
@@ -231,7 +238,8 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
   // extra copies in diploid case
   else {
     double theta;//gamete admixture proportions
-    // should call with maternal admixture proportions if random mating and X chr in male
+    // should call with maternal admixture proportions if random mating
+    // and X chr in male
     double Pi[2];//probs of 0,1 copies of Pop k given admixture
     for( unsigned k = 0; k < K; k++ ){
       theta = Theta[ k+k0 ]; 
@@ -252,7 +260,8 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
   }
 }
 
-///accumulates E(score), E(score squared), variance of score and info over iterations
+/// Accumulates E(score), E(score squared), variance of score and info over
+/// iterations
 void AffectedsOnlyTest::Accumulate(){
   for(unsigned j = 0; j < L; ++j)
     for( unsigned k = 0; k < K; k++ ){
@@ -268,8 +277,10 @@ void AffectedsOnlyTest::Accumulate(){
   ++numUpdates;
 }
 
-///outputs ergodic averages of Likelihood Ratios as R object
-void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector_s& PopLabels, const Genome& Loci){
+/// Outputs ergodic averages of Likelihood Ratios as R object
+void AffectedsOnlyTest::OutputLikRatios(const char* const filename,
+                                        const Vector_s& PopLabels,
+                                        const Genome& Loci) {
   //open outut file
   bclib::RObjectWriter likratiostream(filename);
 
@@ -282,7 +293,7 @@ void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector
       
       double L1 = SumLikRatio1[j*K + k] / numUpdates;
       double L2 = SumLikRatio2[j*K + k] / numUpdates;
-      
+
       likratiostream << double2R(log(L1))
                      << double2R(log(L2)) << bclib::newline;
     }
