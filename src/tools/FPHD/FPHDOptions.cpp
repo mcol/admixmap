@@ -24,8 +24,6 @@ FPHDOptions::FPHDOptions(int argc, char** argv){
   beVerbose = false;
   backup = true;
   //prefix = ".";
-  inobsgenofilename;
-  outobsgenofilename;
   MaxLoci = 1000000000;  //some number > number of HapMap loci
   LocusLimit = 1000000000;
   flankLength = 10;//10Kb
