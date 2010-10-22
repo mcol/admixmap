@@ -1,6 +1,8 @@
 // *-*-C++-*-*
 //=============================================================================
 /// \file common.h
+/// Definition of the RegressionType enum and of the
+/// getRegressionString(RegressionType) function.
 //=============================================================================
 
 /// <B>Many</B> standard-library (STL, iostream, etc.) include files are

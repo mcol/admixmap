@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file DataValidError.cc
-/// Implementation of the DataValidError class.
+/// Implementation of the genepi::DataValidError class.
 //=============================================================================
 
 #include "DataValidError.h"

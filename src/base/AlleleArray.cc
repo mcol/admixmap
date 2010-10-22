@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file AlleleArray.cc
-/// Implementation of AlleleArray, AlleleFreqTable, AlleleProbTable, AlleleProbVect
+/// Implementation of the genepi::AlleleArray and genepi::AlleleProbTable classes.
 //=============================================================================
 
 #include "AlleleArray.h"

@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file DataValidError.h
-/// Definition of the DataValidError class.
+/// Definition of the genepi::DataValidError class.
 //=============================================================================
 
 #ifndef __base_DataValidError_h

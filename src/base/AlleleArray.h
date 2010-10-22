@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file AlleleArray.h
-/// Definition of genepi::AlleleArray class.
+/// Definition of the genepi::AlleleArray and genepi::AlleleProbTable classes.
 //=============================================================================
 
 #ifndef __base_AlleleArray_h

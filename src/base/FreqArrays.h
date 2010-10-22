@@ -1,7 +1,7 @@
 // *-*-C++-*-*
 //=============================================================================
 /// \file FreqArrays.h
-/// Definition of the FreqArrays class.
+/// Definition of the FreqArray class.
 //=============================================================================
 
 #ifndef FREQ_ARRAYS_H

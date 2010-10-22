@@ -1,6 +1,7 @@
 // *-*-C++-*-*
 //=============================================================================
 /// \file common.cc
+/// Implementation of the getRegressionString(RegressionType) function.
 //=============================================================================
 
 #include "common.h"

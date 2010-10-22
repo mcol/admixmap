@@ -20,7 +20,7 @@
 
 //=============================================================================
 /// \file Genotype.h
-/// Defines Genotype, GenotypeArray, and Haplotype
+/// Defininition of the genepi::Genotype and genepi::Haplotype classes.
 //=============================================================================
 
 
