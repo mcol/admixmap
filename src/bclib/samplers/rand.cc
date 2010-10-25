@@ -27,6 +27,12 @@ extern "C" {
 
 #define INEXPLICABLY_THROW_AWAY_ERROR_INFO  0
 
+#if 0
+  #define OUTPUT_RNG(X) X
+#else
+  #define OUTPUT_RNG(X)
+#endif
+
 
 // For template instantiation:
 #include "bclib/pvector.h"
@@ -56,7 +62,11 @@ Rand::~Rand(){
 ///standard uniform number generator
 double Rand::myrand()
 {
-  return( gsl_rng_uniform( RandomNumberGenerator ) );
+  double rv = gsl_rng_uniform( RandomNumberGenerator );
+  OUTPUT_RNG(
+    fprintf(stderr, "*** myrand: %.9lf\n", rv);
+  )
+  return rv;
   //?? should use gsl_rng_uniform_pos to exclude 0
 }
 
@@ -86,6 +96,9 @@ double Rand::gengam( double shape, double rate )
   do
     x = gsl_ran_gamma( RandomNumberGenerator, shape, 1.0 / rate ) ;
   while (x < numeric_limits<double>::min( ));
+  OUTPUT_RNG(
+    fprintf(stderr, "*** gengam(%.3lf, %.3lf): %.9lf\n", shape, rate, x);
+  )
   return x;
 }
 /// ** Beta distribution **
@@ -102,7 +115,11 @@ double Rand::gennor( double av, double sd )
     err <<"Bad arguments to gennor: "<< av << ", " << sd;
     throw err.str();
   }
-  return( av + gsl_ran_gaussian( RandomNumberGenerator, sd ) );
+  double rv = av + gsl_ran_gaussian( RandomNumberGenerator, sd );
+  OUTPUT_RNG(
+    fprintf(stderr, "*** gennor(%.3lf, %.3lf): %.9lf\n", av, sd, rv);
+  )
+  return rv;
 }
 /// ** Binomial distribution **
 int Rand::genbinomial( int n, double p )
