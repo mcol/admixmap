@@ -788,7 +788,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			gp_assert( (*getFirstMember())->isMale() );
 			gp_assert( is_xchrom == CHR_IS_X );
 
-			stScore = mu;
+			stScore = -mu;
 			if ( av.at(0,is_xchrom) == k ) // Maternal ancestry
 			    stScore += 1.0;
 
