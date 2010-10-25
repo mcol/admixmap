@@ -206,9 +206,6 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0,
 	fprintf( stderr, " %.9lf", apRow[idx2] );
     putc( '\n', stderr );
     }
-  fprintf(stderr, "AOT-debug-2: t:%d k:%d k0:%d\n\tmu[0]=%.12lf mu[1]=%.12lf",
-          locus, k, k0, theta[0], theta[1] );
-  fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[idxLocus + k]);
 #endif
       //accumulate score, score variance, and info
       AffectedsScore[idxLocus + k] += 0.5 * (AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1]);
@@ -216,6 +213,9 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0,
       AffectedsInfo[idxLocus + k] += 0.25 * (theta[0]*(1.0 - theta[0]) + theta[1]*(1.0 - theta[1]));
       
 #if DEBUG_AOTEST
+      fprintf(stderr, "AOT-dip: t:%d k:%d k0:%d\n\tmu[0]=%.12lf mu[1]=%.12lf",
+              locus, k, k0, theta[0], theta[1] );
+      fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[idxLocus + k]);
       fprintf(stderr, "\n==> cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n",
               AffectedsScore[idxLocus + k],
               AffectedsVarScore[idxLocus + k],
@@ -248,7 +248,17 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0,
       AffectedsScore[idxLocus + k] += AProbs[1][k+k0] - theta;
       AffectedsVarScore[idxLocus + k] += AProbs[1][k+k0] * (1 - AProbs[1][k+k0]); 
       AffectedsInfo[idxLocus + k] += theta * (1.0 - theta);
-      
+
+#if DEBUG_AOTEST
+      fprintf(stderr, "AOT-hap: t:%d k:%d k0:%d\n\tmu[0]=%.12lf mu[1]=%.12lf",
+              locus, k, k0, theta, 1.0 - theta );
+      fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[idxLocus + k]);
+      fprintf(stderr, "\n==> cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n",
+              AffectedsScore[idxLocus + k],
+              AffectedsVarScore[idxLocus + k],
+              AffectedsInfo[idxLocus + k]);
+#endif
+
       //probs of 0,1 copies of Pop k given admixture
       Pi[1] = theta;
       Pi[0] = 1.0 - theta;
