@@ -180,6 +180,20 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0,
   // first index of "locus" in the arrays
   const unsigned int idxLocus = locus * K;
 
+#define DEBUG_AOTEST        0
+#define DEBUG_AOTEST_APROBS 0
+#if DEBUG_AOTEST && DEBUG_AOTEST_APROBS
+  fprintf( stderr, "AProbs: %zd\n", AProbs.size() );
+  for ( size_t idx1 = 0 ; idx1 < AProbs.size() ; ++idx1 )
+    {
+    const vector<double> & apRow = AProbs[ idx1 ];
+    fprintf( stderr, "%3zd[%zd] ", idx1, apRow.size() );
+    for ( size_t idx2 = 0 ; idx2 < apRow.size() ; ++idx2 )
+	fprintf( stderr, " %.9lf", apRow[idx2] );
+    putc( '\n', stderr );
+    }
+#endif
+
   // diploid case
   if (diploid) {
     double theta[2];//paternal and maternal admixture proportions
@@ -195,25 +209,13 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0,
       else
 	theta[1] = theta[0];
 
-#define DEBUG_AOTEST 0
-#if DEBUG_AOTEST
-  fprintf( stderr, "AProbs: %zd\n", AProbs.size() );
-  for ( size_t idx1 = 0 ; idx1 < AProbs.size() ; ++idx1 )
-    {
-    const vector<double> & apRow = AProbs[ idx1 ];
-    fprintf( stderr, "%3zd[%zd] ", idx1, apRow.size() );
-    for ( size_t idx2 = 0 ; idx2 < apRow.size() ; ++idx2 )
-	fprintf( stderr, " %.9lf", apRow[idx2] );
-    putc( '\n', stderr );
-    }
-#endif
       //accumulate score, score variance, and info
       AffectedsScore[idxLocus + k] += 0.5 * (AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1]);
       AffectedsVarScore[idxLocus + k] += 0.25 * (AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]);
       AffectedsInfo[idxLocus + k] += 0.25 * (theta[0]*(1.0 - theta[0]) + theta[1]*(1.0 - theta[1]));
       
 #if DEBUG_AOTEST
-      fprintf(stderr, "AOT-dip: t:%d k:%d k0:%d\n\tmu[0]=%.12lf mu[1]=%.12lf",
+      fprintf(stderr, "\nAOT-dip: t:%d k:%d k0:%d\n\tmu[0]=%.12lf mu[1]=%.12lf",
               locus, k, k0, theta[0], theta[1] );
       fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[idxLocus + k]);
       fprintf(stderr, "\n==> cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n",
@@ -250,8 +252,8 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0,
       AffectedsInfo[idxLocus + k] += theta * (1.0 - theta);
 
 #if DEBUG_AOTEST
-      fprintf(stderr, "AOT-hap: t:%d k:%d k0:%d\n\tmu[0]=%.12lf mu[1]=%.12lf",
-              locus, k, k0, theta, 1.0 - theta );
+      fprintf(stderr, "\nAOT-hap: t:%d k:%d k0:%d\n\tmu[0]=%.12lf",
+              locus, k, k0, 1.0 - theta);
       fprintf(stderr, " old cum-score=%.12lf", AffectedsScore[idxLocus + k]);
       fprintf(stderr, "\n==> cum-score=%.12lf cum-var=%.12lf cum-inf=%.12lf\n",
               AffectedsScore[idxLocus + k],

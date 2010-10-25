@@ -907,6 +907,8 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		} // END SCOPE BLOCK
 
 	    #if DEBUG_AOTEST
+		fprintf( stderr, "\tmu[0]=%.12lf mu[1]=%.12lf\n",
+			 getCurTheta()[0][0], getCurTheta()[0][1] );
 		fprintf( stderr, "==> cum-score: %.12lf cum-var=%.12lf cum-info=%.12lf\n\n",
 		    aoTest.getAffectedsScore(t,k-k_begin)	 ,
 		    aoTest.getAffectedsVarScore(t,k-k_begin) ,
