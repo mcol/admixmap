@@ -1164,8 +1164,13 @@ void AdmixedIndividual::UpdateScores(const AdmixOptions& options, bclib::DataMat
   } //end chromosome loop
 }
 
-void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const double* admixtureCovars, bclib::DataMatrix *Outcome,
-					 Chromosome* chrm, const vector<bclib::Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest){
+void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options,
+                                         const double* admixtureCovars,
+                                         bclib::DataMatrix* Outcome,
+                                         Chromosome* chrm,
+                                         const vector<bclib::Regression*> R,
+                                         AffectedsOnlyTest& affectedsOnlyTest,
+                                         CopyNumberAssocTest& ancestryAssocTest) {
   bool IamAffected = false;
   try {
     if( options.getTestForAffectedsOnly()){
@@ -1180,37 +1185,34 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options, const doub
     int KK = NumHiddenStates,k0 = 0;
     if(NumHiddenStates == 2) {KK = 1;k0 = 1;}
 
-    int locus;
-    for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
-      locus = chrm->GetLocus(jj);
-      //retrieve AncestryProbs from HMM
-      // DDF says: should use a const-reference here:
-      vector<vector<double> > AProbs =
-	chrm->getHiddenStateCopyNumberProbs(!isHaploid && (!chrm->isXChromosome() || SexIsFemale),  jj );
+    bool isRandomMating = options.isRandomMatingModel();
+    int maternalShift = (!isRandomMating || SexIsFemale) ? 0 : NumHiddenStates;
 
-      // diploid is true if (not isHaploid) and (female or not X chr)
-      bool diploid = !isHaploid && (SexIsFemale ||
-                                    (Loci->GetChrNumOfLocus(locus) != X_posn));
+    // loop over all loci on this chromosome
+    for (unsigned int jj = 0; jj < chrm->GetSize(); ++jj) {
 
-      //Update affecteds only scores
-      if(IamAffected){
-        // if random mating model and X chromosome in male, should pass the
-        // maternal gamete X chromosome admixture
-	if(options.isRandomMatingModel() && !SexIsFemale && (Loci->GetChrNumOfLocus(locus) == X_posn)) {
+      int locus = chrm->GetLocus(jj);
+      bool isXLocus = Loci->GetChrNumOfLocus(locus) == X_posn;
+      bool diploid  = !isHaploid && (SexIsFemale || !isXLocus);
+
+      // retrieve AncestryProbs from HMM
+      const vector<vector<double> >& AProbs =
+        chrm->getHiddenStateCopyNumberProbs(diploid, jj);
+
+      // update the affecteds-only scores
+      if (IamAffected) {
+
+        if (isXLocus)
+          // if random mating model and X chromosome in male, should pass the
+          // maternal gamete X chromosome admixture
           affectedsOnlyTest.Update(locus, k0,
-                                   Theta.flatXChromosome(psi) + NumHiddenStates,
-                                   options.isRandomMatingModel(),
-                                   diploid, AProbs);
-        }
-        // if X chromosome
-        else if (Loci->GetChrNumOfLocus(locus) == X_posn) {
-          affectedsOnlyTest.Update(locus, k0, Theta.flatXChromosome(psi),
-                                   options.isRandomMatingModel(),
-                                   diploid, AProbs);
-	} else { // just pass Theta
-          affectedsOnlyTest.Update(locus, k0, Theta.flat(), options.isRandomMatingModel(),
-                                   diploid, AProbs);
-	}
+                                   Theta.flatXChromosome(psi) + maternalShift,
+                                   isRandomMating, diploid, AProbs);
+
+        else
+          // not on the X chromosome: just pass Theta
+          affectedsOnlyTest.Update(locus, k0, Theta.flat(),
+                                   isRandomMating, diploid, AProbs);
       }
 
       //update ancestry score tests
