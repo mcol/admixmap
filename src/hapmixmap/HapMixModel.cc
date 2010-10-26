@@ -96,7 +96,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputHapMixData& data,  Log
     MHTest.Initialise(options.getPopulations(), &Loci, options.getResultsDir());
 }
 
-void HapMixModel::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+void HapMixModel::Iterate(const double* Coolnesses, unsigned coolness,
 			  Options & options, InputData & data, LogWriter& Log, 
 			  double & SumEnergy, double & SumEnergySq, 
 			  bool AnnealedRun){
@@ -105,6 +105,8 @@ void HapMixModel::Iterate(const int & samples, const int & burnin, const double*
   if(!AnnealedRun) cout << endl;
 
   const unsigned NumberOfRuns = ((HapMixOptions&)options).GetNumStarts();
+  const int samples = options.getSamples();
+  const int burnin  = options.getBurnIn();
 
   for(unsigned run = 0; run < NumberOfRuns; ++run){
     if(run > 0){

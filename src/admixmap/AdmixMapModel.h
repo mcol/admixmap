@@ -46,11 +46,11 @@ public:
   void Initialise(AdmixOptions & options, InputAdmixData& data,  bclib::LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, bclib::LogWriter& Log);
   void TestIndivRun(Options& options, InputData& data, bclib::LogWriter& Log);
-  void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+  void Iterate(const double* Coolnesses, unsigned coolness,
 	       Options & options, InputData & data, bclib::LogWriter& Log, 
 	       double & SumEnergy, double & SumEnergySq, 
 	       bool AnnealedRun);
-  void SubIterate(int iteration, const int & burnin,
+  void SubIterate(int iteration,
                   Options & options, InputData & data, bclib::LogWriter& Log, 
                   double & SumEnergy, double & SumEnergySq, 
                   bool AnnealedRun);

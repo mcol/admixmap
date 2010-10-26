@@ -30,7 +30,7 @@ public:
   HapMixModel();
   ~HapMixModel();
   void Initialise(HapMixOptions & options, InputHapMixData& data,  bclib::LogWriter& Log);
-  void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+  void Iterate(const double* Coolnesses, unsigned coolness,
 	       Options & options, InputData & data, bclib::LogWriter& Log, 
 	       double & SumEnergy, double & SumEnergySq, 
 	       bool AnnealedRun);

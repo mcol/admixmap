@@ -64,7 +64,7 @@ public:
 
   void Run(Options& options, InputData& data, bclib::LogWriter& Log);
 
-  virtual void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+  virtual void Iterate(const double* Coolnesses, unsigned coolness,
 		       Options & options, InputData & data, bclib::LogWriter& Log, 
 		       double & SumEnergy, double & SumEnergySq, 
 		       bool AnnealedRun) = 0;

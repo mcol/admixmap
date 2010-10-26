@@ -126,7 +126,7 @@ void Model::Run(Options& options, InputData& data, bclib::LogWriter& Log){
       
     }
     // accumulate scalars SumEnergy and SumEnergySq at this coolness
-    Iterate(samples, burnin, _Annealer.GetCoolnesses(), run, options, data, Log, SumEnergy, SumEnergySq,
+    Iterate(_Annealer.GetCoolnesses(), run, options, data, Log, SumEnergy, SumEnergySq,
 	    AnnealedRun);
     
     //calculate mean and variance of energy at this coolness

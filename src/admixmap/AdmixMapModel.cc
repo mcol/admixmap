@@ -104,13 +104,11 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputAdmixData& data,  Log
 void AdmixMapModel::TestIndivRun(Options& options, InputData& data, LogWriter& Log){
   double SumEnergy = 0.0;//cumulative sum of modified loglikelihood
   double SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
-  int samples = options.getTotalSamples();
-  int burnin = options.getBurnIn();
 
   Start(options, data, Log);
 
   // call with argument AnnealedRun false - copies of test individual will be annealed anyway
-  Iterate(samples, burnin, _Annealer.GetCoolnesses(), 0, options, data, Log,
+  Iterate(_Annealer.GetCoolnesses(), 0, options, data, Log,
 	  SumEnergy, SumEnergySq, false);
 
   // arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls
@@ -119,9 +117,12 @@ void AdmixMapModel::TestIndivRun(Options& options, InputData& data, LogWriter& L
   Finish(options, data, Log);
 }
 
-void AdmixMapModel::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+void AdmixMapModel::Iterate(const double* Coolnesses, unsigned coolness,
 			    Options & options, InputData & data, LogWriter& Log,
 			    double & SumEnergy, double & SumEnergySq,  bool AnnealedRun) {
+
+  const int samples = options.getTotalSamples();
+  const int burnin  = options.getBurnIn();
 
   //Accumulate Energy
   double AISz = 0.0;
@@ -153,7 +154,7 @@ void AdmixMapModel::Iterate(const int & samples, const int & burnin, const doubl
 
     //Sample Parameters
     UpdateParameters(iteration, options, Log, data.GetHiddenStateLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
-    SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
+    SubIterate(iteration, options, data, Log, SumEnergy, SumEnergySq,
 	       AnnealedRun);
     #if DEBUG_ITER_TIMES
 	fprintf( stderr, "Iteration-%d: end %s\n", iteration, ct.local_elapsed().c_str() );
@@ -278,11 +279,14 @@ void AdmixMapModel::ResetStepSizeApproximators(int resetk){
  L->resetStepSizeApproximator(resetk);
 }
 
-void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _options, InputData & data,
-			       LogWriter& Log, double& SumEnergy, double& SumEnergySq,
-			       bool AnnealedRun){
+void AdmixMapModel::SubIterate(int iteration, Options& _options,
+                               InputData& data, LogWriter& Log,
+                               double& SumEnergy, double& SumEnergySq, bool AnnealedRun) {
+
   //cast Options object to AdmixOptions for access to ADMIXMAP options
   AdmixOptions& options = (AdmixOptions&) _options;
+
+  const int burnin = options.getBurnIn();
 
     //Output parameters to file and to screen
     Log.setDisplayMode(Quiet);
@@ -292,7 +296,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 	OutputParameters(iteration, &options, Log);
 
       // ** set merged haplotypes for allelic association score test
-      if( iteration == options.getBurnIn() ){
+      if ( iteration == burnin ) {
 
 	if(options.getTestForHaplotypeAssociation())
 	  Scoretests.MergeRareHaplotypes(L->getalpha0().getVector_unsafe());
