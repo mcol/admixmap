@@ -12,7 +12,7 @@
  * See the file COPYING for details.
  */
 
-/**
+/*
  *   Acts as a utility class for reading
  *   commandline options as well as options from
  *   an optionfile with delimited type value pairs.
@@ -44,13 +44,17 @@
  *   Windows.
  */
 
+//=============================================================================
+/// \file OptionReader.h
+/// Definition of the bclib::OptionReader class.
+//=============================================================================
+ 
 #ifndef OPTIONREADER_H
 #define OPTIONREADER_H 1
 
 #include <vector>
 #include <string>
 #include <map>
-#include <iostream>
 #include "bclib/bclib.h"
 #include "bclib/cvector.h"
 
@@ -139,20 +143,16 @@ public:
     //-------------------------------------------------------------------------
 
 
-  void addOption(const char*, OptionType, void*, bool required = false);
   ///add a short option
   void addOption(char, OptionType, void*, bool required = false);
   ///add a dual(long and short) option
   void addOption(char, const string&, OptionType, void*, bool required = false);
-  void addOption(char, const char*, OptionType, void*, bool required = false);
   ///add a flag with short name
   void addFlag(char);
   ///add a flag with long name
   void addFlag(const string&);
-  void addFlag(const char*);
   ///add a flag with both long and short names
   void addFlag(char, const string&);
-  void addFlag(char, const char*);
 
   ///set a use options manually (good for defaults)
   void setUserOption(const string&, const string&);

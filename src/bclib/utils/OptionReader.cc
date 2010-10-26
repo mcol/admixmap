@@ -1,4 +1,4 @@
-/** 
+/*
  *   Options.cc 
  *   This file is part of bcppcl
  *   Class to read program options and flags. 
@@ -11,14 +11,19 @@
  * 
  */
 
+//=============================================================================
+/// \file OptionReader.cc
+/// Implementation of the bclib::OptionReader class.
+//=============================================================================
+
 #include "bclib/OptionReader.h"
 #include "bclib/StringConvertor.h"
 #include "bclib/StringSplitter.h"
-#include <string.h>
-#include <sstream>
-#include <iostream>
+#include <cstdlib>   // for atoi(), atof()
+#include <cstring>   // for strcmp(), strlen()
 #include <fstream>
-#include <cstdlib>
+#include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -50,13 +55,8 @@ void OptionReader::setVerbose(bool v){
   Verbose = v;
 }
 
-//helper function to convert a char array to a string
-string charArray2String(const char* a){
-  string s(a);
-  return s;
-}
-//helper function to create a sring with a single char
-string char2String(char c){
+// Helper function to create a string from a single char
+static string char2String(char c) {
   stringstream ss;
   ss << c;
   return ss.str();
@@ -111,16 +111,10 @@ void OptionReader::addOption(const string& name, OptionType otype, void* address
   ProgOptions[name] = OptionPair(address, otype);
   if(required)RequiredOptions.push_back(name);
 }
-void OptionReader::addOption(const char* name, OptionType otype, void* address, bool required){
-  addOption(charArray2String(name), otype, address, required);
-}
 void OptionReader::addOption(char shortname, const string& longname, OptionType otype, void* address, bool required){
   ProgOptions[longname] = OptionPair(address, otype);
   Short2LongMap[shortname] = longname;
   if(required)RequiredOptions.push_back(longname);
-}
-void OptionReader::addOption(char shortname, const char* longname, OptionType otype, void* address, bool required){
-  addOption(shortname, charArray2String(longname), otype, address, required);
 }
 void OptionReader::addOption(char shortname, OptionType otype, void* address, bool required){
   stringstream opt;
@@ -139,15 +133,9 @@ void OptionReader::addFlag(char shortname){
 void OptionReader::addFlag(const string& longname){
   Flags[longname] = false;
 }
-void OptionReader::addFlag(const char* longname){
-  addFlag(charArray2String(longname));
-}
 void OptionReader::addFlag(char shortname, const string& longname){
   Flags[longname] = false;
   Short2LongMap[shortname] = longname;
-}
-void OptionReader::addFlag(char shortname, const char* longname){
-  addFlag(shortname, charArray2String(longname));
 }
 
 void OptionReader::setFileSeparators(const string& sep){
