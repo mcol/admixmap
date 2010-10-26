@@ -148,6 +148,9 @@ class HiddenStateSpace
 	const Pedigree & getPed() const { gp_assert(ped!=0); return *ped; }
 	PopIdx		 getK  () const { return K; }
 
+	/// See NOTE *3* in Pedigree.cc for why this is necessary.
+	void setPed( Pedigree * nv ) { ped = nv; }
+
 	const SimpleLocusArray & getSLoci() const { return getPed().getSLoci(); } ///< Convenience
 
 

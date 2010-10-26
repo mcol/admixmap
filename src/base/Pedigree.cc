@@ -56,6 +56,16 @@
 ///
 /// </TABLE>
 //
+// NOTE *3*:
+//	We readjust the pedigree-pointers in the HiddenStateSpace's so that they
+//	point back to the correct pedigree that holds them.  This is necessary
+//	whenever pedigrees are moved around in memory (to my knowledge only when
+//	they are excluded due to Mendelian errors), so it is done in the
+//	copy-constructor and assignment-operator.  This is the definition of
+//	ugliness; another idea is to use a memory-management strategy such that
+//	either they are not moved, or pointers to them are not kept.  Either is
+//	possible.
+//
 //=============================================================================
 
 #include "Pedigree.h"
@@ -504,6 +514,7 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	llCache		  ( *this, rhs.llCache	  ) ,
 	aoCache		  ( rhs.aoCache		  )
     {
+
     // !!!WARNING!!! -- see NOTE *1*
     const_cast<Pedigree&>(rhs).sortedMembers	 = 0;
     const_cast<Pedigree&>(rhs).ivSpace		 = 0;
@@ -514,11 +525,19 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
     const_cast<Pedigree&>(rhs).hmm_x		 = 0; // See NOTE *2*
 
     setMyNumber( rhs.myNumber ); // See NOTE *2*
+
+
+    // See NOTE *3* above.
+    if ( stateProbs != 0 )
+	for ( SLocIdxType t = getSLoci().size() ; t-- != 0 ; )
+	    stateProbs[t].setPed( this );
+
     }
 
 
 Pedigree & Pedigree::operator=( const Pedigree & rhs )
     {
+
     gp_assert( &memberPool == &rhs.memberPool );
 
     id			= rhs.id		;
@@ -568,7 +587,13 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     const_cast<Pedigree&>(rhs).hmm_x		 = 0; // See NOTE *2*
     const_cast<Pedigree&>(rhs).hmm_notX		 = 0; // See NOTE *2*
 
+    // See NOTE *3* above.
+    if ( stateProbs != 0 )
+	for ( SLocIdxType t = getSLoci().size() ; t-- != 0 ; )
+	    stateProbs[t].setPed( this );
+
     return *this;
+
     }
 
 
@@ -596,6 +621,7 @@ Pedigree::~Pedigree()
 
 void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedigree> & rv, size_t max_n )
     {
+
     FamIdType curFamId;
 
     const OrganismArray::ConstPedIter limit = organisms.endByPed();
@@ -624,6 +650,7 @@ void Pedigree::generatePedigrees( const OrganismArray & organisms, cvector<Pedig
 	interval = organisms.findOrgsInPed( curFamId );
 
     PED_PB( rv, organisms, interval.first, interval.second, max_n );
+
     }
 
 
