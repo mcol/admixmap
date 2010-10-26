@@ -58,8 +58,12 @@ public:
   void UpdateScores(const AdmixOptions& options, bclib::DataMatrix *Outcome, bclib::DataMatrix *Covariates,
 		    const vector<bclib::Regression*> & R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
   void SampleJumpIndicators(bool sampleArrivals);
+
+  /// Sample individual sumintensities (globalrho=0)
   void SampleRho(const AdmixOptions& options, double rhoalpha, double rhobeta,
 		 bool updateSumLogRho);
+
+  /// Sample individual odds ratios (globalpsi=0)
   void SamplePsi(const AdmixOptions& options,
                  const genepi::cvector<double>& priormean,
                  const genepi::cvector<double>& priorprec,

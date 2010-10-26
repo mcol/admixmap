@@ -76,6 +76,9 @@ class HiddenMarkovModel
 	const Pedigree * ped	 ; ///< Ref to ped for hidden state space, etc.
 	TransProbCache * tpCache ; ///< Transition probabilities.  These should perhaps
 				   ///< be retrieved from the Pedigree object itself
+
+	/// Set to CHR_IS_X if the HMM refers to the X chromosome loci only,
+	/// set to CHR_IS_NOT_X otherwise.
 	IsXChromType	 isX	 ;
 
 	/// Admixture probabilities for the founder-gametes
@@ -138,13 +141,14 @@ class HiddenMarkovModel
 	/// (although it may be implemented by an optimized algorithm which
 	/// neither calculates the matrix nor actually multiplies it).  It is
 	/// used both for the forwards and backwards recursions.
-	///	@param f	The probability of 0 arrivals at the destination locus (toProbs)
+	///	@param f	The probability of 0 arrivals at the
+	///			    destination locus (toProbs)
 	///	@param g	"g" factor at the destination locus (toProbs)
 	///	@param th	The admixture proportions, adjusted to account
 	///			    for the female/male odds ratios if on the
 	///			    X chromosome.
-	///	@param fr_hss	The hidden-state-space at the "from" locus.  This
-	///			    is necessary to find the values of the
+	///	@param fr_hss	The hidden-state-space at the "from" locus.
+	///			    This is necessary to find the values of the
 	///			    ancestry-vector and inheritance-vector for
 	///			    each hidden-state.
 	///	@param to_hss	The hidden-state-space at the "to" locus.
