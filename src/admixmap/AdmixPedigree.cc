@@ -108,6 +108,7 @@ static const double SOFTMAX_0_FLAG = std::numeric_limits<double>::infinity();
 #define NOT_NEEDED_FOR_FIRST_VERSION			    0
 #define USE_SINGLE_POPULATION_SPECIAL_CASE		    0
 #define NON_GLOBAL_RHO_WORKS				    0
+#define NON_GLOBAL_PSI_WORKS				    0
 #define NOT_NEEDED_FOR_FIXEDALLELEFREQ_EQ_1		    0
 #define NOT_NEEDED_UNLESS_CONJUGATE_UPDATE		    0
 #define SUPPORT_ASSOCIATION_TESTS			    0
@@ -384,6 +385,12 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
     #if ! NON_GLOBAL_RHO_WORKS
 	if ( ! options.isGlobalRho() )
 	    throw std::runtime_error( "Only global-rho currently is supported"
+					" with pedigrees." );
+    #endif
+
+    #if ! NON_GLOBAL_PSI_WORKS
+	if ( ! options.isGlobalPsi() )
+	    throw std::runtime_error( "Only global-psi currently is supported"
 					" with pedigrees." );
     #endif
 
