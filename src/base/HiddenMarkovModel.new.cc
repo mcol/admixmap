@@ -178,8 +178,11 @@ void HiddenMarkovModel::computeForwardsBackwards() const
     // doing it here, prior to entering the parallel sections, we avoid a race
     // condition, without needing to create a mutex-protected critical-section.
     if ( dirtyPi )
-	computeStationaryDistr( getPed().getHSS(0) );
-
+	{
+	ThetaType th = ( isX == CHR_IS_X ) ? theta->getTheta( ped->getPsi() )
+					   : theta->getTheta();
+	computeStationaryDistr( getPed().getHSS(0), th );
+	}
 
       #pragma omp parallel default(shared)
       { // begin parallel
@@ -322,7 +325,8 @@ void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
 //
 //------------------------------------------------------------------------
 
-void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 ) const
+void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0,
+						const ThetaType & th ) const
     {
 
     // Vectors for the stationary distribution and its inverse, of dimension
@@ -333,10 +337,6 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 )
     // Probability of any given IV is 1/(2^M): perhaps this should be cached in
     // the pedigree or HSS?
     const double prob_of_each_iv = 1.0 / (1LL << getPed().getNMeiosis(isX));
-
-
-    const ThetaType & th = ( isX == CHR_IS_X ) ? theta->getTheta(ped->getPsi())
-					       : theta->getTheta();
 
 
     // Here we compute the stationary distribution (Pi) and store its inverse
@@ -374,6 +374,7 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 )
 
 void HiddenMarkovModel::recursionProbs( double	 		 f	 ,
 					double 	 		 g	 ,
+					const ThetaType &        th      ,
 					const HiddenStateSpace & fr_hss	 ,
 					const HiddenStateSpace & to_hss	 ,
 					const ProbsAtLocusType & frProbs ,
@@ -389,8 +390,7 @@ void HiddenMarkovModel::recursionProbs( double	 		 f	 ,
     for ( HiddenStateSpace::Iterator it( fr_hss, isX ) ; it ; ++it )
 	frProbsDense[ it.getOverallIndex() ] = frProbs[ it.getNon0Index() ];
 
-    ThetaType h = ( isX == CHR_IS_X ) ? theta->getTheta( ped->getPsi() )
-				      : theta->getTheta();
+    ThetaType h(th);
     h *= (1 - f);
 
     HVIterator z( getPed(), isX );
@@ -444,8 +444,11 @@ void HiddenMarkovModel::computeForwards() const
 
     const HiddenStateSpace & hss_0 = getHSS( 0 );
 
+    ThetaType th = ( isX == CHR_IS_X ) ? theta->getTheta( ped->getPsi() )
+				       : theta->getTheta();
+
     if ( dirtyPi )
-	computeStationaryDistr( hss_0 );
+	computeStationaryDistr( hss_0, th );
 
 
     //------------------------------------------------------------------------
@@ -499,7 +502,7 @@ void HiddenMarkovModel::computeForwards() const
 	const double g = TransProbCache::computeG( getPed().getSLoci(), extLoc(t_m1) );
 
 	// Do the matrix multiplication by the transition probabilities.
-	recursionProbs( f, g, hss_t_m1, hss_t, alpha_t_m1, alpha_t );
+	recursionProbs( f, g, th, hss_t_m1, hss_t, alpha_t_m1, alpha_t );
 
 	#if DEBUG_TRANSRECURSION
 	    cout << "\n* alpha[" << t - 1 << "] after\n";
@@ -536,7 +539,6 @@ void HiddenMarkovModel::computeBackwards() const
     gp_assert( theta != 0 );
 
 
-
     //------------------------------------------------------------------------
     // Compute beta_T-1 (backwards probabilities for locus # T-1):
     //------------------------------------------------------------------------
@@ -552,9 +554,11 @@ void HiddenMarkovModel::computeBackwards() const
 	beta_Tm1[ i ] = 1.0;
 
 
-    if ( dirtyPi )
-	computeStationaryDistr( hss_Tm1 );
+    ThetaType th = ( isX == CHR_IS_X ) ? theta->getTheta( ped->getPsi() )
+				       : theta->getTheta();
 
+    if ( dirtyPi )
+	computeStationaryDistr( hss_Tm1, th );
 
     //------------------------------------------------------------------------
     // Fill in the beta array for the rest of the loci:
@@ -596,7 +600,7 @@ void HiddenMarkovModel::computeBackwards() const
 	    beta_t_p1_mult[ fr_it->getNon0Index() ] *= fr_it->getEProb() * Pi[ fr_it->getOverallIndex() ];
 
 	// Do the matrix multiplication by the transition probabilities.
-	recursionProbs( f, g, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
+	recursionProbs( f, g, th, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
 
 	for ( HiddenStateSpace::Iterator fr_it( hss_t, isX ) ; fr_it ; ++fr_it )
 	    beta_t[ fr_it->getNon0Index() ] *= piInv[ fr_it->getOverallIndex() ];

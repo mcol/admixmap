@@ -115,7 +115,8 @@ class HiddenMarkovModel
 			    double f, double g, const ThetaType& h,
 			    HVIterator z, size_t sz ) const;
 
-	void computeStationaryDistr( const HiddenStateSpace & hss_0 ) const;
+	void computeStationaryDistr( const HiddenStateSpace & hss_0,
+				     const ThetaType& th ) const;
 
 	void initStaticAlpha( ProbsAtLocusType &       alpha0	,
 			      const HiddenStateSpace & hss	,
@@ -139,6 +140,9 @@ class HiddenMarkovModel
 	/// used both for the forwards and backwards recursions.
 	///	@param f	The probability of 0 arrivals at the destination locus (toProbs)
 	///	@param g	"g" factor at the destination locus (toProbs)
+	///	@param th	The admixture proportions, adjusted to account
+	///			    for the female/male odds ratios if on the
+	///			    X chromosome.
 	///	@param fr_hss	The hidden-state-space at the "from" locus.  This
 	///			    is necessary to find the values of the
 	///			    ancestry-vector and inheritance-vector for
@@ -148,9 +152,9 @@ class HiddenMarkovModel
 	///			    HiddenStateSpace's "overallIndex".
 	///	@param toProbs	The "to" probabilities, indexed on the
 	///			    HiddenStateSpace's "overallIndex".
-
 	void recursionProbs( double		      f		,
 			     double		      g		,
+			     const ThetaType &	      th	,
 			     const HiddenStateSpace & fr_hss	,
 			     const HiddenStateSpace & to_hss	,
 			     const ProbsAtLocusType & frProbs	,
