@@ -50,7 +50,6 @@ public:
 
   double getSumrho()const;
   const genepi::RhoType & getRho() const;
-  double getPsi(int pop) const;
   double getLogLikelihood(const Options&, const bool forceUpdate, const bool store);
   double getLogLikelihoodAtPosteriorMeans(const Options& options);
   double getLogLikelihoodOnePop();

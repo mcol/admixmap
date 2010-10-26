@@ -332,10 +332,6 @@ const RhoType & AdmixedIndividual::getRho() const {
    return _rho;
 }
 
-double AdmixedIndividual::getPsi(int pop) const {
-  return psi[pop];
-}
-
 const int *AdmixedIndividual::getSumLocusAncestry()const{
   return SumLocusAncestry;
 }

@@ -376,7 +376,7 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
       // accumulate the sufficient statistics
       double samplemean = 0.0, sumlogs2 = 0.0;
       for (int i = 0; i < IC_size; ++i) {
-        double logpsi = log(IC.getElement(i).getPsi(el));
+        double logpsi = log(IC.getElement(i).getPsi()[el]);
         samplemean += logpsi;
         sumlogs2 += logpsi * logpsi;
       }
@@ -443,8 +443,10 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
 
       PedBase& ind = IC.getElement(i);
 
+      ind.startPsiProposal();
+
       // set the proposed values for psi
-      ind.setOddsRatios(psi);
+      ind.setPsi(psi);
 
       // force update, don't store the result
       LogLikelihoodAtProposal += ind.getLogLikelihoodXChr(options, true, false);
@@ -471,15 +473,20 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
                     "  Ratio: %.6lf  PriorRat: %.6lf\n",
             LogLikelihood, LogLikelihoodAtProposal,
             LogLikelihoodRatio, LogPriorRatio);
-    fprintf(stderr, "Accept: %s\n", accept ? "yes" : "no");
+    fprintf(stderr, "Accept-Psi: %s\n", accept ? "yes" : "no");
 #endif
 
     if (!accept) {
       psi[el] = storepsi;
     }
 
-    for (int i = 0; i < IC_size; ++i)
-      IC.getElement(i).setOddsRatios(psi);
+    for (int i = 0; i < IC_size; ++i) {
+      IC.getElement(i).setPsi(psi);
+      if (accept)
+        IC.getElement(i).acceptPsiProposal();
+      else
+        IC.getElement(i).rejectPsiProposal();
+    }
 
     // update sampler object every w updates
     if( !(NumberOfPsiUpdates % w) )
@@ -503,7 +510,7 @@ void PopAdmix::StoreOddsRatiosPosteriorMean(const AdmixIndividualCollection& IC)
 
   // store it in all individuals
   for (int i = 0; i < IC.getSize(); ++i)
-    IC.getElement(i).setOddsRatios(psi);
+    IC.getElement(i).setPsi(psi);
 }
 
 //-----------------------------------------------------------------------------

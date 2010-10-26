@@ -602,12 +602,13 @@ class Pedigree : public PedBase // See NOTE *4*
 	size_t nAffected  ; ///< Number of affected members (see NOTE *4*)
 	size_t nAffNonFndr; ///< Number of affected non-founders (see NOTE *4*)
 
+	typedef FounderIdx ThetaIdx;
+
 	/// Returns size of Theta, used to allocate storage for the various
 	/// thetas and SumSoftmaxTheta.  Was: NumGametes --> K*NumGametes
 	/// We are modeling the same admixture proportions for both of a
 	/// founders' gametes, so the number of Thetas is the same as the number
 	/// of founders.
-	typedef FounderIdx ThetaIdx;
 	ThetaIdx getNTheta() const { return getNFounders(); }
 
 
@@ -714,6 +715,11 @@ class Pedigree : public PedBase // See NOTE *4*
 	RhoType &	getCurRho()	  { return rhos.getCurrent(); } ///< Convenience.
 
 
+	ProposalRingBuffer<PsiType> psis;
+	const PsiType & getCurPsi() const { return psis.getCurrent(); } ///< Convenience.
+	PsiType &	getCurPsi()	  { return psis.getCurrent(); } ///< Convenience.
+
+
 	RhoType sumlogrho ; ///< foo.
 
 	/// Accessor for global-rho, which is stored in the first element of the rho array.
@@ -743,6 +749,11 @@ class Pedigree : public PedBase // See NOTE *4*
 	bclib::StepSizeTuner ThetaTuner	     ;
 	unsigned int	     NumGametes	     ;
 	unsigned int	     myNumber	     ;
+
+	genepi::cvector<bclib::StepSizeTuner> TunePsiSampler;
+	genepi::cvector<double> psistep;
+	genepi::cvector<double> SumLogPsi;
+	int NumberOfPsiUpdates;
 
 	#if PED_HAS_OWN_PRNG
 	    genepi::NRand rng; ///< See getRNG().
@@ -814,17 +825,29 @@ class Pedigree : public PedBase // See NOTE *4*
 	/// calls calcLogLikelihood() if necessary.
 	double getLogLikelihood( const Options & options, bool forceUpdate, bool store );
 
+	double getLogLikelihoodXChr( const Options & options,
+				     bool forceUpdate, bool store );
+
 	/// Called if a Metropolis proposal is accepted.  The parameter is
 	/// ignored in the case of pedigrees.
 	virtual void storeLogLikelihood( const bool setHMMAsOK );
 
 	//--------------------------------------------------------------------------
-	// Public rho-proposal methods, overridden from PedBase, called from PopAdmix, ignored for individuals.
+	// Public rho-proposal and psi-proposal methods, overridden from
+	// PedBase, called from PopAdmix, ignored for individuals.
 	virtual void setRho( double nv );
 	virtual void startRhoProposal();
 	virtual void acceptRhoProposal();
 	virtual void rejectRhoProposal();
+
+	virtual void setPsi( const PsiType& _psi );
+	virtual void startPsiProposal();
+	virtual void acceptPsiProposal();
+	virtual void rejectPsiProposal();
 	//--------------------------------------------------------------------------
+
+	/// Retrieve the current odds ratios vector
+	const PsiType & getPsi() const { return getCurPsi(); }
 
     private:
 
@@ -866,6 +889,7 @@ class Pedigree : public PedBase // See NOTE *4*
     /// Overridden from PedBase (body is adapted from code copied from
     /// AdmixedIndividual).  Perhaps should be moved up to base class.
     void WritePosteriorMeans( ostream& os, unsigned samples, bool globalrho ) const;
+    void WritePosteriorMeansXChr( ostream& os, unsigned samples ) const;
 
 
     /// Cache for getNInheritedByAffected()

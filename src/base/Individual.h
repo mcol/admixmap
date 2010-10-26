@@ -72,11 +72,17 @@ public:
   virtual double getLogLikelihoodAtPosteriorMeans(const Options& options);
 
   //--------------------------------------------------------------------------
-  // Public rho-proposal methods, overridden from PedBase, ignored for individuals.
+  // Public rho-proposal and psi-proposal methods, overridden from PedBase,
+  // ignored for individuals.
   virtual void setRho( double nv );
   virtual void startRhoProposal();
   virtual void acceptRhoProposal();
   virtual void rejectRhoProposal();
+
+  virtual void setPsi( const PsiType& psi );
+  virtual void startPsiProposal();
+  virtual void acceptPsiProposal();
+  virtual void rejectPsiProposal();
   //--------------------------------------------------------------------------
 
   void GetLocusAncestry(int locus, int Ancestry[2])const;
@@ -130,6 +136,13 @@ protected:
   double *		    Outcome	     ;
   double *		    Covariates	     ;
 
+  /// Odds ratios for the X chromosome admixtures
+  PsiType		    psi		     ;
+  genepi::cvector<bclib::StepSizeTuner> TunePsiSampler;
+  genepi::cvector<double>   psistep	     ;
+  genepi::cvector<double>   SumLogPsi	     ;
+  int			    NumberOfPsiUpdates;
+
   struct {
     double value    ; ///< loglikelihood at current parameter values, annealed if coolness < 1.
                       ///< Valid iff 'ready' is true
@@ -139,14 +152,6 @@ protected:
     bool   HMMisOK  ; ///< true iff values in HMM objects correspond to current parameter values
                       ///< for this individual
   } logLikelihood;
-
-  /// Odds ratios for the X chromosome admixtures
-  genepi::cvector<double> psi;
-
-  genepi::cvector<bclib::StepSizeTuner> TunePsiSampler;
-  genepi::cvector<double> psistep;
-  genepi::cvector<double> SumLogPsi;
-  int NumberOfPsiUpdates;
 
   Individual();
   void SetUniformAdmixtureProps();
@@ -163,10 +168,8 @@ protected:
                                       const AdmixtureProportions& theta,
                                       const genepi::RhoType& rho, bool updateHMM);
 
-  public:
-    const genepi::RhoType & getRho() const;
-
-  void setOddsRatios(const genepi::cvector<double>& psi);
+  const genepi::RhoType & getRho() const;
+  const         PsiType & getPsi() const;
 
 };
 

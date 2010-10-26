@@ -112,7 +112,7 @@ class HiddenMarkovModel
 	/// Recursive function to multiply the transition-probability matrix
 	/// by the probability vector alpha
 	void transRecursion(const double *alpha, double *res,
-			    double f, double g, const AdmixType& h,
+			    double f, double g, const ThetaType& h,
 			    HVIterator z, size_t sz ) const;
 
 	void computeStationaryDistr( const HiddenStateSpace & hss_0 ) const;
@@ -240,7 +240,6 @@ class HiddenMarkovModel
 
 	/// Get the conditional probability distribution of the hidden states at locus @a t.
 	const cvector<double> & getCondStateProbsAtLocus( SLocIdxType t ) const;
-
 
     };
 

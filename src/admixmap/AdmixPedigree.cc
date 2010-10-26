@@ -436,6 +436,15 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 
     sumlogrho.assign( getCurRho().size(), 0.0 );
 
+    for ( PsiType * it = psis.begin() ; it != psis.end() ; ++it )
+	it->resize( K, 1.0 );
+
+    psistep.resize( K, 1.0 );
+    TunePsiSampler.resize( K );
+    NumberOfPsiUpdates = 0;
+    for ( PopIdx i = 1 ; i < K ; ++i )
+	TunePsiSampler[i].SetParameters(1.0, 0.01, 10, 0.44);
+
     }
 
 
@@ -459,6 +468,16 @@ double Pedigree::getLogLikelihood( const Options & , bool /*forceUpdate*/ , bool
 	rv = llCache.getCurVal();
 
     return rv;
+    }
+
+
+double Pedigree::getLogLikelihoodXChr( const Options & ,
+				       bool forceUpdate, bool /*store*/ )
+    {
+    if ( forceUpdate )
+	getHMM(CHR_IS_X).thetaChanged();
+
+    return getHMM(CHR_IS_X).getLogLikelihood();
     }
 
 
@@ -731,6 +750,9 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	#endif
 
 	const IsXChromType is_xchrom = loci[t].isXChrom();
+	const ThetaType & th = ( is_xchrom == CHR_IS_X )             ?
+			    ( &getCurTheta() )->getTheta( getPsi() ) :
+			    ( &getCurTheta() )->getTheta();
 
 	// If K==2, only evaluate for 1 population, otherwise for all of them.
 	// Existing code uses k==1 (not 0), so:
@@ -761,7 +783,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 		if ( getNMembers() == 1 )
 		    {
 
-		    const double mu = getCurTheta()[ 0 ][ k ]; // Could move outside the inner HSS loop.
+		    const double mu = th[ 0 ][ k ];
 
 		    //gp_assert( stId->getIV() == InheritanceVector::null_IV() );
 		    const AncestryVector & av = stIt.getAV();
@@ -818,7 +840,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 			    << av << " WRT pop " << k << ".\n";
 			#endif
 
-			const double mu = getCurTheta()[ fIdx ][ k ];
+			const double mu = th[ fIdx ][ k ];
 
 			//-------------------------------------------------------
 			// Special case for founders modeled as a single-gamete:
@@ -1490,6 +1512,38 @@ void Pedigree::rejectRhoProposal()
 
 
 
+//--------------------------------------------------------------------------
+// Public psi-proposal methods, overridden from PedBase, called from PopAdmix,
+// ignored for individuals.
+//--------------------------------------------------------------------------
+
+void Pedigree::setPsi( const PsiType& _psi )
+    {
+    getCurPsi() = _psi;
+    }
+
+void Pedigree::startPsiProposal()
+    {
+    llCache.startProposal();
+    psis.startNewProposal();
+    }
+
+void Pedigree::acceptPsiProposal()
+    {
+    llCache.acceptProposal();
+    psis.acceptProposal();
+    }
+
+void Pedigree::rejectPsiProposal()
+    {
+    llCache.rejectProposal();
+    psis.rejectProposal();
+    getHMM(CHR_IS_X    ).transProbsChanged();
+    getHMM(CHR_IS_NOT_X).transProbsChanged();
+    }
+
+
+
 //--------------------------------------------------------------------
 // Combined Theta-proposal methods
 //--------------------------------------------------------------------
@@ -2030,6 +2084,29 @@ void Pedigree::WritePosteriorMeans( ostream& os, unsigned int samples, bool glob
 	copy( rhobar.begin(), rhobar.end(), ostream_iterator<double>(os, "\t") );
 	}
 
+    }
+
+
+void Pedigree::WritePosteriorMeansXChr( ostream& os, unsigned samples ) const
+    {
+    // We do not explicitly store the X chromosome admixtures, but they are
+    // computed from the autosomal admixtures. Therefore, to get the posterior
+    // means for the X chromosome admixtures, we first have to get the autosomal
+    // posterior means, store them in an AdmixtureProportions object and then
+    // ask it to compute the X chromosome admixtures.
+
+    ThetaType thetaBar;
+
+    // Get the autosomal posterior means and copy them in ThetaPosteriorMeans
+    getPosteriorMeansTheta(thetaBar, samples);
+    AdmixtureProportions ThetaPosteriorMeans(getNTheta(), K);
+    for ( unsigned int g = 0; g < getNTheta(); ++g )
+	ThetaPosteriorMeans[g] = thetaBar[g];
+
+    // Get the X chromosome posterior means
+    ThetaType ThetaBarX = ThetaPosteriorMeans.getTheta(getPsi());
+    for ( ThetaType::iterator it = ThetaBarX.begin() ; it != ThetaBarX.end() ; ++it )
+	copy( it->begin(), it->end(), ostream_iterator<double>(os, "\t") );
     }
 
 

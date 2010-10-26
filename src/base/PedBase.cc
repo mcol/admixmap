@@ -32,9 +32,6 @@
 #include <cxxabi.h>
 
 
-#define ALLOW_UNIMPLEMENTED_X_CHROM	1
-
-
 static const char NI_PREFIX [] = "Not implemented: ";
 
 
@@ -111,11 +108,7 @@ double PedBase::getLogLikelihood(const Options& , const bool /*forceUpdate*/, co
 
 double PedBase::getLogLikelihoodXChr(const Options& , const bool /*forceUpdate*/, const bool /*store*/)
     {
-    #if ALLOW_UNIMPLEMENTED_X_CHROM
-	return 0.0;
-    #else
-	not_implemented( "getLogLikelihoodXChr()", typeid(*this) );
-    #endif
+    not_implemented( "getLogLikelihoodXChr()", typeid(*this) );
     }
 
 void PedBase::storeLogLikelihood(const bool /*setHMMAsOK*/) { not_implemented( "storeLogLikelihood()", typeid(*this) ); }
@@ -189,9 +182,15 @@ void PedBase::FindPosteriorModes(const AdmixOptions & /*options*/, const AlphaTy
 
 const RhoType & PedBase::getRho() const { not_implemented( "getRho()", typeid(*this) ); }
 
-double PedBase::getPsi(int /* pop */) const {
-  not_implemented("getPsi()", typeid(*this));
-}
+const PsiType & PedBase::getPsi() const
+    {
+    not_implemented( "getPsi()", typeid(*this) );
+    }
+
+void PedBase::setPsi(const PsiType& /*psi*/)
+    {
+    not_implemented( "setOddsRatios()", typeid(*this) );
+    }
 
 void PedBase::resetStepSizeApproximator(int /*k*/) { not_implemented( "resetStepSizeApproximator()", typeid(*this) ); }
 
@@ -229,20 +228,11 @@ void PedBase::WritePosteriorMeans(ostream& /*os*/, unsigned /*samples*/, bool /*
 
 void PedBase::WritePosteriorMeansXChr(ostream& /*os*/, unsigned /*samples*/) const
     {
-    #if ! ALLOW_UNIMPLEMENTED_X_CHROM
-	not_implemented( "WritePosteriorMeansXChr()", typeid(*this) );
-    #endif
+    not_implemented( "WritePosteriorMeansXChr()", typeid(*this) );
     }
 
 
 void PedBase::WritePosteriorMeansLoci(ostream& /*os*/) const { not_implemented( "WritePosteriorMeansLoci()", typeid(*this) ); }
-
-void PedBase::setOddsRatios(const genepi::cvector<double>& /*psi*/)
-    {
-    #if ! ALLOW_UNIMPLEMENTED_X_CHROM
-	not_implemented( "setOddsRatios()", typeid(*this) );
-    #endif
-    }
 
 
 } // ---- end namespace genepi

@@ -38,11 +38,16 @@ int Individual::NumHiddenStates;
 
 
 //--------------------------------------------------------------------------
-// Public rho-proposal methods, overridden from PedBase, ignored for individuals.
+// Public rho-proposal and psi-proposal methods, overridden from PedBase,
+// ignored for individuals.
 void Individual::setRho( double /*nv*/ ) {}
 void Individual::startRhoProposal () {}
 void Individual::acceptRhoProposal() {}
 void Individual::rejectRhoProposal() {}
+
+void Individual::startPsiProposal () {}
+void Individual::acceptPsiProposal() {}
+void Individual::rejectPsiProposal() {}
 //--------------------------------------------------------------------------
 
 
@@ -189,6 +194,10 @@ void Individual::SetStaticMembers( Genome & pLoci, const Options & options ) {
 
 const RhoType & Individual::getRho() const {
    return _rho;
+}
+
+const PsiType & Individual::getPsi() const {
+   return psi;
 }
 
 /// Sets genome (Loci)
@@ -417,6 +426,6 @@ void Individual::SampleMissingOutcomes(bclib::DataMatrix *Outcome, const vector<
   }
 }
 
-void Individual::setOddsRatios(const genepi::cvector<double>& _psi) {
+void Individual::setPsi(const PsiType& _psi) {
   psi = _psi;
 }

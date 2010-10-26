@@ -239,7 +239,7 @@ void HiddenMarkovModel::computeForwardsBackwards() const
 
 void HiddenMarkovModel::transRecursion(const double *alpha, double *res,
                                        double f, double g,
-                                       const AdmixType& h,
+                                       const ThetaType& h,
                                        HVIterator z, size_t sz ) const {
 
   // Check if we've reached the bottom of the recursion
@@ -335,7 +335,8 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0 )
     const double prob_of_each_iv = 1.0 / (1LL << getPed().getNMeiosis(isX));
 
 
-    const AdmixType & th = *theta;
+    const ThetaType & th = ( isX == CHR_IS_X ) ? theta->getTheta(ped->getPsi())
+					       : theta->getTheta();
 
 
     // Here we compute the stationary distribution (Pi) and store its inverse
@@ -388,8 +389,9 @@ void HiddenMarkovModel::recursionProbs( double	 		 f	 ,
     for ( HiddenStateSpace::Iterator it( fr_hss, isX ) ; it ; ++it )
 	frProbsDense[ it.getOverallIndex() ] = frProbs[ it.getNon0Index() ];
 
-    AdmixType h( *theta );
-    h.scaleBy(1 - f);
+    ThetaType h = ( isX == CHR_IS_X ) ? theta->getTheta( ped->getPsi() )
+				      : theta->getTheta();
+    h *= (1 - f);
 
     HVIterator z( getPed(), isX );
     transRecursion(frProbsDense.data_unsafe(), toProbsDense.data_unsafe(),

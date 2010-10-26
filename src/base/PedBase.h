@@ -85,6 +85,7 @@ class PedBase
 	typedef cvector< bclib::pvector<double> > ThetaType	; ///< Alternatively, TwoDimArray<FounderIdx,PopIdx,double>
 								  ///< Size getNTheta() [effectively getNFounders()] by K
 	typedef genepi::cvector< double >	  PopThetaType	;
+	typedef genepi::cvector< double >	  PsiType	;
 	typedef AdmixtureProportions		  AdmixType	;
 
 
@@ -119,11 +120,17 @@ class PedBase
 	virtual void storeLogLikelihood( const bool setHMMAsOK );
 
 	//--------------------------------------------------------------------------
-	// Public rho-proposal methods.  Called from PopAdmix, ignored for individuals.
+	// Public rho-proposal and psi-proposal methods, called from PopAdmix,
+	// ignored for individuals.
 	virtual void setRho( double nv ) = 0;
 	virtual void startRhoProposal () = 0;
 	virtual void acceptRhoProposal() = 0;
 	virtual void rejectRhoProposal() = 0;
+
+	virtual void setPsi( const PsiType& psi ) = 0;
+	virtual void startPsiProposal () = 0;
+	virtual void acceptPsiProposal() = 0;
+	virtual void rejectPsiProposal() = 0;
 	//--------------------------------------------------------------------------
 
 	virtual void GetLocusAncestry(int locus, int Ancestry[2])const;
@@ -165,7 +172,7 @@ class PedBase
 	virtual void FindPosteriorModes(const AdmixOptions& options, const AlphaType &alpha,
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);
 	virtual const RhoType & getRho() const;
-	virtual double getPsi(int pop) const;
+	virtual const PsiType & getPsi() const;
 	virtual void resetStepSizeApproximator(int k);
 	virtual void UpdateScores(const AdmixOptions& options, bclib::DataMatrix *Outcome, bclib::DataMatrix *Covariates,
 		    const vector<bclib::Regression*> & R, AffectedsOnlyTest & affectedsOnlyTest,
@@ -182,7 +189,6 @@ class PedBase
 	virtual void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
 	virtual void WritePosteriorMeansXChr(ostream& os, unsigned samples) const;
 	virtual void WritePosteriorMeansLoci(ostream& os)const;
-	virtual void setOddsRatios(const genepi::cvector<double>& psi);
 
 
 

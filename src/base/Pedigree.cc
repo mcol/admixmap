@@ -490,12 +490,14 @@ Pedigree::Pedigree( const Pedigree & rhs ) :
 	thetas		  ( rhs.thetas		  ) , // See NOTE *2*
 	SumSoftmaxTheta	  ( rhs.SumSoftmaxTheta	  ) , // See NOTE *2*
 	rhos		  ( rhs.rhos		  ) , // See NOTE *2*
+	psis		  ( rhs.psis		  ) , // See NOTE *2*
 	sumlogrho	  ( rhs.sumlogrho	  ) , // See NOTE *2*
 	step		  ( rhs.step		  ) , // See NOTE *2*
 	NumberOfUpdates	  ( rhs.NumberOfUpdates	  ) , // See NOTE *2*
 	w		  ( rhs.w		  ) , // See NOTE *2*
 	ThetaTuner	  ( rhs.ThetaTuner	  ) , // See NOTE *2*
 	NumGametes	  ( rhs.NumGametes	  ) , // See NOTE *2*
+	psistep		  ( rhs.psistep		  ) , // See NOTE *2*
 	tpCache		  ( rhs.tpCache		  ) , // See NOTE *2*
 	hmm_notX	  ( rhs.hmm_notX	  ) , // See NOTE *2*
 	hmm_x		  ( rhs.hmm_x		  ) , // See NOTE *2*
@@ -544,6 +546,8 @@ Pedigree & Pedigree::operator=( const Pedigree & rhs )
     ThetaTuner		= rhs.ThetaTuner	;
     NumGametes		= rhs.NumGametes	;
     setMyNumber		( rhs.myNumber		);
+    psis		= rhs.psis		;
+    psistep		= rhs.psistep		;
 
 
     tpCache		= rhs.tpCache		;
@@ -716,7 +720,6 @@ bool Pedigree::haveMendelErrAt( SLocIdxType t ) const
 
     return (nMendelErrs != 0) && mendelErrsByLocus[t];
     }
-
 
 
 } // ---- end namespace genepi
