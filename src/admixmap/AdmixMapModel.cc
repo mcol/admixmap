@@ -153,7 +153,8 @@ void AdmixMapModel::Iterate(const double* Coolnesses, unsigned coolness,
       }
 
     //Sample Parameters
-    UpdateParameters(iteration, options, Log, data.GetHiddenStateLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
+    UpdateParameters(iteration, options, Log, data.GetHiddenStateLabels(),
+                     Coolnesses, Coolnesses[coolness], AnnealedRun);
     SubIterate(iteration, options, data, Log, SumEnergy, SumEnergySq,
 	       AnnealedRun);
     #if DEBUG_ITER_TIMES
@@ -166,38 +167,45 @@ void AdmixMapModel::Iterate(const double* Coolnesses, unsigned coolness,
 }
 
 void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, LogWriter& Log,
-		      const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal){
+                                     const Vector_s& PopulationLabels,
+                                     const double* Coolnesses, double coolness,
+                                     bool anneal) {
 
   const AdmixOptions & options = dynamic_cast<const AdmixOptions &>( _options );
+  const int Populations    = options.getPopulations();
+  const int burnin         = options.getBurnIn();
+  const bool ChibIndicator = options.getChibIndicator();
+  const bool afterBurnIn   = iteration > burnin;
 
   // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
   if ( anneal || options.getTestOneIndivIndicator() )
     AdmixedIndividuals->annealGenotypeProbs( Loci.GetNumberOfChromosomes(), coolness, Coolnesses );
 
+  A->ResetAlleleCounts(Populations);
 
-  A->ResetAlleleCounts(options.getPopulations());
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
-  if((options.getPopulations() > 1) && options.getIndAdmixHierIndicator() &&
-     (Loci.GetLengthOfGenome() + Loci.GetLengthOfXchrm() > 0.0))
-    L->UpdateGlobalSumIntensities( *AdmixedIndividuals, (!anneal && iteration > options.getBurnIn() && options.getPopulations() > 1));
+  if ( Populations > 1 && options.getIndAdmixHierIndicator() &&
+       (Loci.GetLengthOfGenome() + Loci.GetLengthOfXchrm() > 0.0) )
+    L->UpdateGlobalSumIntensities(*AdmixedIndividuals,
+                                  (!anneal && afterBurnIn && Populations > 1));
   // leaves individuals with HMM probs bad, stored likelihood ok
   // this function also sets locus correlations in Chromosomes
 
   // update the odds ratios vector psi
-  if ((options.getPopulations() > 1) && Loci.isX_data())
-    L->UpdateOddsRatios(*AdmixedIndividuals, iteration > options.getBurnIn());
+  if ( Loci.isX_data() && Populations > 1 )
+    L->UpdateOddsRatios(*AdmixedIndividuals, afterBurnIn);
 
   //find posterior modes of individual admixture at end of burn-in
   //set Chib numerator
-  if(!anneal && iteration == options.getBurnIn() && (options.getChibIndicator() || strlen(options.getIndAdmixModeFilename()))) {
-    AdmixedIndividuals->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A, PopulationLabels);
-    if( options.getChibIndicator() ) {
-      AdmixedIndividuals->setChibNumerator(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A);
-    }
+  if ( !anneal && iteration == burnin &&
+       (ChibIndicator || strlen(options.getIndAdmixModeFilename())) ) {
+    AdmixedIndividuals->FindPosteriorModes(options, R, L->getalpha(),
+                                           L->getrhoalpha(), L->getrhobeta(),
+                                           A, PopulationLabels);
+    if ( ChibIndicator )
+      AdmixedIndividuals->setChibNumerator(options, L->getalpha(),
+                                           L->getrhoalpha(), L->getrhobeta(), A);
   }
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   /**
      HMMUpdates does 4 things:
@@ -217,54 +225,45 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
   if ( options.hasAnyAssociationTests() || options.getTestForAffectedsOnly() )
     AdmixedIndividuals->SampleHapPairs(options, A, &Loci, true, anneal, true);
 
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if( !anneal && iteration > options.getBurnIn() ){
+  if ( !anneal && afterBurnIn ) {
     //score tests
-    if( options.getScoreTestIndicator() ){
+    if ( options.getScoreTestIndicator() )
       //TODO: broadcast dispersion in linear regression
       Scoretests.Update(R);//score tests evaluated for first outcome var only
-    }
+
     if(options.getTestForResidualAllelicAssoc()){
       ResidualAllelicAssocScoreTest.Reset();
       ResidualAllelicAssocScoreTest.Update(A->GetAlleleFreqs(), options.getHapMixModelIndicator());
     }
   }
-      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // sample individual admixture and sum-intensities
   AdmixedIndividuals->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),
 		       L->getrhoalpha(), L->getrhobeta(), Scoretests.getAncestryAssocTest(),anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  if( options.getChibIndicator() && !anneal && iteration >= options.getBurnIn() )
+  if ( ChibIndicator && !anneal && iteration >= burnin )
     AdmixedIndividuals->updateChib(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A);
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
-  if( !options.getFixedAlleleFreqs()){
-    A->Update(IC, (iteration > options.getBurnIn() && !anneal), coolness);
-  }//end if random allele freqs
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
+  if ( !options.getFixedAlleleFreqs() )
+    A->Update(IC, !anneal && afterBurnIn, coolness);
 
+  // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
   if(!options.getFixedAlleleFreqs() || anneal) {
     AdmixedIndividuals->setGenotypeProbs(&Loci); // sets unannealed probs ready for getEnergy
-    AdmixedIndividuals->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
+    AdmixedIndividuals->HMMIsBad(true);
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
 
   // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho,
   // or from update of individual-level parameters otherwise
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //update population admixture Dirichlet parameters conditional on individual admixture
   L->UpdatePopAdmixParams(iteration, AdmixedIndividuals, Log);
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
   // ** update regression parameters (if regression model) conditional on individual admixture
-  bool condition = (!anneal && iteration > options.getBurnIn());
+  bool condition = (!anneal && afterBurnIn);
   for(unsigned r = 0; r < R.size(); ++r){
     R[r]->Update(condition, IC->getOutcome(r), coolness );
     //output expected values of outcome variables to file every 'every' iterations after burnin
@@ -272,8 +271,8 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options& _options, Log
       R[r]->OutputExpectedY();
     }
   }
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
+
 void AdmixMapModel::ResetStepSizeApproximators(int resetk){
   Model::ResetStepSizeApproximators(resetk);
  L->resetStepSizeApproximator(resetk);

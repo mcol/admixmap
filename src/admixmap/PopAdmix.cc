@@ -168,10 +168,13 @@ PopAdmix::~PopAdmix()
  of components, we have one Dirichlet parameter vector for each component,
  updated only from those individuals who belong to the component
 */
-void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const individuals, bclib::LogWriter &Log)
- {
-   if( options.getPopulations() > 1 && individuals->getSize() > 1 &&
-       options.getIndAdmixHierIndicator() ){
+void PopAdmix::UpdatePopAdmixParams(int iteration,
+                                    const AdmixIndividualCollection* const individuals,
+                                    bclib::LogWriter &Log) {
+  const int Populations = options.getPopulations();
+
+  if ( Populations > 1 && individuals->getSize() > 1 &&
+       options.getIndAdmixHierIndicator() ) {
      const double* sumlogtheta = individuals->getSumLogTheta();
 
 #if 0
@@ -192,30 +195,30 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
      }
 
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
-
   }
 
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
 
-   if( iteration == options.getBurnIn() && options.getPopulations() > 1) {
+   if ( iteration == options.getBurnIn() && Populations > 1 ) {
      if(options.getNumberOfOutcomes() > 0){
        Log << bclib::Off << "Individual admixture centred in regression model around: ";
-       for(int i = 0; i < options.getPopulations(); ++i)Log << poptheta[i] << "\t";
+       for (int i = 0; i < Populations; ++i)
+         Log << poptheta[i] << "\t";
        Log << "\n";
      }
      fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
    }
 
-
-   if( iteration < options.getBurnIn() && options.getPopulations() > 1) {
+   if ( iteration < options.getBurnIn() && Populations > 1 ) {
      // accumulate ergodic average of population admixture, which is used to centre
      // the values of individual admixture in the regression model
      double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
-     if(options.getNumberOfOutcomes() > 0)for( int j = 0; j < options.getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
+     if ( options.getNumberOfOutcomes() > 0 )
+       for (int j = 0; j < Populations; ++j)
+         poptheta[j] = SumAlpha[j] / sum;
    }
 }
-
 
 
 //-----------------------------------------------------------------------------
