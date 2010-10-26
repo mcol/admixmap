@@ -34,6 +34,10 @@
  * @{ */
 
 
+typedef genepi::cvector< bclib::pvector<double> > ThetaType;
+typedef genepi::cvector< double >                 PsiType;
+
+
 /// Admixture proportions
 class AdmixtureProportions {
 
@@ -73,18 +77,18 @@ class AdmixtureProportions {
   void scaleBy(double val);
 
   /// Return a copy of the internal vectors
-  genepi::cvector< bclib::pvector<double> > getTheta() const;
+  ThetaType getTheta() const;
 
   /// Return a copy of the internal vectors, adjusted to account for the
   /// admixture ratio of the X chromosome
-  genepi::cvector< bclib::pvector<double> > getTheta(const genepi::cvector<double>& psi) const;
+  ThetaType getTheta(const PsiType& psi) const;
 
   /// Return a (read-only) flattened version of the internal vectors
   const double* flat() const;
 
   /// Return a (read-only) flattened version of the internal vectors adjusted
   /// to account for the admixture ratio of the X chromosome
-  const double* flatXChromosome(const genepi::cvector<double>& psi) const;
+  const double* flatXChromosome(const PsiType& psi) const;
 
   /// Print the content of the internal vectors
   void print() const;
@@ -92,7 +96,7 @@ class AdmixtureProportions {
  private:
 
   /// Internal representation of the admixture proportions
-  genepi::cvector<bclib::pvector<double> > gametes;
+  ThetaType gametes;
 
   /// Flat representation of the internal vectors
   ///

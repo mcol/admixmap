@@ -30,7 +30,7 @@
 using genepi::cvector;
 using bclib::pvector;
 
-static void oddsratios2xKtocolratios(const cvector<double>& psi,
+static void oddsratios2xKtocolratios(const PsiType& psi,
                                      const pvector<double>& P,
                                      double Q, cvector<double>& r);
 
@@ -121,7 +121,7 @@ void AdmixtureProportions::setTo(double value) {
 }
 
 /// Return a copy of the internal vectors
-cvector<pvector<double> > AdmixtureProportions::getTheta() const {
+ThetaType AdmixtureProportions::getTheta() const {
 
   gp_assert(isOk);
   return gametes;
@@ -129,7 +129,7 @@ cvector<pvector<double> > AdmixtureProportions::getTheta() const {
 
 /// Return a copy of the internal vectors, adjusted to account for the
 /// admixture ratio of the X chromosome
-cvector<pvector<double> > AdmixtureProportions::getTheta(const cvector<double>& psi) const {
+ThetaType AdmixtureProportions::getTheta(const PsiType& psi) const {
 
   gp_assert(isOk);
   gp_assert_eq(psi.size(), gametes[0].size());
@@ -138,7 +138,7 @@ cvector<pvector<double> > AdmixtureProportions::getTheta(const cvector<double>& 
   const size_t K = gametes[0].size();
   const double Q = 0.5;
   cvector<double> r(K);
-  cvector<pvector<double> > th(gametes);
+  ThetaType th(gametes);
 
   for (size_t g = 0 ; g < G; ++g) {
 
@@ -185,7 +185,7 @@ const double* AdmixtureProportions::flat() const {
 
 /// Return a (read-only) flattened version of the internal vectors adjusted
 /// to account for the admixture ratio of the X chromosome
-const double* AdmixtureProportions::flatXChromosome(const cvector<double>& psi) const {
+const double* AdmixtureProportions::flatXChromosome(const PsiType& psi) const {
 
   gp_assert(isOk);
   gp_assert_eq(psi.size(), gametes[0].size());
@@ -228,7 +228,7 @@ void AdmixtureProportions::print() const {
 
 /// Given the odds ratios psi and a vector of frequencies P, compute the
 /// ratio of paternal founders to maternal founders for each population
-void oddsratios2xKtocolratios(const cvector<double>& psi,
+void oddsratios2xKtocolratios(const PsiType& psi,
                               const pvector<double>& P,
                               double Q, cvector<double>& r) {
 
