@@ -75,11 +75,23 @@ public:
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
   void GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const; 
   void SetHapPairProbsToPosteriorMeans(int iterations);
-  const int *GetHapLabels( int ) const;
 
-  //functions used for haplotype association score test 
-  int GetMergedHaplotype( int i )const;
-  int GetNumberOfMergedHaplotypes()const;
+  /// Returns index of i-th merged haplotype, coded as integer
+  const int* GetHapLabels(int i) const {
+    return HapLabels + i*NumberOfLoci;
+  }
+
+  // Functions used for haplotype association score test
+
+  /// Given a haplotype, returns a merged haplotype
+  int GetMergedHaplotype(int i) const {
+    return MergeHaplotypes[i];
+  }
+
+  /// Returns number of haplotypes that have been merged
+  int GetNumberOfMergedHaplotypes() const {
+    return NumberOfMergedHaplotypes;
+  }
   void SetDefaultMergeHaplotypes( const double* const alpha);
 
   Haplotype HaplotypeSetter;
@@ -100,7 +112,6 @@ private:
   double *SumAlleleProbs; ///< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
   double *HapPairProbsMAP; ///< hap pair probs calculated using AlleleProbsMAP
   std::vector<std::string> Label;
-  int *base;
   static bool RandomAlleleFreqs;
 
   //possibly move out
