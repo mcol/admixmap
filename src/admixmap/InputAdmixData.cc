@@ -235,7 +235,7 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 		if ( ped.getNMendelErrs() != 0 )
 		    {
 		    cerr << "Pedigree " << ped.getId() << " excluded due to "
-			    << ped.getNMendelErrs() << " Mendelian errors!\n\n";
+			 << ped.getNMendelErrs() << " Mendelian errors!\n";
 		    getPeds().erase( idx-- );
 		    ++n_peds_excl;
 		    continue;
@@ -249,9 +249,10 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 	    }
 
 
-	if ( options.getExcludeMendelError() && (n_peds_excl != 0) )
-	    cerr << "After excluding " << n_peds_excl << " pedigrees due to Mendelian errors, "
-		<< getPeds().size() << " pedigrees remain.\n";
+	if ( n_peds_excl != 0 )
+	    cerr << "\nAfter excluding " << n_peds_excl
+		 << " pedigrees due to Mendelian errors, "
+		 << getPeds().size() << " pedigrees remain.\n";
 
 	if ( getPeds().size() == 0 )
 	    throw std::runtime_error( "No pedigree can be processed.\n" );

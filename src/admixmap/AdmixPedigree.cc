@@ -111,6 +111,7 @@ static const double SOFTMAX_0_FLAG = std::numeric_limits<double>::infinity();
 #define NON_GLOBAL_PSI_WORKS				    0
 #define NOT_NEEDED_FOR_FIXEDALLELEFREQ_EQ_1		    0
 #define NOT_NEEDED_UNLESS_CONJUGATE_UPDATE		    0
+#define SUPPORT_PEDIGREES_WITH_MENDELIAN_ERROR		    0
 #define SUPPORT_ASSOCIATION_TESTS			    0
 #define TRACK_PEDIGREE_MISSING				    0
 #define PEDIGREES_HAVE_PLOIDINESS			    0
@@ -404,6 +405,12 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 	if ( ! options.getFixedAlleleFreqs() )
 	    throw std::runtime_error( "Sorry, pedigrees are not (yet) compatible with fixedallelefreqs=0."
 					" Re-run with fixedallelefreqs=1." );
+    #endif
+
+    #if ! SUPPORT_PEDIGREES_WITH_MENDELIAN_ERROR
+	if ( ! options.getExcludeMendelError() )
+	    throw std::runtime_error( "Pedigrees (as yet) do not support genotypes with Mendelian errors."
+					" Re-run with exclude-mendelian-error=1." );
     #endif
 
     #if ! SUPPORT_ASSOCIATION_TESTS
