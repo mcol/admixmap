@@ -310,18 +310,19 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
     }
     if ( strlen( options->getCovariatesFilename() ) != 0 )
       CheckCovariatesFile(N, options, Log);
-    //append population labels to covariate labels
-    if(!options->getTestForAdmixtureAssociation()){
-      for( vector<string>::const_iterator i = HiddenStateLabels.begin()+1; i !=HiddenStateLabels.end(); ++i ){
-	cout << "HiddenStateLabels " << *i << endl;
+
+    // append population labels to covariate labels
+    if (!options->getTestForAdmixtureAssociation()) {
+      for (vector<string>::const_iterator i = HiddenStateLabels.begin() + 1;
+           i != HiddenStateLabels.end(); ++i) {
+	// cout << "HiddenStateLabels " << *i << endl;
 	CovariateLabels.push_back("slope." + *i); 
       }
     }
   }
-  
+
   if ( strlen( options->getReportedAncestryFilename() ) != 0 )
     CheckRepAncestryFile(options->getPopulations(), Log);
-
 }
 
 
