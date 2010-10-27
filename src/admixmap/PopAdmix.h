@@ -70,7 +70,8 @@ public:
   const genepi::RhoType & getSumLogRho() const { return SumLogRho; }
   const PopThetaType & getpoptheta() const { return poptheta; }
   
-  void printAcceptanceRates(bclib::LogWriter &Log);
+  void printAcceptanceRates(bclib::LogWriter& Log,
+                            const Vector_s& PopulationLabels);
   
   void resetStepSizeApproximator(int k); 
   

@@ -323,7 +323,8 @@ void HapMixModel::OutputParameters(int iteration, const Options& options, LogWri
   // cout << endl;
 }
 
-void HapMixModel::PrintAcceptanceRates(const Options& options, LogWriter& Log){
+void HapMixModel::PrintAcceptanceRates(const Options& options, LogWriter& Log,
+                                       const Vector_s& /* PopulationLabels */) {
 
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   else Log.setDisplayMode(On);

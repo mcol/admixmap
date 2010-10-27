@@ -418,16 +418,17 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
     paramstream << bclib::newline;
 }
 
-void AdmixMapModel::PrintAcceptanceRates(const Options& _options, LogWriter& Log){
+void AdmixMapModel::PrintAcceptanceRates(const Options& _options,
+                                         LogWriter& Log,
+                                         const Vector_s& PopulationLabels) {
   const AdmixOptions& options = (const AdmixOptions&)_options;
  if( options.getIndAdmixHierIndicator() ){
 
    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
    else Log.setDisplayMode(On);
 
-   if(options.getPopulations() > 1 ){
-     L->printAcceptanceRates(Log);
-   }
+   if (options.getPopulations() > 1)
+     L->printAcceptanceRates(Log, PopulationLabels);
 
    A->PrintAcceptanceRates(Log);
 

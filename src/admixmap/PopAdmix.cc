@@ -578,7 +578,9 @@ void PopAdmix::OutputParams(){
 
 
 
-void PopAdmix::printAcceptanceRates(bclib::LogWriter &Log) {
+void PopAdmix::printAcceptanceRates(bclib::LogWriter& Log,
+                                    const Vector_s& PopulationLabels) {
+
 //     Log << "Expected acceptance rate in global admixture sampler: "
 // 	<< ThetaTuner.getExpectedAcceptanceRate()
 // 	<< "\nwith final step size of "
@@ -601,13 +603,13 @@ void PopAdmix::printAcceptanceRates(bclib::LogWriter &Log) {
       if (options.isGlobalPsi()) {
         Log << "Expected acceptance rate in the odds ratios sampler:\n";
         for (int i = 1; i < K; ++i)
-          Log << "population " << i + 1 << ": "
+          Log << PopulationLabels[i] << ": "
               << TunePsiSampler[i].getExpectedAcceptanceRate()
               << " with final step size of " << psistep[i] << "\n";
       }
       Log << "Odds ratios female/male between ancestral populations:\n";
       for (int i = 1; i < K; ++i)
-        Log << "population " << i + 1 << " vs population 1: "
+        Log << PopulationLabels[i] << " vs " << PopulationLabels[0] << ": "
             << exp(SumLogPsi[i] / NumberOfPsiUpdates) << "\n";
     }
 }

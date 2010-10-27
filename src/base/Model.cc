@@ -182,7 +182,7 @@ void Model::Finish(Options& options, InputData& data, bclib::LogWriter& Log){
   }
   
   cout << "Output to files completed\n" << flush;
-  
-  // ******************* acceptance rates - output to screen and log ***************************
-  PrintAcceptanceRates(options, Log);
+
+  // ** acceptance rates - output to screen and log
+  PrintAcceptanceRates(options, Log, data.GetHiddenStateLabels());
 }

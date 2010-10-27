@@ -75,7 +75,9 @@ public:
 					const Vector_s& PopLabels, const Vector_s& CovariateLabels) = 0;
 
   virtual void ResetStepSizeApproximators(int resetk);
-  virtual void PrintAcceptanceRates(const Options& options, bclib::LogWriter& Log) = 0;
+  virtual void PrintAcceptanceRates(const Options& options,
+                                    bclib::LogWriter& Log,
+                                    const Vector_s& PopLabels) = 0;
   
   std::vector<bclib::Regression*>& getRegression(){return R;};
   virtual unsigned getNumIndividuals()const = 0; 

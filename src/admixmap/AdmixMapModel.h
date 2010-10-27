@@ -55,7 +55,8 @@ public:
                   double & SumEnergy, double & SumEnergySq, 
                   bool AnnealedRun);
 
-  void PrintAcceptanceRates(const Options& options,bclib::LogWriter& Log);
+  void PrintAcceptanceRates(const Options& options, bclib::LogWriter& Log,
+                            const Vector_s& PopulationLabels);
   void Finalize(const Options& options, bclib::LogWriter& Log, const InputData& data) ;
   void ResetStepSizeApproximators(int resetk);
   double getDevianceAtPosteriorMean(const Options& options, bclib::LogWriter& Log);
