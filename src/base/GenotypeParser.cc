@@ -691,7 +691,7 @@ GenotypeParser::GenotypeParser( const char * fileName, const SimpleLocusArray & 
 
 
 	    // That should be the last data on the line:
-	    if ( ! lexToken().isType( T_EOL ) )
+	    if ( ! lexToken().isType( T_EOL ) && ! lexToken().isType( T_EOF ) )
 		throwError( "spurious garbage at end of line (i.e. too many fields)" );
 
 
