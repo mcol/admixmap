@@ -351,7 +351,10 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
   Log.setDisplayMode(Quiet);
   bclib::Delimitedstdout ScreenWriter(' ');
 
-  if ( options->getDisplayLevel() > 3 )
+  const int displayLevel = options->getDisplayLevel();
+  const bool afterBurnIn = iteration > options->getBurnIn();
+
+  if (displayLevel > 3)
     cout << ' ';
 
   if(options->getIndAdmixHierIndicator()  ){
@@ -359,39 +362,39 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
     // ** pop admixture, sumintensities
     if(options->getPopulations() > 1){
       //write to file
-      if( iteration > options->getBurnIn() ){
+      if (afterBurnIn) {
 	L->OutputParams();
 	//write to R object
 	L->OutputParams(paramstream);
       }
       //write to screen
-      if(options->getDisplayLevel()>2)
+      if (displayLevel > 2)
 	L->OutputParams(ScreenWriter);
     }
 
     // ** dispersion parameter (if dispersion model)
-    if( iteration > options->getBurnIn() ){
+    if (afterBurnIn) {
       //write to file
       A->OutputParams();
       //write to R object
       A->OutputParams(paramstream);
     }
     //write to screen
-    if(options->getDisplayLevel()>2)
+    if (displayLevel > 2)
       A->OutputParams(ScreenWriter);
   }
 
   // ** regression parameters
   for(unsigned r = 0; r < R.size(); ++r){
     //output regression parameters to file if after burnin and to screen if displaylevel >2
-    if( iteration > options->getBurnIn() ){
+    if (afterBurnIn) {
       //write to paramfile
       R[r]->OutputParams(options->getNumberOfOutcomes());
       //write to R object
       R[r]->OutputParams(paramstream);
     }
     //write to screen
-    if(options->getDisplayLevel()>2){
+    if (displayLevel > 2) {
       if(R.size()>1)
 	cout << "\nRegression " << r +1 << " ";
       R[r]->OutputParams(ScreenWriter);
@@ -406,7 +409,7 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
   }
 
   //if( options->getDisplayLevel()>2 ) cout << endl;
-  if( iteration > options->getBurnIn() ){
+  if (afterBurnIn) {
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
     if( strlen( options->getIndAdmixtureFilename() ) ) AdmixedIndividuals->OutputIndAdmixture();
     if(options->getOutputAlleleFreq()){
@@ -414,7 +417,7 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
     }
   }
   // cout << endl;
-  if( iteration > options->getBurnIn() )
+  if (afterBurnIn)
     paramstream << bclib::newline;
 }
 
