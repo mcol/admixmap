@@ -856,9 +856,18 @@ class Pedigree : public PedBase // See NOTE *4*
     void setAdmixtureProps( const AdmixType & rhs );
 
 
-
+    //--------------------------------------------------------------------
     // Methods (overridden from PedBase) from AdmixedIndividual:
-    virtual void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
+    //--------------------------------------------------------------------
+
+    /// We don't need to implement this for pedigrees because we calculate the
+    /// emission probabilities (AKA genotype-probabilities) via a different
+    /// mechanism (Pedigree::genPossibleStates() et al, which gets called by
+    /// InputAdmixData::finishConstructing()).
+    /// We still we need to keep an empty implementation since this is called
+    /// from AdmixIndividualCollection::setGenotypeProbs().
+    virtual void SetGenotypeProbs(int, int, unsigned, bool) { }
+
     virtual void drawInitialAdmixtureProps(const AlphaType &alpha);
 
     // ResetSufficientStats() is only needed if we are doing conjugate updates
