@@ -43,7 +43,7 @@ public:
   AdmixOptions(int, char**);
   ~AdmixOptions();
 
-  int checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals);
+  bool checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals);
   void PrintUserOptions(const char* filename);
   bool SetOptions();
 

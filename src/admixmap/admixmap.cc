@@ -204,7 +204,7 @@ int main( int argc , char** argv ){
     // used prior to this call.
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
       Log << bclib::On << "\nProgram aborted due to bad options. See logfile for details\n";
-      exit(1);
+      return 1;
     }
 
     // This is required due to the circular dependency between AdmixOptions and
@@ -383,7 +383,7 @@ int main( int argc , char** argv ){
 
   catch(...){
     cerr << "Unknown exception occurred. Contact the program authors for assistance." << endl;
-    exit(1);
+    return 1;
   }
   cout << "Finished" << endl
        << setfill('*') << setw(80) << "*" <<endl;

@@ -261,11 +261,11 @@ void HapMixOptions::DefineOptions()
 
 }
 
-int HapMixOptions::checkOptions(bclib::LogWriter &Log, int ){
-  //check base options
-  Options::checkOptions(Log, 1);
+bool HapMixOptions::checkOptions(bclib::LogWriter& Log, int) {
 
-  bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
+  //check base options
+  bool badOptions = Options::checkOptions(Log, 1);
+
   Log.setDisplayMode(Quiet);
 
   // **** analysis type  ****
@@ -444,8 +444,7 @@ int HapMixOptions::checkOptions(bclib::LogWriter &Log, int ){
 
   AddFilenamesToUserOptions();
 
-  if(badOptions) return 1;
-  else return 0;
+  return badOptions;
 }
 
 void HapMixOptions::PrintUserOptions(const char* filename){

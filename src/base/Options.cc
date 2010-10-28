@@ -317,22 +317,24 @@ bool Options::SetOptions(){
   return true;
 }
 
-int Options::checkOptions(LogWriter &Log, int){
+bool Options::checkOptions(LogWriter& Log, int) {
+
   bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
   Log.setDisplayMode(Quiet);
 
   //check for burnin >= samples
   if(burnin >= TotalSamples){
-    Log << "ERROR: 'samples' must be greater than 'burnin'\n";
+    Log << "ERROR: 'samples' must be greater than 'burnin'.\n";
     badOptions = true;
   }
   //
   if(SampleEvery >= TotalSamples){
-    Log << "ERROR: 'samples' must be greater than 'every'\n";
+    Log << "ERROR: 'samples' must be greater than 'every'.\n";
     badOptions = true;
   }
   if(10*SampleEvery > (TotalSamples-burnin)){
-    Log << "WARNING: 'every' should be less than ('samples' - 'burnin') / 10. Some output files may be empty.\n";
+    Log << "WARNING: 'every' should be less than ('samples' - 'burnin') / 10.\n"
+        << "         Some output files may be empty.\n";
   }
 
   // **** Check whether genotypes file has been specified ****
@@ -350,14 +352,13 @@ int Options::checkOptions(LogWriter &Log, int){
 
   if( TestForAllelicAssociation ){
     if( NumberOfOutcomes < 1 ){
-      Log << "ERROR: allelic association score test is not valid without a regression model."
-	  << " This option will be ignored.\n";
+      Log << "WARNING: allelic association score test is not valid without a regression model."
+	  << "         This option will be ignored.\n";
       setTestForAllelicAssociation(false);
     }
   }
 
-  if(badOptions) return 1;
-  else return 0;
+  return badOptions;
 }
 
 ///output Options table to file

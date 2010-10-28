@@ -433,11 +433,11 @@ bool AdmixOptions::SetOptions(){
   return true;
 }
 
-int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
-  //check base options
-  Options::checkOptions(Log, 1);
+bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
 
-  bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
+  // check base options
+  bool badOptions = Options::checkOptions(Log, 1);
+
   Log.setDisplayMode(Quiet);
 
   if(useroptions["hapmixmodel"].size() && useroptions["hapmixmodel"] != "0"){
@@ -507,22 +507,25 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
       Log << "No hierarchical model for individual admixture or sum-intensities.\n";
       
       if(ParameterFilename.length() > 0 ){
-	Log << "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n"
-	    << "\tThis option will be ignored\n";
+	Log << "WARNING: paramfile option is not valid with "
+            << "indadmixhierindicator = 0.\n"
+            << "         This option will be ignored.\n";
 	ParameterFilename = "";
 	useroptions.erase("paramfile");
       }
 
       if(EtaOutputFilename.length() > 0 ){
-	Log << "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n"
-	    << "\tThis option will be ignored\n";
+	Log << "WARNING: dispparamfile option is not valid with "
+            << "indadmixhierindicator = 0.\n"
+            << "         This option will be ignored.\n";
 	EtaOutputFilename = "";
 	useroptions.erase("dispparamfile");
       }
 
       if(OutputAlleleFreq){
-      Log << "ERROR: allelefreqoutputfile options is not valid with indadmixhierindicator = 0\n"
-	      << "\tThis option will be ignored\n";
+        Log << "WARNING: allelefreqoutputfile options is not valid "
+            << "with indadmixhierindicator = 0.\n"
+            << "         This option will be ignored.\n";
          AlleleFreqOutputFilename = "";
          OutputAlleleFreq = false;
       }
@@ -652,8 +655,9 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
     Log << "Analysis with fixed allele frequencies.\n";
     if(OutputAlleleFreq ){
-      Log << "ERROR: allelefreqoutputfile option is invalid with fixed allele frequencies\n"
-	  << "       this option will be ignored\n";
+      Log << "WARNING: allelefreqoutputfile option is not valid "
+          << "with fixed allele frequencies.\n"
+          << "         This option will be ignored.\n";
       useroptions.erase("allelefreqoutputfile");
       OutputAlleleFreq = false;
     }
@@ -688,8 +692,9 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
     }
   
   if( OutputFST && !TestForHaplotypeAssociation ){
-    Log << "ERROR: fstoutputfile option is only valid with historicallelefreqfile option\n"
-	<< "       this option will be ignored\n";
+    Log << "WARNING: fstoutputfile option is only valid "
+        << "with historicallelefreqfile option.\n"
+        << "         This option will be ignored.\n";
     OutputFST = false;
     useroptions.erase("fstoutput");
   }
@@ -717,28 +722,32 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
 
   if( TestForAffectedsOnly )
     if( RegType == Linear || RegType == Mlinear){
-      Log << "ERROR: affectedsonly score test is not valid with a linear regression only."
-	  << " This option will be ignored.\n";
+      Log << "WARNING: affectedsonly score test is not valid "
+          << "with a linear regression only."
+          << "         This option will be ignored.\n";
       setTestForAffectedsOnly(false);
     }
 
   if( TestForLinkageWithAncestry ){
     if(NumberOfOutcomes < 1){
-      Log << "ERROR: ancestryassociation score test is not valid without a regression model."
-	  << " This option will be ignored.\n";
+      Log << "WARNING: ancestryassociation score test is not valid "
+          << "without a regression model."
+          << "         This option will be ignored.\n";
       setTestForLinkageWithAncestry(false);
     }
   }
   if( TestForAllelicAssociation ){
     if( NumberOfOutcomes < 1 ){
-      Log << "ERROR: allelic association score test is not valid without a regression model."
-	  << " This option will be ignored.\n";
+      Log << "WARNING: allelic association score test is not valid "
+          << "without a regression model."
+          << "         This option will be ignored.\n";
       setTestForAllelicAssociation(false);
     }
   }
   if( TestForHaplotypeAssociation && !TestForAllelicAssociation ){
-    Log << "ERROR: Can't test for haplotype associations if allelicassociationscorefile is not specified"
-	<< " This option will be ignored.\n";
+    Log << "WARNING: Can't test for haplotype associations if "
+        << "allelicassociationscorefile is not specified"
+        << "         This option will be ignored.\n";
     setTestForHaplotypeAssociation(false);
     }
   
@@ -756,8 +765,7 @@ int AdmixOptions::checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals){
     else Log << "for first individual\n"; 
   }
 
-  if(badOptions) return 1;
-  else return 0;
+  return badOptions;
 }
 
 //Note: requires Populations option to have already been set

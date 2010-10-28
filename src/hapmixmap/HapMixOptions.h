@@ -28,7 +28,7 @@ public:
   HapMixOptions(int, char**);
   ~HapMixOptions();
   
-  int checkOptions(bclib::LogWriter &Log, int NumberOfIndividuals);
+  bool checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals);
   void PrintUserOptions(const char* filename);
 
   //main output files
