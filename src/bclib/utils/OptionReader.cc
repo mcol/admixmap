@@ -496,7 +496,12 @@ void OptionReader::PrintAllOptions(ostream& os)const{
 
   os << "\nValid options:\n"
      << "-------------------------------------------------------\n";
-  for( OptionMap::const_iterator p = ProgOptions.begin(); p != ProgOptions.end(); ++p){
+  for (OptionMap::const_iterator p = ProgOptions.begin();
+       p != ProgOptions.end(); ++p) {
+
+    // skip deprecated options
+    if (p->second.second == oldOption)
+      continue;
     os << p->first << " ( " << typesAsStrings[p->second.second] << " )" << endl;
   }
 }
