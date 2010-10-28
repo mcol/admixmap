@@ -118,11 +118,13 @@ void AdmixMapModel::TestIndivRun(Options& options, InputData& data, LogWriter& L
 }
 
 void AdmixMapModel::Iterate(const double* Coolnesses, unsigned coolness,
-			    Options & options, InputData & data, LogWriter& Log,
-			    double & SumEnergy, double & SumEnergySq,  bool AnnealedRun) {
+                            Options& options, InputData& data, LogWriter& Log,
+                            double& SumEnergy, double& SumEnergySq,
+                            bool AnnealedRun) {
 
   const int samples = options.getTotalSamples();
   const int burnin  = options.getBurnIn();
+  const int width   = log10(samples + 1) + 1;
 
   //Accumulate Energy
   double AISz = 0.0;
@@ -144,7 +146,7 @@ void AdmixMapModel::Iterate(const double* Coolnesses, unsigned coolness,
 
     //Write Iteration Number to screen
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
-      WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
+      WriteIterationNumber(iteration, width, options.getDisplayLevel());
     }
     else if ( options.getDisplayLevel() > 3 )
       {
@@ -350,6 +352,7 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
   // fix so that params can be output to console
   Log.setDisplayMode(Quiet);
   bclib::Delimitedstdout ScreenWriter(' ');
+  ScreenWriter.setf(std::ios::fixed);
 
   const int displayLevel = options->getDisplayLevel();
   const bool afterBurnIn = iteration > options->getBurnIn();

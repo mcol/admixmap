@@ -551,23 +551,31 @@ void PopAdmix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 
 //output to given output stream
 void PopAdmix::OutputParams(bclib::Delimitedostream& out){
+
+  int prec = out.precision(6);  
+
   //pop admixture params
   for( int j = 0; j < options.getPopulations(); j++ ){
-    out << setprecision(6) << alpha[0][ j ];
+    out << alpha[0][j];
   }
   //sumintensities
   if( options.isGlobalRho() )
-    out << setprecision(6) << rho[0] ;
+    out << rho[0] ;
   else
-    out << setprecision(6) << rhoalpha / rhobeta ;
+    out << rhoalpha / rhobeta ;
 
   // odds ratios
-  if (Loci.isX_data())
+  if (Loci.isX_data()) {
+    out.precision(3);
     for (size_t i = 0; i < psi.size(); ++i) {
-      out << setprecision(6) << psi[i];
+      out << psi[i];
       if (!options.isGlobalPsi() && i > 0)
-        out << "(" << setprecision(6) << psitau[i] << ")";
+        out << "(" << psitau[i] << ")";
     }
+  }
+
+  // restore the original precision
+  out.precision(prec);
 }
 
 void PopAdmix::OutputParams(){
