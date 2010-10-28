@@ -352,10 +352,18 @@ bool Options::checkOptions(LogWriter& Log, int) {
 
   if( TestForAllelicAssociation ){
     if( NumberOfOutcomes < 1 ){
-      Log << "WARNING: allelic association score test is not valid without a regression model."
-	  << "         This option will be ignored.\n";
+      Log << "WARNING: allelic association score test is not valid "
+          << "without a regression model."
+          << "         This option will be ignored.\n";
       setTestForAllelicAssociation(false);
     }
+  }
+
+  if ( ! excludeMendelError ) {
+    Log << "WARNING: The code does not support exclude-mendelian-errors = 0.\n"
+        << "         This option will be ignored.\n";
+    useroptions.erase("exclude-mendelian-errors");
+    excludeMendelError = 1;
   }
 
   return badOptions;
