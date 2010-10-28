@@ -100,7 +100,8 @@ simulateOffspringFromParents <- function(sex, parent1.genotypes, parent2.genotyp
   offspring.gamete1 <- simulateGameteFromParent(parent1.genotypes, x, L+Xchr.L) #gamete from father
   offspring.gamete2 <- simulateGameteFromParent(parent2.genotypes, x, L+Xchr.L) #gamete from mother
   if(Xchr.L > 0 & sex==1) { #male - code X chr genotypes as homozygous for maternal allele
-    offspring.gamete1[(L+1):(L+Xchr.L)] <-  offspring.gamete1[(L+1):(L+Xchr.L)] # 
+    ## overwrite the paternal gamete with the maternal one
+    offspring.gamete1[(L+1):(L+Xchr.L)] <- offspring.gamete2[(L+1):(L+Xchr.L)]
   }
   offspring.genotypes <- paste(offspring.gamete1, offspring.gamete2, sep=",")
   return(offspring.genotypes)
