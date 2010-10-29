@@ -30,7 +30,6 @@
 
 
 #include <climits>  // USHRT_MAX
-#include <vector>
 
 #include "bclib/estr.h"
 #include "bclib/exceptions.h"
@@ -103,7 +102,7 @@ class Genotype
 	/// Is at least one the two values neither missing nor 0?
 	bool isObserved() const { return (val1!=MISSING_VAL); }
 
-	/// Is al present as either of the observed alleles?
+	/// Is @a al present as either of the observed alleles?
 	bool contains( AlleleType al ) const { return ((val1 == al) || (val2 == al)); }
 
 	/// Is the presence of @a al consistent with the observed alleles?
@@ -202,9 +201,10 @@ inline bool Genotype::consistent( const Haplotype & hap ) const
 		val1, val2, hap.val1, hap.val2,
 		(
 			    (val1 == MISSING_VAL) ||
-			    ((val1 == hap.val1) && (val2 == hap.val2)) ||
-			    ((val2 == hap.val1) && (val1 == hap.val2)) ||
-			    ((val1 == hap.val1) && (val2 == MISSING_VAL))
+			    ((val1 == hap.val1) && (val2 == hap.val2   )) ||
+			    ((val2 == hap.val1) && (val1 == hap.val2   )) ||
+			    ((val1 == hap.val1) && (val2 == MISSING_VAL)) ||
+			    ((val1 == hap.val1) && (val2 == HAPLOID_VAL))
 		) ? "true" : "false" );
     #endif
 
