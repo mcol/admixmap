@@ -14,11 +14,13 @@
 //=============================================================================
 
 #include "AdmixMapModel.h"
+#include "bclib/LogWriter.h"
 #include "config.h" // USE_GENOTYPE_PARSER
 #if USE_GENOTYPE_PARSER
     #include "DataValidError.h"
 #endif
-#include <fstream>
+#include <iomanip>
+#include <iostream>
 
 #if defined(_OPENMP)
     #include <omp.h>
@@ -298,7 +300,11 @@ int main( int argc , char** argv ){
 		    if ( print_eprobs && ((max_print_states == 0) || (n_states <= size_t(max_print_states))) )
 			{
 			const HiddenStateSpace::State & st = *it;
-			cout << "\n  " /* << st.av << ' ' */ << st.iv << "  "
+			// FIXME-PED-XCHR: replace output() with operator<<()
+			// when AV's remember their X-chrom status:
+			cout << "\n  ";
+			output(cout, st.av, st.av.size(is_xchrom), is_xchrom);
+			cout << ' ' << st.iv << "  "
 			     << setw(10) << setprecision(8) << st.emProb;
 			}
 		    }
@@ -322,18 +328,16 @@ int main( int argc , char** argv ){
 			    " (" << (percent/10) << '.' << (percent % 10) << "%)\n";
 		    }
 
-		if ( print_eprobs )
-		    cout << "\n\n";
 		}
 
 	    if ( print_eprobs || print_ssize )
 		{
 		const unsigned long percent = ((nz_total * 1000) + (st_total>>1)) / st_total;
-		cout << " overall, " << st_total << " states, of which "
+		cout << "\nOverall, " << st_total << " states, of which "
 			<< nz_total << " have non-zero emission probability"
 			    " (" << (percent/10) << '.' << (percent % 10) << "%)\n";
-		cout << "  of " << tot_trans_prob << " possible transition-probabilites, "
-			<< tot_trans_prob_nz << " are between existent states.\n";
+		cout << "Of " << tot_trans_prob << " possible transition-probabilites, "
+		     << tot_trans_prob_nz << " are between existent states.\n\n";
 		}
 
 	    }
