@@ -57,11 +57,8 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
 	   loci.GetNumberOfCompositeLoci() )
   {
   SetNullValues();
-  //  Populations = options->getPopulations();
 
   size = NumInd;
-
-  //NumCompLoci = Loci->GetNumberOfCompositeLoci();
 
   AdmixedIndividual::SetStaticMembers( loci, options );
 
@@ -109,7 +106,6 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
 	  ++NumDiploidIndividuals;
 	}
       }
-
 }
 
 
@@ -158,7 +154,8 @@ void AdmixIndividualCollection::Initialise(const AdmixOptions& options, const Ge
   Log.setDisplayMode(bclib::Quiet);
   //Open indadmixture file
   if ( strlen( options.getIndAdmixtureFilename() ) ){
-    Log << "Writing individual-level parameters to " << options.getIndAdmixtureFilename() <<"\n";
+    Log << "Writing individual-level parameters to "
+        << options.getIndAdmixtureFilename() << "\n";
     indadmixoutput = new IndAdmixOutputter(options, Loci, PopulationLabels);
   }
   else {
@@ -214,9 +211,10 @@ void AdmixIndividualCollection::setGenotypeProbs(const Genome* const Loci){
   unsigned locus = 0; // absolute locus number
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-      for(unsigned int i = 0; i < size; i++ ) {
+
+      for (unsigned int i = 0; i < size; ++i)
 	getElement(i).SetGenotypeProbs(j, jj, locus, false);
-      }
+
       if(TestInd)
 	for(int i = 0; i < sizeTestInd; ++i)
 	  TestInd[i]->SetGenotypeProbs(j, jj, locus, false);
@@ -239,48 +237,15 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
   }
 }
 
-/**
-   (1)Samples admixture with random walk, on even-numbered iterations
-   (2) Samples Locus Ancestry (after updating HMM)
-   (3) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
-   (4) updates score, info and score squared for ancestry score tests
-   coolness is not passed as argument to this function because annealing has already been implemented by
-   calling annealGenotypeProbs
-*/
-// void AdmixIndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
-// 							 const vector<bclib::Regression*> &R, const PopAdmix::PopThetaType & poptheta,
-// 							 const PedBase::AlphaType &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
-//   vector<double> lambda;
-//   vector<const double*> beta;
-
-//   for(int i = 0; i < options.getNumberOfOutcomes(); ++i){
-//     lambda.push_back( R[i]->getlambda());
-//     beta.push_back( R[i]->getbeta());
-//   }
-
-//   double dispersion = 0.0;
-//   if(R.size()>0) dispersion = R[0]->getDispersion();
-
-//   //if( !options.getIndAdmixHierIndicator() ) alpha = admixtureprior;
-//   int i0 = 0;
-//   if(options.getTestOneIndivIndicator()) {// anneal likelihood for test individual only
-//     i0 = 1;
-//   }
-//   fill(SumLogTheta, SumLogTheta+options.getPopulations(), 0.0);//reset to 0
-//   if(iteration >= options.getBurnIn())
-//     ancestryAssocTest.Reset();
-
-//   bool _anneal = (anneal && !options.getTestOneIndivIndicator());
-//     for(unsigned int i = 0; i < size; i++ ){
-// 	double DinvLink = 1.0;
-// 	if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-// // ** update theta with random-walk proposal on even-numbered iterations
-// 	getElement(i).SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
-// 			       &Covariates, beta, poptheta, options, alpha, DinvLink,
-// 			       dispersion, ancestryAssocTest, true, _anneal);
-//     }
-// }
-
+/// HMMUpdates() performs the following actions:
+/// -# Samples admixture with random walk, on even-numbered iterations
+/// -# Samples Locus Ancestry (after updating HMM)
+/// -# Samples Jump Indicators and accumulates sums of (numbers of arrivals)
+///    and (ancestry states where there is an arrival)
+/// -# updates score, info and score squared for ancestry score tests
+///
+/// Coolness is not passed as argument to this function because annealing has
+/// already been implemented by calling annealGenotypeProbs().
 void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & options,
 						const vector<bclib::Regression*> &R,
 						const PopAdmix::PopThetaType & poptheta,
@@ -304,16 +269,18 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
     if(R.size()>0) dispersion = R[0]->getDispersion();
   }
 
-  //if( !options.getIndAdmixHierIndicator() ) alpha = admixtureprior;
+  // skip test individuals when obtaining derivative inverse-link
+  // (test indivs are not included in regression)
   int i0 = 0;
-  if(options.getTestOneIndivIndicator()) {//skip test individuals when obtaining derivative inverse-link (test indivs are not included in regression)
+  if (options.getTestOneIndivIndicator())
     i0 = 1;
-  }
+
   //reset sufficient stats for update of pop admixture params to 0
   //  if((iteration %2))
   fill(SumLogTheta, SumLogTheta+options.getPopulations(), 0.0);
 
-  //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
+  // reset arrays used in score test to 0. This must be done here as the
+  // B matrix is updated after sampling admixture
   if(iteration >= options.getBurnIn()){
     ancestryAssocTest.Reset();
     affectedsOnlyTest.Reset();
@@ -363,7 +330,7 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
 
       // ** Update score, info and varscore for ancestry score tests.
       // NOTE: The access to the quasi-global test-objects (Outcome, Covariates,
-      //    affectesOblyTest, etc.) here raises concurrency issues, currently
+      //    affectedsOnlyTest, etc.) here raises concurrency issues, currently
       //    addressed by marking certain sections as critical _inside_
       //    Pedigree::UpdateScores().
       if ( updateScoreTests )
@@ -384,17 +351,17 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
   vector<double> lambda;
   vector<const double*> beta;
   double dispersion = 0.0;
+  const bool afterBurnIn = iteration > options.getBurnIn();
 
   for(unsigned i = 0; i < R.size(); ++i){
     lambda.push_back( R[i]->getlambda());
     beta.push_back( R[i]->getbeta());
   }
-  if(R.size()>0) dispersion = R[0]->getDispersion();
+  if (R.size() > 0)
+    dispersion = R[0]->getDispersion();
 
-
-  // ** Test Individuals: all vars updated here as they contribute nothing to score tests or update of allele freqs
-  // ---------------------------------------------------------------------------------------------
-//TODO: move this to separate function
+  // Test Individuals: all vars updated here as they contribute nothing to
+  // score tests or update of allele freqs
   int i0 = 0;
   if(options.getTestOneIndivIndicator()) {// anneal likelihood for test individual only
     i0 = 1;
@@ -420,7 +387,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
         // ** Sample individual- or gamete-specific sumintensities
         if (!options.isGlobalRho())
           TestInd[i]->SampleRho(options, rhoalpha, rhobeta,
-                                (!anneal && iteration > options.getBurnIn()));
+                                (!anneal && afterBurnIn));
 
         // ** update admixture props with conjugate proposal on odd-numbered iterations
         if (iteration % 2)
@@ -435,14 +402,12 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
 
     }//end loop over test individuals
   }
-  // -----------------------------------------------------------------------------------------------------
 
   // ** Non-test individuals - conjugate updates only
-  const int ssize = int(size);
   #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
     #pragma omp parallel for default(shared) PED_LOOP_OMP_SCHED if(options.getUsePedForInd())
   #endif
-  for ( int i = 0 ; i < ssize ; i++ ){
+  for (unsigned int i = 0; i < size; ++i) {
 
     PedBase & el = getElement(i);
 
@@ -451,7 +416,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
       // ** Sample individual- or gamete-specific sumintensities
       if (!options.isGlobalRho())
         el.SampleRho(options, rhoalpha, rhobeta,
-                     (!anneal && iteration > options.getBurnIn()));
+                     (!anneal && afterBurnIn));
 
       // ** update admixture props with conjugate proposal on odd-numbered iterations
       if (iteration % 2) {
@@ -696,12 +661,10 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
     Lhat += RegressionLogL;
     Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
 	<< -2.0*RegressionLogL << "\n";
-
   }
 
   return(-2.0*Lhat);
 }
-
 
 
 #include "AdmixFilenames.h"
