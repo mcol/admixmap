@@ -116,7 +116,7 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest(  bclib::DelimitedFileWriter
     const double Missing2 = 100.0 * (missing - VU) /complete;
 
     if (final) {
-      outputstream << (PercentInfo >= 0.0) ? double2R(PercentInfo, 2) : "NA";
+      outputstream << (PercentInfo >= 0.0 ? double2R(PercentInfo, 2) : "NA");
       outputstream << double2R(Missing1, 2) << double2R(Missing2, 2);
     }
     if(missing < complete) {
