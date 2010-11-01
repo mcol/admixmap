@@ -10,10 +10,10 @@
  * 
  */
 #include "bclib/CoxRegression.h"
-#include <algorithm>
+#include "bclib/LogWriter.h"
 #include "bclib/misc.h"
 #include "bclib/rand.h"
-#include <math.h>
+#include <algorithm>   // for sort(), unique()
 
 using namespace::std;
 BEGIN_BCLIB_NAMESPACE

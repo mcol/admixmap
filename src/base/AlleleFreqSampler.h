@@ -19,18 +19,10 @@
 #ifndef ALLELEFREQSAMPLER_H
 #define ALLELEFREQSAMPLER_H
 
-#include <math.h>
-#include <stdlib.h>
-
-#include <algorithm>
 
 #include <gsl/gsl_linalg.h>
-
 #include "bclib/HamiltonianMonteCarlo.h"
-
-#include "common.h"
-#include "CompositeLocus.h"
-
+#include "HapPair.h"
 
 
 /** \addtogroup base

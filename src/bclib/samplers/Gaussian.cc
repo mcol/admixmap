@@ -9,16 +9,14 @@
  * See the file COPYING for details.
  * 
  */
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <cmath>
-#include <cstring>
-#include <stdlib.h>
-#include <algorithm>
-#include "bclib/rand.h"
-#include "bclib/linalg.h"//for Cholesky decomp
+
 #include "bclib/Gaussian.h"
+#include "bclib/rand.h"
+#include "bclib/linalg.h" // for Cholesky decomp
+#include <algorithm>      // for fill()
+#include <cstdlib>        // for exit()
+#include <iostream>
+#include <ostream>
 
 using namespace::std;
 

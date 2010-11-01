@@ -20,9 +20,7 @@
 #ifndef SCORETESTS_H
 #define SCORETESTS_H 1
 
-#include <sstream>
 #include "IndividualCollection.h"
-#include "bclib/LogWriter.h"
 #include "common.h"
 #include "AdmixtureAssocTest.h"
 #include "AllelicAssocTest.h"
@@ -30,6 +28,9 @@
 #include "AncestryAssocTest.h"
 
 class FreqArray;
+namespace bclib {
+  class LogWriter;
+}
 
 
 /** \addtogroup admixmap

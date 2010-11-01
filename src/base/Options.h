@@ -18,9 +18,12 @@
 #define OPTIONS_H 1
 
 
-#include "common.h"
-#include "bclib/LogWriter.h"
+#include "common.h"   // for RegressionType
 #include "bclib/OptionReader.h"
+
+namespace bclib {
+  class LogWriter;
+}
 
 
 /** \addtogroup base

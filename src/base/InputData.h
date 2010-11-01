@@ -18,7 +18,6 @@
 #define INPUT_DATA_H 1
 
 
-#include "common.h"
 #include "bclib/DataMatrix.h"
 #include "GeneticDistanceUnit.h"
 #include "config.h" // USE_GENOTYPE_PARSER

@@ -13,8 +13,8 @@
 #ifndef GAUSSIAN_H
 #define GAUSSIAN_H 1
 
-#include <fstream>
 #include "bclib/bclib.h"
+#include <ostream>
 
 BEGIN_BCLIB_NAMESPACE
 

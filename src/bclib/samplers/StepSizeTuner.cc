@@ -12,6 +12,7 @@
  */
 
 #include "bclib/StepSizeTuner.h"
+#include <cmath>
 
 BEGIN_BCLIB_NAMESPACE
 

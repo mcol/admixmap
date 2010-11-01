@@ -23,6 +23,7 @@
 #include "ScoreTestBase.h"
 #include "bclib/RObjectWriter.h"
 
+#include "common.h"		// for Vector_s
 #include "config.h"		// AGGRESSIVE_RANGE_CHECK
 #include "SimpleLocusArray.h"	// SLocIdxType
 #include "Organism.h"		// PopIdx

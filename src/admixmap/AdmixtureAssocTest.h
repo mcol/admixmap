@@ -20,6 +20,7 @@
 #define ADMIXTUREASSOCTEST_H 1
 
 #include "ScoreTestBase.h"
+#include "common.h"   // for Vector_s
 #include <fstream>
 
 class IndividualCollection;

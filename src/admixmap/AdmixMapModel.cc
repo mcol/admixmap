@@ -21,6 +21,9 @@
 #include "bclib/LogWriter.h"
 #include "DispersionFreqs.h"
 #include "CorrelatedFreqs.h"
+#include <cmath>
+#include <iostream>
+#include <sstream>
 
 #define DEBUG_ITER_TIMES    0
 #if DEBUG_ITER_TIMES

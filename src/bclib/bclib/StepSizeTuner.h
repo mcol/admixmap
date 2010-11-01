@@ -13,8 +13,6 @@
 #define STEPSIZETUNER_H 1
 
 #include "bclib/bclib.h"
-#include "bclib/rand.h"
-#include <math.h>
 
 BEGIN_BCLIB_NAMESPACE
 

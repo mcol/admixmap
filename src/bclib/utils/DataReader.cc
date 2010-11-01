@@ -1,10 +1,11 @@
-#include <string.h>
 #include "bclib/DataReader.h"
+#include "bclib/LogWriter.h"
 #include "bclib/StringConvertor.h"
-#include <stdexcept>
-#include <ctype.h>
-#include <algorithm>
+#include <algorithm>  // for find_if()
+#include <cstring>
+#include <ctype.h>    // for isalpha()
 #include <sstream>
+#include <stdexcept>  // for runtime_error()
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #ifdef HAVE_BOOST_H

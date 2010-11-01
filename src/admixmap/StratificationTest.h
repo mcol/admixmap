@@ -20,8 +20,8 @@
 #ifndef STRATIFICATIONTEST
 #define STRATIFICATIONTEST 1
 
+#include <fstream>
 #include <vector>
-#include <iostream>
 #include "IndividualCollection.h"
 #include "Genome.h"
 

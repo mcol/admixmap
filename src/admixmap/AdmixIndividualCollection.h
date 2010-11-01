@@ -25,8 +25,8 @@
 #include "chib.h"
 #include "AdmixedIndividual.h"
 #include "IndAdmixOutputter.h"
+
 class InputAdmixData;
-class IndAdmixOutputter;
 
 
 /** \addtogroup admixmap

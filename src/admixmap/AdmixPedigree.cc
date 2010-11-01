@@ -32,7 +32,6 @@
 #include <cmath>    // exp(), log()
 #include <limits>   // numeric_limits<>
 
-#include <bclib/misc.h>
 #include <bclib/rand.h>
 
 #include "config.h"			// AGGRESSIVE_RANGE_CHECK
@@ -74,20 +73,6 @@
 #else
     #define AGGRESSIVE_ONLY(X)
 #endif
-
-
-
-//------------------------------------------------------------------------
-// NOTE X1:
-// These were defined as forward references in the header file:
-#include "AdmixOptions.h"
-#include "CopyNumberAssocTest.h"
-#include "bclib/DataMatrix.h"
-#include "Chromosome.h"
-#include "AdmixOptions.h"
-#include "Individual.h" // For Individual::Loci
-#include "AffectedsOnlyTest.h"
-//------------------------------------------------------------------------
 
 
 

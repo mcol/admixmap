@@ -10,11 +10,12 @@
  * 
  */
 #include "bclib/Regression.h"
+#include "bclib/LogWriter.h"
 #include "bclib/linalg.h"
 #include <iomanip>
-#include <algorithm>
+#include <algorithm>  // for fill()
+#include <cstring>
 #include <vector>
-#include <string.h>
 
 using std::vector;
 using std::string;

@@ -17,13 +17,12 @@
 //=============================================================================
 
 #include "AlleleFreqs.h"
-//#include "bclib/AdaptiveRejection.h"
-//#include "bclib/misc.h"
-//#include <math.h>
-#include <string.h>
-#include <numeric>
 #include "bclib/LogWriter.h"
 #include "bclib/Exceptions.h"
+#include <cmath>
+#include <cstring>
+#include <numeric>
+
 
 static double convertValueFromFile(const string s){
   double d = atof(s.c_str());

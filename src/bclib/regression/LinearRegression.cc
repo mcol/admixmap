@@ -10,12 +10,12 @@
  * 
  */
 #include "bclib/LinearRegression.h"
-#include <numeric>
+#include "bclib/LogWriter.h"
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include "bclib/linalg.h"
-#include "bclib/rand.h"//for sampling data precision
-#include <math.h>//for sqrt and exp
+#include "bclib/rand.h" // for sampling data precision
+#include <cmath>
 #include <iomanip>
 
 using namespace::std;

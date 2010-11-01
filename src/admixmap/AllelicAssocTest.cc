@@ -21,7 +21,10 @@
 
 #include "AllelicAssocTest.h"
 #include "bclib/DelimitedFileWriter.h"
+#include "bclib/LogWriter.h"
 #include "AdmixFilenames.h"
+#include <numeric>   // for accumulate()
+
 
 AllelicAssocTest::AllelicAssocTest(){
   locusObsIndicator = 0;

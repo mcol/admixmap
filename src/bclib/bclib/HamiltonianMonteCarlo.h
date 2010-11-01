@@ -9,20 +9,14 @@
  * See the file COPYING for details.
  * 
  */
+
 #ifndef HMC_H
 #define HMC_H 1
+
 #include "bclib/bclib.h"
-#include <fstream>
-#include <iostream>
-#include <stdlib.h>
-#include <vector>
-#include "bclib/rand.h"
 #include "bclib/StepSizeTuner.h"
-extern "C" {
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_sf_gamma.h>
-}
+#include <fstream>
+#include <vector>
 
 BEGIN_BCLIB_NAMESPACE
 

@@ -79,6 +79,7 @@
 #include "TransProbCache.h"		// See NOTE *2*
 #include "../admixmap/AdmixOptions.h"	// See NOTE *2* (for --exclude-unaffected-sibs)
 
+#include <iostream>
 
 #define USE_QSORT	1 ///< Whether to use ::qsort() or std::sort() for sorting arrays
 

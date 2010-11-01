@@ -9,10 +9,11 @@
  * See the file COPYING for details.
  * 
  */
+
 #include "bclib/HamiltonianMonteCarlo.h"
-#include "gsl/gsl_math.h"
-#include <sstream>//for error handling
 #include "bclib/Exceptions.h"
+#include "bclib/rand.h"
+#include "gsl/gsl_math.h"
 
 using namespace::std;
 

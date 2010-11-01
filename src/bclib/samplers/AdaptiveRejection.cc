@@ -13,9 +13,10 @@
 #include "bclib/AdaptiveRejection.h"
 #include "bclib/rand.h"
 #include "bclib/Exceptions.h" //for InfinityException
+#include <algorithm> // for sort()
+#include <cmath>
 #include <iostream>
 #include <sstream>
-#include <algorithm>
 
 
 #define DEBUG 0 //set to 1 for debug info

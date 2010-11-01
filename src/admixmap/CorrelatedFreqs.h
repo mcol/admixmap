@@ -20,6 +20,7 @@
 #define CORRELATEDFREQS_H
 
 #include "AdmixFreqs.h"
+#include "bclib/MuSampler.h"
 #include "bclib/DispersionSampler.h"
 
 #define ETASAMPLER 1 //1 = RANDOM WALK METROPOLIS

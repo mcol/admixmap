@@ -18,12 +18,8 @@
 #define INDIVIDUAL_H 1
 
 
-#include "common.h"
 #include "Genome.h"
-#include "Chromosome.h"
 #include "AlleleFreqs.h"
-#include "bclib/LogWriter.h"
-#include "GenotypeProbOutputter.h"
 #include "bclib/Regression.h"
 #include "PedBase.h"
 #include "AdmixtureProportions.h"
@@ -36,7 +32,7 @@ using namespace std;
  * @{ */
 
 
-class AlleleFreqs;
+class InputData;
 
 
 ///Class to represent an individual and update individual-level parameters

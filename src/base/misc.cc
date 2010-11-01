@@ -13,11 +13,12 @@
 /// Miscellaneous functions.
 //=============================================================================
 
-#include <cstdlib>
-#include <iostream>
-#include <iomanip>
 #include "Model.h"
-#include <dirent.h>//for OpenResultsDir
+#include "bclib/LogWriter.h"
+#include <cstring>
+#include <dirent.h>   // for opendir()
+#include <iomanip>
+#include <iostream>
 #ifdef HAVE_CONFIG_H 
 #include "config.h"
 #endif

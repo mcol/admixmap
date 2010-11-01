@@ -18,7 +18,10 @@
 
 #include "AdmixIndividualCollection.h"
 #include "InputAdmixData.h"
+#include "bclib/LogWriter.h"
 #include "bclib/Regression.h"
+#include <iomanip>
+#include <iostream>
 
 
 #define DEBUG_DTYPE	0 // DDF: debug which objects in the collection are of which class

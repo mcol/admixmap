@@ -34,7 +34,6 @@
 #include <cstddef>  // size_t
 
 #include <bclib/cvector.h>
-#include "Genotype.h"
 #include "InheritanceVector.h"
 #include "OrganismArray.h"
 #include "PedBase.h"

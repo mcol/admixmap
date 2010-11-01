@@ -20,10 +20,10 @@
 //=============================================================================
 
 #include "HWTest.h"
-//#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
 #include "bclib/linalg.h"
 #include "bclib/DelimitedFileWriter.h"
+#include "bclib/LogWriter.h"
 
 HWTest::HWTest(){
   score = 0;

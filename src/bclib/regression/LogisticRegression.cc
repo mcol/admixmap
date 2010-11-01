@@ -10,10 +10,11 @@
  * 
  */
 #include "bclib/LogisticRegression.h"
+#include "bclib/LogWriter.h"
 #include "bclib/linalg.h"
 #include "bclib/misc.h" //for myexp
-#include <math.h>//for sqrt and exp
-#include <numeric>//for accumulate
+#include <cmath>
+#include <numeric>  // for accumulate()
 
 using namespace::std;
 BEGIN_BCLIB_NAMESPACE

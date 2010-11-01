@@ -24,6 +24,7 @@
 using namespace::std;
 
 #include "bclib/cvector.h"
+#include <string>
 
 
 /** \addtogroup admixmap

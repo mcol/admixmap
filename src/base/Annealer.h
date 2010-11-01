@@ -20,8 +20,11 @@
 #define THERMO_H 1
 
 
-#include "bclib/LogWriter.h"
+#include <fstream>
 
+namespace bclib {
+  class LogWriter;
+}
 
 /** \addtogroup base
  * @{ */

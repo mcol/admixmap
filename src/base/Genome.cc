@@ -17,12 +17,14 @@
 //=============================================================================
 
 #include "Genome.h"
+#include "Chromosome.h"
+#include "SimpleLocusArray.h"
 
 #include <cerrno>
 #include <cstring>	// strerror()
-#include <sstream>
+#include <fstream>
+#include <iostream>
 #include <stdexcept>
-#include <stdlib.h>
 
 #include "bclib/DataMatrix.h"
 #include "bclib/StringConvertor.h"

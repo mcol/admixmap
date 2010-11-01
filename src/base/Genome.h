@@ -19,13 +19,12 @@
 
 #include "CompositeLocus.h"
 #include "Chromosome.h"
-#include <iostream>
-#include <fstream>
+#include "InputData.h"
+#include "SimpleLocusArray.h"
 #include <string>
 #include <vector>
-#include "GeneticDistanceUnit.h"
-#include "InputData.h"
 #include "config.h"	// AGGRESSIVE_RANGE_CHECK
+
 
 namespace bclib{
   class LogWriter;

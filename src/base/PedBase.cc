@@ -27,6 +27,7 @@
 #include "PedBase.h"
 
 
+#include <fstream>
 #include <stdexcept>
 #include <typeinfo>
 #include <cxxabi.h>

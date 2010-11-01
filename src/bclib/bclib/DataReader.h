@@ -9,13 +9,14 @@
 #include "bclib/bclib.h"
 #include "bclib/DataMatrix.h"
 #include "bclib/StringSplitter.h"
-#include "bclib/LogWriter.h"
 
 BEGIN_BCLIB_NAMESPACE
 
 /** \addtogroup bclib
  * @{ */
 
+
+class LogWriter;
 
 
 ///  Utility class for reading data from file into a matrix of strings or a DataMatrix

@@ -25,7 +25,6 @@
 #include "PedBase.h"
 #include "bclib/RObjectWriter.h"
 #include <vector>
-#include <iostream>
 
 class AdmixIndividualCollection;
 

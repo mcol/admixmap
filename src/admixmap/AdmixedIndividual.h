@@ -21,15 +21,15 @@
 #define ADMIXED_INDIVIDUAL_H 1
 
 #include "Individual.h"
-#include "bclib/StepSizeTuner.h"
-#include "chib.h"
-#include <gsl/gsl_cdf.h>
 #include "AffectedsOnlyTest.h"
-#include "CopyNumberAssocTest.h"
 #include "PopAdmix.h"
+#include "bclib/StepSizeTuner.h"
+#include <gsl/gsl_cdf.h>
 
 class AdmixOptions;
+class CopyNumberAssocTest;
 class InputAdmixData;
+class chib;
 
 
 /** \addtogroup admixmap

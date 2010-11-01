@@ -23,6 +23,7 @@
                      //2 = HAMILTONIAN
 
 #include "AdmixFreqs.h"
+#include "bclib/MuSampler.h"
 #include "bclib/DispersionSampler.h"
 
 

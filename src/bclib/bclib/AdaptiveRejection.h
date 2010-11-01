@@ -11,13 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
 #ifndef ADAPTIVEREJECTION_H
 #define ADAPTIVEREJECTION_H 1
 
 #include "bclib/bclib.h"
 #include <vector>
-#include <math.h>
-#include <stdlib.h>
 
 BEGIN_BCLIB_NAMESPACE
 

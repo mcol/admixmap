@@ -18,22 +18,21 @@
 #define MODEL_TOP_H 1
 
 
-#include <cstdlib>    /* for exit, strtol */
-#include <cstring>    /* for strcmp, strcpy */
+#include <fstream>
 #include <string>
-#include "common.h"
-#include "bclib/LinearRegression.h"
-#include "bclib/LogisticRegression.h"
-#include "bclib/CoxRegression.h"
 #include "AlleleFreqs.h"
-#include "Options.h"
-#include "InputData.h"
-#include "IndividualCollection.h"
-#include "Chromosome.h"
+#include "bclib/Regression.h"
 #include "ResidualLDTest.h"
 #include "HWTest.h"
 #include "Annealer.h"
 
+
+class Genome;
+class InputData;
+class Options;
+namespace bclib {
+  class LogWriter;
+}
 
 /** \addtogroup base
  * @{ */

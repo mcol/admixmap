@@ -27,7 +27,6 @@
 
 
 #include "ScoreTestBase.h"
-#include "common.h"
 #include "Genome.h"
 #include "IndividualCollection.h"
 
@@ -42,7 +41,7 @@ namespace bclib{
 
 
 class Options;
-//class IndividualCollection;
+
 /**
   Class to implement a score test for deviation from Hardy-Weinberg equilibrium
   in order to test for genotyping errors.

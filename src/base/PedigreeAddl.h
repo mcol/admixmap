@@ -27,7 +27,6 @@
 #define __base_PedigreeAddl_h
 
 
-#include <iosfwd>
 #include <vector>
 
 #include "Pedigree.h"

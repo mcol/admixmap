@@ -19,16 +19,9 @@
 
 #include "AdmixFreqs.h"
 #include "AdmixOptions.h"
-#include "AdmixFilenames.h"
 #include "InputAdmixData.h"
-#include "bclib/AdaptiveRejection.h"
-#include "bclib/misc.h"
-#include "bclib/linalg.h"
-#include "bclib/MuSampler.h"
-#include <iomanip>
-#include <math.h>
-#include <numeric>
-#include <string.h>
+#include "bclib/rand.h"
+#include <cstring>
 
 using bclib::Rand;
 

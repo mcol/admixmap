@@ -20,6 +20,8 @@
 #define ANCESTRYASSOCTEST_H
 
 #include "CopyNumberAssocTest.h"
+#include "common.h"   // for Vector_s
+
 class Genome;
 namespace bclib{
   class LogWriter;

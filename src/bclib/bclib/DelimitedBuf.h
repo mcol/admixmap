@@ -14,9 +14,8 @@
 #define DELIMITEDBUF_H
 
 #include "bclib/bclib.h"
+#include <fstream>    // for filebuf
 #include <streambuf>
-#include <fstream>
-#include <string>
 
 BEGIN_BCLIB_NAMESPACE
 

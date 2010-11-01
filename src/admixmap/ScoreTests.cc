@@ -24,6 +24,7 @@
 
 #include "ScoreTests.h"
 #include "AdmixFilenames.h"
+#include "bclib/LogWriter.h"
 
 using namespace std;
 

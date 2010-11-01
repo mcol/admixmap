@@ -9,11 +9,10 @@
 #define GPOUTPUTTER_H
 
 
-#include <fstream>
-#include <iomanip>
-#include "CompositeLocus.h"
 #include "bclib/pvector.h"
 #include "bclib/RObjectWriter.h"
+#include <string>
+#include <vector>
 
 
 /** \addtogroup base
@@ -41,7 +40,7 @@ private:
    * 2. Locus
    * 3. Genotype
    */
-  vector<vector<vector<double> > > sumProbs;
+  std::vector<std::vector<std::vector<double> > > sumProbs;
 };
 
 

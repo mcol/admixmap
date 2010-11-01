@@ -17,9 +17,7 @@
 #include "bclib/common.h"
 #include <vector>
 #include <string>
-#include <iostream>
 #include <fstream>
-#include "bclib/LogWriter.h"
 #include "bclib/DataMatrix.h"
 #include "bclib/RObjectWriter.h"
 
@@ -28,6 +26,7 @@ BEGIN_BCLIB_NAMESPACE
 /** \addtogroup bclib
  * @{ */
 
+class LogWriter;
 
 
 ///Abstract Base Class for a generic Bayesian Regression

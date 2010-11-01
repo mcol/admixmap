@@ -10,8 +10,10 @@
  * See the file COPYING for details.
  * 
  */
+
 #include "HapMixModel.h"
-#include <fstream>
+#include "bclib/LogWriter.h"
+#include <iostream>
 
 #define HAPMIXMAP_VERSION 1
 #define SUBVERSION 1

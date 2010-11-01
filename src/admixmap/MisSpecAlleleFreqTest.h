@@ -20,17 +20,10 @@
 #ifndef MISSPECALLELEFREQTEST_H
 #define MISSPECALLELEFREQTEST_H 1
 
-#include "common.h"
-#include <iomanip>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "IndividualCollection.h"
-#include "Individual.h"
-#include "AdmixOptions.h"
 #include "ScoreTestBase.h"
 
+class AdmixOptions;
 class AlleleFreqs;
 class Genome;
 

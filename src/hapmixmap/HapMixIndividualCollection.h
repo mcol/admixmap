@@ -15,7 +15,9 @@
 #define HAPMIX_INDIVIDUAL_COLLECTION_H 1
 
 #include "IndividualCollection.h"
+#include "GenotypeProbOutputter.h"
 #include "HapMixIndividual.h"
+
 class HapMixOptions;
 class HapMixFreqs;
 class InputHapMixData;

@@ -17,6 +17,7 @@
 
 #include "IndividualCollection.h"
 #include "bclib/Regression.h"
+#include <cstring>
 
 
 using namespace std;

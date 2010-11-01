@@ -29,7 +29,6 @@
 
 
 #include "SimpleLocusArray.h"
-#include "Genotype.h"
 #include "bclib/estr.h"
 
 #include <cstddef>	// size_t
@@ -45,6 +44,7 @@ namespace genepi { // ----
 
 
 
+class Genotype;
 class GenotypeParser;
 
 
@@ -69,7 +69,7 @@ typedef size_t	     PopIdx    ;
 ///	<TD>
 ///	We implement an ordering for iteration such that no member of a family
 ///	will be visited prior to both of its parents being visited (see
-///	<A HREF="classgenepi_1_1Pedigree.html#note-1">NOTE *1* in Pedigree</A>
+///	<A HREF="classgenepi_1_1Pedigree.html#note-1">NOTE *1* in Pedigree</A>).
 ///	</TD>
 ///  </TR>
 /// </TABLE>

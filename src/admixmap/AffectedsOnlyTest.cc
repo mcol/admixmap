@@ -20,7 +20,7 @@
 #include "Genome.h"
 #include "bclib/DelimitedFileWriter.h"
 #include "bclib/LogWriter.h"
-#include <math.h>
+#include <cmath>
 
 using namespace std;
 

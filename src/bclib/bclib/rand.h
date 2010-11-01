@@ -13,8 +13,8 @@
 
 #ifndef RAND_H
 #define RAND_H 
+
 #include "bclib/bclib.h"
-#include <iostream>
 #include <vector>
 extern "C" {
 #include <gsl/gsl_rng.h>

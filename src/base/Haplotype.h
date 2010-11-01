@@ -20,6 +20,7 @@
 
 #include <vector>
 #include "HapPair.h"
+
 class GenotypeIterator;
 
 

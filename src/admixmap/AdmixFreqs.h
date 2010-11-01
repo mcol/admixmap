@@ -20,9 +20,6 @@
 #define ADMIXFREQS_H 1
 
 #include "AlleleFreqs.h"
-#include "bclib/MuSampler.h"
-#include "bclib/StepSizeTuner.h"
-#include "bclib/AdaptiveRejection.h"
 #include "bclib/DelimitedFileWriter.h"
 
 class AdmixOptions;

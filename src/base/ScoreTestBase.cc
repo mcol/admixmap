@@ -16,13 +16,13 @@
 //=============================================================================
 
 #include "ScoreTestBase.h"
-#include <sstream>
-#include <iomanip>
-#include <limits>
-#include "gsl/gsl_cdf.h"
-#include <math.h>
 #include "bclib/linalg.h"
 #include "bclib/DelimitedFileWriter.h"
+#include "gsl/gsl_cdf.h"
+#include <cmath>
+#include <iomanip>
+#include <limits>
+#include <sstream>
 
 using namespace std;
 

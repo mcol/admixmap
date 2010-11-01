@@ -3,7 +3,6 @@
 
 #include "bclib/bclib.h"
 #include "bclib/cvector.h"
-#include <iostream>
 #include <iterator>
 #include <stdexcept>
 

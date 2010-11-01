@@ -20,7 +20,8 @@
 #define SCORETESTBASE_H 1
 
 
-#include "common.h"
+#include <string>
+#include <vector>
 
 namespace bclib{
   class DelimitedFileWriter;

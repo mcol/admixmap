@@ -16,11 +16,8 @@
 //=============================================================================
 
 #include "CompositeLocus.h"
-#include "bclib/rand.h"
-#include <cmath>
-#include <cstdlib>
-#include <numeric>
 #include "bclib/misc.h"
+#include "bclib/rand.h"
 
 using namespace std;
 

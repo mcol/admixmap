@@ -18,10 +18,10 @@
 
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"
-#include <string.h>
-#include <sstream>
+#include "bclib/LogWriter.h"
+#include <iostream>
 #include <iterator>
-#include <numeric> // for checkInitAlpha
+#include <sstream>
 
 using namespace std;
 using namespace bclib;

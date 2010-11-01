@@ -19,9 +19,17 @@
 #include "CorrelatedFreqs.h"
 #include "AdmixOptions.h"
 #include "InputAdmixData.h"
-#include <iomanip>
+#include "bclib/LogWriter.h"
 #include "bclib/misc.h"
-#include <string.h>
+#include "bclib/rand.h"
+#include <algorithm> // for min_element()
+#include <cmath>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <numeric>   // for accumulate()
+#include <gsl/gsl_sf_gamma.h>
+
 using bclib::Rand;
 
 CorrelatedFreqs::CorrelatedFreqs(){

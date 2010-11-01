@@ -16,11 +16,14 @@
 //=============================================================================
 
 #include "ResidualLDTest.h"
+#include "FreqArrays.h"
 #include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
+#include "gsl/gsl_errno.h"
 #include "bclib/linalg.h"//for HH_solve to compute chi-sq
-#include "FreqArrays.h"
+#include "bclib/LogWriter.h"
 #include "bclib/DelimitedFileWriter.h"
+#include <cmath>
 
 ResidualLDTest::ResidualLDTest(){
   individuals = 0;
@@ -377,7 +380,6 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(bclib::DelimitedFi
 	outputstream << bclib::newline;
       }
 
-
       delete[] score;
       delete[] ObservedInfo;
       ++abslocus;
@@ -385,4 +387,3 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(bclib::DelimitedFi
     ++abslocus;//for last locus on chromosome
   }
 }
-

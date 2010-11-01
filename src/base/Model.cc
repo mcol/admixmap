@@ -17,6 +17,12 @@
 
 #include "Model.h"
 #include "Filenames.h"
+#include "bclib/LogWriter.h"
+#include "bclib/LinearRegression.h"
+#include "bclib/LogisticRegression.h"
+#include "bclib/CoxRegression.h"
+#include <cmath>
+#include <iostream>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

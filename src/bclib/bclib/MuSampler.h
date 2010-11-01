@@ -11,11 +11,12 @@
  * See the file COPYING for details.
  * 
  */
+
 #ifndef MUSAMPLER_H
 #define MUSAMPLER_H 1
+
 #include "bclib/bclib.h"
 #include "bclib/HamiltonianMonteCarlo.h"
-#include "bclib/StepSizeTuner.h"
 
 BEGIN_BCLIB_NAMESPACE
 

@@ -21,13 +21,16 @@
 #include "AdmixOptions.h"
 #include "InputAdmixData.h"
 #include "GenotypeIterator.h"
+#include "chib.h"
 #include "bclib/Regression.h"
 #include "bclib/misc.h"
 #include "bclib/dist.h"
-//#include "bclib/linalg.h"
-#include <algorithm>
+#include <algorithm> // for copy(), fill()
+#include <iomanip>
+#include <iostream>
 #include <limits>
-#include <sstream>
+#include <cmath>
+#include <numeric>   // for accumulate()
 
 
 #define PR(x) cout << #x << " = " << x << endl;

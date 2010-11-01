@@ -16,10 +16,9 @@
 //=============================================================================
 
 #include "Individual.h"
-//#include "bclib/Regression.h"
 #include "config.h" // AGGRESSIVE_RANGE_CHECK, USE_GENOTYPE_PARSER
-#include <sstream>
-#include <exception>
+#include "bclib/rand.h"
+#include <cmath>
 
 
 using genepi::RhoType;

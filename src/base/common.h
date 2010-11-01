@@ -5,9 +5,6 @@
 /// getRegressionString(RegressionType) function.
 //=============================================================================
 
-/// <B>Many</B> standard-library (STL, iostream, etc.) include files are
-/// included from here, as well as some types defined.
-///
 /// @warning
 /// <B>WARNING!</B> this file duplicates, in the global namespace, symbols that
 /// are also defined in @a <bclib/common.h>.  Furthermore, they both use the
@@ -22,11 +19,6 @@
 
 #include <vector>
 #include <string>
-#include <stdexcept>
-#include <iostream>
-#include <utility>
-#include <algorithm>
-#include <numeric>
 
 
 /** \addtogroup base

@@ -18,7 +18,6 @@
 #define COMPOSITE_LOCUS_H 1
 
 
-#include "common.h"
 #include "HapPair.h"
 #include "Haplotype.h"
 #include "bclib/pvector.h"

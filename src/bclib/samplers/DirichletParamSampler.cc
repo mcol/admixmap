@@ -10,10 +10,10 @@
  * 
  */
 #include "bclib/DirichletParamSampler.h"
-#include <algorithm>
-#include <numeric>
 #include "bclib/misc.h"
 #include <gsl/gsl_math.h>
+#include <algorithm> // for transform()
+#include <numeric>   // for accumulate()
 
 using namespace std;
 using namespace bclib;

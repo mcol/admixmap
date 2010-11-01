@@ -18,7 +18,6 @@
 #define RESIDUALLDTEST_H 1
 
 
-#include <sstream>
 #include "ScoreTestBase.h"
 #include "Options.h"
 #include "bclib/RObjectWriter.h"

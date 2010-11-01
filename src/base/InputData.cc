@@ -12,17 +12,15 @@
  */
 
 //=============================================================================
-/// \file InputData.h
+/// \file InputData.cc
 /// Definition of the InputData class.
 //=============================================================================
 
 #include "InputData.h"
-
 #include "Options.h"
 #include "bclib/StringConvertor.h"
 #include "bclib/DataReader.h"
 #include "bclib/LogWriter.h"
-#include "Genome.h"
 #include "DataValidError.h"
 #include "config.h"	// USE_GENOTYPE_PARSER
 
@@ -31,9 +29,10 @@
     #include "SimpleLocusParser.h"
 #endif
 
+#include <algorithm>  // for unique()
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <typeinfo>	// typeid
 
 using namespace std;
 using namespace bclib;

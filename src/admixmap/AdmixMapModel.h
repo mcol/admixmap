@@ -22,17 +22,16 @@
 
 #include "Model.h"
 #include "Genome.h"
-#include "AdmixOptions.h"
 #include "InputAdmixData.h"
 #include "PopAdmix.h"
 #include "StratificationTest.h"
 #include "DispersionTest.h"
 #include "MisSpecAlleleFreqTest.h"
 #include "AdmixIndividualCollection.h"
-#include "AdmixFreqs.h"
 #include "ScoreTests.h"
 
-class InputAdmixData;
+class AdmixFreqs;
+class AdmixOptions;
 
 
 /** \addtogroup admixmap

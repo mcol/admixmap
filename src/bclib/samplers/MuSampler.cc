@@ -23,7 +23,7 @@
 #include "bclib/MuSampler.h"
 #include "bclib/AdaptiveRejection.h"
 #include "bclib/misc.h"
-#include <numeric>
+#include <cmath>
 #include <gsl/gsl_linalg.h>
 
 using namespace std;

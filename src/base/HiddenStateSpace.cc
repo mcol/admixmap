@@ -26,8 +26,9 @@
 #pragma implementation
 #include "HiddenStateSpace.h"
 
-#include <cmath>  // exp()
-#include <limits> // numeric_limits::min()
+#include <cmath>
+#include <stdexcept> // for runtime_error()
+#include <string>
 
 
 
@@ -36,6 +37,7 @@ namespace genepi { // ----
 
 
 #if TRACK_UNVISITED_STATES
+    #include <limits>
     const HiddenStateSpace::ProbType HiddenStateSpace::State::NOT_VISITED = std::numeric_limits<ProbType>::min();
 #endif
 

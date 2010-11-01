@@ -1,8 +1,6 @@
 // *-*-C++-*-*
 
 /// \file common.h
-/// <B>Many</B> standard-library (STL, iostream, etc.) include files are
-/// included from here, as well as some types defined.
 ///
 /// @warning
 /// <B>WARNING!</B> this file duplicates, in the global namespace, symbols that
@@ -14,11 +12,6 @@
 
 #include <vector>
 #include <string>
-#include <stdexcept>
-#include <iostream>
-#include <utility>
-#include <algorithm>
-#include <numeric>
 
 typedef std::vector<std::string> Vector_s; //std vector of strings 
 typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors

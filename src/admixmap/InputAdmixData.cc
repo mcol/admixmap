@@ -22,9 +22,10 @@
 #include "bclib/DataReader.h"
 #include "config.h" // USE_GENOTYPE_PARSER
 #include "bclib/estr.h"
+#include "bclib/LogWriter.h"
 
 #include <cstring>  // strlen()
-#include <typeinfo> // typeid
+#include <iostream>
 
 #include "AlleleFreqParser.h"
 #include "AlleleArray.h"

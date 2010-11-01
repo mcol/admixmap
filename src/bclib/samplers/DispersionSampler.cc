@@ -13,6 +13,8 @@
 
 #include "bclib/DispersionSampler.h"
 #include "bclib/misc.h"
+#include <cmath>
+
 using namespace::std;
 
 BEGIN_BCLIB_NAMESPACE

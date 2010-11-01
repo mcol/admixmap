@@ -18,10 +18,10 @@
 
 #include "AdmixtureAssocTest.h"
 #include "bclib/LogWriter.h"
-#include <math.h>//for sqrt
-#include <algorithm> //for fill
+#include <algorithm> // for transform()
+#include <cmath>
+#include <cstring>
 #include <iomanip>
-#include <string.h>
 
 using namespace std;
 

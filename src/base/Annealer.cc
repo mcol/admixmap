@@ -16,10 +16,10 @@
 //=============================================================================
 
 #include "Annealer.h"
-#include <iostream>
+#include "bclib/LogWriter.h"
+#include <cmath>
 #include <iomanip>
-#include <fstream>
-#include <math.h>
+#include <iostream>
 
 Annealer::Annealer(){
   IntervalRatio = 1.03; // size of increments of coolness increases geometrically

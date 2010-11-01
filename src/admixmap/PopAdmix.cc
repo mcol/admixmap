@@ -19,7 +19,11 @@
 #include "PopAdmix.h"
 #include "Chromosome.h"
 #include "AdmixIndividualCollection.h"
-#include <algorithm>
+#include "bclib/LogWriter.h"
+#include <algorithm> // for fill()
+#include <iomanip>
+#include <cmath>
+#include <numeric>   // for accumulate()
 
 
 using namespace std;

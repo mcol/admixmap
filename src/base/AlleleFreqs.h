@@ -24,7 +24,6 @@
 #include "Genome.h"
 #include "Options.h"
 #include "AlleleFreqSampler.h"
-#include "common.h"
 #include "FreqArrays.h"
 #include "bclib/RObjectWriter.h"
 

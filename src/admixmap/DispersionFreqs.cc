@@ -21,16 +21,17 @@
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"
 #include "InputAdmixData.h"
-#include "Pedigree.h"
-// #include "bclib/AdaptiveRejection.h"
+#include "bclib/AdaptiveRejection.h"
+#include "bclib/LogWriter.h"
 #include "bclib/misc.h"
 #include "bclib/linalg.h"
-// #include "bclib/MuSampler.h"
+#include "bclib/rand.h"
+#include <algorithm>  // for min_element()
+#include <cmath>
+#include <cstring>
 #include <iomanip>
-#include <math.h>
-// #include <numeric>
-#include <string.h>
-
+#include <iostream>
+#include <gsl/gsl_sf_gamma.h>
 
 //#define DEBUGETA 1
 

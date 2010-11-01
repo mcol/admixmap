@@ -16,10 +16,11 @@
 //=============================================================================
 
 #include "Options.h"
+#include "bclib/LogWriter.h"
 #include "bclib/StringConvertor.h"
 #include "bclib/StringSplitter.h"
-#include <string.h>
-#include <sstream>
+#include <cstring>
+#include <string>
 #include "Filenames.h"
 
 using namespace std;

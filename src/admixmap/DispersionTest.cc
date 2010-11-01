@@ -20,11 +20,13 @@
 //=============================================================================
 
 #include "DispersionTest.h"
-#include <numeric>
-#include "bclib/linalg.h"
-#include "bclib/dist.h"
 #include "AdmixFilenames.h"
+#include "bclib/dist.h"
+#include "bclib/linalg.h"
 #include "bclib/LogWriter.h"
+#include "bclib/rand.h"
+#include <cmath>
+#include <numeric> // for accumulate()
 
 using namespace ::std;
 

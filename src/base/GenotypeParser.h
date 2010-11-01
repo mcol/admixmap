@@ -35,7 +35,6 @@
 #include "GFileLexer.h"
 #include "Organism.h"
 #include "PairSecIter.h"
-#include "bclib/estr.h"
 #include "SimpleLocusArray.h"
 
 

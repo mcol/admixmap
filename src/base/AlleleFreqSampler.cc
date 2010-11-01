@@ -17,8 +17,10 @@
 
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
-#include "bclib/dist.h"//for Dirichlet log density
-#include "bclib/misc.h"
+#include "bclib/misc.h"  // for softmax(), inv_softmax(), eh_log()
+#include "bclib/rand.h"
+#include <algorithm>     // for fill()
+#include <cmath>
 
 //#define DEBUG 1
 
@@ -152,6 +154,7 @@ void AlleleFreqSampler::resetStepSizeApproximator(int k) {
   Sampler.resetStepSizeApproximator(k);
 }
 
+//#include "bclib/dist.h" //for Dirichlet log density
 // // log normalized prior density - required for updating prior params
 // double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi, const unsigned NumPops, const unsigned NumStates){
 //   double logprior = 0.0;
