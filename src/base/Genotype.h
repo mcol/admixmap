@@ -109,7 +109,8 @@ class Genotype
 	bool consistent( AlleleType al ) const
 	    { return (val1 == MISSING_VAL) || (val1 == al) || (val2 == al); }
 
-	/// Are the potential and observed genotypes consistent?
+	/// Is the potential (phased) haplotype @a hap consistent with the
+	/// observed (unphased) genotypes?
 	bool consistent( const Haplotype & hap ) const;
 
 	/// Create a human-readable representation of the value
@@ -204,7 +205,7 @@ inline bool Genotype::consistent( const Haplotype & hap ) const
 			    ((val1 == hap.val1) && (val2 == hap.val2   )) ||
 			    ((val2 == hap.val1) && (val1 == hap.val2   )) ||
 			    ((val1 == hap.val1) && (val2 == MISSING_VAL)) ||
-			    ((val1 == hap.val1) && (val2 == HAPLOID_VAL))
+			    ((val1 == hap.val2) && (val2 == HAPLOID_VAL))
 		) ? "true" : "false" );
     #endif
 
@@ -213,7 +214,7 @@ inline bool Genotype::consistent( const Haplotype & hap ) const
 			((val1 == hap.val1) && (val2 == hap.val2   )) ||
 			((val2 == hap.val1) && (val1 == hap.val2   )) ||
 			((val1 == hap.val1) && (val2 == MISSING_VAL)) ||
-			((val1 == hap.val1) && (val2 == HAPLOID_VAL))
+			((val1 == hap.val2) && (val2 == HAPLOID_VAL))
 	    );
     }
 
