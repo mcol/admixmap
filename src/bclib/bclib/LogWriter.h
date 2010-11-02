@@ -63,7 +63,8 @@ public:
   LogWriter();
   ~LogWriter();
 
-  void setDisplayMode(DisplayMode);
+  /// Change the setting of the display mode, returning the current one
+  DisplayMode setDisplayMode(DisplayMode d);
 
   LogWriter& operator<<(const int);
   LogWriter& operator<<(unsigned int);

@@ -60,9 +60,12 @@ LogWriter::~LogWriter(){
 /**
  * Set whether the messages should be displayed.
  * Accepted values: On, Quiet, Off.
+ * \return The value of the diplay mode before the call.
  */
-void LogWriter::setDisplayMode(DisplayMode d){
+DisplayMode LogWriter::setDisplayMode(DisplayMode d){
+  DisplayMode previousMode = toscreen;
   toscreen = d;
+  return previousMode;
 }
 
 /**
