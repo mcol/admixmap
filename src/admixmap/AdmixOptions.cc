@@ -19,6 +19,8 @@
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"
 #include "bclib/LogWriter.h"
+
+#include <cstdlib>
 #include <iostream>
 #include <iterator>
 #include <sstream>

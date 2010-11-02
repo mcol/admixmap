@@ -24,6 +24,7 @@
 #include "bclib/estr.h"
 #include "bclib/LogWriter.h"
 
+#include <cstdlib>
 #include <cstring>  // strlen()
 #include <iostream>
 

@@ -26,7 +26,7 @@
 #pragma implementation
 #include "PedBase.h"
 
-
+#include <cstdlib>
 #include <fstream>
 #include <stdexcept>
 #include <typeinfo>
