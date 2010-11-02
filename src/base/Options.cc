@@ -325,12 +325,12 @@ bool Options::checkOptions(LogWriter& Log, int) {
 
   //check for burnin >= samples
   if(burnin >= TotalSamples){
-    Log << "ERROR: 'samples' must be greater than 'burnin'.\n";
+    ErrMsg(Log, "'samples' must be greater than 'burnin'");
     badOptions = true;
   }
   //
   if(SampleEvery >= TotalSamples){
-    Log << "ERROR: 'samples' must be greater than 'every'.\n";
+    ErrMsg(Log, "'samples' must be greater than 'every'");
     badOptions = true;
   }
   if(10*SampleEvery > (TotalSamples-burnin)){
@@ -341,13 +341,13 @@ bool Options::checkOptions(LogWriter& Log, int) {
   // **** Check whether genotypes file has been specified ****
   if ( GenotypesFilename.length() == 0 )
     {
-      Log << "ERROR: Must specify genotypesfile.\n";
+      ErrMsg(Log, "Must specify genotypesfile");
       badOptions = true;
     }
   // **** Check whether locus file has been specified ****
   if ( LocusFilename.length() == 0 )
     {
-      Log << "ERROR: Must specify locusfile.\n";
+      ErrMsg(Log, "Must specify locusfile");
       badOptions = true;
     }
 
@@ -379,4 +379,10 @@ void Options::PrintUserOptions(const char* filename){
   useroptions["rparamfile"] = PARAMFILE_ROBJECT;
 
   OptionReader::PrintUserOptions(ss.c_str());
+}
+
+/// Report an error message
+void Options::ErrMsg(bclib::LogWriter& Log, const char *msg) {
+  DisplayMode prevMode = Log.setDisplayMode(On);
+  Log << "ERROR: " << msg << ".\n" << prevMode;
 }

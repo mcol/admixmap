@@ -443,7 +443,8 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
   Log.setDisplayMode(Quiet);
 
   if(useroptions["hapmixmodel"].size() && useroptions["hapmixmodel"] != "0"){
-    Log << On << "ERROR: 'hapmixmodel' option is not supported. Consider trying HAPMIXMAP instead\n" << Quiet;
+    ErrMsg(Log, "'hapmixmodel' option is not supported, "
+                "consider trying HAPMIXMAP instead");
     badOptions = true;
   }
 
@@ -482,22 +483,24 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
 
   if(TestOneIndivIndicator && RegType != None){
     badOptions = true;
-    Log << "ERROR: cannot have a test individual with a regression model\n";
+    ErrMsg(Log, "Cannot have a test individual with a regression model");
   }
 
   if(OutcomeVarFilename.length() == 0 && OutcomeVarColumns.size()){
-    Log << "ERROR: outcomevarcols option specified but no outcomevarfile\n";
+    ErrMsg(Log, "outcomevarcols option specified without outcomevarfile");
     useroptions.erase("outcomevarcols");
     OutcomeVarColumns.clear();
   }
  if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
     if(CovariatesFilename.length()){
-      Log << "ERROR: covariatesfile specified without outcomevarfile\n";
+      ErrMsg(Log, "covariatesfile specified without outcomevarfile");
       useroptions.erase("covariatesfile");
       CovariatesFilename.clear();
     }
-     if(RegressionOutputFilename.length() > 0){
-       Log << "ERROR: regparamfile option is not valid without a regression model\n";
+    if (RegressionOutputFilename.length() > 0) {
+      Log << "WARNING: regparamfile option is not valid without "
+          << "a regression model.\n"
+          << "         This option will be ignored.\n";
       RegressionOutputFilename = "";
       useroptions.erase("regparamfile");
     }
@@ -546,18 +549,15 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
     if( GlobalRho ) {
       Log << "Model with global sum-intensities.\n";
       if(globalrhoPrior.size() != 2) {
-	Log.setDisplayMode(On);
-	Log << "ERROR: globalsumintensitiesprior must have length 2\n";
+	ErrMsg(Log, "globalsumintensitiesprior must have length 2");
 	badOptions = true;
 	if(globalrhoPrior[0] <= 0.0 || globalrhoPrior[1] <= 0.0) {
-	  Log.setDisplayMode(On);
-	  Log << "ERROR: all elements of globalsumintensitiesprior must be > 0\n";
+	  ErrMsg(Log, "All elements of globalsumintensitiesprior must be > 0");
 	  badOptions = true;
 	}  
       }
       if (chibIndicator) {
-        Log.setDisplayMode(On);
-        Log << "ERROR: globalrho = 1 is not compatible with chib = 1\n";
+        ErrMsg(Log, "globalrho = 1 is not compatible with chib = 1");
         badOptions = true;
       }
     } else { // sumintensities at individual or gamete level
@@ -567,13 +567,12 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
 	Log << "Model with individual-specific sum-intensities.\n";
       
       if( (rhoPrior.size() != 3) && IndAdmixHierIndicator ) {
-	Log.setDisplayMode(On);
-	Log << "ERROR: for hierarchical model, sumintensitiesprior must have length 3\n";
+        ErrMsg(Log, "For hierarchical model, sumintensitiesprior "
+                    "must have length 3");
 	badOptions = true;
       }
       if(rhoPrior[0] <= 0.0 || rhoPrior[1] <= 0.0 || rhoPrior[2]<=0.0) {
-	Log.setDisplayMode(On);
-	Log << "ERROR: all elements of sumintensitiesprior must be > 0\n";
+	ErrMsg(Log, "All elements of sumintensitiesprior must be > 0");
 	badOptions = true;
       }
     }
@@ -611,14 +610,12 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
     Log << "Model with global odds ratio female/male founders.\n";
     if (logpsiPrior.size() < 2) {
       // we need two elements; if more (valid for globalpsi=0) we ignore them
-      Log.setDisplayMode(On);
-      Log << "ERROR: oddsratiosprior must have length 2\n";
+      ErrMsg(Log, "oddsratiosprior must have length 2 if globalpsi = 1");
       badOptions = true;
     }
     if (!badOptions) {
       if (logpsiPrior[1] < 0.1) {
-        Log.setDisplayMode(On);
-        Log << "ERROR: the second element of oddsratiosprior must be >= 0.1\n";
+        ErrMsg(Log, "The second element of oddsratiosprior must be >= 0.1");
         badOptions = true;
       }
       Log << "Gaussian prior on log psi with mean " << logpsiPrior[0]
@@ -628,19 +625,17 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
   else { // individual psi
     Log << "Model with individual-level odds ratios female/male.\n";
     if (logpsiPrior.size() != 4) {
-      Log.setDisplayMode(On);
-      Log << "ERROR: oddsratiosprior must have length 4\n";
+      ErrMsg(Log, "oddsratiosprior must have length 4 if globalpsi = 0");
       badOptions = true;
     }
     if (!badOptions) {
       if (logpsiPrior[1] < 0.1) {
-        Log.setDisplayMode(On);
-        Log << "ERROR: the second element of oddsratiosprior must be >= 0.1\n";
+        ErrMsg(Log, "The second element of oddsratiosprior must be >= 0.1");
         badOptions = true;
       }
       if (logpsiPrior[2] <= 0.0 || logpsiPrior[3] <= 0.0) {
-        Log.setDisplayMode(On);
-        Log << "ERROR: 3rd and 4th elements of oddsratiosprior must be > 0\n";
+        ErrMsg(Log, "The third and fourth elements of oddsratiosprior "
+                    "must be > 0");
         badOptions = true;
       }
       Log << "Gaussian prior on log psi with mean " << logpsiPrior[0]
@@ -664,9 +659,8 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
       OutputAlleleFreq = false;
     }
     if (correlatedallelefreqs) {
-      Log.setDisplayMode(On);
-      Log << "ERROR: correlatedallelefreqs option is not valid "
-          << "with fixed allele frequencies.\n";
+      ErrMsg(Log, "correlatedallelefreqs option is not valid "
+                  "with fixed allele frequencies.\n");
       badOptions = true;
     }
   }
@@ -818,8 +812,8 @@ void AdmixOptions::setInitAlpha(bclib::LogWriter &Log){
     _symmetric = false;
   }
   else{
-    Log.setDisplayMode(On);
-    Log << "ERROR: Can specify separate priors on admixture of each gamete only if indadmixhierindicator = 0\n";
+    ErrMsg(Log, "Can specify separate priors on admixture of each gamete "
+                "only if indadmixhierindicator = 0");
     exit(1);
   }
 }

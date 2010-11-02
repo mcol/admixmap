@@ -62,6 +62,9 @@ public:
   ///print user options to file
   virtual void PrintUserOptions(const char* filename);
 
+  /// Report an error message
+  static void ErrMsg(bclib::LogWriter& Log, const char *msg);
+
   long getBurnIn() const;
   long getTotalSamples() const;
   long getSampleEvery() const;
