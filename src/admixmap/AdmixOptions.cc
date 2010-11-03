@@ -288,7 +288,6 @@ double AdmixOptions::getEtaVar() const{
   return etavar;
 }
 
-
 double AdmixOptions::getLogPsiPriorMean() const {
   return logpsiPrior[0];
 }
@@ -425,6 +424,7 @@ void AdmixOptions::DefineOptions(){
   addOption("hwtestfile", oldOption, 0);
   addOption("residualallelicassocscorefile", oldOption, 0);
 }
+
 bool AdmixOptions::SetOptions(){
   if(!Options::SetOptions())
     return false;
@@ -477,13 +477,14 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
   
   if(chibIndicator){
     Log << " with marginal likelihood calculation";
-    if(NumberOfIndividuals > 1)Log << " for first individual";
+    if (NumberOfIndividuals > 1)
+      Log << " for the first individual";
   }
   Log << ".\n";
 
   if(TestOneIndivIndicator && RegType != None){
-    badOptions = true;
     ErrMsg(Log, "Cannot have a test individual with a regression model");
+    badOptions = true;
   }
 
   if(OutcomeVarFilename.length() == 0 && OutcomeVarColumns.size()){
@@ -491,7 +492,7 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
     useroptions.erase("outcomevarcols");
     OutcomeVarColumns.clear();
   }
- if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
+  if (OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length() == 0) {
     if(CovariatesFilename.length()){
       ErrMsg(Log, "covariatesfile specified without outcomevarfile");
       useroptions.erase("covariatesfile");
@@ -537,15 +538,14 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
       GlobalRho = false;
       useroptions["globalrho"] = "0";
     }
-  
-  // **** sumintensities ****
 
     // **** Mating Model **** 
     if(RandomMatingModel )
       Log << "Model assuming random mating.\n";
     else 
       Log << "Model assuming assortative mating.\n";
-    
+
+    // **** sumintensities ****
     if( GlobalRho ) {
       Log << "Model with global sum-intensities.\n";
       if(globalrhoPrior.size() != 2) {
@@ -560,12 +560,14 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
         ErrMsg(Log, "globalrho = 1 is not compatible with chib = 1");
         badOptions = true;
       }
-    } else { // sumintensities at individual or gamete level
+    }
+
+    else { // sumintensities at individual or gamete level
       if( RandomMatingModel )
-	Log << "Model with gamete specific sum-intensities.\n";
+	Log << "Model with gamete-specific sum-intensities.\n";
       else
 	Log << "Model with individual-specific sum-intensities.\n";
-      
+
       if( (rhoPrior.size() != 3) && IndAdmixHierIndicator ) {
         ErrMsg(Log, "For hierarchical model, sumintensitiesprior "
                     "must have length 3");
@@ -577,12 +579,13 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
       }
     }
 
-    if((GlobalRho || !IndAdmixHierIndicator ) ) {
+    if (GlobalRho || !IndAdmixHierIndicator) {
       Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
-	  << "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
-      Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
+          << "and rate (1/location) parameter: " << globalrhoPrior[1] << ".\n";
+      Log << "Effective prior mean of sum-intensities is "
+          << globalrhoPrior[0] / globalrhoPrior[1] << ".\n";
       Log << "Effective prior variance of sum-intensities is " 
-	  << globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << "\n";
+          << globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << ".\n";
       useroptions.erase("sumintensitiesprior") ;
     } else {  
       double rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
@@ -590,13 +593,17 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
 	  << rhoPrior[0] << "\n"
 	  << "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
 	  << rhoPrior[1] << " & "
-	  << rhoPrior[2] << "\n"
-	  << "Effective prior mean of sum-intensities is ";
-      if(rhoPrior[1]>1)Log << rhopriormean << "\n";else Log << "undefined\n";
+	  << rhoPrior[2] << ".\n";
+      Log << "Effective prior mean of sum-intensities is ";
+      if (rhoPrior[1] > 1)
+        Log << rhopriormean << ".\n";
+      else
+        Log << "undefined.\n";
       Log << "Effective prior variance of sum-intensities is ";
-      if(rhoPrior[1]>2)
-	Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
-      else Log <<"undefined\n";
+      if (rhoPrior[1] > 2)
+        Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << ".\n";
+      else
+        Log << "undefined.\n";
       useroptions.erase("globalsumintensitiesprior") ;  
     }
 
@@ -614,12 +621,12 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
       badOptions = true;
     }
     if (!badOptions) {
+      Log << "Gaussian prior on log psi with mean " << logpsiPrior[0]
+          << " and precision " << logpsiPrior[1] << ".\n";
       if (logpsiPrior[1] < 0.1) {
         ErrMsg(Log, "The second element of oddsratiosprior must be >= 0.1");
         badOptions = true;
       }
-      Log << "Gaussian prior on log psi with mean " << logpsiPrior[0]
-          << " and precision " << logpsiPrior[1] << "\n";
     }
   }
   else { // individual psi
@@ -629,26 +636,27 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
       badOptions = true;
     }
     if (!badOptions) {
+      Log << "Gaussian prior on log psi with mean " << logpsiPrior[0]
+          << " and precision " << logpsiPrior[1] << ".\n";
       if (logpsiPrior[1] < 0.1) {
         ErrMsg(Log, "The second element of oddsratiosprior must be >= 0.1");
         badOptions = true;
       }
+      Log << "Gamma prior on psi precision with shape parameter "
+          << logpsiPrior[2] << " and rate parameter "
+          << logpsiPrior[3] << ".\n";
       if (logpsiPrior[2] <= 0.0 || logpsiPrior[3] <= 0.0) {
         ErrMsg(Log, "The third and fourth elements of oddsratiosprior "
                     "must be > 0");
         badOptions = true;
       }
-      Log << "Gaussian prior on log psi with mean " << logpsiPrior[0]
-          << " and precision " << logpsiPrior[1] << "\n";
-      Log << "Gamma prior on psi precision with shape parameter "
-          << logpsiPrior[2] << " and rate parameter " << logpsiPrior[3] << "\n";
     }
   }
 
   // **** model for allele freqs ****
 
   //fixed allele freqs
-  if( (alleleFreqFilename.length()) ||
+  if (alleleFreqFilename.length() ||
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
     Log << "Analysis with fixed allele frequencies.\n";
     if(OutputAlleleFreq ){
@@ -667,26 +675,22 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
   //prior allele freqs
   else if( PriorAlleleFreqFilename.length() && !fixedallelefreqs ){
     Log << "Analysis with prior allele frequencies.\n";
-    if(correlatedallelefreqs) {
-      Log << "Analysis with correlated allele frequencies\n";
-    }
+    if (correlatedallelefreqs)
+      Log << "Analysis with correlated allele frequencies.\n";
   }
   //historic allele freqs
   else if( HistoricalAlleleFreqFilename.length() > 0 ){
     Log << "Analysis with dispersion model for allele frequencies.\n";
   }
   //default priors ('populations' option)
-  else if(Populations > 0 )
-    {
-      Log << "No allelefreqfile, priorallelefreqfile or historicallelefreqfile supplied;\n"
-	  << "Default priors will be set for the allele frequencies"
-          << " with " << Populations << " population(s)"
-          << "\n";
-      if(correlatedallelefreqs) {
-	Log << "Analysis with correlated allele frequencies\n";
-      }
-    }
-  
+  else if (Populations > 0) {
+    Log << "No allelefreqfile, priorallelefreqfile or historicallelefreqfile supplied;\n"
+        << "Default priors will be set for the allele frequencies with "
+        << Populations << " populations.\n";
+    if (correlatedallelefreqs)
+      Log << "Analysis with correlated allele frequencies.\n";
+  }
+
   if( OutputFST && !TestForHaplotypeAssociation ){
     Log << "WARNING: fstoutputfile option is only valid "
         << "with historicallelefreqfile option.\n"
@@ -710,9 +714,10 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
     badOptions = true;
   }
 
-  if( TestForMisspecifiedAlleleFreqs &&
+  if (TestForMisspecifiedAlleleFreqs &&
       ( alleleFreqFilename.length()==0 && !(fixedallelefreqs) ) ){
-    Log << "Cannot test for mis-specified allele frequencies unless allele frequencies are fixed.\n";
+    ErrMsg(Log, "Cannot test for mis-specified allele frequencies unless "
+                "allele frequencies are fixed");
     badOptions = true;
   }
 
@@ -756,9 +761,10 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
     // if not specified as an option
     //if(NumAnnealedRuns==0) NumAnnealedRuns = 100;
-    Log << "\nUsing thermodynamic integration to calculate marginal likelihood ";
-    if(!TestOneIndivIndicator) Log << "for all individuals\n";
-    else Log << "for first individual\n"; 
+    Log << "\nUsing thermodynamic integration to calculate the "
+        << "marginal likelihood for "
+        << (TestOneIndivIndicator ? "the first individual" : "all individuals")
+        << ".\n";
   }
 
   return badOptions;
@@ -818,17 +824,18 @@ void AdmixOptions::setInitAlpha(bclib::LogWriter &Log){
   }
 }
 
-bool AdmixOptions::CheckInitAlpha( const cvector<double> & alphatemp ) const
-//returns indicator for admixture as indicated by initalpha   
-// also check that Dirichlet parameter vector, if specified by user, has correct length
-{
-   bool admixed = true;
+/// Return indicator for admixture as indicated by initalpha. Also check that
+/// the Dirichlet parameter vector, if specified by the user, has the correct
+/// length.
+bool AdmixOptions::CheckInitAlpha(const cvector<double>& alphatemp) const {
+
    int count = 0;
    for( size_t i = 0; i < alphatemp.size(); i++ )
       if( alphatemp[i] > 0.0 )
          count++;
-   if( count == 1 )
-     admixed = false;//unadmixed if eg 1 0 0
+
+   bool admixed = (count == 1) ? false : true; // unadmixed if eg 1 0 0
+
    if( alphatemp.size() != (unsigned)Populations ){
      cerr << "Error in specification of initalpha.\n";
      copy(alphatemp.begin(), alphatemp.end(), ostream_iterator<double>(cerr));//prints alphatemp

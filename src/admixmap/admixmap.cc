@@ -205,7 +205,8 @@ int main( int argc , char** argv ){
     // Check user options (and finish constructing them also).  They can't be
     // used prior to this call.
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
-      Log << bclib::On << "\nProgram aborted due to bad options. See logfile for details\n";
+      Log << bclib::On << "\nProgram aborted due to bad options. "
+          << "See the logfile for details.\n";
       return 1;
     }
 
