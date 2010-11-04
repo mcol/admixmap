@@ -175,9 +175,7 @@ PopAdmix::~PopAdmix()
 void PopAdmix::UpdatePopAdmixParams(int iteration,
                                     const AdmixIndividualCollection* const individuals,
                                     bclib::LogWriter &Log) {
-  const int Populations = options.getPopulations();
-
-  if ( Populations > 1 && individuals->getSize() > 1 &&
+  if (K > 1 && individuals->getSize() > 1 &&
        options.getIndAdmixHierIndicator() ) {
      const double* sumlogtheta = individuals->getSumLogTheta();
 
@@ -204,22 +202,22 @@ void PopAdmix::UpdatePopAdmixParams(int iteration,
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
 
-   if ( iteration == options.getBurnIn() && Populations > 1 ) {
+   if (iteration == options.getBurnIn() && K > 1) {
      if(options.getNumberOfOutcomes() > 0){
        Log << bclib::Off << "Individual admixture centred in regression model around: ";
-       for (int i = 0; i < Populations; ++i)
+       for (int i = 0; i < K; ++i)
          Log << poptheta[i] << "\t";
        Log << "\n";
      }
      fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
    }
 
-   if ( iteration < options.getBurnIn() && Populations > 1 ) {
+   if (iteration < options.getBurnIn() && K > 1) {
      // accumulate ergodic average of population admixture, which is used to centre
      // the values of individual admixture in the regression model
      double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
      if ( options.getNumberOfOutcomes() > 0 )
-       for (int j = 0; j < Populations; ++j)
+       for (int j = 0; j < K; ++j)
          poptheta[j] = SumAlpha[j] / sum;
    }
 }
@@ -523,28 +521,27 @@ void PopAdmix::InitializeOutputFile(const Vector_s& PopulationLabels) {
   // Header line of paramfile
   //Pop. Admixture
   outputstream.delimit(false);
-  for( int i = 0; i < options.getPopulations(); i++ ) {
+  for (int i = 0; i < K; ++i)
     outputstream << "Dirichlet." << PopulationLabels[i] << "\t";
-  }
+
   //SumIntensities
   if( options.isGlobalRho() ) outputstream << "sumIntensities\t";
   else outputstream << "sumIntensities.mean\t";
 
   // Odds ratios for the X chromosome
   if (Loci.isX_data()) {
-    for (int i = 0; i < options.getPopulations(); i++) {
+    for (int i = 0; i < K; ++i)
       outputstream << "Psi." << PopulationLabels[i] << "\t";
-    }
   }
 
   outputstream.delimit(true);
   outputstream << bclib::newline;
 }
 
-void PopAdmix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
-{
-  if(options.getPopulations()>1){
-    for( int j = 0; j < options.getPopulations(); j++ ){
+void PopAdmix::OutputErgodicAvg(int samples, std::ofstream *avgstream) {
+
+  if (K > 1) {
+    for (int j = 0; j < K; ++j) {
       avgstream->width(9);
       *avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
     }
@@ -559,9 +556,9 @@ void PopAdmix::OutputParams(bclib::Delimitedostream& out){
   int prec = out.precision(6);  
 
   //pop admixture params
-  for( int j = 0; j < options.getPopulations(); j++ ){
+  for (int j = 0; j < K; ++j)
     out << alpha[0][j];
-  }
+
   //sumintensities
   if( options.isGlobalRho() )
     out << rho[0] ;
