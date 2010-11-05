@@ -260,6 +260,7 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
   const bool _anneal = (anneal && !options.getTestOneIndivIndicator());
   const bool updateScoreTests = iteration > options.getBurnIn()
     && (options.getTestForAffectedsOnly() || options.getTestForLinkageWithAncestry());
+  const bool updateSumLogTheta = !_anneal && iteration > options.getBurnIn();
 
   if(even_numbered_iteration){//lambda, beta and dispersion are only required for random-walk update of admixture
     for(int i = 0; i < options.getNumberOfOutcomes(); ++i){
@@ -310,7 +311,7 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions & o
 	    if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
 	    el.SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
                                      &Covariates, beta, poptheta, options, alpha, DinvLink,
-                                     dispersion, ancestryAssocTest, true, _anneal);
+                                     dispersion, ancestryAssocTest, true, updateSumLogTheta);
 	    } // END SCOPE BLOCK
       }
 
@@ -351,7 +352,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
   vector<double> lambda;
   vector<const double*> beta;
   double dispersion = 0.0;
-  const bool afterBurnIn = iteration > options.getBurnIn();
+  const bool updateSumLogs = !anneal && iteration > options.getBurnIn();
 
   for(unsigned i = 0; i < R.size(); ++i){
     lambda.push_back( R[i]->getlambda());
@@ -376,7 +377,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
           TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType,
                                   lambda, NumCovariates, &Covariates,
                                   beta, poptheta, options, alpha, 0.0,
-                                  dispersion, ancestryAssocTest, true, anneal);
+                                  dispersion, ancestryAssocTest, true, updateSumLogs);
 
         // ** Run HMM forward recursions and Sample Locus Ancestry
         TestInd[i]->SampleHiddenStates(options);
@@ -386,15 +387,14 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
 
         // ** Sample individual- or gamete-specific sumintensities
         if (!options.isGlobalRho())
-          TestInd[i]->SampleRho(options, rhoalpha, rhobeta,
-                                (!anneal && afterBurnIn));
+          TestInd[i]->SampleRho(options, rhoalpha, rhobeta, updateSumLogs);
 
         // ** update admixture props with conjugate proposal on odd-numbered iterations
         if (iteration % 2)
           TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType,
                                   lambda, NumCovariates, &Covariates,
                                   beta, poptheta, options, alpha, 0.0,
-                                  dispersion, ancestryAssocTest, false, anneal);
+                                  dispersion, ancestryAssocTest, false, updateSumLogs);
       }
 
       // ** Sample missing values of outcome variable
@@ -415,8 +415,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
 
       // ** Sample individual- or gamete-specific sumintensities
       if (!options.isGlobalRho())
-        el.SampleRho(options, rhoalpha, rhobeta,
-                     (!anneal && afterBurnIn));
+        el.SampleRho(options, rhoalpha, rhobeta, updateSumLogs);
 
       // ** update admixture props with conjugate proposal on odd-numbered iterations
       if (iteration % 2) {
@@ -432,7 +431,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
                            lambda, NumCovariates, &Covariates,
                            beta, poptheta, options, alpha, DinvLink,
                            dispersion, ancestryAssocTest,
-                           el.isPedigree(), anneal);
+                           el.isPedigree(), updateSumLogs);
 	    } // END SCOPE BLOCK
       }
     }

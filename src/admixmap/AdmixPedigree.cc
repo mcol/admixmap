@@ -1019,7 +1019,7 @@ void Pedigree::freeHMM() const
 //-----------------------------------------------------------------------------
 
 void Pedigree::SampleTheta(
-		 int				    iteration		,
+		 int				    /*iteration*/	,
 		 double *			    SumLogTheta		, ///< Indexed on 0 <= k < K
 		 const bclib::DataMatrix *	    Outcome		,
 		 const DataType *		    OutcomeType		,
@@ -1034,7 +1034,7 @@ void Pedigree::SampleTheta(
 		 double				    /*dispersion*/	,
 		 CopyNumberAssocTest &		    /*ancestryAssocTest*/,
 		 bool				    /*RW*/		,
-		 bool				    anneal		)
+		 bool				    updateSumLogTheta	)
     {
 
     // NOTE *1*: We ignore the value of RW, use true every time (see comments above):
@@ -1086,7 +1086,7 @@ void Pedigree::SampleTheta(
 
 
     // See NOTE *1* in list-of-things-dont-agree here.
-    if ( (! anneal) && (iteration > options.getBurnIn()) )
+    if ( updateSumLogTheta )
 	{
 	// Accumulate sums in softmax basis for calculation of posterior means
 

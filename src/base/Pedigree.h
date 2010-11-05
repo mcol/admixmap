@@ -588,7 +588,7 @@ class Pedigree : public PedBase // See NOTE *4*
 		 double				    dispersion	      , // in
 		 CopyNumberAssocTest &		    ancestryAssocTest , // Not used by pedigrees
 		 bool				    RW		      , // in (is-random-walk)
-		 bool				    anneal	      );// in
+		 bool				    updateSumLogTheta );// in
 
 	void HMMIsBad( bool loglikisbad );
 

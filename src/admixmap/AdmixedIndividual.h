@@ -68,11 +68,19 @@ public:
                  const genepi::cvector<double>& priormean,
                  const genepi::cvector<double>& priorprec,
                  bool updateSumLogPsi);
-  void SampleTheta( int iteration, double * SumLogTheta, const bclib::DataMatrix * Outcome,
-		    const DataType * OutcomeType, const std::vector<double> & lambda, int NumCovariates,
-		    bclib::DataMatrix * Covariates, const std::vector<const double*> & beta, const PopAdmix::PopThetaType & poptheta,
-		    const AdmixOptions & options, const AlphaType & alpha,
-		    double DInvLink, double dispersion, CopyNumberAssocTest & ancestryAssocTest, bool RW, bool anneal);
+
+  /// Sample individual admixture proportions
+  void SampleTheta(int iteration, double *SumLogTheta,
+                   const bclib::DataMatrix *Outcome,
+                   const DataType *OutcomeType,
+                   const std::vector<double>& lambda, int NumCovariates,
+                   bclib::DataMatrix *Covariates,
+                   const std::vector<const double*>& beta,
+                   const PopAdmix::PopThetaType& poptheta,
+                   const AdmixOptions& options, const AlphaType& alpha,
+                   double DInvLink, double dispersion,
+                   CopyNumberAssocTest& ancestryAssocTest,
+                   bool RW, bool updateSumLogTheta);
 
   /// Use an EM algorithm to search for posterior modes of individual
   /// parameters theta and rho

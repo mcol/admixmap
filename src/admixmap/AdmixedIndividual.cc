@@ -730,15 +730,22 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options,
 }
 
 
-void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, const bclib::DataMatrix* const Outcome,
-				     const DataType* const OutcomeType, const vector<double> & lambda, const int NumCovariates,
-				     bclib::DataMatrix * Covariates, const vector<const double*> & beta, const PopAdmix::PopThetaType & poptheta,
-				     const AdmixOptions& options, const AlphaType & alpha,
-				     double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest,
-				     const bool RW, const bool anneal )
+void AdmixedIndividual::SampleTheta(const int iteration, double *SumLogTheta,
+                                    const bclib::DataMatrix* const Outcome,
+                                    const DataType* const OutcomeType,
+                                    const vector<double>& lambda,
+                                    const int NumCovariates,
+                                    bclib::DataMatrix *Covariates,
+                                    const vector<const double*>& beta,
+                                    const PopAdmix::PopThetaType& poptheta,
+                                    const AdmixOptions& options,
+                                    const AlphaType& alpha,
+                                    double DInvLink, const double dispersion,
+                                    CopyNumberAssocTest& ancestryAssocTest,
+                                    const bool RW,
+                                    const bool updateSumLogTheta) {
 // samples individual admixture proportions
 // called with RW true for a random-walk proposal, false for a conjugate proposal
-{
   double logpratio = 0.0;
   try{
     if(RW) {
@@ -771,7 +778,8 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
   if( options.getNumberOfOutcomes() > 0 )
     UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options.isRandomMatingModel(), Covariates);
 
-  if(!anneal && iteration > options.getBurnIn()){ // accumulate sums in softmax basis for calculation of posterior means
+  // accumulate sums in softmax basis for calculation of posterior means
+  if (updateSumLogTheta) {
     double* a = new double[NumHiddenStates];
     for( unsigned int g = 0; g < NumGametes; g++ ){
       Theta[g].inv_softmax_gt0(a);
