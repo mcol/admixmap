@@ -160,7 +160,6 @@ int main( int argc , char** argv ){
 
  #if defined(_OPENMP)
     const int n_cpus = options.getMaxCPUsToUse();
-    cerr << "Max " << n_cpus << " to use!\n\n";
     if ( n_cpus != 0 )
 	{
 	if ( n_cpus > omp_get_num_procs() )
