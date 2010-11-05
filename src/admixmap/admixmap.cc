@@ -119,21 +119,6 @@ static void startupOMPMessage( const AdmixOptions & options )
 int main( int argc , char** argv ){
   AdmixOptions options(argc, argv);
 
-  #if defined(_OPENMP)
-    const int n_cpus = options.getMaxCPUsToUse();
-    if ( n_cpus != 0 )
-	{
-	if ( n_cpus > omp_get_num_procs() )
-	    {
-	    cerr << "admixmap: notice: parallel CPU limit of " << n_cpus <<
-		" exceeds physical number of CPUs (" << omp_get_num_procs() << ")\n";
-	    }
-	else
-	    omp_set_num_threads( n_cpus );
-	}
-  #endif
-
-
   //print version number and copyright info, if requested, and exit
   if(options.getFlag("version")){
     bclib::LogWriter LW;
@@ -171,6 +156,23 @@ int main( int argc , char** argv ){
     {
     return 1;
     }
+
+
+ #if defined(_OPENMP)
+    const int n_cpus = options.getMaxCPUsToUse();
+    cerr << "Max " << n_cpus << " to use!\n\n";
+    if ( n_cpus != 0 )
+	{
+	if ( n_cpus > omp_get_num_procs() )
+	    {
+	    cerr << "admixmap: notice: parallel CPU limit of " << n_cpus
+		 << " exceeds physical number of CPUs ("
+		 << omp_get_num_procs() << ")\n";
+	    }
+	else
+	    omp_set_num_threads( n_cpus );
+	}
+  #endif
 
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
