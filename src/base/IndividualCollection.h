@@ -1,8 +1,6 @@
-// *-*-C++-*-*
-
 //=============================================================================
 //
-// Copyright (C) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+// Copyright (C) 2002-2007  David O'Donnell, Clive Hoggart and Paul McKeigue
 // Portions copyright (C) 2009  David D. Favro
 //
 // This program is free software distributed WITHOUT ANY WARRANTY.  You can

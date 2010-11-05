@@ -1,7 +1,7 @@
 //=============================================================================
 //
 // Copyright (C) 2009  David D. Favro
-// Portions Copyright (C) 2010 Marco Colombo
+// Portions Copyright (C) 2010  Marco Colombo
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 3 as published by the Free

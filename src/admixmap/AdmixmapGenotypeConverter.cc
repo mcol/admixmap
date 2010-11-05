@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Copyright (C) 2007 David O'Donnell and Paul McKeigue
+// Copyright (C) 2007  David O'Donnell and Paul McKeigue
 // Portions Copyright (C) 2009  David D. Favro
 //
 // This is free software; you can redistribute it and/or modify it under the
