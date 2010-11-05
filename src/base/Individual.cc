@@ -332,24 +332,15 @@ double Individual::getLogLikelihoodXChr(const Options& options,
 double Individual::getLogLikelihoodXChr(const Options& options,
                                         const AdmixtureProportions& theta,
                                         const RhoType& rho, bool updateHMM) {
+  gp_assert(Xdata);
 
-  double LogLikelihood = 0.0;
-  for (unsigned int j = 0; j < numChromosomes; ++j) {
+  if (updateHMM) // force update of forward probs
+    UpdateHMMInputs(X_posn, options, theta, rho);
 
-    // skip the autosomes
-    if (!Loci->isXChromosome(j))
-      continue;
-
-    if (updateHMM) // force update of forward probs
-      UpdateHMMInputs(j, options, theta, rho);
-
-    LogLikelihood = Loci->getChromosome(j)->HMM->getLogLikelihood(!isHaploid && SexIsFemale);
-    if (isnan(LogLikelihood)) {
-      throw string("HMM returns log-likelihoodXChr as nan (not a number)\n");
-    }
-
-    break;
-  }
+  Chromosome *XChr = Loci->getChromosome(X_posn);
+  double LogLikelihood = XChr->HMM->getLogLikelihood(!isHaploid && SexIsFemale);
+  if (isnan(LogLikelihood))
+    throw string("HMM returns log-likelihoodXChr as nan (not a number)\n");
 
   return LogLikelihood;
 }
