@@ -737,6 +737,11 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
     const SimpleLocusArray & loci = getSLoci();
 
+    // TODO: It would be nice to avoid the calls to getTheta( getPsi() ) for
+    // dataset that don't contain the X chromosome.
+    const ThetaType & th_X    = ( &getCurTheta() )->getTheta( getPsi() );
+    const ThetaType & th_notX = ( &getCurTheta() )->getTheta();
+
     // If K==2, only evaluate for 1 population, otherwise for all of them.
     // Existing code uses k==1 (not 0), yet treats it within the AffectedsOnlyTest object as "k==0", so:
     const PopIdx k_begin = (getK() == 2) ? 1 : 0;
@@ -749,9 +754,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	#endif
 
 	const IsXChromType is_xchrom = loci[t].isXChrom();
-	const ThetaType & th = ( is_xchrom == CHR_IS_X )             ?
-			    ( &getCurTheta() )->getTheta( getPsi() ) :
-			    ( &getCurTheta() )->getTheta();
+	const ThetaType & th = ( is_xchrom == CHR_IS_X ) ? th_X : th_notX;
 
 	// If K==2, only evaluate for 1 population, otherwise for all of them.
 	// Existing code uses k==1 (not 0), so:
