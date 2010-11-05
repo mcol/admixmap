@@ -141,28 +141,28 @@ void Chromosome::SetGlobalLocusCorrelation(double drho){
 	(i,0) = 1.0 - (i,1) - (i,2)
 	where p's are probs in StateProbs from HMM
 */
-std::vector<std::vector<double> > Chromosome::getHiddenStateCopyNumberProbs(const bool isDiploid, int j){
+void Chromosome::getHiddenStateCopyNumberProbs(std::vector<std::vector<double> >& CopyNumberProbs, const bool isDiploid, int j) {
   const bclib::pvector<double>& probs = HMM->GetHiddenStateProbs(isDiploid, j);
-  std::vector<std::vector<double> >CopyNumberProbs(3);
 
   if(isDiploid){
     for( int k1 = 0; k1 < NumHiddenStates; k1++ ){
-      CopyNumberProbs[2].push_back(probs[ ( NumHiddenStates + 1 ) * k1 ]);//prob of 2 copies = diagonal element 
-      CopyNumberProbs[1].push_back( 0.0 );
+      // prob of 2 copies = diagonal element
+      CopyNumberProbs[2][k1] = probs[(NumHiddenStates + 1) * k1];
+      CopyNumberProbs[1][k1] = 0.0;
       for( int k2 = 0 ; k2 < NumHiddenStates; k2++ )
-	CopyNumberProbs[1][k1] += probs[k1*NumHiddenStates +k2] + probs[k2*NumHiddenStates +k1];
+        CopyNumberProbs[1][k1] += probs[k1*NumHiddenStates + k2]
+                                + probs[k2*NumHiddenStates + k1];
       CopyNumberProbs[1][k1] -= 2.0*CopyNumberProbs[2][k1];
-      CopyNumberProbs[0].push_back( 1.0 - CopyNumberProbs[1][k1] - CopyNumberProbs[2][k1] );
+      CopyNumberProbs[0][k1] = 1.0 - CopyNumberProbs[1][k1] - CopyNumberProbs[2][k1];
     }
   }
   else{//haploid case
     for( int k = 0; k < NumHiddenStates; k++ ){
-      CopyNumberProbs[2].push_back( 0.0 );//cannot have two copies if haploid
-      CopyNumberProbs[1].push_back(probs[k]);//probability of one copy
-      CopyNumberProbs[0].push_back(1.0-probs[k]);//probability of no copies
+      CopyNumberProbs[2][k] = 0.0;            // haploid: cannot have two copies
+      CopyNumberProbs[1][k] = probs[k];       // probability of one copy
+      CopyNumberProbs[0][k] = 1.0 - probs[k]; // probability of no copies
     }
   }
-  return CopyNumberProbs;
 }
 
 ///samples jump indicators xi for this chromosome and updates SumLocusAncestry

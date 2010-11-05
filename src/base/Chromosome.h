@@ -19,7 +19,6 @@
 
 
 #include <vector>
-#include <bclib/cvector.h>
 #include <string>
 #include "HiddenMarkovModel.h"
 #include "RhoType.h"
@@ -76,8 +75,9 @@ public:
 
   // ********** Interface to HMM ****************************************
 
-  ///
-  std::vector<std::vector<double> > getHiddenStateCopyNumberProbs(const bool isDiploid, int);
+  /// Get the conditional ancestry probabilities at the specified locus
+  void getHiddenStateCopyNumberProbs(std::vector<std::vector<double> >& AProbs,
+                                     const bool isDiploid, int locus);
   ///
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, std::vector<unsigned> &SumN, 

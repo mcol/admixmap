@@ -1187,6 +1187,12 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options,
     bool isRandomMating = options.isRandomMatingModel();
     int maternalShift = (!isRandomMating || SexIsFemale) ? 0 : NumHiddenStates;
 
+    // vector for the ancestry probabilities which will be written to from
+    // Chromosome::getHiddenStateCopyNumberProbs()
+    vector<vector<double> > AProbs(3);
+    for (int i = 0; i < 3; ++i)
+      AProbs[i].resize(NumHiddenStates);
+
     // loop over all loci on this chromosome
     for (unsigned int jj = 0; jj < chrm->GetSize(); ++jj) {
 
@@ -1195,8 +1201,7 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options,
       bool diploid  = !isHaploid && (SexIsFemale || !isXLocus);
 
       // retrieve AncestryProbs from HMM
-      const vector<vector<double> >& AProbs =
-        chrm->getHiddenStateCopyNumberProbs(diploid, jj);
+      chrm->getHiddenStateCopyNumberProbs(AProbs, diploid, jj);
 
       // update the affecteds-only scores
       if (IamAffected) {
