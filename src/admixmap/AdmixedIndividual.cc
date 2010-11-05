@@ -1184,8 +1184,17 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options,
     int KK = NumHiddenStates,k0 = 0;
     if(NumHiddenStates == 2) {KK = 1;k0 = 1;}
 
+    bool isXchrm = chrm->isXChromosome();
+    bool diploid = !isHaploid && (SexIsFemale || !isXchrm);
+
     bool isRandomMating = options.isRandomMatingModel();
     int maternalShift = (!isRandomMating || SexIsFemale) ? 0 : NumHiddenStates;
+
+    // on the X chromosome: if random mating model and male, pass the maternal
+    // gamete X-chr admixture, otherwise pass both gametes X-chr admixture;
+    // not on the X chromosome: pass the autosomal admixture proportions
+    const double *theta = isXchrm ? Theta.flatXChromosome(psi) + maternalShift
+                                  : Theta.flat();
 
     // vector for the ancestry probabilities which will be written to from
     // Chromosome::getHiddenStateCopyNumberProbs()
@@ -1197,27 +1206,14 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options,
     for (unsigned int jj = 0; jj < chrm->GetSize(); ++jj) {
 
       int locus = chrm->GetLocus(jj);
-      bool isXLocus = Loci->GetChrNumOfLocus(locus) == X_posn;
-      bool diploid  = !isHaploid && (SexIsFemale || !isXLocus);
 
       // retrieve AncestryProbs from HMM
       chrm->getHiddenStateCopyNumberProbs(AProbs, diploid, jj);
 
       // update the affecteds-only scores
-      if (IamAffected) {
-
-        if (isXLocus)
-          // if random mating model and X chromosome in male, should pass the
-          // maternal gamete X chromosome admixture
-          affectedsOnlyTest.Update(locus, k0,
-                                   Theta.flatXChromosome(psi) + maternalShift,
-                                   isRandomMating, diploid, AProbs);
-
-        else
-          // not on the X chromosome: just pass Theta
-          affectedsOnlyTest.Update(locus, k0, Theta.flat(),
-                                   isRandomMating, diploid, AProbs);
-      }
+      if (IamAffected)
+        affectedsOnlyTest.Update(locus, k0, theta,
+                                 isRandomMating, diploid, AProbs);
 
       //update ancestry score tests
       if( options.getTestForLinkageWithAncestry() ){
