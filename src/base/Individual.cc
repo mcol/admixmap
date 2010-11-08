@@ -111,14 +111,16 @@ void Individual::Initialise(const Options* const options, const InputData* const
   //initialise genotype probs array and array of indicators for genotypes missing at locus
 
   size_t AncestrySize; // set size of locus ancestry array
+  const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
+
   //gametes holds the number of gametes for each chromosome, either 1 or 2
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     if(isHaploid || (!SexIsFemale && Loci->isXChromosome(j))){//haploid on this chromosome
-      AncestrySize = Loci->GetSizeOfChromosome(j) ;
+      AncestrySize = sizeOfChromosome[j] ;
       gametes.push_back(1);
     }
     else{
-      AncestrySize = 2 * Loci->GetSizeOfChromosome(j) ;
+      AncestrySize = 2 * sizeOfChromosome[j] ;
       gametes.push_back(2);
     }
 
@@ -259,13 +261,13 @@ void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const{
   if(isHaploid || ((unsigned)chrm == X_posn && !SexIsFemale))
     Ancestry[1] = Ancestry[0];
   else
-    Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm] + locus];
+    Ancestry[1] = LocusAncestry[chrm][Loci->GetSizeOfChromosome(chrm) + locus];
 }
 
 ///returns value of LocusAncestry at a locus for a particular gamete
 int Individual::GetLocusAncestry(int chrm, int gamete, int locus)const{
   int g = (gametes[chrm] == 2) ? gamete : 0; //so that gamete = 1 works when gametes[chrm] = 1;
-  return LocusAncestry[chrm][g * Loci->GetSizesOfChromosomes()[chrm]  + locus] ;
+  return LocusAncestry[chrm][g * Loci->GetSizeOfChromosome(chrm) + locus];
 }
 
 ///Indicates whether genotype is missing at all simple loci within a composite locus

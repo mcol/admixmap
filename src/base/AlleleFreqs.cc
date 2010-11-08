@@ -144,12 +144,14 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
   hetCounts.array = new int*[L];
 
   for( int i = 0; i < L; i++ ){
+
+    const int NumStates = Loci->GetNumberOfStates(i);
     // set size of allele counts array
     // allele counts array has NumberOfStates elements for each population 
-    AlleleCounts.array[i] = new int[K*Loci->GetNumberOfStates(i)];
-    //fill(AlleleCounts[i], AlleleCounts[i]+ Loci->GetNumberOfStates(i)*Populations, 0);
+    AlleleCounts.array[i] = new int[K * NumStates];
+    //fill(AlleleCounts[i], AlleleCounts[i] + NumStates*Populations, 0);
     if(//options->getThermoIndicator() && 
-       Loci->GetNumberOfStates(i)==2){//fill hetCounts for SNPs
+       NumStates == 2) { // fill hetCounts for SNPs
       hetCounts.array[i] = new int[K * K];
       fill(hetCounts[i], hetCounts[i]+ K*K, 0);
     }
@@ -187,7 +189,7 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, bclib::LogWriter &
 	    throw bclib::DataOutOfRangeException("allele frequency", "between 0 and 1", "initialallelefreqfile");
 	  if(phi == 1.0)phi = 0.999;
 	  if(phi == 0.0)phi = 0.001;
-	  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] = phi;
+	  Freqs[locus][state + pop*NumStates] = phi;
 	  Freqs[locus][NumStates-1 + pop*NumStates] -= phi;
  	}
       }

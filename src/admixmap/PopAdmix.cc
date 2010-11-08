@@ -486,16 +486,16 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
     fprintf(stderr, "Accept-Psi: %s\n", accept ? "yes" : "no");
 #endif
 
-    if (!accept) {
-      psi[el] = storepsi;
-    }
-
-    for (int i = 0; i < IC_size; ++i) {
-      IC.getElement(i).setPsi(psi);
-      if (accept)
+    if (accept) {
+      for (int i = 0; i < IC_size; ++i)
         IC.getElement(i).acceptPsiProposal();
-      else
+    }
+    else {
+      psi[el] = storepsi;
+      for (int i = 0; i < IC_size; ++i) {
+        IC.getElement(i).setPsi(psi);
         IC.getElement(i).rejectPsiProposal();
+      }
     }
 
     // update sampler object every w updates

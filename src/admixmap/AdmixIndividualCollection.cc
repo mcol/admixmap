@@ -216,8 +216,9 @@ void AdmixIndividualCollection::LoadRepAncestry(const InputAdmixData* const data
 void AdmixIndividualCollection::setGenotypeProbs(const Genome* const Loci){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0; // absolute locus number
-  for(unsigned j = 0; j < nchr; ++j){
-    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+  const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
+  for (unsigned j = 0; j < nchr; ++j) {
+    for (unsigned int jj = 0; jj < sizeOfChromosome[j]; ++jj) {
 
       for (unsigned int i = 0; i < size; ++i)
 	getElement(i).SetGenotypeProbs(j, jj, locus, false);
@@ -360,6 +361,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
   vector<const double*> beta;
   double dispersion = 0.0;
   const bool updateSumLogs = !anneal && iteration > options.getBurnIn();
+  const bool isGlobalRho   = options.isGlobalRho();
 
   for(unsigned i = 0; i < R.size(); ++i){
     lambda.push_back( R[i]->getlambda());
@@ -390,10 +392,10 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
         TestInd[i]->SampleHiddenStates(options);
 
         // ** Sample JumpIndicators, update SumLocusAncestry and SumNumArrivals
-        TestInd[i]->SampleJumpIndicators(!options.isGlobalRho());
+        TestInd[i]->SampleJumpIndicators(!isGlobalRho);
 
         // ** Sample individual- or gamete-specific sumintensities
-        if (!options.isGlobalRho())
+        if (!isGlobalRho)
           TestInd[i]->SampleRho(options, rhoalpha, rhobeta, updateSumLogs);
 
         // ** update admixture props with conjugate proposal on odd-numbered iterations
@@ -421,7 +423,7 @@ void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptio
     if (Populations > 1) {
 
       // ** Sample individual- or gamete-specific sumintensities
-      if (!options.isGlobalRho())
+      if (!isGlobalRho)
         el.SampleRho(options, rhoalpha, rhobeta, updateSumLogs);
 
       // ** update admixture props with conjugate proposal on odd-numbered iterations
@@ -600,6 +602,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
 
   //SumRho = ergodic sum of global sumintensities
   int iterations = options.getTotalSamples()-options.getBurnIn();
+  const unsigned numberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
 
 
   // *********************************************************************
@@ -629,8 +632,8 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
       // Update chromosomes using globalrho, for globalrho model
       if ( (options.getPopulations() > 1) && options.isGlobalRho() ) {
 
-	RhoType RhoBar(Loci->GetNumberOfCompositeLoci());
-	for ( unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i )
+	RhoType RhoBar(numberOfCompositeLoci);
+	for (unsigned i = 0; i < numberOfCompositeLoci; ++i)
 	    RhoBar[i] = exp( SumLogRho[i] / double(iterations) );
 	//set locus correlation
 	Loci->SetLocusCorrelation( RhoBar );
@@ -644,7 +647,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
 
 
   //set haplotype pair probs to posterior means
-  for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
+  for (unsigned int j = 0; j < numberOfCompositeLoci; ++j)
     (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
 
   //set genotype probs using happair probs calculated at posterior means of allele freqs

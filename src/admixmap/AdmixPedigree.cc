@@ -357,7 +357,7 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 
 
     pvectord Kzero;
-    Kzero.resize( getK(), 0.0 );
+    Kzero.resize( K, 0.0 );
     SumSoftmaxTheta.resize( getNTheta(), Kzero );
 
 
@@ -756,6 +756,9 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	const IsXChromType is_xchrom = loci[t].isXChrom();
 	const ThetaType & th = ( is_xchrom == CHR_IS_X ) ? th_X : th_notX;
 
+	const HiddenStateSpace & hss		= getStateProbs( t );
+	const cvector<double> &  condStateProbs = getHMM(is_xchrom).getCondStateProbsAtLocus( t );
+
 	// If K==2, only evaluate for 1 population, otherwise for all of them.
 	// Existing code uses k==1 (not 0), so:
 	for ( PopIdx k = k_begin ; k < getK() ; ++k )
@@ -770,9 +773,6 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 	    double scoreAvg   = 0.0;
 	    double scoreSqAvg = 0.0;
 	    double infoAvg    = 0.0;
-
-	    const HiddenStateSpace & hss	    = getStateProbs( t );
-	    const cvector<double> &  condStateProbs = getHMM(is_xchrom).getCondStateProbsAtLocus( t );
 
 	    for ( HiddenStateSpace::Iterator stIt( hss, is_xchrom ) ; stIt ; ++stIt )
 		{
@@ -1041,6 +1041,7 @@ void Pedigree::SampleTheta(
     #define RW true
 
     const PopIdx K = getK();
+    const bool isRandomMating = options.isRandomMatingModel();
 
     double logpratio = 0.0;
     try
@@ -1069,7 +1070,7 @@ void Pedigree::SampleTheta(
 	for ( int k = 0; k < NumOutcomes; k++ )
 	    {
 	    const RegressionType RegType = (OutcomeType[k] == Binary) ? Logistic : Linear;
-	    logpratio += LogAcceptanceRatioForRegressionModel( RegType, options.isRandomMatingModel(), K,
+	    logpratio += LogAcceptanceRatioForRegressionModel( RegType, isRandomMating, K,
 						NumCovariates, Covariates, beta[k],
 						Outcome->get( getIndex(), k ), poptheta, lambda[k] );
 	    }
@@ -1077,12 +1078,12 @@ void Pedigree::SampleTheta(
 
     // Accept or reject proposed value - if conjugate update and no regression
     // model, proposal will be accepted because logpratio = 0
-    Accept_Reject_Theta( logpratio, options.isRandomMatingModel(), RW );
+    Accept_Reject_Theta( logpratio, isRandomMating, RW );
 
     // Update the value of admixture proportions used in the regression model, but
     // only if pedigree is a single individual:
     if ( (options.getNumberOfOutcomes() > 0) && (getNMembers() == 1) )
-	updateAdmixtureForRegression( NumCovariates, poptheta, options.isRandomMatingModel(), Covariates );
+	updateAdmixtureForRegression( NumCovariates, poptheta, isRandomMating, Covariates );
 
 
     // See NOTE *1* in list-of-things-dont-agree here.

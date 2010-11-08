@@ -158,8 +158,10 @@ void IndividualCollection::SampleHapPairs(const Options& options, AlleleFreqs *A
   unsigned locus = 0;
   // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
   bool annealthermo = anneal && options.getThermoIndicator() && !options.getTestOneIndivIndicator();
+  const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
+
   for(unsigned j = 0; j < nchr; ++j){
-    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+    for (unsigned int jj = 0; jj < sizeOfChromosome[j]; ++jj) {
 
       for(unsigned int i = 0; i < size; i++ ){
 	//Sample Haplotype Pair
@@ -177,9 +179,10 @@ void IndividualCollection::AccumulateAlleleCounts(const Options& options, Allele
   unsigned locus = 0;
   // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
   bool annealthermo = anneal && options.getThermoIndicator() && !options.getTestOneIndivIndicator();
-  for(unsigned j = 0; j < nchr; ++j){
-    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+  const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
 
+  for (unsigned j = 0; j < nchr; ++j) {
+    for (unsigned int jj = 0; jj < sizeOfChromosome[j]; ++jj) {
       for(unsigned int i = 0; i < size; i++ ){
         _child[i]->UpdateAlleleCounts(j, jj, locus, A, annealthermo);
       }

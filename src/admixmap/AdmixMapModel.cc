@@ -132,6 +132,7 @@ void AdmixMapModel::Iterate(const double* Coolnesses, unsigned coolness,
                             double& SumEnergy, double& SumEnergySq,
                             bool AnnealedRun) {
 
+  const int displayLevel = options.getDisplayLevel();
   const int samples = options.getTotalSamples();
   const int burnin  = options.getBurnIn();
   const int width   = log10(samples + 1) + 1;
@@ -154,11 +155,10 @@ void AdmixMapModel::Iterate(const double* Coolnesses, unsigned coolness,
       AccumulateEnergy(Coolnesses, coolness, options, SumEnergy, SumEnergySq, AISz, AnnealedRun, iteration );
     }
 
-    //Write Iteration Number to screen
-    if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
-      WriteIterationNumber(iteration, width, options.getDisplayLevel());
-    }
-    else if ( options.getDisplayLevel() > 3 )
+    // Write iteration number to screen
+    if (!AnnealedRun && !(iteration % options.getSampleEvery()))
+      WriteIterationNumber(iteration, width, displayLevel);
+    else if (displayLevel > 3)
       {
       putc( '.', stderr );
       fflush( stderr );
@@ -298,12 +298,14 @@ void AdmixMapModel::SubIterate(int iteration, Options& _options,
   AdmixOptions& options = (AdmixOptions&) _options;
 
   const int burnin = options.getBurnIn();
+  const int every  = options.getSampleEvery();
+  const int samples = iteration - burnin;
 
     //Output parameters to file and to screen
     Log.setDisplayMode(Quiet);
-     if(!AnnealedRun){
+    if (!AnnealedRun) {
       // output every 'getSampleEvery()' iterations
-      if(!(iteration % options.getSampleEvery()))
+      if (iteration % every == 0)
 	OutputParameters(iteration, &options, Log);
 
       // ** set merged haplotypes for allelic association score test
@@ -317,7 +319,7 @@ void AdmixMapModel::SubIterate(int iteration, Options& _options,
       }
 
       //Updates and Output after BurnIn
-      if( !AnnealedRun && iteration > burnin){
+      if (iteration > burnin) {
 	//dispersion test
 	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(A, IC);
 	//stratification test
@@ -331,11 +333,10 @@ void AdmixMapModel::SubIterate(int iteration, Options& _options,
 	  HWtest.Update(IC, &Loci);
 
 	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
-	if (!( (iteration - burnin) % (options.getSampleEvery() * 10))){
+	if (samples % (every * 10) == 0) {
 	  //Ergodic averages
 	  Log.setDisplayMode(On);
 	  if ( strlen( options.getErgodicAverageFilename() ) ){
-	    int samples = iteration - burnin;
 	    if( options.getIndAdmixHierIndicator() ){
 	      L->OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
 	      A->OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
