@@ -178,8 +178,9 @@ double getDirichletLogDensity_Softmax(const std::vector<double>& a, const bclib:
   return f;
 }
 
-double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta )
-{
+double MultinomialPDF(const std::vector<int>& r,
+                      const std::vector<double>& theta) {
+
   if( r.size() != theta.size() ){
     throw string("Unequal lengths of vector arguments to MultinomialPDF");
   }

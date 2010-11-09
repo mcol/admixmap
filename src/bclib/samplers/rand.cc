@@ -138,8 +138,8 @@ long Rand::ignpoi( double mu )
 }
 
 /// ** Multinomial distribution **
-std::vector<int> Rand::genmultinomial(int N, const std::vector<double> p)
-{
+std::vector<int> Rand::genmultinomial(int N, const std::vector<double>& p) {
+
   int K = (int)p.size();
   std::vector<int> n( K );
   //gsl_ran_multinomial(RandomNumberGenerator, K, N, p, n);

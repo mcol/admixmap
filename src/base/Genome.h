@@ -173,7 +173,8 @@ private:
 			     int populations, const SimpleLocusArray & sLoci );
 
   #else
-    void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations );
+    void InitialiseChromosomes(const std::vector<unsigned>& cstart,
+                               int populations);
   #endif
   void PrintSizes(bclib::LogWriter &Log, const std::string& distanceUnit)const;
 

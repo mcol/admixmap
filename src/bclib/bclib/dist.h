@@ -40,7 +40,8 @@ double getDirichletLogDensity(const std::vector<double>& a, const std::vector<do
 double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double* const x);
 double getDirichletLogDensity_Softmax(const std::vector<double>& a, const bclib::pvector<double>& x);
 /// multinomial density qith probabilities r
-double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta );
+double MultinomialPDF(const std::vector<int>& r,
+                      const std::vector<double>& theta);
 double getGammaGammaLogDensity_LogBasis(const double a, const double a0, const double nu, 
 					const int N, const std::vector<double>& x, const double sumlogx);
 void gradientGammaGammaLogLikelihood(const double a, const double a0, const double nu, 

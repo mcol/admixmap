@@ -62,7 +62,7 @@ protected:
 
   AllelicAssocSubTest();
 
-  void Update(const std::vector<int> Counts, const double* const covariates,
+  void Update(const std::vector<int>& Counts, const double* const covariates,
               double YMinusEY, double phi, double DInvLink);
   static void CentreAndSum(unsigned dim, double *score, double* info, 
 			   double *sumscore, double* sumscoresq, double* suminfo);
@@ -154,7 +154,7 @@ private:
 
   WithinHaplotypeTest();
   void UpdateWithinHaplotypeAssociationTest(const double* const covariates,
-                                            const std::vector<int> allele2Counts,
+                                            const std::vector<int>& allele2Counts,
                                             double YMinusEY, double phi, double DInvLink);
 
 };

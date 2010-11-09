@@ -56,7 +56,8 @@ public:
 
   void Initialise(int nloci);
 
-  void Output(const char* filename, const Vector_s LocusLabels, bclib::LogWriter& Log);
+  void Output(const char *filename, const Vector_s& LocusLabels,
+              bclib::LogWriter& Log);
 
   void Update(const IndividualCollection* const IC, const Genome* const Loci);
 

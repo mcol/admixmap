@@ -62,7 +62,6 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
 
   //code to find mode and initial points
   double dfa = 1, dfb = -1; //gradient at upper and lower bound (if there are any) should be +ve and -ve respectively
-  double mode;  
 
   if( hasLowerBound ) // if bounded below, evaluate gradient just above lower bound 
     dfa = (*gradient)( LowerBound +EPS, args );
@@ -74,6 +73,7 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
   //mode not at boundary
   if( dfa > 0.0 && dfb < 0.0 ){
     // Mode search
+    double mode;
     if( hasLowerBound && hasUpperBound ){ // if bounded below and above 
       mode = SimpleModeSearch(LowerBound, UpperBound, args, gradient);
     }

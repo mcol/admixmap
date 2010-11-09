@@ -222,8 +222,8 @@ vector<double> StratificationTest::GenerateExpectedGenotype( const PedBase * ind
   return pA; // vector of length 2 specifying probs of allele 1 on each gamete
 }
 
-vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAdmixture( const vector<double> ProbAllele1 )
-{
+vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAdmixture(const vector<double>& ProbAllele1) {
+
   vector<unsigned short> repgenotype(2,0);
   if( ProbAllele1[0] > bclib::Rand::myrand() )
     repgenotype[0] = 1;

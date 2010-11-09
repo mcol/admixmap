@@ -138,8 +138,6 @@ private:
   CompositeLocus& operator=(const CompositeLocus&);
 };
 
-double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const std::vector<int> AlleleCounts );
-
 typedef std::vector<hapPair>::const_iterator happairiter;
 
 

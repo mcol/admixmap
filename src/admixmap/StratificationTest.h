@@ -70,7 +70,7 @@ private:
   GenerateExpectedGenotype( const genepi::PedBase * const, const double*, const int  );
 
   std::vector<unsigned short>
-  SimGenotypeConditionalOnAdmixture( const std::vector<double> ProbAllele1 );
+  SimGenotypeConditionalOnAdmixture(const std::vector<double>& ProbAllele1);
 
   std::vector<unsigned short>
   SimGenotypeConditionalOnAncestry( const double*, const int ancestry[2] );

@@ -68,7 +68,7 @@ void AllelicAssocSubTest::Reset(){
   fill(Info, Info+(dim+NumCovars)*(dim+NumCovars), 0.0);
 }
 
-void AllelicAssocSubTest::Update(const vector<int> Counts,
+void AllelicAssocSubTest::Update(const vector<int>& Counts,
                                  const double* const covariates,
                                  double YMinusEY, double phi, double DInvLink){
   double* x = new double[ NumCovars + dim ];
@@ -433,7 +433,7 @@ void WithinHaplotypeTest::Update(const int* const happair, CompositeLocus* const
 
 // This function calculates score for allelic association at each simple locus within a compound locus
 void WithinHaplotypeTest::UpdateWithinHaplotypeAssociationTest(const double* const covariates,
-							  const vector<int> allele2Counts, 
+                                                               const vector<int>& allele2Counts,
 							  double YMinusEY, double phi, double DInvLink)
 {
   double* x = new double[ NumCovars + 1 ];

@@ -49,7 +49,7 @@ public:
   ///Poisson
   static unsigned int genpoi( double );
   ///multinomial
-  static std::vector<int> genmultinomial( int n, const std::vector<double> p );
+  static std::vector<int> genmultinomial(int n, const std::vector<double>& p);
   
   ///Poisson generator
   static long ignpoi(double mu);

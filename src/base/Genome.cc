@@ -212,7 +212,8 @@ void Genome::Initialise(const InputData* const data_, int populations, bool hapm
     {
     simpleLoci = &sLoci;
 #else
-  void Genome::InitialiseChromosomes(const std::vector<unsigned> cstart, int populations ){
+  void Genome::InitialiseChromosomes(const std::vector<unsigned>& cstart,
+                                     int populations) {
 #endif
   C = new Chromosome*[NumberOfChromosomes]; 
   //C is an array of chromosome pointers

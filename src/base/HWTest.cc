@@ -158,7 +158,8 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
   ++numUpdates;
 }
 
-void HWTest::Output(const char* filename, const Vector_s LocusLabels, bclib::LogWriter& Log){
+void HWTest::Output(const char *filename, const Vector_s& LocusLabels,
+                    bclib::LogWriter& Log) {
   try{
     bclib::DelimitedFileWriter outputfile(filename);
     Log << bclib::Quiet << "Tests for Hardy-Weinberg equilibrium writen to " << filename << "\n";

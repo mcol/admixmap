@@ -1207,9 +1207,8 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options,
         IamAffected = true;
     }
 
-    //we don't bother computing scores for the first population when there are two
-    int KK = NumHiddenStates,k0 = 0;
-    if(NumHiddenStates == 2) {KK = 1;k0 = 1;}
+    // we don't compute scores for the first population when there are two
+    int k0 = (NumHiddenStates == 2) ? 1 : 0;
 
     bool isXchrm = chrm->isXChromosome();
     bool diploid = !isHaploid && (SexIsFemale || !isXchrm);
@@ -1295,9 +1294,8 @@ void AdmixedIndividual::updateChib(const AdmixOptions& options, const AlphaType 
 				   chib *MargLikelihood, AlleleFreqs* A){
   // *** After BurnIn *** - accumulate samples of posterior ordinates for theta, rho, allelefreqs separately
   double LogPosterior = 0.0;
-  double LP = 0.0;
   if( NumHiddenStates > 1 ){
-    LP = LogPosteriorTheta_Softmax(options, thetahat, alpha);
+    double LP = LogPosteriorTheta_Softmax(options, thetahat, alpha);
     logPosterior[0].push_back(LP);
     LogPosterior += LP;
     LP = LogPosteriorRho_LogBasis(options, rhohat, rhoalpha, rhobeta);
