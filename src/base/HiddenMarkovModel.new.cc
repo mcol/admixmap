@@ -495,11 +495,8 @@ void HiddenMarkovModel::computeForwards() const
 
 	// This is the main recursion: compute alpha[t] from alpha[t-1]
 
-	// These factors should be pre-computed (as arrays) and cached; they
-	// only need be updated when theta changes (f and g) or when rho
-	// changes (f).
-	const double f = TransProbCache::computeF( getPed().getSLoci(), extLoc(t_m1), tpCache->getRho() );
-	const double g = TransProbCache::computeG( getPed().getSLoci(), extLoc(t_m1) );
+	const double f = tpCache->getF( extLoc(t_m1) );
+	const double g = tpCache->getG( extLoc(t_m1) );
 
 	// Do the matrix multiplication by the transition probabilities.
 	recursionProbs( f, g, th, hss_t_m1, hss_t, alpha_t_m1, alpha_t );
@@ -588,16 +585,14 @@ void HiddenMarkovModel::computeBackwards() const
             beta_t_p1[ j ] *= normalize_sum;
 
 
-	// These factors should be pre-computed (as arrays) and cached; they
-	// only need be updated when theta changes (f and g) or when rho
-	// changes (f).
-	const double f = TransProbCache::computeF( getPed().getSLoci(), extLoc(t), tpCache->getRho() );
-	const double g = TransProbCache::computeG( getPed().getSLoci(), extLoc(t) );
-
 	// Pre-multiply beta[t+1] by the emission probabilities at t+1 (making a copy)
 	ProbsAtLocusType beta_t_p1_mult( beta_t_p1 );
 	for ( HiddenStateSpace::Iterator fr_it( hss_t_p1, isX ) ; fr_it ; ++fr_it )
 	    beta_t_p1_mult[ fr_it->getNon0Index() ] *= fr_it->getEProb() * Pi[ fr_it->getOverallIndex() ];
+
+
+	const double f = tpCache->getF( extLoc(t) );
+	const double g = tpCache->getG( extLoc(t) );
 
 	// Do the matrix multiplication by the transition probabilities.
 	recursionProbs( f, g, th, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );

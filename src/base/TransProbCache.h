@@ -260,6 +260,13 @@ class TransProbCache
 
 
     protected:
+
+	/// Compute the "f" factor from locus t to t+1
+	static double computeF( const SimpleLocusArray & loci, SLocIdxType t, double rho );
+
+	/// Compute the "g" factor from locus t to t+1
+	static double computeG( const SimpleLocusArray & loci, SLocIdxType t );
+
 	/// This is called after rho is updated.  It recomputes the "f" values
 	/// and/or any cached values that depend on rho/f.
 	void reComputeFactors();
@@ -297,11 +304,17 @@ class TransProbCache
 	// Transition probability computation:
 	//-----------------------------------------------------------------------------
 
-	/// Compute the "f" factor from locus t to t+1
-	static double computeF( const SimpleLocusArray & loci, SLocIdxType t, double rho );
+	/// Retrieve the cached value of the "f" factor for locus t
+	double getF( SLocIdxType t ) const
+	{
+	    return factors[ t ].f;
+	}
 
-	/// Compute the "g" factor from locus t to t+1
-	static double computeG( const SimpleLocusArray & loci, SLocIdxType t );
+	/// Retrieve the cached value of the "g" factor for locus t
+	double getG( SLocIdxType t ) const
+	{
+	    return factors[ t ].g;
+	}
 
 	/// Compute the transition probability between two hidden-states on two "adjacent" loci.
 	///
