@@ -118,6 +118,7 @@ void TransProbCache::reComputeFactors()
 
 	    LocusTP &	 lProbs	      = probs[ t ];
 	    const size_t stMultiplier = lProbs.stMultiplier;
+	    const IsXChromType isX    = loci[ t ].isXChrom();
 
 	    const HiddenStateSpace & frSpace = pedigree.getStateProbs( t     );
 	    const HiddenStateSpace & toSpace = pedigree.getStateProbs( t + 1 );
@@ -132,11 +133,11 @@ void TransProbCache::reComputeFactors()
 		const double g = ga[t];
 	    #endif
 
-	    for ( HiddenStateSpace::Iterator fr_it( frSpace ) ; fr_it ; ++fr_it )
+	    for ( HiddenStateSpace::Iterator fr_it( frSpace, isX ) ; fr_it ; ++fr_it )
 		{
 		const size_t	  stOffset = fr_it.getNon0Index() * stMultiplier;
 		const SLocFacts & fact	   = factors[ t ];
-		for ( HiddenStateSpace::Iterator to_it( toSpace ) ; to_it ; ++to_it )
+		for ( HiddenStateSpace::Iterator to_it( toSpace, isX ) ; to_it ; ++to_it )
 		    // lProbs.getProbs( fr_it.getNon0Index(), to_it.getNon0Index() ) =
 		    lProbs.probs[ stOffset + to_it.getNon0Index() ] =
 			computeProb( fr_it, to_it, fact, getMu() );
@@ -476,17 +477,19 @@ double TransProbCache::computeProb( const HiddenStateSpace::Iterator & frState,
 	os << "Transition-probabilities for ped #" << ped.getMyNumber() << " (" << ped.getId()
 	    << ") from locus #" << frLoc << " to " << (frLoc+1) << ":\n";
 
+	const IsXChromType isX = ped.getSLoci()[ frLoc ].isXChrom();
+
 	const HiddenStateSpace & frSpace = ped.getStateProbs( frLoc );
 	const HiddenStateSpace & toSpace = ped.getStateProbs( frLoc + 1 );
 
-	for ( HiddenStateSpace::Iterator to_it(toSpace) ; to_it ; ++to_it )
+	for ( HiddenStateSpace::Iterator to_it(toSpace, isX) ; to_it ; ++to_it )
 	    os << '\t' << to_it.getOverallIndex() << '=' << to_it.getNon0Index();
 	os << '\n';
 
-	for ( HiddenStateSpace::Iterator fr_it(frSpace) ; fr_it ; ++fr_it )
+	for ( HiddenStateSpace::Iterator fr_it(frSpace, isX) ; fr_it ; ++fr_it )
 	    {
 	    os << fr_it.getOverallIndex() << '=' << fr_it.getNon0Index();
-	    for ( HiddenStateSpace::Iterator to_it(toSpace) ; to_it ; ++to_it )
+	    for ( HiddenStateSpace::Iterator to_it(toSpace, isX) ; to_it ; ++to_it )
 		os << '\t' << getProb(fr_it.getNon0Index(),to_it.getNon0Index());
 	    os << '\n';
 	    }
