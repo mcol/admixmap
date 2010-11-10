@@ -69,6 +69,9 @@ if USE_GENOTYPE_PARSER
 		AlleleFreqParser.h AlleleFreqParser.cc \
 		TransProbCache.h TransProbCache.cc \
 		HiddenMarkovModel.new.h HiddenMarkovModel.new.cc \
+		OrganismArray.h \
+		PairSecIter.h \
+		ProposalRingBuffer.h \
 		TwoDimArray.h \
 		PedBase.h PedBase.cc \
 		CodeTimer.h CodeTimer.cc
