@@ -64,12 +64,13 @@ using namespace genepi;
 // Print parallel message
 //-----------------------------------------------------------------------------
 
-static void startupOMPMessage( const AdmixOptions & options )
+static void startupOMPMessage( const AdmixOptions & options,
+			       bclib::LogWriter & LW )
     {
     #if defined(_OPENMP)
 
-	cout << "\n<<< OpenMP version >>>  CPUs: " << omp_get_num_procs() <<
-	    " / max to use: " << omp_get_max_threads() << "\n";
+	LW << "OpenMP version (CPUs: " << omp_get_num_procs()
+	   << " / Max to use: " << omp_get_max_threads() << ").\n\n";
 
 	cout << "  -> pedigree-parallelization "
 	#if PARALLELIZE_PEDIGREE_LOOP
@@ -115,7 +116,7 @@ static void startupOMPMessage( const AdmixOptions & options )
     #else
 
 	if ( options.getUsePedForInd() ) {;} // Suppress compiler warning
-	cout << "<<< serial-execution version >>>\n\n";
+	LW << "Serial-execution version.\n\n";
 
     #endif
     }
@@ -133,7 +134,7 @@ int main( int argc , char** argv ){
   if(options.getFlag("version")){
     bclib::LogWriter LW;
     PrintCopyrightNotice(LW);
-    startupOMPMessage( options );
+    startupOMPMessage(options, LW);
     return 1;
   }
 
@@ -186,16 +187,18 @@ int main( int argc , char** argv ){
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
 
+  const int displayLevel = options.getDisplayLevel();
+
   //create results directory, or if it exists, deletes the contents
   CreateDirectory(options.getResultsDir().c_str());
  
   //open logfile, start timer and print start message
-  bclib::LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
-  if(options.getDisplayLevel()==0)Log.setDisplayMode(bclib::Off);
+  bclib::LogWriter Log(options.getLogFilename(), displayLevel > 1);
+  if (displayLevel == 0)
+    Log.setDisplayMode(bclib::Off);
  
-  //if(options.getDisplayLevel()>0 )
   PrintCopyrightNotice(Log);
-  startupOMPMessage( options );
+  startupOMPMessage(options, Log);
   Log.StartMessage();
  
 
@@ -370,7 +373,8 @@ int main( int argc , char** argv ){
 	M.Run(options, data, Log);
     }
 
-    if(options.getDisplayLevel()==0)Log.setDisplayMode(bclib::Off);
+    if (displayLevel == 0)
+      Log.setDisplayMode(bclib::Off);
     Log.ProcessingTime();
 
   }
