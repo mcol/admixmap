@@ -32,14 +32,7 @@
 
 #define CHECK_ALL_LIKELIHOODS	0 ///< Validation check that dot-products of all alpha & beta are "equal"
 				  ///< Which only works if we're _not_ renormalizing on-the-fly
-#define USE_LIBOIL		0
 #define DEBUG_TRANSRECURSION	0 ///< Debugging output for TransRecursion
-
-
-
-#if USE_LIBOIL
-    #include <liboil/liboil.h>
-#endif
 
 
 
@@ -94,9 +87,6 @@ HiddenMarkovModel::HiddenMarkovModel( const Pedigree &	_ped	 ,
 		}
 	}
 
-    #if USE_LIBOIL
-	oil_init();
-    #endif
 
     //------------------------------------------------------------------------
     // Reserve memory space
@@ -636,22 +626,17 @@ double HiddenMarkovModel::getLogLikelihood() const
     IntSLocIdx t = getNLoci();
     const ProbsAtLocusType & alpha_Tm1 = alpha[ --t ];
 
-    #if USE_LIBOIL
-	double rv;
-	oil_sum_f64( &rv, alpha_Tm1.data_unsafe(), sizeof(double), alpha_Tm1.size() );
-    #else
-	double rv = 0.0;
+    double rv = 0.0;
 
-	// Parallelizing this probably gains little after overhead, but works:
-	#if 0 && defined(_OPENMP)
-	    #warning expect 1 "iteration variable is unsigned" warning here
-	    #pragma omp parallel for default(shared) reduction(+:rv)
-	    for ( HiddenStateSpace::Non0IdxType stIdx = 0 ; stIdx < alpha_Tm1.size() ; ++stIdx )
-	#else
-	    for ( HiddenStateSpace::Non0IdxType stIdx = alpha_Tm1.size() ; stIdx-- != 0 ; )
-	#endif
-		rv += alpha_Tm1[ stIdx ];
+    // Parallelizing this probably gains little after overhead, but works:
+    #if 0 && defined(_OPENMP)
+	#warning expect 1 "iteration variable is unsigned" warning here
+	#pragma omp parallel for default(shared) reduction(+:rv)
+	for ( HiddenStateSpace::Non0IdxType stIdx = 0 ; stIdx < alpha_Tm1.size() ; ++stIdx )
+    #else
+	for ( HiddenStateSpace::Non0IdxType stIdx = alpha_Tm1.size() ; stIdx-- != 0 ; )
     #endif
+	    rv += alpha_Tm1[ stIdx ];
 
     rv = log(rv);
     rv += norm_log_sum_alpha;
@@ -722,30 +707,16 @@ const cvector<double> & HiddenMarkovModel::getCondStateProbsAtLocus( SLocIdxType
 
 	    locProbs.resize( locAlpha.size() );
 
-	    #if USE_LIBOIL
-
-		double normSum;
-		oil_multiply_f64( locProbs.data_unsafe(), locAlpha.data_unsafe(), locBeta.data_unsafe(), locAlpha.size() );
-		oil_sum_f64( &normSum, locProbs.data_unsafe(), sizeof(double), locProbs.size() );
-		normSum = 1.0 / normSum;
-		oil_scalarmult_f64( locProbs.data_unsafe(), sizeof(double),
-				    locProbs.data_unsafe(), sizeof(double),
-				    &normSum, locProbs.size() );
-
-	    #else
-
-		double normSum = 0.0;
-		for ( size_t stIdx = locAlpha.size() ; stIdx-- != 0 ; )
-		    {
-		    const double el = locAlpha[stIdx] * locBeta[stIdx];
-		    locProbs[stIdx] = el;
-		    normSum += el;
-		    }
-		normSum = 1.0 / normSum;
-		for ( size_t stIdx = locProbs.size() ; stIdx-- != 0 ; )
-		    locProbs.at_unsafe(stIdx) *= normSum;
-
-	    #endif
+	    double normSum = 0.0;
+	    for ( size_t stIdx = locAlpha.size() ; stIdx-- != 0 ; )
+		{
+		const double el = locAlpha[stIdx] * locBeta[stIdx];
+		locProbs[stIdx] = el;
+		normSum += el;
+		}
+	    normSum = 1.0 / normSum;
+	    for ( size_t stIdx = locProbs.size() ; stIdx-- != 0 ; )
+		locProbs.at_unsafe(stIdx) *= normSum;
 
 	    }
  	}
