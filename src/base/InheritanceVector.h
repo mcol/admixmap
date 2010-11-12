@@ -403,7 +403,7 @@ inline size_t InheritanceVector::getNMembers() const
 
 inline size_t InheritanceVector::getNMeiosis() const
     {
-    return getSpace().getNMeiosis( isX );
+    return space.getNMeiosis( isX );
     }
 
 
