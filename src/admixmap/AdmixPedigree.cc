@@ -348,7 +348,6 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 	gp_assert( optionsRef == &options );
 
 
-    const PopIdx K = getK();
     for ( ProposalRingBuffer<AdmixType>::Iterator it = thetas.begin() ;
           it != thetas.end() ; ++it )
 	{
@@ -460,7 +459,7 @@ double Pedigree::getLogLikelihood( const Options & , bool /*forceUpdate*/ , bool
     double rv;
 
     #if USE_SINGLE_POPULATION_SPECIAL_CASE
-      if ( getK() == 1 )
+      if ( K == 1 )
 	  rv = getLogLikelihoodOnePop();
       else
     #endif
@@ -675,9 +674,9 @@ inline int Pedigree::getNInheritedByAffected( PopIdx k, FounderIdx fIdx, IsXChro
 	if ( aoCache == 0 )
 	    {
 
-	    aoCache = new TwoDimArray<short,PopIdx,FounderIdx>( getK(), getNFounders() );
+	    aoCache = new TwoDimArray<short,PopIdx,FounderIdx>( K, getNFounders() );
 
-	    for ( PopIdx i_k = getK() ; i_k-- != 0 ; )
+	    for ( PopIdx i_k = K ; i_k-- != 0 ; )
 		for ( FounderIdx i_f = getNFounders() ; i_f-- != 0 ; )
 		    (*aoCache).get(i_k,i_f) = calcNInheritedByAffected( i_k, i_f, xchrom, av, iv );
 
@@ -744,7 +743,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
     // If K==2, only evaluate for 1 population, otherwise for all of them.
     // Existing code uses k==1 (not 0), yet treats it within the AffectedsOnlyTest object as "k==0", so:
-    const PopIdx k_begin = (getK() == 2) ? 1 : 0;
+    const PopIdx k_begin = (K == 2) ? 1 : 0;
 
     for ( SLocIdxType t = 0 ; t < loci.size() ; ++t )
 	{
@@ -761,7 +760,7 @@ void Pedigree::accumAOScore( AffectedsOnlyTest & aoTest ) const
 
 	// If K==2, only evaluate for 1 population, otherwise for all of them.
 	// Existing code uses k==1 (not 0), so:
-	for ( PopIdx k = k_begin ; k < getK() ; ++k )
+	for ( PopIdx k = k_begin ; k < K ; ++k )
 	    {
 
 	    #define DEBUG_AOTEST 0
@@ -1040,7 +1039,6 @@ void Pedigree::SampleTheta(
     // NOTE *1*: We ignore the value of RW, use true every time (see comments above):
     #define RW true
 
-    const PopIdx K = getK();
     const bool isRandomMating = options.isRandomMatingModel();
 
     double logpratio = 0.0;
@@ -1228,7 +1226,7 @@ void Pedigree::updateAdmixtureForRegression( int NumCovariates,
     double avgtheta[ getNTheta() ];
 
 
-    for ( PopIdx k = getK() ; k-- != 0 ; )
+    for ( PopIdx k = K ; k-- != 0 ; )
 	{
 	double sum = 0.0;
 	for ( ThetaIdx tIdx = getNTheta() ; tIdx-- != 0 ; )
@@ -1237,7 +1235,6 @@ void Pedigree::updateAdmixtureForRegression( int NumCovariates,
 	}
 
 
-    const PopIdx K = getK();
     const size_t NumberOfInputCovariates = NumCovariates - K;
 
 
@@ -1275,8 +1272,6 @@ double Pedigree::ProposeThetaWithRandomWalk( const AlphaType & alpha )
     //-------------------------------------------------------------------------
     // Generate proposals
     //-------------------------------------------------------------------------
-
-    const PopIdx K = getK();
 
     // NOTE *M1*: Maybe this should be be allocated once for the class?
     pvectord a( K );
@@ -1390,7 +1385,7 @@ void Pedigree::Accept_Reject_Theta( double logpratio, bool /*isRandomMatingModel
 	const ThetaElType & th	    = theta	   [ tIdx ];
 	const ThetaElType & th_prop = thetaProposal[ tIdx ];
 
-	for ( PopIdx k = getK() ; should_do_test && (k-- != 0) ; )
+	for ( PopIdx k = K ; should_do_test && (k-- != 0) ; )
 	    if ( (th[k] > 0.0) && (th_prop[k] < 0.0001) )
 		should_do_test = false;
 	}
@@ -1597,7 +1592,7 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
     // genotypes at these freqs before calling getloglikelihood
 
     #if USE_SINGLE_POPULATION_SPECIAL_CASE
-      if ( getK() == 1 )
+      if ( K == 1 )
 	rv = getLogLikelihoodOnePop();
       else
     #endif
@@ -1688,7 +1683,7 @@ double Pedigree::getLogLikelihoodAtPosteriorMeans( const Options & options )
 void Pedigree::SetUniformAdmixtureProps()
     {
     AdmixType& th = getCurTheta();
-    th.setTo( 1.0 / getK() );
+    th.setTo( 1.0 / K );
     }
 
 
@@ -1848,8 +1843,6 @@ void Pedigree::SampleHapPair( unsigned /*j*/, unsigned /*jj*/, unsigned /*locus*
 
 void Pedigree::drawInitialAdmixtureProps( const AlphaType & alpha )
     {
-    const PopIdx K = getK();
-
     for ( FounderIdx fIdx = 0 ; fIdx < getNFounders() ; ++fIdx )
 	{
 	// Draw theta from Dirichlet with dirichlet parameters alpha:
