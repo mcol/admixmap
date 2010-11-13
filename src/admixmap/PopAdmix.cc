@@ -433,6 +433,9 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
     const double psiprop = exp(logpsiprop);
 
     // get log likelihood at current parameter values
+    #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+      #pragma omp parallel for reduction(+:LogLikelihood) default(shared) PED_LOOP_OMP_SCHED if (options.getUsePedForInd())
+    #endif
     for (int i = 0; i < IC_size; ++i) {
 
       PedBase& ind = IC.getElement(i);
@@ -449,6 +452,9 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
     psi[el] = psiprop;
 
     // get log likelihood at proposed values
+    #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+      #pragma omp parallel for reduction(+:LogLikelihoodAtProposal) default(shared) PED_LOOP_OMP_SCHED if (options.getUsePedForInd())
+    #endif
     for (int i = 0; i < IC_size; ++i) {
 
       PedBase& ind = IC.getElement(i);
@@ -487,11 +493,17 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
 #endif
 
     if (accept) {
+      #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+        #pragma omp parallel for default(shared) PED_LOOP_OMP_SCHED
+      #endif
       for (int i = 0; i < IC_size; ++i)
         IC.getElement(i).acceptPsiProposal();
     }
     else {
       psi[el] = storepsi;
+      #if defined(_OPENMP) && PARALLELIZE_PEDIGREE_LOOP
+        #pragma omp parallel for default(shared) PED_LOOP_OMP_SCHED
+      #endif
       for (int i = 0; i < IC_size; ++i) {
         IC.getElement(i).setPsi(psi);
         IC.getElement(i).rejectPsiProposal();
