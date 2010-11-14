@@ -32,6 +32,8 @@
 #include "HiddenStateSpace.h"
 #include "InheritanceVector.h"
 
+#include <iostream>
+
 
 
 // These control whether debugging-output support is compiled in at all; to get
@@ -41,11 +43,6 @@
 #define DEBUG_RECURSION		1
 
 #define DEBUG_INHERITANCE	0
-
-
-#if DEBUG_EMISSION_PROBS || DEBUG_RECURSION || DEBUG_INHERITANCE
-    #include <iostream>
-#endif
 
 
 
