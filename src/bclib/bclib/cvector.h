@@ -32,7 +32,7 @@
 #include <stdexcept>	// std::out_of_range
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"	// AGGRESSIVE_RANGE_CHECK
+#include "config.h"	// AGGRESSIVE_RANGE_CHECK, HAVE_STDCXX_0X
 #endif
 
 #include "bclib/exceptions.h"
@@ -156,7 +156,7 @@ template < typename T, typename Alloc = std::allocator<T> > class cvector
 	void push_back ( const T & el ) { v.push_back( el ); }
 	void pop_back  ( const T & el ) { v.pop_back ( el ); }
 
-	#if (__cplusplus > 199711) || defined(__GXX_EXPERIMENTAL_CXX0X__)
+	#if HAVE_STDCXX_0X
 	  template<typename... _Args> iterator emplace( iterator position, _Args &&...args )
 		{ return v.emplace( position, args... ); }
 	  template<typename... _Args> void emplace_back( _Args &&...args ) { v.emplace_back( args... ); }

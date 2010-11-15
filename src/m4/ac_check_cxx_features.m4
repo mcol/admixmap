@@ -33,6 +33,9 @@ Now for some of the new keywords
 AC_CXX_TYPENAME
 AC_CXX_BOOL
 
+# support for C++0x
+AX_CXX_COMPILE_STDCXX_0X
+
 #templates
 AC_CXX_TEMPLATES
 #standard library

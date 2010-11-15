@@ -2,7 +2,7 @@ AM_CPPFLAGS = -I$(srcdir)/../bclib
 AM_LDFLAGS= -L$(srcdir)/../bclib
 SUFFIXES=.cc .o
 #AM_CXXFLAGS=$(WFLAGS) -Wextra -DAGGRESSIVE_RANGE_CHECK=$(AGGRESSIVE_RANGE_CHECK)
-AM_CXXFLAGS=$(WFLAGS) -Wextra -std=c++0x
+AM_CXXFLAGS=$(WFLAGS) -Wextra
 
 if USE_OPENMP
     AM_CXXFLAGS+=-fopenmp

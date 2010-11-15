@@ -6,7 +6,7 @@ CLEANFILES=svn_version.cc
 
 AM_LDFLAGS=-all-static -L../bclib -L../base
 SUFFIXES=.cc .o
-AM_CXXFLAGS=$(WFLAGS) -Wextra -std=c++0x
+AM_CXXFLAGS=$(WFLAGS) -Wextra
 
 if USE_OPENMP
     AM_CXXFLAGS+=-fopenmp

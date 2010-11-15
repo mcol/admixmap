@@ -4,7 +4,7 @@ AM_CPPFLAGS=-I$(BCLIB_PATH) -I$(BASELIB_PATH)
 
 AM_LDFLAGS= -L$(top_builddir)/src/bclib
 SUFFIXES=.cc .o
-AM_CXXFLAGS=$(WFLAGS) -std=c++0x -fexceptions -DUSE_GENOTYPE_PARSER=0
+AM_CXXFLAGS=$(WFLAGS) -fexceptions -DUSE_GENOTYPE_PARSER=0
 
 bin_PROGRAMS = hapmixmap
 hapmixmap_LDFLAGS = -all-static $(AM_LDFLAGS)

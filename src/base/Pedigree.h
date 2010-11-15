@@ -28,7 +28,7 @@
 #define __base_Pedigree_h
 
 
-#include "config.h" // AGGRESSIVE_RANGE_CHECK
+#include "config.h" // AGGRESSIVE_RANGE_CHECK, HAVE_STDCXX_0X
 
 
 #include <cstddef>  // size_t
@@ -46,7 +46,7 @@
 
 
 // C++0x allows variadic templates, thus vector::emplace().
-#define PED_USE_EMPLACE		((__cplusplus > 199711) || defined(__GXX_EXPERIMENTAL_CXX0X__))
+#define PED_USE_EMPLACE		HAVE_STDCXX_0X
 
 
 

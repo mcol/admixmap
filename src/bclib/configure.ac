@@ -40,8 +40,8 @@ AC_PROG_CC
 #AC_PROG_RANLIB
 
 #check C++ features
-#AC_CONFIG_HEADERS(config.h)
-#AC_CHECK_CXX_FEATURES
+AC_CONFIG_HEADERS(config.h)
+AC_CHECK_CXX_FEATURES
 
 #check for std headers
 #AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
