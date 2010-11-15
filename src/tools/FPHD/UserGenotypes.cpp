@@ -90,7 +90,7 @@ void UserGenotypes::RankLoci(const vector<unsigned long>& TypedPos){
   const unsigned Num = TypedPos.size();
   //sort typed loci by position
   ranks.assign(Num, 0);
-  rank(TypedPos, ranks, "default");
+  ::rank(TypedPos, ranks, "default");
 
   gsl_permutation * p = gsl_permutation_alloc (Num);
   for (uint i = 0; i < Num; ++i) {
