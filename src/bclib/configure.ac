@@ -19,6 +19,10 @@ Configuring $PACKAGE_STRING for $target
 
 AM_CONDITIONAL([USE_OPENMP],[test "$enable_openmp" = yes])
 
+# Produce a less verbose output from the makefiles with automake 1.11.
+# To produce the old-style output, run 'make V=1'.
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 # C++ compilers
 #AC_PROG_CXX
 AC_PROG_CXX([icpc pathCC g++ pgCC])
