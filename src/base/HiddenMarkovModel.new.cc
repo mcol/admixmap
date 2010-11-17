@@ -319,22 +319,19 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0,
 						const ThetaType & th ) const
     {
 
-    // Vectors for the stationary distribution and its inverse, of dimension
-    // equal to the full state-space size.
-    Pi	   .resize( hss_0.getNStates( isX ) );
-    piInv  .resize( hss_0.getNStates( isX ) );
+    // Vector for the stationary distribution, of dimension equal to the full
+    // state-space size.
+    Pi.resize( hss_0.getNStates( isX ) );
 
     // Probability of any given IV is 1/(2^M): perhaps this should be cached in
     // the pedigree or HSS?
     const double prob_of_each_iv = 1.0 / (1LL << getPed().getNMeiosis(isX));
 
 
-    // Here we compute the stationary distribution (Pi) and store its inverse
-    // in piInv. To ensure that we compute it for all elements in the hidden
-    // state space, we force the iterator to not skip the elements for which
-    // the emission probability is zero by setting the third parameter of
-    // the constructor to false.
-
+    // Here we compute the stationary distribution (Pi). To ensure that we
+    // compute it for all elements in the hidden state space, we force the
+    // iterator to not skip the elements for which the emission probability
+    // is zero by setting the third parameter of the constructor to false.
     for ( HiddenStateSpace::Iterator it( hss_0, isX, false ) ; it ; ++it )
 	{
 	double pi = prob_of_each_iv;
@@ -342,7 +339,6 @@ void HiddenMarkovModel::computeStationaryDistr( const HiddenStateSpace & hss_0,
 	for ( AncestryVector::FGIdx idx = av.size(isX) ; idx-- != 0 ; )
 	    pi *= th[ av.founderOf(idx,isX) ] [ av.at(idx,isX) ];
 	Pi   [ it.getOverallIndex() ] = pi;
-	piInv[ it.getOverallIndex() ] = 1 / pi;
 	}
 
 
@@ -588,7 +584,7 @@ void HiddenMarkovModel::computeBackwards() const
 	recursionProbs( f, g, th, hss_t_p1, hss_t, beta_t_p1_mult, beta_t );
 
 	for ( HiddenStateSpace::Iterator fr_it( hss_t, isX ) ; fr_it ; ++fr_it )
-	    beta_t[ fr_it->getNon0Index() ] *= piInv[ fr_it->getOverallIndex() ];
+	    beta_t[ fr_it->getNon0Index() ] /= Pi[ fr_it->getOverallIndex() ];
 
 	#if DEBUG_TRANSRECURSION
 	    cout << "\n* beta[" << t << "] after\n";

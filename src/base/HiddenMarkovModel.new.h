@@ -61,7 +61,6 @@ class HiddenMarkovModel
 
     protected:
 	typedef double ProbType;
-	typedef double InvProbType;
 	typedef size_t IntSLocIdx;
 
 	/// Probability array type, for the forward (alpha) and backwards(beta)
@@ -107,10 +106,6 @@ class HiddenMarkovModel
 	/// Stationary distribution, calculated in computeForwards() and used
 	/// in computeBackwards(), indexed on all states
 	mutable PiType Pi;
-
-	/// Inverse of the stationary distribution, calculated in computeForwards()
-	/// and used in computeBackwards(), indexed on all states
-	mutable cvector<InvProbType> piInv;
 
 	/// Recursive function to multiply the transition-probability matrix
 	/// by the probability vector alpha
