@@ -545,6 +545,11 @@ void AdmixMapModel::WriteParamsAsRObjectDimensions(const AdmixOptions& options, 
         stringstream ss;
         ss << "Psi." << PopulationLabels[i];
         dimnames[0].push_back(ss.str());
+        if (!options.isGlobalPsi() && i > 0) {
+          ss.str("");
+          ss << "PsiPrecision." << PopulationLabels[i];
+          dimnames[0].push_back(ss.str());
+        }
       }
     }
   }

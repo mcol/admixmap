@@ -591,7 +591,7 @@ void PopAdmix::OutputParams(bclib::Delimitedostream& out){
     for (size_t i = 0; i < psi.size(); ++i) {
       out << psi[i];
       if (!options.isGlobalPsi() && i > 0)
-        out << "(" << psitau[i] << ")";
+        out << psitau[i];
     }
   }
 
