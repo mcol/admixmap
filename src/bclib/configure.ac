@@ -33,9 +33,6 @@ AC_LANG(C++)
 AC_CXX_FLAGS_PRESET
 dnl TODO: architecture-specific optimisations
 
-# C compiler - because we are using gsl
-AC_PROG_CC
-
 # check for ranlib. not stricly necessary but just in case 
 #AC_PROG_RANLIB
 

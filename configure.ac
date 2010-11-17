@@ -63,9 +63,6 @@ AC_LANG(C++)
 AC_CXX_FLAGS_PRESET
 dnl TODO: architecture-specific optimisations
 
-# C compiler - because we are using gsl
-AC_PROG_CC([gcc opencc])
-
 #check C++ features
 AC_CONFIG_HEADERS(config.h)
 AC_CHECK_CXX_FEATURES
