@@ -148,7 +148,11 @@ unsigned int PedBase::getIndex() const { not_implemented( "getIndex()", typeid(*
 void PedBase::drawInitialAdmixtureProps(const AlphaType & /*alpha*/) { not_implemented( "drawInitialAdmixtureProps()", typeid(*this) ); }
 
 
-void PedBase::SetGenotypeProbs(int /*j*/, int /*jj*/, unsigned /*locus*/, bool /*chibindicator*/) { not_implemented( "SetGenotypeProbs()", typeid(*this) ); }
+void PedBase::SetGenotypeProbs(int /*chr*/, unsigned /*sizeOfChromosome*/,
+			       bool /*chibindicator*/)
+    {
+    not_implemented( "SetGenotypeProbs()", typeid(*this) );
+    }
 
 
 void PedBase::AnnealGenotypeProbs(int /*j*/, const double /*coolness*/) { not_implemented( "AnnealGenotypeProbs()", typeid(*this) ); }

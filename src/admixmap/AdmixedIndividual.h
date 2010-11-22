@@ -102,7 +102,7 @@ public:
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
 
-  void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
+  void SetGenotypeProbs(int chr, unsigned sizeOfChromosome, bool chibindicator);
   void AnnealGenotypeProbs(int j, const double coolness);
 
   void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;

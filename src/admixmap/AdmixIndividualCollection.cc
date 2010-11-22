@@ -215,19 +215,16 @@ void AdmixIndividualCollection::LoadRepAncestry(const InputAdmixData* const data
 //TODO: ?? have next two functions use those in base class and have ones here only operate on test individuals
 void AdmixIndividualCollection::setGenotypeProbs(const Genome* const Loci){
   unsigned nchr = Loci->GetNumberOfChromosomes();
-  unsigned locus = 0; // absolute locus number
   const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
+
   for (unsigned j = 0; j < nchr; ++j) {
-    for (unsigned int jj = 0; jj < sizeOfChromosome[j]; ++jj) {
 
-      for (unsigned int i = 0; i < size; ++i)
-	getElement(i).SetGenotypeProbs(j, jj, locus, false);
+    for (unsigned int i = 0; i < size; ++i)
+      getElement(i).SetGenotypeProbs(j, sizeOfChromosome[j], false);
 
-      if(TestInd)
-	for(int i = 0; i < sizeTestInd; ++i)
-	  TestInd[i]->SetGenotypeProbs(j, jj, locus, false);
-      locus++;
-    }
+    if(TestInd)
+      for(int i = 0; i < sizeTestInd; ++i)
+        TestInd[i]->SetGenotypeProbs(j, sizeOfChromosome[j], false);
   }
 }
 

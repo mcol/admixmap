@@ -289,25 +289,30 @@ void AdmixedIndividual::setAdmixtureProps(const AdmixtureProportions& rhs) {
 // chibindicator is passed to the CompositeLocus object: if set to true,
 // CompositeLocus will use HapPairProbsMAP instead of HapPairProbs when the
 // allele frequencies are not fixed.
-void AdmixedIndividual::SetGenotypeProbs(int j, int jj,
-                                         unsigned locus, bool chibindicator) {
+void AdmixedIndividual::SetGenotypeProbs(int j, unsigned sizeOfChromosome,
+                                         bool chibindicator) {
 
   const bool diploid = !isHaploidAtChromosome(j);
   const int K = diploid ? NumHiddenStates*NumHiddenStates : NumHiddenStates;
+  unsigned locus = Loci->getChromosome(j)->GetLocus(0);
 
-  if (!GenotypesMissing[j][jj]) {
-    if (diploid)
-      (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j] + jj*K,
-                                       PossibleHapPairs[locus],
-                                       chibindicator);
-    else
-      (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j] + jj*K,
-                                              PossibleHapPairs[locus],
-                                              chibindicator);
-  }
-  else {
-    for (int k = 0; k < K; ++k)
-      GenotypeProbs[j][jj * K + k] = 1.0;
+  for (unsigned jj = 0; jj < sizeOfChromosome; ++jj) {
+    if (!GenotypesMissing[j][jj]) {
+      if (diploid)
+        (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j] + jj*K,
+                                         PossibleHapPairs[locus],
+                                         chibindicator);
+      else
+        (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j] + jj*K,
+                                                PossibleHapPairs[locus],
+                                                chibindicator);
+    }
+    else { // missing genotype
+      for (int k = 0; k < K; ++k)
+        GenotypeProbs[j][jj * K + k] = 1.0;
+    }
+
+    locus++;
   }
 }
 
@@ -601,13 +606,9 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options,
     const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
 
     // set genotype probs using HapPairProbsMAP and AlleleProbsMAP
-    for (unsigned j = 0; j < numberOfChromosomes; ++j) {
-      unsigned locus = Loci->getChromosome(j)->GetLocus(0);
-      for (unsigned int jj = 0; jj < sizeOfChromosome[j]; ++jj) {
-  	SetGenotypeProbs(j, jj, locus, true); // setting last arg to true forces use of ...ProbsMAP
-	++locus;
-      }
-    }
+    for (unsigned j = 0; j < numberOfChromosomes; ++j)
+      SetGenotypeProbs(j, sizeOfChromosome[j], true);
+
     //     cout << "printing genotypeprobs" << endl;
     //     for(unsigned j = 0; j < 5; ++j) { //Loci->GetNumberOfChromosomes(); ++j){
     //       for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {

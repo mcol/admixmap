@@ -154,7 +154,8 @@ class PedBase
 
 	// Methods from AdmixedIndividual:
 	virtual void drawInitialAdmixtureProps(const AlphaType &alpha);
-	virtual void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
+	virtual void SetGenotypeProbs(int chr, unsigned sizeOfChromosome,
+				      bool chibindicator);
 	virtual void AnnealGenotypeProbs(int j, const double coolness);
 	virtual void ResetSufficientStats();
 	virtual void SampleJumpIndicators(bool sampleArrivals);
