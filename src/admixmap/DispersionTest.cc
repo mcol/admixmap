@@ -72,12 +72,9 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
   vector<vector<double> > LogLikelihood(NumberOfCompositeLoci + 1, temp);
   vector<vector<double> > RepLogLikelihood(LogLikelihood);
   temp.clear();
-  vector<double> sum(NumberOfPopulations); vector<double> repsum(NumberOfPopulations);
+  vector<double> sum(NumberOfPopulations, 0.0);
+  vector<double> repsum(NumberOfPopulations, 0.0);
 
-  for( int k = 0; k < NumberOfPopulations; k++ ){
-    sum[k] = 0.0; 
-    repsum[k] = 0.0;
-  }
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     for( int k = 0; k < NumberOfPopulations; k++ ){
       popfreqs =  A->GetAlleleFreqs(j, k );

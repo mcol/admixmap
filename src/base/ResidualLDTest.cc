@@ -107,8 +107,9 @@ void ResidualLDTest::Initialise(const char* filename, const IndividualCollection
 void ResidualLDTest::Reset(){
   //resets arrays holding sums of scores and info over individuals to zero; invoked at start of each iteration after burnin.
   if(test){
-      int locus = 0;
-    for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
+    int locus = 0;
+    const unsigned numberOfChromosomes = Lociptr->GetNumberOfChromosomes();
+    for (unsigned j = 0; j < numberOfChromosomes; ++j) {
       for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
 	fill(Score[j][k].begin(), Score[j][k].end(), 0.0);
 	fill(Info[j][k].begin(), Info[j][k].end(), 0.0);
@@ -121,9 +122,11 @@ void ResidualLDTest::Reset(){
 
 void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
   int abslocus = 0;
-  
-  for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){
-    for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
+  const unsigned numberOfChromosomes = Lociptr->GetNumberOfChromosomes();
+  const unsigned *sizeOfChromosome = Lociptr->GetSizesOfChromosomes();
+
+  for (unsigned c = 0; c < numberOfChromosomes; ++c) {
+    for (unsigned j = 0; j < sizeOfChromosome[c] - 1; ++j) {
       //if(ishapmixmodel)
       //UpdateScoresForResidualAllelicAssociation2(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
       //else
@@ -135,8 +138,8 @@ void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
 
   //vector<unsigned>::iterator T_iter = Tcount.begin();
   //accumulate score, square of score and info
-  for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
-    for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(c)-1; ++k){
+  for (unsigned c = 0; c < numberOfChromosomes; ++c)
+    for (unsigned k = 0; k < sizeOfChromosome[c] - 1; ++k) {
       int locus = chrm[c]->GetLocus(k);
       unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 
@@ -278,7 +281,6 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus
 	  }
 	
 	  Info[c][locus][0] += phiA*phiB*(1.0-phiA)*(1.0-phiB);
-	  
 	}
       }
     }

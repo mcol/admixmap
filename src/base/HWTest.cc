@@ -86,11 +86,15 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
   int complocus = 0;  // absolute comp locus number
   int Ancestry0, Ancestry1;
   double **Prob0 = 0, **Prob1 = 0;
+  const unsigned numberOfChromosomes = Loci->GetNumberOfChromosomes();
+  const unsigned *sizeOfChromosome   = Loci->GetSizesOfChromosomes();
 
   Reset();
 
-  for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr){ //loop over chromosomes
-    for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j){ //loop over comp loci on chromosome
+  for (unsigned int chr = 0; chr < numberOfChromosomes; ++chr) {
+
+    // loop over composite loci on chromosome
+    for (unsigned int j = 0; j < sizeOfChromosome[chr]; ++j) {
       const CompositeLocus & cLoc = (*Loci)[ complocus ];
       const unsigned int NumSimpleLociWithinCL = cLoc.GetNumberOfLoci();
       int alleles0[ NumSimpleLociWithinCL ];

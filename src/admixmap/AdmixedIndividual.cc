@@ -225,16 +225,20 @@ void AdmixedIndividual::SetMissingGenotypes(){
   //used in HW score test; NB call before genotypes are deleted
   if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
   missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
+  unsigned numberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
   unsigned index = 0;
-  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
-    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
+  for (unsigned j = 0; j < numberOfCompositeLoci; ++j) {
+    int numberOfLoci = Loci->getNumberOfLoci(j);
+    for (int k = 0; k < numberOfLoci; ++k) {
       #if USE_GENOTYPE_PARSER
 	missingGenotypes[index++] = genotypes[j][k].isMissing2();
       #else
 	missingGenotypes[index++] = (genotypes[j][k][0] == 0);
       #endif
     }
+  }
 }
+
 //********** Destructor **********
 AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumSoftmaxTheta;
@@ -308,7 +312,6 @@ void AdmixedIndividual::SetGenotypeProbs(int j, int jj,
   }
 }
 
-
 /// Called after energy has been evaluated, before updating model parameters
 void AdmixedIndividual::AnnealGenotypeProbs(int j, const double coolness) {
 
@@ -353,13 +356,22 @@ const int *AdmixedIndividual::getSumLocusAncestryX()const{
 const vector<unsigned> AdmixedIndividual::getSumNumArrivals() const {
   vector<unsigned> SumN(2,0);
   unsigned locus = 0;
+  const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
   for(unsigned i = 0; i < numChromosomes; ++i){
-      for(unsigned j = 0; j < Loci->GetSizeOfChromosome(i); ++j, ++locus)
-	if(i != X_posn){//skip X chromosome
-	  //accumulate sums over loci
-	  SumN[0] += SumNumArrivals[locus*2];//first gamete
-	  if(!isHaploidatLocus(locus)) SumN[1] += SumNumArrivals[locus*2+1];//second gamete
-	}
+    if (Loci->isXChromosome(i)) {
+      locus += sizeOfChromosome[i];
+      continue; // skip X chromosome
+    }
+
+    // accumulate sums over loci
+    for (unsigned j = 0; j < sizeOfChromosome[i]; ++j, ++locus) {
+      SumN[0] += SumNumArrivals[locus*2]; // first gamete
+
+      // we can simplify the check for haploid since we know we are not on
+      // the X chromosome
+      if (!isHaploid)
+        SumN[1] += SumNumArrivals[locus*2+1]; // second gamete
+    }
   }
   return SumN;
 }
@@ -368,7 +380,8 @@ const vector<unsigned>AdmixedIndividual::getSumNumArrivals_X()const{
   vector<unsigned> SumN(2,0);
   if(Xdata){//accumulate sums over Loci on X chromosome
     unsigned offset = Loci->getFirstXLocus();
-    for(unsigned i = 0; i < Loci->GetSizeOfChromosome(X_posn); ++i){
+    unsigned sizeXChr = Loci->GetSizeOfChromosome(X_posn);
+    for (unsigned i = 0; i < sizeXChr; ++i) {
       SumN[0] += SumNumArrivals[2*(i + offset)];
       SumN[1] += SumNumArrivals[2*(i + offset)+1];
     }
@@ -584,10 +597,13 @@ void AdmixedIndividual::FindPosteriorModes(const AdmixOptions& options,
                                            double rhoalpha, double rhobeta,
                                            AlleleFreqs* A, ofstream& modefile) {
   if( A->IsRandom() ) {
+    unsigned numberOfChromosomes = Loci->GetNumberOfChromosomes();
+    const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
+
     // set genotype probs using HapPairProbsMAP and AlleleProbsMAP
-    for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
+    for (unsigned j = 0; j < numberOfChromosomes; ++j) {
       unsigned locus = Loci->getChromosome(j)->GetLocus(0);
-      for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
+      for (unsigned int jj = 0; jj < sizeOfChromosome[j]; ++jj) {
   	SetGenotypeProbs(j, jj, locus, true); // setting last arg to true forces use of ...ProbsMAP
 	++locus;
       }

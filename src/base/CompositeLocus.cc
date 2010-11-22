@@ -352,19 +352,23 @@ double CompositeLocus::getLastConditionalHapPairProbs( const int ancestry[2]) co
  *   might represent european paternal and african maternal).
  *
  */
-void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
-  double* Probs = new double[PossibleHapPairs.size()];//1way array of hap.pair probs
+void CompositeLocus::SampleHapPair(hapPair *hap,
+                                   const std::vector<hapPair>& PossibleHapPairs,
+                                   const int ancestry[2]) const {
+
+  const unsigned size = PossibleHapPairs.size();
+  double *Probs = new double[size]; // 1-way array of hap.pair probs
   // getConditionalHapPairProbs(Probs, PossibleHapPairs, ancestry);
   happairiter end = PossibleHapPairs.end();
   happairiter hiter = PossibleHapPairs.begin();
-  for( unsigned j = 0; j < PossibleHapPairs.size() ; ++j) {
+  for (unsigned j = 0; j < size; ++j) {
     Probs[j] = HapPairProbs[ PossibleHapPairs[j].haps[0] * NumberOfStates * Populations * Populations + 
 			     PossibleHapPairs[j].haps[1] * Populations * Populations +
 			     ancestry[0] * Populations  + ancestry[1]];
   }
 
   //no need to renormalize for SampleFromDiscrete
-  const int h = bclib::Rand::SampleFromDiscrete(Probs, PossibleHapPairs.size());
+  const int h = bclib::Rand::SampleFromDiscrete(Probs, size);
   delete[] Probs;
 
   hap->haps[0] = PossibleHapPairs[h].haps[0];
