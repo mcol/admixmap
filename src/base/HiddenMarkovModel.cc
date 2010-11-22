@@ -206,11 +206,11 @@ double HiddenMarkovModel::getLogLikelihood(const bool isDiploid) {
 
   double sum = 0.0;
   const int NumStates = isDiploid? nStates : K;
+  const double *alpha_Tm1 = alpha + (Transitions - 1) * NumStates;
   
-  for( int j = 0; j < NumStates; j++ ) {
-    sum += alpha[(Transitions - 1)*NumStates + j];
-  }
-    
+  for (int j = 0; j < NumStates; ++j)
+    sum += alpha_Tm1[j];
+
   return( sumfactor+log(sum) );
 }
 
