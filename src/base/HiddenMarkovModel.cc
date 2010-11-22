@@ -168,26 +168,28 @@ void HiddenMarkovModel::SampleJumpIndicators(const int* const LocusAncestry, con
   //this does not require forward or backward probs, just state arrival probs
   if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel::SampleJumpIndicators when StateArrivalProbs are not set!");
   bool xi = false;//jump indicator
-  double ProbJump = 0.0; // prob jump indicator is 1
   // first locus not included in loop below
   for( unsigned int g = 0; g < gametes; g++ ){
     SumLocusAncestry[ g*K + LocusAncestry[g*Transitions] ]++;
   }
   for( int t = 1; t < Transitions; t++ ) {
     for( unsigned int g = 0; g < gametes; g++ ){
+      const int gTrans_t = g*Transitions + t;
+      const int LocusAnc = LocusAncestry[gTrans_t];
+      const double f_2t_g = f[2*t + g];
       xi = true;
-      if( LocusAncestry[g*Transitions + t-1] == LocusAncestry[g*Transitions + t] ){
-	ProbJump = StateArrivalProbs[g][t*K + LocusAncestry[t + g*Transitions]];  
-	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > Rand::myrand());
+      if (LocusAncestry[gTrans_t - 1] == LocusAnc) {
+        double ProbJump = StateArrivalProbs[g][t*K + LocusAnc];
+        xi = (bool)(ProbJump / (ProbJump + f_2t_g) > Rand::myrand());
       } 
       if( xi ){ // increment sumlocusancestry if jump indicator is 1
-	SumLocusAncestry[ g*K + LocusAncestry[t+g*Transitions] ]++;
+	SumLocusAncestry[ g*K + LocusAnc ]++;
 	if(SampleArrivals) { // sample number of arrivals where jump indicator is 1
 	  double u = Rand::myrand();
 	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
 	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
 	  // algorithm does not require rho or d, only u and f
-	  unsigned int sample = Rand::genpoi( log( (1 - u*( 1 - f[2*t+g])) / f[2*t+g] ) );
+	  unsigned int sample = Rand::genpoi( log( (1 - u*(1 - f_2t_g)) / f_2t_g) );
 	  SumNumArrivals[2*(startlocus + t) + g] += sample + 1;
 	}
       }//end if xi true
@@ -217,23 +219,28 @@ double HiddenMarkovModel::getLogLikelihood(const bool isDiploid) {
 void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
   UpdateForwardProbs(isDiploid);
 
-  int j1,j2;
+  const int NumStates = isDiploid ? nStates : K;
+
+  // probability vector for possible states
+  double *V = new double[NumStates];
+
+  // sample rightmost locus
+  const double *alpha_Tm1 = alpha + (Transitions - 1) * NumStates;
+  for (int j = 0; j < NumStates; ++j)
+    V[j] = alpha_Tm1[j];
+
   if(isDiploid) { 
-    double* V = new double[nStates]; //probability vector for possible states (haploid or diploid)
-    int C = 0; // sampled state (haploid or diploid) coded as integer
     // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete 
-    int State = 0;
-    // sample rightmost locus  
-    for( int j = 0; j < nStates; ++j ) V[State++] = alpha[(Transitions - 1)*nStates + j];
-    
-    C = Rand::SampleFromDiscrete( V, nStates ); 
+
+    // sampled state (haploid or diploid) coded as integer
+    int C = Rand::SampleFromDiscrete( V, nStates );
     SStates[Transitions-1] = (int)(C/K);
     SStates[Transitions - 1 + Transitions] = (C % K);
     
     for( int t =  Transitions - 2; t >= 0; t-- ) { // loop from right to left
-      j1 = SStates[t+1];                     // ancestry on gamete 0 at locus t+1
-      j2 = SStates[Transitions + t + 1];     // ancestry on gamete 1 at locus t+1
-      State = 0;
+      int j1 = SStates[t+1];                     // ancestry on gamete 0 at locus t+1
+      int j2 = SStates[Transitions + t + 1];     // ancestry on gamete 1 at locus t+1
+      int State = 0;
       for(int i1 = 0; i1 < K; ++i1)for(int i2 = 0; i2 < K; ++i2) {
 	V[State] = 
 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[0][(t+1)*K + j1] ) * 
@@ -245,10 +252,9 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
       SStates[t] = (int)(C/K);//paternal
       SStates[t + Transitions] = (C % K);//maternal
     }
-    delete[] V;
-  } else {//haploid
-    double* V = new double[K]; //probability vector for possible states 
-    for( int state = 0; state < K; state++ )V[state] = alpha[(Transitions - 1)*K + state ];
+  }
+
+  else { // haploid
     SStates[Transitions-1] = Rand::SampleFromDiscrete( V, K );
     for( int t =  Transitions - 2; t >= 0; t-- ){
 	//for(int j = 0; j < K; j++)V[j] = (j == C[t+1])*f[2*t+1]+theta[C[t+1]]*(1.0 - f[2*t]);
@@ -258,8 +264,9 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
 	    V[state] *= alpha[t*K + state];
 	SStates[t] = Rand::SampleFromDiscrete( V, K );
     }
-    delete[] V;
   }
+
+  delete[] V;
 }
 
 /** 
@@ -271,14 +278,10 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
 const bclib::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDiploid, int t){
   UpdateForwardProbs(isDiploid);
   UpdateBackwardProbs(isDiploid);
-  unsigned States = K;
-  if(isDiploid) {
-    States=nStates;
-  }
-  
-  if (hiddenStateProbs.size() != (unsigned)States) {
+  unsigned States = isDiploid ? nStates : K;
+
+  if (hiddenStateProbs.size() != States)
     hiddenStateProbs.resize(States);
-  }
 
   const double *a = alpha + t*States;
   const double *b = beta + t*States;  
