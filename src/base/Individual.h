@@ -66,8 +66,14 @@ public:
   const int* getSampledHapPair(int locus)const;
   bool GenotypeIsMissing(unsigned int locus)const;///< locus is a comp locus
   bool simpleGenotypeIsMissing(unsigned locus)const;///< locus is a simple locus
-  bool isHaploidatLocus(unsigned j)const;
-  bool isHaploidIndividual()const;
+  bool isXChromosome(unsigned chr) const { return chr == X_posn; }
+  bool isHaploidIndividual() const { return isHaploid; }
+  bool isHaploidatLocus(unsigned locus) const {
+    return isHaploid || (!SexIsFemale && Loci->isXLocus(locus));
+  }
+  bool isHaploidAtChromosome(unsigned chr) const {
+    return isHaploid || (!SexIsFemale && isXChromosome(chr));
+  }
   bool isPedigree() const { return false; }
 
   virtual double getLogLikelihood(const Options& , bool forceUpdate, bool store);

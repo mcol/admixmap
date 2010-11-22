@@ -115,8 +115,7 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   //allocate genotype probs - these are actually the emission probs given each phased hidden state
   GenotypeProbs = new double*[numChromosomes];
   for (unsigned int chr = 0; chr < numChromosomes; ++chr) {
-    if (isHaploid || (!SexIsFemale && Loci->isXChromosome(chr)))
-      // haploid on this chromosome
+    if (isHaploidAtChromosome(chr))
       GenotypeProbs[chr] = new double[sizeOfChromosome[chr] * NumHiddenStates];
     else
       GenotypeProbs[chr] = new double[sizeOfChromosome[chr] * NumHiddenStates * NumHiddenStates];
@@ -293,7 +292,7 @@ void AdmixedIndividual::setAdmixtureProps(const AdmixtureProportions& rhs) {
 void AdmixedIndividual::SetGenotypeProbs(int j, int jj,
                                          unsigned locus, bool chibindicator) {
 
-  const bool diploid = !isHaploid && (j != (int)X_posn || SexIsFemale);
+  const bool diploid = !isHaploidAtChromosome(j);
   const int K = diploid ? NumHiddenStates*NumHiddenStates : NumHiddenStates;
 
   if (!GenotypesMissing[j][jj]) {
@@ -317,7 +316,7 @@ void AdmixedIndividual::AnnealGenotypeProbs(int j, const double coolness) {
 
   int locus = Loci->getChromosome(j)->GetLocus(0);
 
-  const bool diploid = !isHaploid && (j != (int)X_posn || SexIsFemale);
+  const bool diploid = !isHaploidAtChromosome(j);
   const int K = diploid ? NumHiddenStates*NumHiddenStates : NumHiddenStates;
 
   // loop over composite loci
@@ -358,7 +357,7 @@ const vector<unsigned> AdmixedIndividual::getSumNumArrivals() const {
   unsigned locus = 0;
   const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();
   for(unsigned i = 0; i < numChromosomes; ++i){
-    if (Loci->isXChromosome(i)) {
+    if (isXChromosome(i)) {
       locus += sizeOfChromosome[i];
       continue; // skip X chromosome
     }
@@ -460,8 +459,9 @@ double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options& option
     delete[] b;
 
     for( unsigned int j = 0; j < numChromosomes; j++ ) {
+      Chromosome *C = Loci->getChromosome(j);
       UpdateHMMInputs(j, options, ThetaBar, rhobar);
-      LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
+      LogLikelihood += C->HMM->getLogLikelihood(!isHaploidAtChromosome(j));
     }
   }
 
@@ -580,7 +580,7 @@ void AdmixedIndividual::SampleJumpIndicators(bool sampleArrivals){
     Chromosome* C = Loci->getChromosome(j);
     // don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
     //sample number of arrivals, update SumNumArrivals and SumLocusAncestry
-    if( !Loci->isXChromosome(j) )
+    if (!isXChromosome(j))
       C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumNumArrivals,
 				     sampleArrivals);
     else
@@ -1120,7 +1120,7 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options& options,
                                         const RhoType& rho) {
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
-  const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
+  const bool diploid = !isHaploidAtChromosome(j);
   const bool isRandomMating = options.isRandomMatingModel();
   Chromosome* C = Loci->getChromosome(j);
 
@@ -1137,7 +1137,7 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options& options,
   // in the haploid case in a random mating model, pass the pointer to the
   // maternal admixture proportions
   const int maternalShift = (diploid || !isRandomMating) ? 0 : NumHiddenStates;
-  if (C->isXChromosome())
+  if (isXChromosome(j))
     C->HMM->SetStateArrivalProbs(theta.flatXChromosome(psi) + maternalShift,
                                  isRandomMating, diploid);
   else

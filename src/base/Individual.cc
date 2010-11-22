@@ -115,7 +115,8 @@ void Individual::Initialise(const Options* const options, const InputData* const
 
   //gametes holds the number of gametes for each chromosome, either 1 or 2
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    if(isHaploid || (!SexIsFemale && Loci->isXChromosome(j))){//haploid on this chromosome
+
+    if (isHaploidAtChromosome(j)) {
       AncestrySize = sizeOfChromosome[j] ;
       gametes.push_back(1);
     }
@@ -258,7 +259,7 @@ void Individual::GetLocusAncestry(int locus, int Ancestry[2])const{
 
 void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const{
   Ancestry[0]  = LocusAncestry[chrm][locus];
-  if(isHaploid || ((unsigned)chrm == X_posn && !SexIsFemale))
+  if (isHaploidAtChromosome(chrm))
     Ancestry[1] = Ancestry[0];
   else
     Ancestry[1] = LocusAncestry[chrm][Loci->GetSizeOfChromosome(chrm) + locus];
@@ -283,12 +284,6 @@ bool Individual::simpleGenotypeIsMissing(unsigned locus)const{
   return missingGenotypes[locus];
 }
 
-bool Individual::isHaploidatLocus(unsigned j)const{
-  return (bool)(isHaploid || (!SexIsFemale && Loci->isXLocus(j)));
-}
-bool Individual::isHaploidIndividual()const{
-  return isHaploid;
-}
 //****************** Log-Likelihoods **********************
 // public function:
 // calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
@@ -314,11 +309,11 @@ double Individual::getLogLikelihood(const Options& options,
 				    const RhoType & rho, bool updateHMM) {
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
-    //cout << Loci->isXChromosome(j) << " ";
+    Chromosome *C = Loci->getChromosome(j);
     if(updateHMM){// force update of forward probs
       UpdateHMMInputs(j, options, theta, rho);
     }
-    LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
+    LogLikelihood += C->HMM->getLogLikelihood(!isHaploidAtChromosome(j));
     if(isnan(LogLikelihood)) {
       throw string("HMM returns log-likelihood as nan (not a number)\n");
     }
@@ -365,8 +360,9 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const Options& options) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
+    Chromosome *C = Loci->getChromosome(j);
     UpdateHMMInputs(j, options, Theta, _rho);
-    LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
+    LogLikelihood += C->HMM->getLogLikelihood(!isHaploidAtChromosome(j));
   }
   return LogLikelihood;
 }
@@ -381,7 +377,7 @@ void Individual::SampleHiddenStates(const Options& options){
       UpdateHMMInputs(j, options, Theta, _rho);
     }
     // sampling locus ancestry can use current values of forward probability vectors alpha in HMM
-    C->HMM->SampleHiddenStates(LocusAncestry[j], (!isHaploid && (!Loci->isXChromosome(j) || SexIsFemale)));
+    C->HMM->SampleHiddenStates(LocusAncestry[j], !isHaploidAtChromosome(j));
   } //end chromosome loop
   logLikelihood.HMMisOK = true;
 }
