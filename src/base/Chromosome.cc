@@ -99,17 +99,12 @@ int Chromosome::GetLocus(int num)const{
 ///returns locus correlation at a given locus, given a value of sum-intensities
 //TODO: possibly make inline
 double Chromosome::LocusCorrelation(unsigned locus, double drho){
-  //  try{
-    if(isX)//sumintensities on Xchrm is set to half autosomal value
-      return bclib::eh_exp(-GetDistance( locus ) * drho*0.5);
-    else
-      return bclib::eh_exp(-GetDistance( locus ) * drho);
-//  }
-//   catch(std::exception e){
-//     std::string err = "Error encountered while setting locus f in Chromosome: ";
-//     err.append(e.what());
-//     throw err;
-//   }
+
+  // sum-intensities on the X chromosome is set to half the autosomal value
+  if (isX)
+    drho *= 0.5;
+
+  return bclib::eh_exp(-GetDistance(locus) * drho);
 }
 
 /**
