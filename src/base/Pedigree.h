@@ -865,7 +865,7 @@ class Pedigree : public PedBase // See NOTE *4*
     /// InputAdmixData::finishConstructing()).
     /// We still we need to keep an empty implementation since this is called
     /// from AdmixIndividualCollection::setGenotypeProbs().
-    virtual void SetGenotypeProbs(int, int, unsigned, bool) { }
+    virtual void SetGenotypeProbs(int, unsigned, bool) { }
 
     virtual void drawInitialAdmixtureProps(const AlphaType &alpha);
 
