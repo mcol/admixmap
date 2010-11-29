@@ -94,15 +94,28 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
 
   if ( data.isPedFile() || options.getUsePedForInd() )
       {
+      bool hasPedigrees  = false;
+      bool hasUnrelateds = false;
+
       for ( unsigned int i = 0; i < size; i++ )
 	{
 	const Pedigree & ped = data.getPeds()[ i + i0 ];
 	if ( options.getUsePedForInd() || (ped.getNMembers() > 1) )
+          {
+            hasPedigrees = true;
 	    _child[i] = const_cast<genepi::Pedigree*>( &ped );
+          }
 	else
+          {
+            hasUnrelateds = true;
 	    _child[i] = new AdmixedIndividual( i+i0+1, &options, &data, false );
+          }
 	++NumDiploidIndividuals;
 	}
+
+      if ( hasPedigrees && hasUnrelateds && !options.getUsePedForInd() )
+	throw("Cannot mix pedigrees and unrelated individuals with "
+	      "use-pedigree-for-individual=0.");
       }
   else
       {
