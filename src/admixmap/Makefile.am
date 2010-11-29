@@ -19,35 +19,31 @@ endif
 
 bin_PROGRAMS = admixmap
 admixmap_SOURCES = \
-AdmixPedigree.cc \
-AdmixFilenames.h \
-AdmixedIndividual.cc AdmixedIndividual.h \
-AdmixIndividualCollection.cc AdmixIndividualCollection.h \
-admixmap.cc \
-AdmixMapModel.cc AdmixMapModel.h \
-AdmixOptions.cc AdmixOptions.h \
-AdmixFreqs.cc AdmixFreqs.h \
-chib.cc chib.h \
-CorrelatedFreqs.cc CorrelatedFreqs.h \
-DispersionFreqs.cc DispersionFreqs.h \
-DispersionTest.cc DispersionTest.h \
-IndAdmixOutputter.cc IndAdmixOutputter.h \
-InputAdmixData.cc InputAdmixData.h \
-MisSpecAlleleFreqTest.cc MisSpecAlleleFreqTest.h \
-PopAdmix.cc PopAdmix.h \
-StratificationTest.cc StratificationTest.h \
-AffectedsOnlyTest.cc AffectedsOnlyTest.h \
-AncestryAssocTest.cc AncestryAssocTest.h \
-AdmixtureAssocTest.cc AdmixtureAssocTest.h \
-AllelicAssocTest.cc AllelicAssocTest.h \
-AllelicAssocSubTest.cc AllelicAssocSubTest.h \
-ScoreTests.cc ScoreTests.h
-
-if USE_GENOTYPE_PARSER
-  admixmap_SOURCES += \
-    AdmixmapGenotypeConverter.h AdmixmapGenotypeConverter.cc
-endif
-
+	AdmixedIndividual.h AdmixedIndividual.cc			\
+	AdmixFilenames.h						\
+	AdmixFreqs.h AdmixFreqs.cc					\
+	AdmixIndividualCollection.h AdmixIndividualCollection.cc	\
+	AdmixMapModel.h AdmixMapModel.cc				\
+	admixmap.cc							\
+	AdmixmapGenotypeConverter.h AdmixmapGenotypeConverter.cc	\
+	AdmixOptions.h AdmixOptions.cc					\
+	AdmixPedigree.cc						\
+	AdmixtureAssocTest.h AdmixtureAssocTest.cc			\
+	AffectedsOnlyTest.h AffectedsOnlyTest.cc			\
+	AllelicAssocSubTest.h AllelicAssocSubTest.cc			\
+	AllelicAssocTest.h AllelicAssocTest.cc				\
+	AncestryAssocTest.h AncestryAssocTest.cc			\
+	chib.h chib.cc							\
+	CorrelatedFreqs.h CorrelatedFreqs.cc				\
+	DispersionFreqs.h DispersionFreqs.cc				\
+	DispersionTest.h DispersionTest.cc				\
+	IndAdmixOutputter.h IndAdmixOutputter.cc			\
+	InputAdmixData.h InputAdmixData.cc				\
+	MisSpecAlleleFreqTest.h MisSpecAlleleFreqTest.cc		\
+	PopAdmix.h PopAdmix.cc						\
+	ScoreTests.h ScoreTests.cc					\
+	StratificationTest.h StratificationTest.cc			\
+	$(NULL)
 
 admixmap_LDADD=svn_version.o
 admixmap_DEPENDENCIES=svn_version.o

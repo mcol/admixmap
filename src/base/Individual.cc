@@ -24,7 +24,7 @@
 //=============================================================================
 
 #include "Individual.h"
-#include "config.h" // AGGRESSIVE_RANGE_CHECK, USE_GENOTYPE_PARSER
+#include "config.h" // AGGRESSIVE_RANGE_CHECK
 #include "bclib/rand.h"
 #include <cmath>
 
@@ -84,11 +84,7 @@ void Individual::Initialise(const Options* const options, const InputData* const
     NumGametes = 1;
 
   // Read sex value if present.
-  #if USE_GENOTYPE_PARSER
-    SexIsFemale = Data->isFemale( myNumber - 1 );
-  #else
-    SexIsFemale = Data->isFemale( myNumber );
-  #endif
+  SexIsFemale = Data->isFemale( myNumber - 1 );
 
   double L = Loci->GetLengthOfGenome();
   double LX = 0.0;

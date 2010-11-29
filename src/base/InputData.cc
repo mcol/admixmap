@@ -29,12 +29,8 @@
 #include "bclib/DataReader.h"
 #include "bclib/LogWriter.h"
 #include "DataValidError.h"
-#include "config.h"	// USE_GENOTYPE_PARSER
-
-#if USE_GENOTYPE_PARSER
-    #include "GenotypeParser.h" // Used forward-definition in the header
-    #include "SimpleLocusParser.h"
-#endif
+#include "GenotypeParser.h"
+#include "SimpleLocusParser.h"
 
 #include <algorithm>  // for unique()
 #include <iostream>
@@ -61,15 +57,11 @@ void getLabels(const Vector_s& data, string *labels){
 }
 
 InputData::InputData(){
-  #if ! USE_GENOTYPE_PARSER
-    NumSimpleLoci = 0;
-    NumCompositeLoci = 0;
-  #endif
-  genotypeLoader = 0;
+  genotypeParser = 0;
 }
 
 InputData::~InputData(){
-  delete genotypeLoader;
+  delete genotypeParser;
 }
 
 void InputData::ReadData( Options * options, LogWriter & Log )
@@ -77,34 +69,24 @@ void InputData::ReadData( Options * options, LogWriter & Log )
     Log.setDisplayMode(Quiet);
 
     //read genotype data
-    #if USE_GENOTYPE_PARSER
+    SimpleLocusParser::parse( options->getLocusFilename(), simpleLoci );
+    genotypeParser = new GenotypeParser(options->getGenotypesFilename(),
+                                        simpleLoci,
+                                        options->getOutcomeIsBinary(),
+                                        options->getMaleXHomozygWarn());
 
-	SimpleLocusParser::parse( options->getLocusFilename(), simpleLoci );
-	genotypeLoader = new GenotypeParser( options->getGenotypesFilename(), simpleLoci,
-						options->getOutcomeIsBinary(), options->getMaleXHomozygWarn() );
-
-	// We used to generate the pedigrees here, but it turns out the number
-	// of populations is not yet known.  This is now called from
-	// InputAdmixData's constructor.  (except that turned out to also be too
-	// soon, so it is called from InputAdmixData::finishConstructing()).
-	#if 0
-	    generatePedigrees( options );
-	#endif
-
-	if ( options->getWarningsAreErrors() && (genotypeLoader->getNWarnings() != 0) )
-	    {
-	    std::cerr << "Warnings treated as errors: aborting execution.\n";
-	    exit(1);
-	    }
-
-    #else
-
-	DataReader::ReadData(options->getLocusFilename(), locusData_, Log);   //locusfile
-	//convert to DataMatrix, dropping header and first col and use only 2 cols
-	DataReader::convertMatrix(locusData_, locusMatrix_, 1, 1,2);
-	genotypeLoader->Read(options->getGenotypesFilename(), locusData_.size() - 1, Log);
-
+    // We used to generate the pedigrees here, but it turns out the number
+    // of populations is not yet known.  This is now called from
+    // InputAdmixData's constructor.  (except that turned out to also be too
+    // soon, so it is called from InputAdmixData::finishConstructing()).
+    #if 0
+      generatePedigrees( options );
     #endif
+
+    if (options->getWarningsAreErrors() && genotypeParser->getNWarnings()) {
+      std::cerr << "Warnings treated as errors: aborting execution.\n";
+      exit(1);
+    }
 
     DataReader::ReadData(options->getCovariatesFilename(), covariatesData_, covariatesMatrix_,Log);	//covariates file
     DataReader::ReadData(options->getOutcomeVarFilename(), outcomeVarData_,outcomeVarMatrix_, Log);//outcomevar file
@@ -125,7 +107,8 @@ void InputData::ReadData( Options * options, LogWriter & Log )
 void InputData::generatePedigrees( const Options & options )
     {
     if ( isPedFile() || options.getUsePedForInd() )
-	genepi::Pedigree::generatePedigrees( *genotypeLoader, peds, options.getMaxPedigreeSize() );
+	genepi::Pedigree::generatePedigrees( *genotypeParser, peds,
+					     options.getMaxPedigreeSize() );
     }
 
 
@@ -134,158 +117,18 @@ void InputData::generatePedigrees( const Options & options )
 /// Determine number of individuals by counting lines in genotypesfile
 //-------------------------------------------------------------------------
 size_t InputData::getNumberOfIndividuals()const {
-  #if USE_GENOTYPE_PARSER
-    return genotypeLoader->getNumOrganisms();
-  #else
-    return genotypeLoader->getNumberOfIndividuals();
-  #endif
+  return genotypeParser->getNumOrganisms();
 }
-
-
-#if ! USE_GENOTYPE_PARSER
-
-    //determines number of composite loci from locusfile
-    unsigned InputData::determineNumberOfCompositeLoci()const{
-      unsigned NumberOfCompositeLoci = getNumberOfSimpleLoci();
-      for( unsigned i = 0; i < locusMatrix_.nRows(); i++ )
-	if( !locusMatrix_.isMissing(i,1) && locusMatrix_.get( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
-      return NumberOfCompositeLoci;
-    }
-
-    ///determine unit of distance from locus file header. Defaults to Morgans if not specified.
-    GeneticDistanceUnit InputData::DetermineUnitOfDistance(){
-      GeneticDistanceUnit u = Morgans;//default, usual for admixture mapping
-      string distance_header = locusData_[0][2];
-      if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos
-	 || distance_header.find("cM")!=string::npos)
-	u = centimorgans;
-      else if(distance_header.find("mb")!=string::npos || distance_header.find("Mb")!=string::npos
-	 || distance_header.find("MB")!=string::npos)
-	u = megabases;
-
-      return u;
-    }
-
-#endif
 
 
 GeneticDistanceUnit InputData::getUnitOfDistance()const{
-  #if USE_GENOTYPE_PARSER
-    return simpleLoci.getGDU();
-  #else
-    return distanceUnit;
-  #endif
+  return simpleLoci.getGDU();
 }
 
 
-#if ! USE_GENOTYPE_PARSER
-  bool InputData::checkLocusFile(Options *options, LogWriter& Log){
-    bool badData = false;
-
-    const float threshold = getLocusDistanceThreshold(!options->getHapMixModelIndicator());
-    const vector<string>& GenotypesFileHeader = genotypeLoader->getHeader();
-
-    // Loop through the rows of the locusfile:
-    const size_t nSLoc = getNumberOfSimpleLoci();
-    for ( unsigned sLocIdx = 0; sLocIdx < nSLoc; ++sLocIdx )
-	{
-	const float    distance  = locusMatrix_.get(sLocIdx,1);
-	const string & locusName = StringConvertor::dequote(locusData_[sLocIdx+1][0]);
-	const int      nAlleles  = locusMatrix_.get(sLocIdx,0);
-	const string & header	 = StringConvertor::dequote(GenotypesFileHeader[sLocIdx + 1 + genotypeLoader->getSexColumn()]);
-
-	//check number of alleles is >1
-	if ( nAlleles < 2 ) {
-	  Log << On << "ERROR on line " << (sLocIdx+1) << " of locusfile: number of alleles must be >1.\n";
-	  badData = true;
-	}
-
-	//check distances are not negative
-	if( distance < 0.0){
-	  badData = true;
-	  Log << On << "Error: distance on line "<< (sLocIdx+1) <<" of locusfile is negative.\n";
-	}
-
-	//check distances are not too large
-	if(distance >= threshold) {
-	 //badData = true;
-	 if ( distance != 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome
-	   Log << On << "Warning: distance of " << distance << ' ' <<
-		   getUnitOfDistanceAsString() << " at locus " << (sLocIdx+1) << '\n';
-	   locusMatrix_.isMissing(sLocIdx,1, true);//missing value for distance denotes new chromosome
-	}
-
-	// Check loci names are unique
-	for (size_t j = 0; j < sLocIdx; ++j) {
-	    if ( locusName == locusData_[j][0] ) {
-	    badData = true;
-	    Log << On << "Error in locusfile. Two different loci have the same name: "
-		<< locusName << "\n";
-	  }
-	}
-
-	// Compare loci names in locus file and genotypes file.
-	if ( locusName != header ) {
-	    Log << On << "ERROR: locus names differ in locus file and genotypes file at index "
-		<< sLocIdx << "\n"
-		"Locus names causing an error are: " << locusName << " and "
-		<< header << '\n';
-	    return false;
-	}
-
-    } //end loop over loci
-
-  return !badData;
-  }
-#endif // ! USE_GENOTYPE_PARSER
-
-
-#if ! USE_GENOTYPE_PARSER
-    ///determines the distance threshold for a new chromosome
-    //100 Morgans for admixmap
-    //10 Mb for hapmixmap
-    float InputData::getLocusDistanceThreshold(bool hapmixmodelindicator)const{
-      if(!hapmixmodelindicator) {
-	switch ( getUnitOfDistance() ) {
-	case centimorgans:{
-	  return(10000.0);
-	}
-	case Morgans:{
-	  return (100.0);
-	}
-	default:{
-	  return(100.0);
-	}
-	}
-      } else {
-	switch ( getUnitOfDistance() ) {
-	case basepairs:{
-	  return (1e7);
-	}
-	case kilobases:{
-	  return(10000.0);
-	}
-	case megabases:{
-	  return(10.0);
-	}
-	default:{
-	  return(10000.0);
-	}
-	}
-      }
-    }
-#endif
-
-
 void InputData::SetLocusLabels(){
-  #if USE_GENOTYPE_PARSER
-    for ( size_t i = 0; i < simpleLoci.size(); ++i) {//rows of locusfile
-      LocusLabels.push_back( simpleLoci[i].getName() );
-  #else
-    for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
-      LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
-  #endif
-  }
+  for (size_t i = 0; i < simpleLoci.size(); ++i) // rows of locusfile
+    LocusLabels.push_back( simpleLoci[i].getName() );
 }
 
 void InputData::CheckOutcomeVarFile(unsigned N, Options* const options, LogWriter& Log){
@@ -364,21 +207,17 @@ void InputData::CheckOutcomeVarFile(unsigned N, Options* const options, LogWrite
 
   // Pedigree files contain an outcome column; in the case of genotype files, we
   // must "merge" the data from the outcome file back into the organism objects:
-  #if USE_GENOTYPE_PARSER
-    if ( ! genotypeLoader->isPedFile() )
-	{
-	// For now, just use the first column.
-	const unsigned col_to_use = 0;
-	if ( outcomeVarMatrix_.nCols() != 0 )
-	    {
-	    gp_assert_eq( outcomeVarMatrix_.nRows(), genotypeLoader->getNumOrganisms() );
-	    for ( unsigned row = outcomeVarMatrix_.nRows() ; row-- != 0 ; )
-		genotypeLoader->getOrganism(row).setOutcome(
-		    // So ugly: cast double to integer to enumerated value.
-		    static_cast<Organism::OutcomeType>(int(outcomeVarMatrix_.get(row,col_to_use))) );
-	    }
-	}
-  #endif // USE_GENOTYPE_PARSER
+  if ( ! isPedFile() ) {
+    // For now, just use the first column.
+    const unsigned col_to_use = 0;
+    if ( outcomeVarMatrix_.nCols() != 0 ) {
+      gp_assert_eq(outcomeVarMatrix_.nRows(), genotypeParser->getNumOrganisms());
+      for ( unsigned row = outcomeVarMatrix_.nRows() ; row-- != 0 ; )
+        genotypeParser->getOrganism(row).setOutcome(
+            // So ugly: cast double to integer to enumerated value.
+	    static_cast<Organism::OutcomeType>(int(outcomeVarMatrix_.get(row,col_to_use))) );
+    }
+  }
 }
 
 
@@ -387,9 +226,9 @@ void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
     Log << "ERROR: 'coxoutcomevarfile should have 3 columns but has " << coxOutcomeVarMatrix_.nCols() << "\n";
     exit(1);
   }
-  if( coxOutcomeVarMatrix_.nRows() != genotypeLoader->getNumberOfIndividuals() ){
+  if (coxOutcomeVarMatrix_.nRows() != genotypeParser->getNumberOfIndividuals()) {
     stringstream s;
-    s << "ERROR: Genotypes file has " << genotypeLoader->getNumberOfIndividuals()
+    s << "ERROR: Genotypes file has " << genotypeParser->getNumberOfIndividuals()
       << " observations and coxoutcomevar file has "
       << coxOutcomeVarMatrix_.nRows() - 1 << " observations.\n";
     throw(s.str());
@@ -450,11 +289,7 @@ void InputData::CheckCovariatesFile(unsigned NumIndividuals, Options* const opti
 
 ///determines if an individual is female
 bool InputData::isFemale(int i)const{
-  #if USE_GENOTYPE_PARSER
-    return (*genotypeLoader)[i].isFemale();
-  #else
-    return genotypeLoader->isFemale(i);
-  #endif
+  return (*genotypeParser)[i].isFemale();
 }
 
 void InputData::getOutcomeTypes(DataType* T)const{
@@ -464,14 +299,6 @@ void InputData::getOutcomeTypes(DataType* T)const{
 DataType InputData::getOutcomeType(unsigned i)const{
   return OutcomeType[i];
 }
-
-
-#if ! USE_GENOTYPE_PARSER
-    const Matrix_s& InputData::getLocusData() const
-    {
-      return locusData_;
-    }
-#endif
 
 
 const Matrix_s& InputData::getCovariatesData() const
@@ -484,19 +311,6 @@ const Matrix_s& InputData::getOutcomeVarData() const
   return outcomeVarData_;
 }
 
-
-#if ! USE_GENOTYPE_PARSER
-    const DataMatrix& InputData::getLocusMatrix() const
-    {
-      return locusMatrix_;
-    }
-#endif
-
-
-// const DataMatrix& InputData::getPriorAlleleFreqMatrix() const
-// {
-//     return priorAlleleFreqMatrix_;
-// }
 
 const DataMatrix& InputData::getOutcomeVarMatrix() const
 {
@@ -530,16 +344,10 @@ const Vector_s InputData::getCovariateLabels()const{
 /// Erase string matrices
 void InputData::Delete(){
 
-  #if USE_GENOTYPE_PARSER
-    // Make this a data-member rather than a pointer when the parser and container are separated:
-    delete genotypeLoader;
-    genotypeLoader = 0;
-  #else
-    genotypeLoader->clear();
-    for(unsigned i = 0; i < locusData_.size(); ++i)
-      locusData_[i].clear();
-    locusData_.clear();
-  #endif
+  // Make this a data-member rather than a pointer when the parser and
+  // container are separated:
+  delete genotypeParser;
+  genotypeParser = 0;
 
   for(unsigned i = 0; i < covariatesData_.size(); ++i)
     covariatesData_[i].clear();
@@ -554,11 +362,7 @@ void InputData::Delete(){
     priorAlleleFreqData_[i].clear();
   priorAlleleFreqData_.clear();
 
-
   //erase data matrices
-  #if ! USE_GENOTYPE_PARSER
-    locusMatrix_.clear();
-  #endif
   covariatesMatrix_.clear();
   outcomeVarMatrix_.clear();
   coxOutcomeVarMatrix_.clear();

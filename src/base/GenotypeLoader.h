@@ -27,9 +27,7 @@
 #define GENOTYPELOADER_H
 
 
-#if USE_GENOTYPE_PARSER
-    #warning GenotypeLoader is deprecated -- replaced by GenotypeParser
-#endif
+#warning GenotypeLoader is deprecated -- replaced by GenotypeParser
 
 
 #include <vector>

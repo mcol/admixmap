@@ -15,7 +15,6 @@ AC_MSG_NOTICE([
 Configuring $PACKAGE_STRING for $target
 ])
 
-AM_CONDITIONAL([USE_GENOTYPE_PARSER],[test "$enable_old_parser" != yes])
 AM_CONDITIONAL([USE_OPENMP],[test "$enable_openmp" = yes])
 
 # C++ compilers

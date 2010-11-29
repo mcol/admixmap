@@ -116,11 +116,8 @@ public:
   const Chromosome & getChromosomeRef( unsigned cIdx ) const { checkCIdx(cIdx); return *C[cIdx]; }
   Chromosome &	     getChromosomeRef( unsigned cIdx )	     { checkCIdx(cIdx); return *C[cIdx]; }
 
-  #if USE_GENOTYPE_PARSER
-    void PrintLocusTable( const char * filename, const SimpleLocusArray & simpleLoci ) const;
-  #else
-    void PrintLocusTable(const char* filename, const std::vector<double>& Distances, const std::string& unitString)const;
-  #endif
+  void PrintLocusTable(const char *filename,
+                       const SimpleLocusArray& simpleLoci) const;
 
   unsigned GetChrNumOfLocus(unsigned locus); 
   int GetNumberOfStates()const;
@@ -163,19 +160,11 @@ private:
    */
   std::vector<std::vector<int> > LocusTable;
 
-  #if ! USE_GENOTYPE_PARSER
-    std::vector<std::string> ChrmLabels;
-  #endif
+  const SimpleLocusArray *simpleLoci;
+  void InitialiseChromosomes(const std::vector<unsigned>& cstart,
+                             const std::vector<size_t>& sstart,
+                             int populations, const SimpleLocusArray& sLoci);
 
-  #if USE_GENOTYPE_PARSER
-    const SimpleLocusArray * simpleLoci;
-    void InitialiseChromosomes(const std::vector<unsigned> & cstart, const std::vector<size_t> & sstart,
-			     int populations, const SimpleLocusArray & sLoci );
-
-  #else
-    void InitialiseChromosomes(const std::vector<unsigned>& cstart,
-                               int populations);
-  #endif
   void PrintSizes(bclib::LogWriter &Log, const std::string& distanceUnit)const;
 
 

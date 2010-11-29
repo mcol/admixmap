@@ -24,11 +24,8 @@
 //=============================================================================
 
 #include "AdmixMapModel.h"
+#include "DataValidError.h"
 #include "bclib/LogWriter.h"
-#include "config.h" // USE_GENOTYPE_PARSER
-#if USE_GENOTYPE_PARSER
-    #include "DataValidError.h"
-#endif
 #include <iomanip>
 #include <iostream>
 
@@ -253,9 +250,6 @@ int main( int argc , char** argv ){
     // the lifetime of the model object (ugly).  A third option would be to copy
     // (take-ownership or use reference-counted objects would be preferable) the
     // objects from the input-data object to the model object.
-    #if ! USE_GENOTYPE_PARSER
-	data.Delete();
-    #endif
 
 
     #if DEBUG_PRINT_EPROBS // **** PRINT EMISSION PROBABILITIES DEBUG-CODE ****
@@ -379,7 +373,6 @@ int main( int argc , char** argv ){
 
   }
 
-#if USE_GENOTYPE_PARSER
   // Catch data-validation errors and format nicely:
   catch ( genepi::DataValidError & e )
     {
@@ -389,7 +382,6 @@ int main( int argc , char** argv ){
 	<< e.what() << "\n\n";
     return 1;
     }
-#endif
 
   catch (const string & msg) {//catch any stray error messages thrown upwards
     ThrowException(msg, Log);

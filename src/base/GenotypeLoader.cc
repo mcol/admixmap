@@ -23,7 +23,6 @@
 /// Implementation of the GenotypeLoader class.
 //=============================================================================
 
-#define USE_GENOTYPE_PARSER 0
 #include "GenotypeLoader.h"
 #include "Genome.h"
 #include "bclib/DataReader.h"

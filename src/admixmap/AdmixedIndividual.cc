@@ -24,7 +24,6 @@
 //=============================================================================
 
 #include "AdmixedIndividual.h"
-#include "config.h" // USE_GENOTYPE_PARSER
 #include "AdmixOptions.h"
 #include "InputAdmixData.h"
 #include "GenotypeIterator.h"
@@ -81,11 +80,8 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   //retrieve genotypes
   Data->GetGenotype(number, *Loci, &genotypes, GenotypesMissing);
 
-  #if USE_GENOTYPE_PARSER
-    isHaploid = genotypes.at(0).at(0).isHaploid(); //note: assumes at least one autosome before X-chr
-  #else
-    isHaploid = (genotypes[0][0].size() == 1);	   //note: assumes at least one autosome before X-chr
-  #endif
+  // note: assumes at least one autosome before X-chr
+  isHaploid = genotypes.at(0).at(0).isHaploid();
 
   Individual::Initialise(options, Data);
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
@@ -95,11 +91,7 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
 
   // loop over composite loci to set possible haplotype pairs compatible with genotype
   for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
-    #if USE_GENOTYPE_PARSER
-	const ploidy p = genotypes[j][0].isDiploid() ? diploid : haploid;
-    #else
-	ploidy p = (genotypes[j][0].size()>1) ? diploid : haploid;
-    #endif
+    const ploidy p = genotypes[j][0].isDiploid() ? diploid : haploid;
     AdmixGenotypeIterator G(genotypes[j], p);
     (*Loci)(j)->HaplotypeSetter.setPossibleHaplotypePairs(&G, PossibleHapPairs[j]);
 
@@ -229,11 +221,7 @@ void AdmixedIndividual::SetMissingGenotypes(){
   for (unsigned j = 0; j < numberOfCompositeLoci; ++j) {
     int numberOfLoci = Loci->getNumberOfLoci(j);
     for (int k = 0; k < numberOfLoci; ++k) {
-      #if USE_GENOTYPE_PARSER
 	missingGenotypes[index++] = genotypes[j][k].isMissing2();
-      #else
-	missingGenotypes[index++] = (genotypes[j][k][0] == 0);
-      #endif
     }
   }
 }

@@ -29,21 +29,17 @@
 #include "bclib/estr.h"
 
 
-
 using namespace genepi;
 
 
+unsigned short AdmixGenotypeIterator::operator() ( unsigned int j , unsigned int g ) const
+    {
+    const Genotype & gtype = v.at( j );
 
-#if USE_GENOTYPE_PARSER
-    unsigned short AdmixGenotypeIterator::operator() ( unsigned int j , unsigned int g ) const
-	{
-	const Genotype & gtype = v.at( j );
-
-	if ( g == 0 )
-	    return gtype.getVal1( 0 ); // 0 is the secret undocumented missing value
-	else if ( g == 1 )
-	    return gtype.getVal2( 0 ); // 0 is the secret undocumented missing value
-	else
-	    throw std::invalid_argument( estr("Invalid allele-index: ") + g );
-	}
-#endif
+    if ( g == 0 )
+	return gtype.getVal1( 0 ); // 0 is the secret undocumented missing value
+    else if ( g == 1 )
+	return gtype.getVal2( 0 ); // 0 is the secret undocumented missing value
+    else
+	throw std::invalid_argument( estr("Invalid allele-index: ") + g );
+    }

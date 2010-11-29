@@ -27,7 +27,6 @@
 #include "InputAdmixData.h"
 
 #include "bclib/DataReader.h"
-#include "config.h" // USE_GENOTYPE_PARSER
 #include "bclib/estr.h"
 #include "bclib/LogWriter.h"
 
@@ -38,14 +37,11 @@
 #include "AlleleFreqParser.h"
 #include "AlleleArray.h"
 
+#include "AdmixmapGenotypeConverter.h"
 #include "AdmixOptions.h"
 #include "CodeTimer.h"
 #include "PedigreeAddl.h"
 #include "AncestryVector.h" // For set_parms() [initialization]
-
-#if USE_GENOTYPE_PARSER
-    #include "AdmixmapGenotypeConverter.h"
-#endif
 
 #if defined(_OPENMP)
     #include <omp.h>
@@ -63,10 +59,6 @@ using namespace genepi;
 InputAdmixData::InputAdmixData( AdmixOptions & options, LogWriter & log )
     {
     using bclib::DataReader;
-
-    #if ! USE_GENOTYPE_PARSER
-      genotypeLoader = new GenotypeLoader;
-    #endif
 
     log.setDisplayMode( bclib::Quiet );
 
@@ -283,22 +275,7 @@ void InputAdmixData::finishConstructing( const AdmixOptions & options )
 
 void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
 
-  #if ! USE_GENOTYPE_PARSER
-    NumSimpleLoci = getNumberOfSimpleLoci();
-    distanceUnit = DetermineUnitOfDistance();
-    NumCompositeLoci = determineNumberOfCompositeLoci();
-  #endif
-
   Log.setDisplayMode(bclib::Quiet);
-
-  #if ! USE_GENOTYPE_PARSER
-      bool badData = false;
-      if(options->CheckData())
-	badData = !checkLocusFile(options, Log);
-
-      if(badData)
-	exit(1);
-  #endif
 
   SetLocusLabels();
 
@@ -307,7 +284,7 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
 
   //detects regression model
   if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() )){//if outcome specified
-    const unsigned N = (genotypeLoader->getNumberOfIndividuals() - options->getTestOneIndivIndicator());
+    const unsigned N = (genotypeParser->getNumberOfIndividuals() - options->getTestOneIndivIndicator());
     if ( strlen( options->getOutcomeVarFilename() ) != 0 )
       CheckOutcomeVarFile( N, options, Log);
     if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 ){
@@ -340,11 +317,7 @@ void InputAdmixData::CheckData(AdmixOptions *options, LogWriter &Log){
 
 void InputAdmixData::GetGenotype(int i, const Genome &Loci, 
 			   std::vector<genotype>* genotypes, bool **Missing) const {
-  #if USE_GENOTYPE_PARSER
-    convert( (*genotypeLoader)[i-1], Loci, *genotypes, Missing );
-  #else
-    genotypeLoader->GetGenotype(i, Loci, genotypes, Missing);
-  #endif
+  convert( (*genotypeParser)[i-1], Loci, *genotypes, Missing );
 }
 
 
@@ -383,35 +356,17 @@ void InputAdmixData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
   int Populations = options->getPopulations();
   int NumberOfStates = 0;
 
-  #if USE_GENOTYPE_PARSER
-
-    int nStatesThisCompLoc = 0;
-    for ( SimpleLocusArray::ConstIter slIter = getSimpleLoci().begin() ;
-			slIter != getSimpleLoci().end() ; ++slIter )
-	if ( slIter->isCompositeWithPrevious() )
-	    nStatesThisCompLoc *= slIter->getNumAlleles();
-	else
-	    {
-	    NumberOfStates += nStatesThisCompLoc;
-	    nStatesThisCompLoc = slIter->getNumAlleles();
-	    }
-    NumberOfStates += nStatesThisCompLoc;
-
-  #else // ! USE_GENOTYPE_PARSER:
-
-    unsigned index = 0;
-    for ( unsigned i = 0; i < NumCompositeLoci; ++i ) {
-      int states = 1;
-      do{
-	states *= (int)locusMatrix_.get( index, 0 );
-	index++;
-	}
-	while( index < locusMatrix_.nRows() && !locusMatrix_.isMissing(index, 1) && locusMatrix_.get( index, 1 ) == 0 );
-      NumberOfStates += states;
+  int nStatesThisCompLoc = 0;
+  for ( SimpleLocusArray::ConstIter slIter = getSimpleLoci().begin() ;
+        slIter != getSimpleLoci().end() ; ++slIter ) {
+    if ( slIter->isCompositeWithPrevious() )
+      nStatesThisCompLoc *= slIter->getNumAlleles();
+    else {
+      NumberOfStates += nStatesThisCompLoc;
+      nStatesThisCompLoc = slIter->getNumAlleles();
     }
-
-  #endif // ! USE_GENOTYPE_PARSER
-
+  }
+  NumberOfStates += nStatesThisCompLoc;
 
   //fixed allele freqs
   if( strlen( options->getAlleleFreqFilename() )){
@@ -468,9 +423,10 @@ void InputAdmixData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
 }
 
 void InputAdmixData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
-  if( reportedAncestryMatrix_.nRows() != 2 * genotypeLoader->getNumberOfIndividuals() ){
+  const unsigned NumberOfIndividuals = genotypeParser->getNumberOfIndividuals();
+  if (reportedAncestryMatrix_.nRows() != 2 * NumberOfIndividuals) {
     Log << "ERROR: " << "ReportedAncestry file has " << reportedAncestryMatrix_.nRows() << " rows\n"
-	    "Genotypesfile has " << genotypeLoader->getNumberOfIndividuals() << " rows\n";
+	    "Genotypesfile has " << NumberOfIndividuals << " rows\n";
     exit(1);}
   if( (int)reportedAncestryMatrix_.nCols() != populations ){
     Log << "ERROR: " << "ReportedAncestry file has " << reportedAncestryMatrix_.nCols() << " cols\n"

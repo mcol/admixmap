@@ -26,14 +26,8 @@
 #ifndef GENOTYPE_ITERATOR_H
 #define GENOTYPE_ITERATOR_H
 
-
-#include "config.h" // USE_GENOTYPE_PARSER
-#if USE_GENOTYPE_PARSER
-    // Included just for GType definition:
-    #include "GFileLexer.h"
-#else
-    #include <vector>
-#endif
+// Included just for GType definition:
+#include "GFileLexer.h"
 
 
 /** \addtogroup base
@@ -65,40 +59,16 @@ protected:
 
 // For admixmap: one of two varieties, depending on whether we use old-style or
 // new-style input-file parser:
-#if USE_GENOTYPE_PARSER
-    class AdmixGenotypeIterator : public GenotypeIterator {
-     private:
-      const genepi::GenotypeArray & v;
-     public:
-      AdmixGenotypeIterator(  const genepi::GenotypeArray & in, ploidy p) :
+class AdmixGenotypeIterator : public GenotypeIterator {
+private:
+  const genepi::GenotypeArray & v;
+public:
+  AdmixGenotypeIterator( const genepi::GenotypeArray & in, ploidy p ) :
 	GenotypeIterator( p == diploid ) ,
 	v		( in	       ) {}
-      unsigned short operator() (unsigned j, unsigned g) const;
-      const genepi::Genotype & operator[] ( size_t j ) const { return v[ j ]; }
-    };
-#else
-    class AdmixGenotypeIterator : public GenotypeIterator {
-     public:
-      AdmixGenotypeIterator(  const std::vector<std::vector<unsigned short> >::const_iterator in, ploidy p){
-	isdiploid = (p == diploid);
-	it = in;
-      }
-      AdmixGenotypeIterator(  const std::vector<std::vector<unsigned short> >& in, ploidy p){
-	isdiploid = (p == diploid);
-	it = in.begin();
-      }
-      unsigned short operator()(unsigned j, unsigned g)const{
-	if(g !=0 && g!= 1)throw ("Bad call to GenotypeOperator::operator()");
-	return  ( *(it+j) )[g];
-      }
-      //  std::vector<unsigned short>::const_iterator operator[](unsigned j)const{
-      //  return (it+j)->begin();
-      //}
-     private:
-      std::vector<std::vector<unsigned short> >::const_iterator it;
-      AdmixGenotypeIterator();
-    };
-#endif
+  unsigned short operator() (unsigned j, unsigned g) const;
+  const genepi::Genotype & operator[] ( size_t j ) const { return v[ j ]; }
+};
 
 
 class HapMixGenotypeIterator : public GenotypeIterator{

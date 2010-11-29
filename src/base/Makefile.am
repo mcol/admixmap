@@ -17,69 +17,58 @@ endif
 noinst_LIBRARIES = libbase.a
 
 libbase_a_SOURCES = \
-HVIterator.cc HVIterator.h \
-AdmixtureProportions.cc AdmixtureProportions.h \
-AlleleFreqs.cc AlleleFreqs.h \
-AlleleFreqSampler.cc AlleleFreqSampler.h \
-Annealer.cc Annealer.h \
-Chromosome.cc Chromosome.h \
-common.cc common.h \
-CompositeLocus.cc CompositeLocus.h \
-CopyNumberAssocTest.cc CopyNumberAssocTest.h \
-Filenames.h \
-FreqArrays.h \
-GeneticDistanceUnit.cc GeneticDistanceUnit.h \
-Genome.cc Genome.h \
-GenotypeIterator.h \
-GenotypeProbOutputter.cc GenotypeProbOutputter.h \
-GPI.cc GPI.h \
-Haplotype.cc Haplotype.h \
-HapPair.h \
-HiddenMarkovModel.cc HiddenMarkovModel.h \
-HWTest.cc HWTest.h \
-Individual.cc Individual.h \
-IndividualCollection.cc IndividualCollection.h \
-InputData.cc InputData.h  \
-misc.cc \
-Model.cc Model.h \
-Options.cc Options.h \
-ResidualLDTest.cc ResidualLDTest.h \
-ScoreTestBase.cc ScoreTestBase.h \
-Genotype.h Genotype.cc \
-GenotypeIterator.cc \
-RhoType.h
-
-
-if USE_GENOTYPE_PARSER
-  libbase_a_SOURCES += \
-		DataValidError.cc DataValidError.h \
-		GFileLexer.cc GFileLexer.h \
-		GeneticDistance.h GeneticDistance.cc \
-		SimpleLocus.h SimpleLocus.cc \
-		SimpleLocusArray.h SimpleLocusArray.cc \
-		SimpleLocusParser.h SimpleLocusParser.cc \
-		Organism.h Organism.cc \
-		GenotypeParser.cc GenotypeParser.h \
-		InheritanceVector.h InheritanceVector.cc \
-		Pedigree.h Pedigree.cc PedigreeGenStates.cc \
-		PedigreeAddl.h PedigreeAddl.cc \
-		AncestryVector.cc AncestryVector.h \
-		HiddenStateSpace.h HiddenStateSpace.cc \
-		AlleleArray.h AlleleArray.cc \
-		AlleleFreqParser.h AlleleFreqParser.cc \
-		TransProbCache.h TransProbCache.cc \
-		HiddenMarkovModel.new.h HiddenMarkovModel.new.cc \
-		OrganismArray.h \
-		PairSecIter.h \
-		ProposalRingBuffer.h \
-		TwoDimArray.h \
-		PedBase.h PedBase.cc \
-		CodeTimer.h CodeTimer.cc
-else
-  libbase_a_SOURCES += \
-		GenotypeLoader.cc GenotypeLoader.h
-endif
-
-
-#.cc.o:
-#	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
+	AdmixtureProportions.h AdmixtureProportions.cc		\
+	AlleleArray.h AlleleArray.cc				\
+	AlleleFreqs.h AlleleFreqs.cc				\
+	AlleleFreqParser.h AlleleFreqParser.cc			\
+	AlleleFreqSampler.h AlleleFreqSampler.cc		\
+	AncestryVector.h AncestryVector.cc			\
+	Annealer.h Annealer.cc					\
+	Chromosome.h Chromosome.cc				\
+	CodeTimer.h CodeTimer.cc				\
+	common.h common.cc					\
+	CompositeLocus.h CompositeLocus.cc			\
+	CopyNumberAssocTest.h CopyNumberAssocTest.cc		\
+	DataValidError.h DataValidError.cc			\
+	Filenames.h						\
+	FreqArrays.h						\
+	GeneticDistance.h GeneticDistance.cc			\
+	GeneticDistanceUnit.h GeneticDistanceUnit.cc		\
+	Genome.h Genome.cc					\
+	Genotype.h Genotype.cc					\
+	GenotypeIterator.h GenotypeIterator.cc			\
+	GenotypeParser.h GenotypeParser.cc			\
+	GenotypeProbOutputter.h GenotypeProbOutputter.cc	\
+	GFileLexer.h GFileLexer.cc				\
+	GPI.h GPI.cc						\
+	Haplotype.h Haplotype.cc				\
+	HapPair.h						\
+	HiddenMarkovModel.h HiddenMarkovModel.cc		\
+	HiddenMarkovModel.new.h HiddenMarkovModel.new.cc	\
+	HiddenStateSpace.h HiddenStateSpace.cc			\
+	HVIterator.h HVIterator.cc				\
+	HWTest.h HWTest.cc					\
+	Individual.h Individual.cc				\
+	IndividualCollection.h IndividualCollection.cc		\
+	InheritanceVector.h InheritanceVector.cc		\
+	InputData.h InputData.cc				\
+	misc.cc							\
+	Model.h Model.cc					\
+	Options.h Options.cc					\
+	Organism.h Organism.cc					\
+	OrganismArray.h						\
+	PairSecIter.h						\
+	PedBase.h PedBase.cc					\
+	Pedigree.h Pedigree.cc					\
+	PedigreeAddl.h PedigreeAddl.cc				\
+	PedigreeGenStates.cc					\
+	ProposalRingBuffer.h					\
+	ResidualLDTest.h ResidualLDTest.cc			\
+	RhoType.h						\
+	ScoreTestBase.h ScoreTestBase.cc			\
+	SimpleLocus.h SimpleLocus.cc				\
+	SimpleLocusArray.h SimpleLocusArray.cc			\
+	SimpleLocusParser.h SimpleLocusParser.cc		\
+	TransProbCache.h TransProbCache.cc			\
+	TwoDimArray.h						\
+	$(NULL)

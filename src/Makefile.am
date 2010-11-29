@@ -5,9 +5,7 @@ if ! PARALLEL
   SUBDIRS += admixmap
 endif
 
-if ! USE_GENOTYPE_PARSER
-  SUBDIRS += hapmixmap
-endif
+# SUBDIRS += hapmixmap
 
 SUBDIRS += tools scripts doxygen
 

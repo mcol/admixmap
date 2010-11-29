@@ -22,20 +22,6 @@ Configuring $PACKAGE_STRING for $target
 ])
 
 
-# --enable-old-parser which is used to set or clear USE_GENOTYPE_PARSER
-AC_ARG_ENABLE(old-parser,
-	[  --enable-old-parser     don't use the new GFileLexer/SimpleLocusParser/GenotypeParser
-			  classes to parse input files (required for pedfiles)])
-AM_CONDITIONAL(USE_GENOTYPE_PARSER,test "$enable_old_parser" != yes)
-if test "$enable_old_parser" = yes; then
-    dnl AC_SUBST(USE_GENOTYPE_PARSER,0)
-    AC_DEFINE([USE_GENOTYPE_PARSER],[0],[switch which input-file parser to use])
-else
-    dnl AC_SUBST(USE_GENOTYPE_PARSER,1)
-    AC_DEFINE([USE_GENOTYPE_PARSER],[1],[switch which input-file parser to use])
-fi
-
-
 # --enable-range-check which will set or clear AGGRESSIVE_RANGE_CHECK
 # Consider enabling by default for --enable-debug:
 #if test "$disable_range_check" = no -o "$enable_debug" = yes ; then
