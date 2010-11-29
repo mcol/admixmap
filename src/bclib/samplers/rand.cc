@@ -174,7 +174,7 @@ std::vector<int> Rand::genmultinomial(int N, const std::vector<double>& p) {
   return( n );
 }
 
-/// ** sample from discrete probability distribution gievn by probs **
+/// ** sample from discrete probability distribution given by probs **
 int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
 {
   double* cdf = new double[ numberofelements ];

@@ -53,7 +53,7 @@ public:
   /**
      function called by newline.
      Just adds a newline character by default.
-     Derived classes should override this with appropraite behaviour.
+     Derived classes should override this with appropriate behaviour.
   */
   virtual void putNewLine(){
     *((std::ostream*)this) << '\n';
