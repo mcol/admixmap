@@ -708,16 +708,16 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
 
   // **** score tests ****
   if( TestForLinkageWithAncestry && Populations == 1 ){
-    Log << "Cannot test for linkage with ancestry with 1 population.\n";
+    ErrMsg(Log, "Cannot test for linkage with ancestry with 1 population");
     badOptions = true;
   }
   if(TestForAdmixtureAssociation &&
       ( TestForLinkageWithAncestry || TestForAllelicAssociation ) ) {
-    Log << "Cannot test for linkage with ancestry or allelic association\n"
-	<< "with score test for association. Can only use affecteds only test\n"
-	<< "for linkage.\n"
-	<< "If admixturescorefile is selected, then please unselect both\n"
-	<< "allelicassociationscorefile and ancestryassociationscorefile\n";
+    ErrMsg(Log,
+           "Cannot test for linkage with ancestry or allelic association using\n"
+           "       score test for association: use the affecteds-only test instead.\n"
+           "       If admixturescorefile is selected, then please unselect both\n"
+           "       allelicassociationscorefile and ancestryassociationscorefile");
     badOptions = true;
   }
 

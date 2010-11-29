@@ -81,8 +81,6 @@ InputAdmixData::InputAdmixData( AdmixOptions & options, LogWriter & log )
     DataReader::ReadData( options.getEtaPriorFilename(), etaPriorData_,etaPriorMatrix_, log, false ); // no header
     DataReader::ReadData( options.getReportedAncestryFilename(), reportedAncestryData_, reportedAncestryMatrix_, log );
 
-    log << "\n";
-
     CheckData( &options, log );
     }
 
