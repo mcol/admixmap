@@ -341,28 +341,30 @@ void HiddenMarkovModel::UpdateForwardProbsDiploid(){
   }
 
   for( int t = 1; t < Transitions; ++t ){
+    double *alpha_t   = alpha +  t    * nStates;
+    double *alpha_tm1 = alpha + (t-1) * nStates;
     if(!missingGenotypes[t-1]) {
       double Sum = 0.0;
       //scale previous alpha to sum to 1
       for( int j = 0; j <  nStates; ++j ) {
-	Sum += alpha[(t-1)*nStates +j];
+        Sum += alpha_tm1[j];
       }
       const double scaleFactor = 1.0 / Sum;
       for( int j = 0; j <  nStates; ++j ) {
-	alpha[(t-1)*nStates +j] *= scaleFactor;
+        alpha_tm1[j] *= scaleFactor;
       }
       sumfactor += log(Sum);
     }
-    
-    RecursionProbs(p[t], f + 2*t, StateArrivalProbs[0] + t*K, StateArrivalProbs[1] + t*K, alpha + (t-1)*nStates, alpha + t*nStates);
-    for(int j = 0; j < nStates; ++j){
-      if(!missingGenotypes[t]) {
-	alpha[t*nStates +j] *=  Lambda[t*nStates + j]; //*lam++; 
-	//++lam;
-      } //else ++lam;
-    }
 
+    RecursionProbs(p[t], f + 2*t, StateArrivalProbs[0] + t*K,
+                   StateArrivalProbs[1] + t*K, alpha_tm1, alpha_t);
+
+    for(int j = 0; j < nStates; ++j){
+      if (!missingGenotypes[t])
+        alpha_t[j] *= Lambda[t*nStates + j];
+    }
   }
+
   alphaIsBad = false;
 }
 
@@ -381,10 +383,13 @@ void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
   }
   
   for( int t = Transitions-2; t >= 0; --t ) {
+    double *beta_tp1 = beta + (t+1) * nStates;
+    double *beta_t   = beta +  t    * nStates;
+    const double *Lambda_tp1 = Lambda + (t+1) * nStates;
     double f2[2] = {f[2*t + 2], f[2*t + 3]};
     double Sum = 0.0;
     for(int j = 0; j < nStates; ++j){
-      LambdaBeta[j] = Lambda[(t+1)*nStates + j] * beta[(t+1)*nStates + j] * pi[j];
+      LambdaBeta[j] = Lambda_tp1[j] * beta_tp1[j] * pi[j];
       Sum += LambdaBeta[j];
     }
     //scale LambdaBeta to sum to 1
@@ -392,12 +397,15 @@ void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
     for( int j = 0; j <  nStates; ++j ) {
       LambdaBeta[j] *= scaleFactor;
     }
-    
-    RecursionProbs(p[t+1], f2, StateArrivalProbs[0]+(t+1)*K, StateArrivalProbs[1]+(t+1)*K, LambdaBeta, beta+ t*nStates);
+
+    RecursionProbs(p[t+1], f2, StateArrivalProbs[0]+(t+1)*K,
+                   StateArrivalProbs[1]+(t+1)*K, LambdaBeta, beta_t);
+
     for(int j = 0; j < nStates; ++j){ // vectorization successful
-      beta[t*nStates + j] *= piInv[j];
+      beta_t[j] *= piInv[j];
     }
   }
+
   betaIsBad = false;
 }
 
