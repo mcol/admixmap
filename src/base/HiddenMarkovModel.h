@@ -160,7 +160,6 @@ private:
   double *colProb;
   double *Expectation0;
   double *Expectation1;
-  double *cov;
 
   /// Allocate the arrays and set the pointer of locus correlations f
   virtual void SetDimensions(const double* const fin);

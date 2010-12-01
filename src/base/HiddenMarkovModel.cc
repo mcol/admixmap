@@ -46,7 +46,6 @@ void HiddenMarkovModel::SetNullValues(){
   Expectation0 = 0;
   Expectation1 = 0;
   rowProb = 0;
-  cov = 0;
   f = 0;
   Lambda = 0;
   alphaIsBad = true;
@@ -95,7 +94,6 @@ HiddenMarkovModel::~HiddenMarkovModel()
   delete[] colProb;
   delete[] Expectation0;
   delete[] Expectation1;
-  delete[] cov; //free_matrix(cov, K);
 }
 
 /// Allocate the arrays and set the pointer of locus correlations f
@@ -118,7 +116,6 @@ void HiddenMarkovModel::SetArraysForRecursionProbs(){
     colProb = new double[K];
     Expectation0 = new double[K];
     Expectation1 = new double[K];
-    cov = new double[ nStates ];
   }
 }
 
@@ -502,10 +499,10 @@ void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2],
 
     // calculate expectation of product as covariance plus product of expectations
     for(int j0 = 0; j0 < K; ++j0) {
+      j0K = j0 * K;
       for(int j1 = 0; j1 < K; ++j1) {
-        j0K = j0 * K;
-	cov[j0K + j1] = ff * ( oldProbs[j0K + j1] - rowProb[j0] * colProb[j1] );
-	newProbs[j0K + j1] = cov[j0K + j1] + Expectation0[j0] * Expectation1[j1];
+        double cov = ff * (oldProbs[j0K + j1] - rowProb[j0] * colProb[j1]);
+        newProbs[j0K + j1] = cov + Expectation0[j0] * Expectation1[j1];
 	// newProbs[1] is prob(paternal=1, maternal=0)
       }
     }
