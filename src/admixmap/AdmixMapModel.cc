@@ -502,8 +502,12 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
   if(options.getTestForResidualAllelicAssoc())
     ResidualAllelicAssocScoreTest.WriteFinalTable((options.getResultsDir() + "/" + RESIDUAL_LD_TEST_FINAL).c_str(), data.getLocusLabels(), Log);
 
-  //output to likelihood ratio file
-  if(options.getTestForAffectedsOnly())
+  // output to likelihood ratio file
+  // NOTE: the computation of these likelihood ratios is not performed from
+  // the pedigree code, so rather than producing a file containing the wrong
+  // values, we do not generate it altogether (see ticket #135).
+  if ( options.getTestForAffectedsOnly() &&
+       !data.isPedFile() && !options.getUsePedForInd() )
     Scoretests.OutputLikelihoodRatios(data.GetHiddenStateLabels());
 
   //print deviance at posterior mean, DIC
