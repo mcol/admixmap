@@ -273,12 +273,12 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
     of states.
  */
 const bclib::pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDiploid, int t){
-  UpdateForwardProbs(isDiploid);
-  UpdateBackwardProbs(isDiploid);
-  unsigned States = isDiploid ? nStates : K;
 
+  unsigned States = isDiploid ? nStates : K;
   if (hiddenStateProbs.size() != States)
     hiddenStateProbs.resize(States);
+
+  UpdateForwardBackwardProbs(isDiploid);
 
   const double *a = alpha + t*States;
   const double *b = beta + t*States;  

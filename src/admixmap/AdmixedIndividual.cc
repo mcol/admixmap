@@ -1222,6 +1222,10 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options,
     bool isRandomMating = options.isRandomMatingModel();
     int maternalShift = (!isRandomMating || SexIsFemale) ? 0 : NumHiddenStates;
 
+    // ensure that the forward/backward probabilities are updated before
+    // retrieving theta
+    chrm->HMM->UpdateForwardBackwardProbs(diploid);
+
     // on the X chromosome: if random mating model and male, pass the maternal
     // gamete X-chr admixture, otherwise pass both gametes X-chr admixture;
     // not on the X chromosome: pass the autosomal admixture proportions

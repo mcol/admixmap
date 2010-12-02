@@ -102,6 +102,12 @@ public:
   //required for HapMixHMM class
   virtual void SampleJumpIndicators(const int* const , unsigned int, int *)const{};
 
+  /// Ensure that the forward/backward probabilities are up-to-date
+  void UpdateForwardBackwardProbs(bool isDiploid) {
+    UpdateForwardProbs(isDiploid);
+    UpdateBackwardProbs(isDiploid);
+  }
+
 protected:
 
   /// Number of populations
