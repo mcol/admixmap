@@ -117,8 +117,6 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 	  const int* happair = ind.getSampledHapPair(complocus);
 
 	  cLoc.HaplotypeSetter.decodeIntAsHapAlleles(happair[0], alleles0);
-
-	  cLoc.HaplotypeSetter.decodeIntAsHapAlleles(happair[0], alleles0);
 	  cLoc.HaplotypeSetter.decodeIntAsHapAlleles(happair[1], alleles1);
 	  //retrieve marginal alleleprobs for composite locus complocus, given current ancestry states on each gamete of ind
 	  cLoc.getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
