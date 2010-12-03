@@ -310,10 +310,6 @@ unsigned int Genome::GetTotalNumberOfLoci()const{
 const unsigned int *Genome::GetSizesOfChromosomes()const{
   return SizesOfChromosomes;
 }
-///returns the number of loci on a given chromosome
-unsigned Genome::GetSizeOfChromosome(unsigned j)const{
-  return SizesOfChromosomes[j];
-}
 
 #if ALLOW_UNSAFE_DISTANCE_ACCESS
     /// returns the vector of distances between loci
@@ -340,10 +336,6 @@ double Genome::GetDistance( int locus ) const
   return( Distances[ locus ] );
 }
 
-///returns number of states of a comp locus
-int Genome::GetNumberOfStates(int locus)const{
-  return LocusArray[locus].GetNumberOfStates();
-}
 ///returns total number of states accross all comp loci
 int Genome::GetNumberOfStates()const{
   int ret = 0;

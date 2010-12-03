@@ -69,9 +69,17 @@ public:
   double getLastConditionalHapPairProbs(const int ancestry[2]) const;
   void SampleHapPair(hapPair*, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
 
+  /// Get the number of simple loci in this composite locus.
+  int GetNumberOfLoci() const { return NumberOfLoci; }
 
-  int GetNumberOfLoci()const;
-  int GetNumberOfStates()const;
+  /// Return the number of states at this composite locus.
+  ///
+  /// If this composite locus comprises a single locus, the number of states
+  /// will be equal to the number of alleles. If there are more than one locus
+  /// in this composite, the number of states will be equal to the number of
+  /// possible haplotypes.
+  int GetNumberOfStates() const { return NumberOfStates; }
+
   const std::string GetLabel(int)const;
   int GetNumberOfAllelesOfLocus( int )const;
   void getLocusAlleleProbs(double **P, int k)const;

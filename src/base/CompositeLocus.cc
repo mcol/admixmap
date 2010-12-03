@@ -104,28 +104,6 @@ void CompositeLocus::AddLocus( int alleles, const string & label )
 // }
 
 // ****** Accessors ***************************************
-/** Gets the number of simple loci in this composite locus.
- * 
- * Returns:
- * the number of simple loci
- */
-int CompositeLocus::GetNumberOfLoci()const
-{
-   return( NumberOfLoci );
-}
-
-/**
- * Returns the number of states at this composite locus.
- * 
- * If this composite locus comprises a single locus, the 
- * number of states will be equal to the number of alleles. If there 
- * are more than one locus in this composite, the number of states 
- * will be equal to the number of possible haplotypes.
- */
-int CompositeLocus::GetNumberOfStates()const 
-{
-   return( NumberOfStates );
-}
 
 /**
  * Gets the number of alleles at a given simple locus.

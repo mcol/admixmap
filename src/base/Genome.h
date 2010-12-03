@@ -104,7 +104,11 @@ public:
   int getNumberOfLoci(int)const;
 
   const unsigned int *GetSizesOfChromosomes()const;
-  unsigned GetSizeOfChromosome(unsigned)const;
+
+  /// Return the number of loci on the given chromosome
+  unsigned GetSizeOfChromosome(unsigned cIdx) const {
+    return SizesOfChromosomes[cIdx];
+  }
 
   unsigned getFirstXLocus()const;
   unsigned isXChromosome(unsigned)const;
@@ -121,8 +125,12 @@ public:
 
   unsigned GetChrNumOfLocus(unsigned locus); 
   int GetNumberOfStates()const;
-  int GetNumberOfStates(int locus)const;
-  
+
+  /// Return the number of states of a composite locus
+  int GetNumberOfStates(int locus) const {
+    return LocusArray[locus].GetNumberOfStates();
+  }
+
   double GetLengthOfGenome()const;
   double GetLengthOfXchrm()const;
 
