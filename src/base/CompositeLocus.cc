@@ -183,14 +183,14 @@ void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs, bool All
 
   if(!AllHaploid){//some diploid data, need HapPairProbs
     //set size of array of haplotype pair probs
-    HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
+    HapPairProbs = new double[NumberOfStates * NumberOfStates * PopulationsSquared];
     SetHapPairProbs();
   }
 
 }
 
 void CompositeLocus::InitialiseHapPairProbsMAP(){
-  HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
+  HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * PopulationsSquared];
   //   //Initialise HapPairProbsMAP to values in HapPairProbs
   //   for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
   //     HapPairProbsMAP[h0] = HapPairProbs[h0];
@@ -222,13 +222,15 @@ void CompositeLocus::SetHapPairProbsMAP() {
 
 /// private function
 void CompositeLocus::SetHapPairProbs(const double* alleleProbs, double* hapPairProbs) {
+  int PopSq_x_NumStates = PopulationsSquared * NumberOfStates;
   for(int h0 = 0; h0 < NumberOfStates; ++h0){
     for(int h1 = 0; h1 < NumberOfStates; ++h1){
       for(int k0 = 0; k0 < Populations; ++k0){
         for(int k1 = 0; k1 < Populations; ++k1) {
-          hapPairProbs[h0 * NumberOfStates * Populations * Populations +
-		       h1 * Populations * Populations +
-		       k0 * Populations + k1] = alleleProbs[k0*NumberOfStates + h0] * alleleProbs[k1*NumberOfStates + h1];
+          hapPairProbs[h0 * PopSq_x_NumStates +
+                       h1 * PopulationsSquared +
+                       k0 * Populations + k1]
+            = alleleProbs[k0*NumberOfStates + h0] * alleleProbs[k1*NumberOfStates + h1];
         }
       }
     }
@@ -295,13 +297,13 @@ void CompositeLocus::getConditionalHapPairProbs(bclib::pvector<double>& Probs, c
 
   const happairiter end = PossibleHapPairs.end();
   happairiter hiter = PossibleHapPairs.begin();//hiter points to elements of PossibleHapPairs
-  int PopSq_x_NumberOfStates = PopulationsSquared * NumberOfStates;
+  int PopSq_x_NumStates = PopulationsSquared * NumberOfStates;
       
   for( ; hiter != end ; ++hiter) {
     if(hiter->haps[1] >= 0){//diploid (haps (as opposed to happairs) have 2nd element -1
       //retrieve required element from HapPairProbs
       Probs[hiter->haps[0]*NumberOfStates + hiter->haps[1]] = 
-          HapPairProbs[ hiter->haps[0] * PopSq_x_NumberOfStates + 
+          HapPairProbs[ hiter->haps[0] * PopSq_x_NumStates +
                         hiter->haps[1] * PopulationsSquared +
                         ancestry[0] * Populations  + ancestry[1]];
     }
@@ -358,12 +360,11 @@ void CompositeLocus::SampleHapPair(hapPair *hap,
 
   const unsigned size = PossibleHapPairs.size();
   double *Probs = new double[size]; // 1-way array of hap.pair probs
+  int PopSq_x_NumStates = PopulationsSquared * NumberOfStates;
   // getConditionalHapPairProbs(Probs, PossibleHapPairs, ancestry);
-  happairiter end = PossibleHapPairs.end();
-  happairiter hiter = PossibleHapPairs.begin();
   for (unsigned j = 0; j < size; ++j) {
-    Probs[j] = HapPairProbs[ PossibleHapPairs[j].haps[0] * NumberOfStates * Populations * Populations + 
-			     PossibleHapPairs[j].haps[1] * Populations * Populations +
+    Probs[j] = HapPairProbs[ PossibleHapPairs[j].haps[0] * PopSq_x_NumStates +
+                             PossibleHapPairs[j].haps[1] * PopulationsSquared +
 			     ancestry[0] * Populations  + ancestry[1]];
   }
 
@@ -497,7 +498,7 @@ void CompositeLocus::SetDefaultMergeHaplotypes( const double* const alpha)
 /// DDF: not used by hapmixmap
 void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, 
 					     bool chibindicator) const {
-  int Ksq = Populations*Populations;
+  int Ksq = PopulationsSquared;
   double *q = Probs;
   const double *p;
   if(!chibindicator || !RandomAlleleFreqs) 
