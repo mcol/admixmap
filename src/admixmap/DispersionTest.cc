@@ -78,10 +78,10 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     for( int k = 0; k < NumberOfPopulations; k++ ){
       popfreqs =  A->GetAlleleFreqs(j, k );
+      AlleleCount.resize(popfreqs.size());
 
       // Generate replicate data conditional on locus ancestry
-      //AlleleCount = A->GetAlleleCounts(j, k);
-      AlleleCount = IC->getAlleleCounts(j, k, popfreqs.size());
+      IC->getAlleleCounts(AlleleCount, j, k);
       int sumcounts = accumulate(AlleleCount.begin(), AlleleCount.end(), 0, plus<int>());
       rep = bclib::Rand::genmultinomial( sumcounts, popfreqs );
 

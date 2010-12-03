@@ -232,12 +232,11 @@ unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)con
   return AlleleCounts;
 }
 
-vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop, unsigned NumStates) const
-{
+void IndividualCollection::getAlleleCounts(vector<int>& counts,
+                                           unsigned locus, int pop) const {
   int ancestry[2];
-  vector<int> counts(NumStates);
   fill(counts.begin(), counts.end(), 0);
-  for(unsigned i = 0; i < size; i++)
+  for (unsigned i = 0; i < size; ++i) {
     if( !_child[i]->GenotypeIsMissing(locus)){
       _child[i]->GetLocusAncestry(locus, ancestry);
       const int* happair = _child[i]->getSampledHapPair(locus);
@@ -245,8 +244,9 @@ vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop, unsig
       if(ancestry[0] == pop && (happair[0] >= 0) )++counts[happair[0]];
       if(ancestry[1] == pop&& (happair[1] >= 0) )++counts[happair[1]];
     }
-  return counts;
+  }
 }
+
 ///count number of missing genotypes at locus
 int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
   int count = 0;

@@ -429,8 +429,9 @@ void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int 
    double rn, r, pj, pi, q;
    double* NewScore = new double[ NumberOfStates - 1];
    double* NewInfo = new double[ (NumberOfStates - 1) * (NumberOfStates - 1 )];
+   vector<int> AlleleCounts(NumberOfStates);
    for( int k = 0; k < Populations; k++ ){
-     vector<int> AlleleCounts = individuals->getAlleleCounts(locus, k, NumberOfStates);
+     individuals->getAlleleCounts(AlleleCounts, locus, k);
      rn = (double)( AlleleCounts[ NumberOfStates - 1] );
      q = 1.0;
      for( int j = 0; j < NumberOfStates - 1; j++ )

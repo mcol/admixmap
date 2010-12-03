@@ -141,7 +141,8 @@ public:
 
   unsigned	 GetSNPAlleleCounts(unsigned locus, int allele)const;
   int		 getNumberOfMissingGenotypes(unsigned locus)const;
-  vector<int>	 getAlleleCounts(unsigned locus, int pop, unsigned NumStates)const;
+  void		 getAlleleCounts(std::vector<int>& counts,
+                                 unsigned locus, int pop) const;
   vector<double> getOutcome( size_t j )const;
 
   double    getOutcome	     ( int j, int ind ) const { return Outcome.get	 ( ind, j ); }
