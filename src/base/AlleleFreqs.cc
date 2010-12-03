@@ -516,12 +516,12 @@ const double* AlleleFreqs::GetAlleleFreqs(int locus)const
 {
   return( Freqs[locus] );
 }
-vector<double> AlleleFreqs::GetAlleleFreqs( int locus, int population )const
-{
-  vector<double> A(Loci->GetNumberOfStates(locus));
-  for(int i = 0; i < Loci->GetNumberOfStates(locus); ++i)
-    A[i] = Freqs[locus][i + population*Loci->GetNumberOfStates(locus)];
-  return A;
+void AlleleFreqs::GetAlleleFreqs(vector<double>& A,
+                                 int locus, int population) const {
+  int numstates = Loci->GetNumberOfStates(locus);
+  A.resize(numstates);
+  for (int i = 0; i < numstates; ++i)
+    A[i] = Freqs[locus][population*numstates + i];
 }
 const FreqArray& AlleleFreqs::GetAlleleFreqs()const{
   return Freqs;
