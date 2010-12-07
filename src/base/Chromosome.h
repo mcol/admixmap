@@ -116,8 +116,6 @@ private:
   const int NumHiddenStates; ///< Not really the number of hidden states -- we're just funning you!
   std::string _Label;
   
-  int *CodedStates;//used to sample hidden states from HMM
-
   // UNIMPLEMENTED
   // to avoid use
  // Private default constructor

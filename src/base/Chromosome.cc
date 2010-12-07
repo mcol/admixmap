@@ -43,7 +43,6 @@ Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool i
    }
    Distances = new double[ NumberOfCompositeLoci ];
    
-   CodedStates = new int[size];
    f = new double[2*size];
    f[0] = f[1] = 0.0;
    
@@ -52,7 +51,6 @@ Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool i
 
 Chromosome::~Chromosome()
 {
-  delete[] CodedStates;
   delete[] f;
   delete[] Distances; 
   delete HMM;
