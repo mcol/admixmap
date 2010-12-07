@@ -228,7 +228,6 @@ void AdmixFreqs::SampleAlleleFreqs(int i, double coolness)
 {
   unsigned NumStates = Loci->GetNumberOfStates(i);
   double* temp = new double[NumStates];
-  double *freqs = new double[NumStates];
   
   //if there is, the Dirichlet params are common across populations
   for( unsigned j = 0; j < Populations; j++ ){
@@ -242,9 +241,8 @@ void AdmixFreqs::SampleAlleleFreqs(int i, double coolness)
 	if(Freqs[i][j*NumStates+s]==0.0) Freqs[i][j*NumStates+s] = 0.000001;
 	if(Freqs[i][j*NumStates+s]==1.0) Freqs[i][j*NumStates+s] = 0.999999;
     }
-
   }
-  delete[] freqs;  
+
   delete[] temp;
 }
 
