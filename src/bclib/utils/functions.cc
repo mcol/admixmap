@@ -332,10 +332,9 @@ void softmax(size_t K, double *mu, const double* a, const bool* const b){
 int HH_solve (size_t n, double *A, double *b, double *x)
 {
   //create copy of A as gsl matrix; might not be necessary, depending on use
-  gsl_matrix *AA = gsl_matrix_calloc(n,n);
-  for(size_t i = 0;i < n; ++i)
-    for(size_t j = 0; j < n; ++j)
-      gsl_matrix_set(AA, i, j, A[i*n+j]); 
+  gsl_matrix *AA = gsl_matrix_alloc(n,n);
+  for(size_t i = 0;i < n*n; ++i)
+    AA->data[i] = A[i];
 
   gsl_vector_view bb = gsl_vector_view_array(b, n);
   gsl_vector_view xx = gsl_vector_view_array(x, n);
@@ -365,7 +364,7 @@ int HH_svx (size_t n, double *A, double *x)
   gsl_vector_view xx = gsl_vector_view_array(x,n); 
 
   //create copy of A as gsl matrix
-  AA = gsl_matrix_calloc(n,n);
+  AA = gsl_matrix_alloc(n,n);
   for (size_t i = 0; i < n*n; i++){
       AA->data[i] = A[i];
     }
