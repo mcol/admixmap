@@ -147,8 +147,7 @@ void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi
   //Note that only the intercept and admixture proportions are used.
   // X is (A, cov)'  
   
-  double *X = new double [2 * NumStrata], *Xcopy = new double[2*NumStrata], *XX = new double[4*NumStrata*NumStrata];
-  //Xcopy is an exact copy of X; We need two copies as one will be destroyed
+  double *X = new double [2 * NumStrata], *XX = new double[4*NumStrata*NumStrata];
   double xBx[1];
   double* BX = new double[NumStrata];
   double* VarA = new double[NumStrata];
@@ -163,33 +162,32 @@ void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi
 
   for( unsigned k = 0; k < NumStrata ; k++ ){
     if(diploid) {
-    Xcopy[k] = X[k] = Probs[1][k] + 2.0 * Probs[2][k];//Conditional expectation
+    X[k] = Probs[1][k] + 2.0 * Probs[2][k]; // Conditional expectation
     VarA[k] = Probs[1][k]*(1.0 - Probs[1][k]) + 4.0*Probs[2][k]*Probs[0][k];//conditional variances
     } else {
       // haploid - effect of one extra copy from pop k is equivalent to two extra copies in diploid case
-      Xcopy[k] = X[k] = 2 * Probs[1][k];//Conditional expectation
+      X[k] = 2 * Probs[1][k]; // Conditional expectation
       VarA[k] = 4 * Probs[1][k] * (1.0 - Probs[1][k]);//conditional variances
     }
   }
-  //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
-  Xcopy[2*NumStrata-1] = 1;
-  for( unsigned k = 0; k < NumStrata-1; k++ )Xcopy[k + NumStrata] = Covariates[k];
 
   try{
     using namespace bclib;
-    // ** compute expectation of score **
-    scale_matrix(Xcopy, YMinusEY*phi, 2*NumStrata, 1);      //Xcopy *= YMinusEY *phi
-    add_matrix(Score[locus], Xcopy, 2*NumStrata, 1);//Score[locus] += Xcopy
     // ** compute uncorrected info **
     matrix_product(X, X, XX, 2*NumStrata, 1, 2*NumStrata);        //XX = X'X
     scale_matrix(XX, DInvLink*phi, 2*NumStrata, 2*NumStrata);     //XX = DInvLink * phi * X'X
     add_matrix(Info[locus], XX, 2*NumStrata, 2*NumStrata);//Info[locus] += XX
+
+    // ** compute expectation of score **
+    scale_matrix(X, YMinusEY*phi, 2*NumStrata, 1); // X *= YMinusEY * phi
+    add_matrix(Score[locus], X, 2*NumStrata, 1);   // Score[locus] += X
+
     // ** compute variance of score and correction term for info **    
     HH_solve(NumStrata, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
     matrix_product(Xcov, BX, xBx, 1, NumStrata, 1);//xBx = Xcov' * BX
   }
   catch(string s){
-    delete[] X; delete[] Xcopy;
+    delete[] X;
     delete[] XX;
     delete[] BX;
     delete[] VarA;
@@ -201,11 +199,10 @@ void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi
     InfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
     VarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
   }
-  delete[] X; delete[] Xcopy;
+  delete[] X;
   delete[] XX;
   delete[] BX;
   delete[] VarA;
-
 }
 
 ///accumulate score, info, scoresq and var score over iterations
