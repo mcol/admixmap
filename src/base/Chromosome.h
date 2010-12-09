@@ -48,7 +48,7 @@ public:
   Chromosome(int, int size,int start, int, bool isx);
    ~Chromosome();
 // ******** Chromosome information **********************************
-  void SetLabel(std::string );
+  void SetLabel(const std::string & label);
 
   /// Set the distance from locus @a locus to the _previous_ locus.  This implies
   /// that @a locus is >=1.

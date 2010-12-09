@@ -24,12 +24,7 @@
 //=============================================================================
 
 #include "Chromosome.h"
-#include <iostream>
 #include "bclib/misc.h"
-//#include <string>    //for throwing exceptions in f
-//#include <exception> // for catching exceptions in f
-
-#define PR(x) cerr << #x << " = " << x << endl;
 
 using namespace std;
 
@@ -65,7 +60,7 @@ bool Chromosome::isXChromosome()const
 
 
 /// Sets label for this chromosome, usually "1", "2", etc or "X"
-void Chromosome::SetLabel( std::string label )
+void Chromosome::SetLabel( const std::string & label )
     {
     _Label = label;
     }

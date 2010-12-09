@@ -187,33 +187,32 @@ void Genome::InitialiseChromosomes(const std::vector<unsigned>& cstart,
       XChromosomeIndex = cStLocIdx;//index of first locus on X chromosome
     }
 
-    CreateChromosome(i, size, isX, cStLocIdx, populations);
-    C[i]->SetLabel(label);
-
-    for( size_t j = 1; j < size; j++ ){//loop over loci on chromosome
-        C[i]->SetDistance(j,GetDistance(cStLocIdx+j));
-	if( !isX ){
-	  LengthOfGenome += GetDistance(cStLocIdx+j);
-	  //              cout << i << " " << j << " " << GetDistance(cStLocIdx+j) << endl;
-	  //NB length of genome does not include X chromosome
-	}
-	//case of X chromosome
-	else{
-	  LengthOfXchrm += GetDistance(cStLocIdx+j);
-	}
-    }
-
+    CreateChromosome(i, size, isX, cStLocIdx, populations, label);
   }
 }
 
-/**
-   create chromosome i.
-   isX indicates if it is to be an X chromosome.
-   cstart is the index of the first locus.
-*/
-void Genome::CreateChromosome(unsigned i,unsigned size,  bool isX, unsigned cstart, int NumHiddenStates ){
-  C[i] = new Chromosome(i, size, cstart, NumHiddenStates, isX);
-  //C[i] is a pointer to Chromosome
+/// Create a chromosome.
+/// \param i       index of this chromosome
+/// \param size    number of composite loci on this chromosome
+/// \param isX     indicates if it the X chromosome
+/// \param cstart  index of the first locus
+/// \param pops    number of populations
+/// \param label   label for the chromosome (usually "1", "2", etc or "X")
+void Genome::CreateChromosome(unsigned i, unsigned size, bool isX,
+                              unsigned cstart, int pops, const string& label) {
+  // C[i] is a pointer to Chromosome
+  C[i] = new Chromosome(i, size, cstart, pops, isX);
+  C[i]->SetLabel(label);
+
+  // loop over loci on chromosome
+  for (size_t j = 1; j < size; ++j) {
+    double distance = GetDistance(cstart + j);
+    C[i]->SetDistance(j, distance);
+    if (!isX) // length of genome does not include X chromosome
+      LengthOfGenome += distance;
+    else
+      LengthOfXchrm += distance;
+  }
 }
 
 ///accesses the entire chromosome array

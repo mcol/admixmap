@@ -156,7 +156,8 @@ protected:
   bool X_data;
   unsigned XChromosomeIndex;
 
-  virtual void CreateChromosome(unsigned i, unsigned size, bool isX, unsigned cstart, int NumHiddenStates );
+  virtual void CreateChromosome(unsigned i, unsigned size, bool isX,
+                                unsigned cstart, int pops, const string& label);
   void SetupChromosome(Chromosome* C, bool isX, unsigned cstart, const string& label);
 
 private:
