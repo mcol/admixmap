@@ -347,7 +347,8 @@ void CompositeLocus::SampleHapPair(hapPair *hap,
   }
 
   //no need to renormalize for SampleFromDiscrete
-  const int h = bclib::Rand::SampleFromDiscrete(Probs, size);
+  const int h = size < 5 ? bclib::Rand::SampleFromDiscreteFast(Probs, size)
+                         : bclib::Rand::SampleFromDiscrete(Probs, size);
   delete[] Probs;
 
   hap->haps[0] = PossibleHapPairs[h].haps[0];

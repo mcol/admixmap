@@ -221,6 +221,10 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
   // probability vector for possible states
   double *V = new double[NumStates];
 
+  // choose the version of SampleFromDiscrete to use
+  int (*SampleFromDiscrete)(const double*, int) = NumStates < 5 ?
+      Rand::SampleFromDiscreteFast : Rand::SampleFromDiscrete;
+
   // sample rightmost locus
   const double *alpha_Tm1 = alpha + (Transitions - 1) * NumStates;
   for (int j = 0; j < NumStates; ++j)
@@ -230,7 +234,7 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
     // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete 
 
     // sampled state (haploid or diploid) coded as integer
-    int C = Rand::SampleFromDiscrete( V, nStates );
+    int C = SampleFromDiscrete( V, nStates );
     SStates[Transitions-1] = (int)(C/K);
     SStates[Transitions - 1 + Transitions] = (C % K);
     
@@ -245,21 +249,21 @@ void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isDiploid){
 	V[State] *= alpha[t*nStates + i1*K + i2];
 	++State;
       }
-      C = Rand::SampleFromDiscrete( V, nStates );
+      C = SampleFromDiscrete( V, nStates );
       SStates[t] = (int)(C/K);//paternal
       SStates[t + Transitions] = (C % K);//maternal
     }
   }
 
   else { // haploid
-    SStates[Transitions-1] = Rand::SampleFromDiscrete( V, K );
+    SStates[Transitions-1] = SampleFromDiscrete( V, K );
     for( int t =  Transitions - 2; t >= 0; t-- ){
 	//for(int j = 0; j < K; j++)V[j] = (j == C[t+1])*f[2*t+1]+theta[C[t+1]]*(1.0 - f[2*t]);
 	for(int state = 0; state < K; state++)
 	    V[state] = (state == SStates[t+1]) * f[2*t+2] + StateArrivalProbs[0][(t+1)*K + SStates[t+1]  ];
 	for( int state = 0; state < K; state++ ) 
 	    V[state] *= alpha[t*K + state];
-	SStates[t] = Rand::SampleFromDiscrete( V, K );
+	SStates[t] = SampleFromDiscrete( V, K );
     }
   }
 

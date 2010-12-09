@@ -55,6 +55,8 @@ public:
   static long ignpoi(double mu);
 
   static int SampleFromDiscrete( const double probs[] , int numberofelements);
+  static int SampleFromDiscreteFast(const double *probs, int numberofelements);
+
   ///Dirichlet
   template<typename ConstVecType, typename VecType> \
 	static void gendirichlet( size_t K, const ConstVecType & alpha, VecType & theta );

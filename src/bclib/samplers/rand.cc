@@ -1,14 +1,28 @@
-/** 
- *   rand.cc 
- *   Random number class
- *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
- * See the file COPYING for details.
- * 
- */
+//=============================================================================
+//
+// Copyright (C) 2005, 2006  David O'Donnell and Paul McKeigue
+// Portions Copyright (C) 2010  Marco Colombo
+//
+// This is free software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License version 2 or later as published by
+// the Free Software Foundation.
+//
+// This software is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this software; see the file COPYING.  If not, it can be found at
+// http://www.gnu.org/copyleft/gpl.html or by writing to the Free Software
+// Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+//
+//=============================================================================
+
+//=============================================================================
+/// \file rand.cc
+/// Implementation of the bclib::Rand class.
+//=============================================================================
 
 #include <cmath>
 #include <iostream>
@@ -191,6 +205,26 @@ int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
   return(k);
 }
 
+/// Sample from a discrete probability distribution given by probabilities,
+/// specialised for the case in which the number of elements is small
+int Rand::SampleFromDiscreteFast(const double *probs, int numberofelements) {
+
+  // If the number of elements is small enough, the time spent recomputing
+  // the cdf is smaller than the memory allocation overhead.
+
+  int k = 0;
+  double cdf = probs[0];
+  while (++k < numberofelements)
+    cdf += probs[k];
+
+  double u = myrand() * cdf;
+  k = 0;
+  cdf = probs[0];
+  while (u > cdf)
+    cdf += probs[++k];
+
+  return k;
+}
 
 
 /// ** Dirichlet distribution **
