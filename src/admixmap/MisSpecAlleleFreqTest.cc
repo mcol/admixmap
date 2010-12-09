@@ -173,6 +173,8 @@ void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const indivi
 
   Reset();
   if( test ) {
+    bool isRandom = A->IsRandom();
+    const FreqArray& alleleFreqs = A->GetAlleleFreqs();
     double** phi = bclib::alloc2D_d(Populations, Populations);
     for( int i = 0; i < individuals->getSize(); i++ ){
       const PedBase & ind = individuals->getElement(i);
@@ -183,10 +185,10 @@ void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const indivi
 
       for(int j = 0; j < NumCompLoci; j++ ){
 	if( !(ind.GenotypeIsMissing(j)) &&
-	    (*Loci)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) ){//CHECK: do only for SNPs?
+            (*Loci)(j)->GetNumberOfLoci() == 1  && !isRandom ) {//CHECK: do only for SNPs?
 	  int NumStates = Loci->GetNumberOfStates(j);
 	  const vector<int> NumCopiesAllele1 = (*Loci)(j)->getAlleleCounts(1, ind.getSampledHapPair(j));
-	  UpdateLocus( j, phi, NumCopiesAllele1[0], A->GetAlleleFreqs(j), NumStates );
+	  UpdateLocus(j, phi, NumCopiesAllele1[0], alleleFreqs[j], NumStates);
 	}
       }
     }

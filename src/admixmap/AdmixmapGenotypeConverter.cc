@@ -165,9 +165,10 @@ void convert( const Organism &		org	  ,
 
     bool haveErr = false;
 
+    unsigned int numberOfChromosomes = loci.GetNumberOfChromosomes();
 
     // Loop over each chromosome (c counter):
-    for ( unsigned c = 0; c < loci.GetNumberOfChromosomes(); ++c) {
+    for ( unsigned c = 0; c < numberOfChromosomes; ++c ) {
 
       const Chromosome & chromosome = loci.getChromosomeRef( c );
       const bool	 isXchrm    = chromosome.isXChromosome();

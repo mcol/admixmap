@@ -81,14 +81,16 @@ void CopyNumberAssocTest::Initialise(const char* filename, const int numStrata, 
     NumOutputStrata = 1;//only keeping scores for second population when 2 populations
   }
 
-  SumScore = new double[L * NumOutputStrata];
-  SumInfo = new double[L * NumOutputStrata];
-  SumScore2 = new double[L * NumOutputStrata];
-  SumVarScore = new double[L * NumOutputStrata];
-  fill(SumScore, SumScore +L*NumOutputStrata, 0.0);
-  fill(SumScore2, SumScore2 +L*NumOutputStrata, 0.0);
-  fill(SumInfo, SumInfo + L*NumOutputStrata, 0.0);
-  fill(SumVarScore, SumVarScore + L*NumOutputStrata, 0.0);
+  const int dim = L * NumOutputStrata;
+
+  SumScore    = new double[dim];
+  SumInfo     = new double[dim];
+  SumScore2   = new double[dim];
+  SumVarScore = new double[dim];
+  fill(SumScore, SumScore + dim, 0.0);
+  fill(SumScore2, SumScore2 + dim, 0.0);
+  fill(SumInfo, SumInfo + dim, 0.0);
+  fill(SumVarScore, SumVarScore + dim, 0.0);
 
   using bclib::alloc2D_d;
   Score = alloc2D_d(L, 2*NumStrata);
