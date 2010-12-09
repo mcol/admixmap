@@ -135,8 +135,9 @@ void CopyNumberAssocTest::OutputCopyNumberAssocTest(unsigned j, unsigned k,
 				  SumVarScore[ j*NumOutputStrata + k ],SumInfo[ j*NumOutputStrata + k ], final); 
 }
 
-void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
-				 bool diploid, const vector<vector<double> > Probs) {
+void CopyNumberAssocTest::Update(int locus, const double* Covariates,
+                                 double phi, double YMinusEY, double DInvLink,
+                                 bool diploid, const vector<vector<double> >& Probs) {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
   //Notes: 1/phi is dispersion parameter
