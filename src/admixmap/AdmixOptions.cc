@@ -25,12 +25,12 @@
 
 #include "AdmixOptions.h"
 #include "AdmixFilenames.h"
+#include "bclib/estr.h"
 #include "bclib/LogWriter.h"
 
 #include <cstdlib>
 #include <iostream>
 #include <iterator>
-#include <sstream>
 
 using namespace std;
 using namespace bclib;
@@ -855,11 +855,7 @@ bool AdmixOptions::CheckInitAlpha(const cvector<double>& alphatemp) const {
 void AdmixOptions::PrintUserOptions(const char* filename){
   //set populations value in case it has changed or not specified
   //NB do similar for any option that can be changed outside Options
-  std::ostringstream s;
-  if (s << getPopulations()) // conversion worked
-    {
-    useroptions["populations"] = (char *)s.str().c_str();
-    }
+  useroptions["populations"] = genepi::estr(getPopulations());
   useroptions["hapmixmodel"] = "0";
   //Now output Options table to file
   Options::PrintUserOptions(filename);

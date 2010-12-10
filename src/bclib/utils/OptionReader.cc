@@ -63,13 +63,6 @@ void OptionReader::setVerbose(bool v){
   Verbose = v;
 }
 
-// Helper function to create a string from a single char
-static string char2String(char c) {
-  stringstream ss;
-  ss << c;
-  return ss.str();
-}
-
 
 
 //-----------------------------------------------------------------------------
@@ -342,7 +335,7 @@ bool OptionReader::ReadCommandLineArgs(const int argc, char** argv, const char* 
 string OptionReader::short2Long(char shortname){
   if(Short2LongMap.find(shortname) == Short2LongMap.end())
     //not recognized - turn into a string. Unrecognized options/flags will be deleted
-    return char2String(shortname);
+    return string(1, shortname); // create a string from a single char
   else
     return Short2LongMap[shortname];
 

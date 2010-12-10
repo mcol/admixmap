@@ -30,7 +30,6 @@
 #include "CorrelatedFreqs.h"
 #include <cmath>
 #include <iostream>
-#include <sstream>
 
 #define DEBUG_ITER_TIMES    0
 #if DEBUG_ITER_TIMES
@@ -535,9 +534,7 @@ void AdmixMapModel::WriteParamsAsRObjectDimensions(const AdmixOptions& options, 
   //if(strlen(options.getParameterFilename()))
   {
     for( int i = 0; i < options.getPopulations(); i++ ) {
-      stringstream ss;
-      ss << "Dirichlet." << PopulationLabels[i];
-      dimnames[0].push_back(ss.str());
+      dimnames[0].push_back("Dirichlet." + PopulationLabels[i]);
     }
     //SumIntensities
     if( options.isGlobalRho() )  dimnames[0].push_back("sumIntensities");
@@ -546,13 +543,9 @@ void AdmixMapModel::WriteParamsAsRObjectDimensions(const AdmixOptions& options, 
     // Odds ratios for the X chromosome
     if (Loci.isX_data()) {
       for (int i = 0; i < options.getPopulations(); i++) {
-        stringstream ss;
-        ss << "Psi." << PopulationLabels[i];
-        dimnames[0].push_back(ss.str());
+        dimnames[0].push_back("Psi." + PopulationLabels[i]);
         if (!options.isGlobalPsi() && i > 0) {
-          ss.str("");
-          ss << "PsiPrecision." << PopulationLabels[i];
-          dimnames[0].push_back(ss.str());
+          dimnames[0].push_back("PsiPrecision." + PopulationLabels[i]);
         }
       }
     }
@@ -564,9 +557,7 @@ void AdmixMapModel::WriteParamsAsRObjectDimensions(const AdmixOptions& options, 
     //dispersion model
     if(strlen( options.getHistoricalAlleleFreqFilename() )){
       for( int k = 0; k < options.getPopulations(); k++ ){
-	stringstream ss;
-	ss << "eta." << PopulationLabels[k];
-	dimnames[0].push_back(ss.str());
+	dimnames[0].push_back("eta." + PopulationLabels[k]);
       }
     }
     //correlated freqs model
