@@ -471,18 +471,18 @@ void CentredGaussianConditional( size_t kk, double *mean, double *var,
            [      | Vbb ]
            <- kk ->
   */
-  gsl_matrix *mean1 = gsl_matrix_alloc(kk, 1);
+  // gsl_matrix *mean1 = gsl_matrix_alloc(kk, 1);
   for(size_t i = 0; i< kk; ++i){
-    mean1->data[i] = mean[i];
+    // mean1->data[i] = mean[i];
     newmean[i] = mean[i];     //copy mean1 into new mean
   }
   gsl_matrix *mean2 = gsl_matrix_alloc(dim-kk, 1);
   for(size_t i = 0; i< dim-kk; ++i) mean2->data[i] = mean[i+kk];
 
-  gsl_matrix *Vaa = gsl_matrix_alloc(kk, kk);
+  // gsl_matrix *Vaa = gsl_matrix_alloc(kk, kk);
   for(size_t i = 0; i < kk; ++i)
     for(size_t j = 0; j < kk; ++j){
-      Vaa->data[i*kk +j] = var[i*dim +j];
+      // Vaa->data[i*kk +j] = var[i*dim +j];
       newvar[i*kk +j] = var[i*dim +j];  //copy Vaa into newvar
     }
 
@@ -533,9 +533,9 @@ void CentredGaussianConditional( size_t kk, double *mean, double *var,
   gsl_matrix_free(D);
   }
   gsl_set_error_handler (old_handler);//restore gsl error handler 
-  gsl_matrix_free(mean1);
+  // gsl_matrix_free(mean1);
   gsl_matrix_free(mean2);
-  gsl_matrix_free(Vaa);
+  // gsl_matrix_free(Vaa);
   gsl_matrix_free(Vbb);
   gsl_matrix_free(Vab);
   if(status){

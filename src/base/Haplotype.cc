@@ -92,13 +92,13 @@ void Haplotype::setPossibleHaplotypePairs(const GenotypeIterator* G, vector<hapP
   //void Haplotype::setPossibleHaplotypePairs(int numHetLoci, int numMissingLoci, int numPermsHet, int numPermsMissing, 
   //				       const vector<bool>& isHet, const vector<bool>& isMissing){
   // loop over loci to calculate vectors hetLoci and missingLoci
-  vector<int> hetLoci(numHetLoci);
+  // vector<int> hetLoci(numHetLoci);
   vector<int> missingLoci(numMissingLoci);
   int offsetHetLoci = 0;
   int offsetMissingLoci = 0;
   for( int i = 0; i < NumberOfLoci; i++ ) {
     if( isHet[i] ) {
-      hetLoci[offsetHetLoci] = i;
+      // hetLoci[offsetHetLoci] = i;
       offsetHetLoci++;
     }
     if( isMissing[i] ) {
