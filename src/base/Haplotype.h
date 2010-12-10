@@ -59,7 +59,8 @@ private:
 
   void intToBits(int n, const int length, bool *bits);
   void setBaseForHapCode();
-  void setBaseMissing(const vector<int> missingLoci, const int numMissingLoci, vector<int> baseMissing[2]);
+  void setBaseMissing(const std::vector<int>& missingLoci,
+                      int numMissingLoci, std::vector<int> baseMissing[2]);
   void setMissingAlleles(const vector<int> baseMissing[2], int numMissingLoci, int permMissing,
 			 vector<int> MissingAlleles[2]);
   void setMissingAlleles(int numMissingLoci, int permMissing, vector<int>& MissingAlleles,
@@ -68,18 +69,28 @@ private:
 
   void codeHapAllelesPairAsIntPair(const vector<int> HapAllelesPair[2], int *hpair);
 
-  void permuteHetLoci(const vector<bool> isHet, const int numHetLoci, const int permHet,
-                      const GenotypeIterator* G, vector<int> HapAllelesPair[2]);
-  void permuteMissingLoci(const vector<bool> isMissing, const int numMissingLoci, const int permMissing,
-			  const vector<int> HapAllelesPair[2], const vector<int> baseMissing[2],
-			  vector<int> HapAllelesPairNoMissing[2]);
-  void permuteMissingLoci(const vector<bool>& isMissing, const int numMissingLoci, const int permMissing,
-			  const vector<int>& HapAlleles, const vector<int>& MissingLoci,
-			  vector<int>& HapAllelesNoMissing);
+  void permuteHetLoci(const std::vector<bool>& isHet, int numHetLoci,
+                      int permHet, bool *permbits, const GenotypeIterator* G,
+                      std::vector<int> HapAllelesPair[2]);
 
-  void setPossibleHaplotypes(int numMissingLoci, int numPermsMissing, const vector<bool>& isMissing,
-			     const vector<int>& HapAlleles, vector<int>& HapAllelesNoMissing,
-			     vector<hapPair> &PossibleHapPairs);
+  void permuteMissingLoci(const std::vector<bool>& isMissing,
+                          int numMissingLoci, int permMissing,
+                          const std::vector<int> HapAllelesPair[2],
+                          const std::vector<int> baseMissing[2],
+                          std::vector<int> HapAllelesPairNoMissing[2],
+                          std::vector<int> MissingAlleles[2]);
+
+  void permuteMissingLoci(const std::vector<bool>& isMissing,
+                          int numMissingLoci, int permMissing,
+                          const std::vector<int>& HapAlleles,
+                          const std::vector<int>& MissingLoci,
+                          std::vector<int>& HapAllelesNoMissing,
+                          std::vector<int>& MissingAlleles);
+
+  void setPossibleHaplotypes(int numMissingLoci, int numPermsMissing,
+                             const std::vector<bool>& isMissing,
+                             const std::vector<int>& HapAlleles,
+                             std::vector<hapPair>& PossibleHapPairs);
 
 };
 
