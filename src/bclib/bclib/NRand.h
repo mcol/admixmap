@@ -20,18 +20,15 @@
 
 //=============================================================================
 /// \file NRand.h
-/// Interface of the NRand class.
+/// Interface of the genepi::NRand class.
 //=============================================================================
 
-
-#ifndef __bclib_bclib_NRand_h
-#define __bclib_bclib_NRand_h
-
+#ifndef __bclib_NRand_h
+#define __bclib_NRand_h
 
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-
 
 
 namespace genepi { // ----
@@ -88,4 +85,4 @@ class NRand
 
 
 
-#endif // ! __bclib_bclib_NRand_h
+#endif // ! __bclib_NRand_h

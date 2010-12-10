@@ -1,17 +1,29 @@
-// *-*-C++-*-*
-/* 
- *   OptionReader.h 
- *   This file is part of bcppcl
- *   Class to read program options and flags. 
- *   Copyright (c) 2007 David O'Donnell
- *   Portions Copyright (c) 2009 David D. Favro
- *  
- * This program is free software distributed WITHOUT ANY WARRANTY. 
- * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
- * version 2 or later, as published by the Free Software Foundation. 
- * See the file COPYING for details.
- */
+//=============================================================================
+//
+// Copyright (C) 2007  David O'Donnell
+// Portions Copyright (C) 2009  David D. Favro
+//
+// This is free software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License version 2 or later as published by
+// the Free Software Foundation.
+//
+// This software is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this software; see the file COPYING.  If not, it can be found at
+// http://www.gnu.org/copyleft/gpl.html or by writing to the Free Software
+// Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+//
+//=============================================================================
 
+//=============================================================================
+/// \file OptionReader.h
+/// Definition of the bclib::OptionReader class.
+//=============================================================================
+ 
 /*
  *   Acts as a utility class for reading
  *   commandline options as well as options from
@@ -44,19 +56,14 @@
  *   Windows.
  */
 
-//=============================================================================
-/// \file OptionReader.h
-/// Definition of the bclib::OptionReader class.
-//=============================================================================
- 
-#ifndef OPTIONREADER_H
-#define OPTIONREADER_H 1
+#ifndef __bclib_OptionReader_h
+#define __bclib_OptionReader_h
 
-#include <vector>
-#include <string>
-#include <map>
 #include "bclib/bclib.h"
 #include "bclib/cvector.h"
+#include <map>
+#include <string>
+#include <vector>
 
 using namespace::std;
 
@@ -84,13 +91,13 @@ enum OptionType{ nullOption       ,
                  oldOption        };
 
 /// Pair to identify types of data members
-typedef pair<void*, OptionType> OptionPair;
+typedef std::pair<void*, OptionType> OptionPair;
 
 /// Map to match a user option to a data member
-typedef map<string, OptionPair> OptionMap;
+typedef std::map<std::string, OptionPair> OptionMap;
 
 /// Map to match a program flag to its setting
-typedef map<string, bool> FlagMap;
+typedef std::map<std::string, bool> FlagMap;
 
 /// Class to read program options and flags
 class OptionReader{
@@ -161,7 +168,7 @@ public:
   //print user options to a stream
   virtual void PrintUserOptions(std::ostream& os);
   ///print user-specified flags to a stream
-  void PrintUserFlags(ostream& os);
+  void PrintUserFlags(std::ostream& os);
   ///set separator for options file. eg '=' for a = b
   void setFileSeparators(const string& sep);
   ///free some memory by clearing maps
@@ -177,14 +184,14 @@ public:
 
 protected:
   /// map to hold user options
-  map<string, string> useroptions;
+  std::map<std::string, std::string> useroptions;
   OptionMap ProgOptions;
 
   /// Setting of each program flag
   FlagMap Flags;
-  vector<string> userflags;
-  map<char, string> Short2LongMap;
-  vector<string> RequiredOptions;
+  std::vector<std::string>    userflags;
+  std::map<char, std::string> Short2LongMap;
+  std::vector<std::string>    RequiredOptions;
 
 private:
   string separators;
@@ -212,4 +219,4 @@ private:
 END_BCLIB_NAMESPACE
 
 
-#endif /* OPTIONREADER_H */
+#endif // ! __bclib_OptionReader_h
