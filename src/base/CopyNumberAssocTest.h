@@ -72,7 +72,8 @@ private:
   double* SumVarScore;
   double* SumScore2;
 
-  void Accumulate(unsigned j);
+  void Accumulate(unsigned j, double *CentredScore, double *CentredInfo);
+
 };
 
 

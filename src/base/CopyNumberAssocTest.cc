@@ -210,14 +210,20 @@ void CopyNumberAssocTest::Update(int locus, const double* Covariates,
 
 ///accumulate score, info, scoresq and var score over iterations
 void CopyNumberAssocTest::Accumulate(){
+
+  double *CentredScore = new double[NumStrata];
+  double *CentredInfo  = new double[NumStrata * NumStrata];
+
   //increment update counter
   for(unsigned j = 0; j < L; ++j)
-    Accumulate(j);
+    Accumulate(j, CentredScore, CentredInfo);
   ++numUpdates;
+
+  delete[] CentredScore;
+  delete[] CentredInfo;
 }
 
-void CopyNumberAssocTest::Accumulate(unsigned j){
-  double *CentredScore = new double[NumStrata], *CentredInfo = new double[NumStrata*NumStrata];
+void CopyNumberAssocTest::Accumulate(unsigned j, double *CentredScore, double *CentredInfo) {
 
   //centre score and info by conditioning on covariates
   try{
@@ -241,8 +247,6 @@ void CopyNumberAssocTest::Accumulate(unsigned j){
     SumScore2[j*NumOutputStrata +k] += CentredScore[k+k1] * CentredScore[k+k1];
     SumVarScore[j*NumOutputStrata +k] += VarScore[j][k+k1];
   }
-  delete[] CentredScore;
-  delete[] CentredInfo;
 }
 
 //TODO: fix to be called within update
