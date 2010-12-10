@@ -1,6 +1,7 @@
 //=============================================================================
 //
 // Copyright (C) 2002-2007  David O'Donnell and Paul McKeigue
+// Portions Copyright (C) 2010  Marco Colombo
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 2 or later as published by
@@ -392,6 +393,59 @@ int HH_svx (size_t n, double *A, double *x)
   }
   return 0;//will only get here if successful
 }
+
+
+/// Compute LU factors for the matrix @a A, which is destroyed in the process.
+int LU_decomp(size_t n, double *A, size_t *perm) {
+
+  gsl_matrix_view AA = gsl_matrix_view_array(A, n, n);
+  gsl_permutation pp = {n, perm};
+  int signum;
+
+  // disable default gsl error handler
+  gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
+  int status = gsl_linalg_LU_decomp(&AA.matrix, &pp, &signum);
+
+  // restore gsl error handler
+  gsl_set_error_handler(old_handler);
+
+  // check for failure
+  if (status) {
+    std::string errstring = "LU_decomp failed: ";
+    errstring.append(gsl_strerror(status));
+    throw(errstring);
+  }
+
+  return 0;
+}
+
+/// Solve a linear system of equations, where @a A and @a perm contain the LU
+/// factors of the constraint matrix and the permutation matrix, respectively,
+/// produced by LU_decomp().
+int LU_solve(size_t n, double *A, size_t *perm, double *b, double *x) {
+
+  gsl_matrix_view AA = gsl_matrix_view_array(A, n, n);
+  gsl_vector_view bb = gsl_vector_view_array(b, n);
+  gsl_vector_view xx = gsl_vector_view_array(x, n);
+  gsl_permutation pp = {n, perm};
+
+  // disable default gsl error handler
+  gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
+  int status = gsl_linalg_LU_solve(&AA.matrix, &pp, &bb.vector, &xx.vector);
+
+  // restore gsl error handler
+  gsl_set_error_handler(old_handler);
+
+  // check for failure
+  if (status) {
+    std::string errstring = "LU_solve failed: ";
+    errstring.append(gsl_strerror(status));
+    throw(errstring);
+  }
+
+  return 0;
+}
+
 
 ///Computes the conditional mean and variance of a centred subvector of length kk of a zero-mean Multivariate Gaussian vector
 ///of length dim

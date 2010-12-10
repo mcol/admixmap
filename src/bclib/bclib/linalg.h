@@ -1,6 +1,7 @@
 //=============================================================================
 //
 // Copyright (C) 2006  David O'Donnell, Clive Hoggart and Paul McKeigue
+// Portions Copyright (C) 2010  Marco Colombo
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 2 or later as published by
@@ -39,6 +40,12 @@ BEGIN_BCLIB_NAMESPACE
 int HH_solve (size_t n, double *A, double *b, double *x);
 ///wrapper for gsl_HH_svx
 int HH_svx (double *A, double *x);
+
+/// wrapper for gsl_linalg_LU_decomp
+int LU_decomp(size_t n, double *A, size_t *p);
+
+/// wrapper for gsl_linalg_LU_solve
+int LU_solve(size_t n, double *A, size_t *p, double *b, double *x);
 
 ///adds two matrices
 void add_matrix(double *a, double *b, size_t d1, size_t d2);

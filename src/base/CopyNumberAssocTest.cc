@@ -1,6 +1,7 @@
 //=============================================================================
 //
 // Copyright (C) 2006  David O'Donnell, Clive Hoggart and Paul McKeigue
+// Portions Copyright (C) 2010  Marco Colombo
 //
 // This is free software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License version 2 or later as published by
@@ -42,19 +43,16 @@ CopyNumberAssocTest::CopyNumberAssocTest(){
   VarScore = 0;
   InfoCorrection = 0;
   B = 0;
-  PrevB = 0;
-  useprevb = true;
   Xcov = 0;
   NumStrata = 0;
   NumOutputStrata = 0;
   L = 0;
   numPrintedIterations = 0;
   numUpdates = 0;
+  LU_B = 0;
+  LU_P = 0;
 }
-// CopyNumberAssocTest::CopyNumberAssocTest(bool use_prevb){
-//   CopyNumberAssocTest();
-//   useprevb = use_prevb;
-// }
+
 CopyNumberAssocTest::~CopyNumberAssocTest(){
   if(test){
     delete[] SumScore;
@@ -62,7 +60,8 @@ CopyNumberAssocTest::~CopyNumberAssocTest(){
     delete[] SumVarScore;
     delete[] SumScore2;
     delete[] B;
-    if(useprevb)delete[] PrevB;
+    delete[] LU_B;
+    delete[] LU_P;
     delete[] Xcov;
     bclib::free_matrix(Score, L);
     bclib::free_matrix(Info, L);  
@@ -98,10 +97,10 @@ void CopyNumberAssocTest::Initialise(const char* filename, const int numStrata, 
   VarScore = alloc2D_d(L, NumStrata);
   InfoCorrection = alloc2D_d(L, NumStrata);
   B = new double[NumStrata * NumStrata];
-  if(useprevb)PrevB = new double[NumStrata * NumStrata];
-  else PrevB = B;
+  LU_B = new double[NumStrata * NumStrata];
+  LU_P = new size_t[NumStrata];
   Xcov = new double[NumStrata];
-
+  fill(B, B + NumStrata * NumStrata, 0.0);
 }
 
 void CopyNumberAssocTest::Reset(){
@@ -120,13 +119,14 @@ void CopyNumberAssocTest::Reset(){
 	VarScore[j][k] = 0.0;
       }
     }
-    for(unsigned k = 0; k < KK; ++k){
-      if(useprevb)PrevB[k] = B[k];           //PrevB stores the sum for the previous iteration
-      B[k] = 0.0;                //while B accumulates the sum for the current iteration 
-    }
-    for(unsigned k = 0; k < NumStrata; ++k){
-      Xcov[k] = 0.0;
-    }
+
+    // compute the LU factors for the B from the previous iteration
+    copy(B, B + KK, LU_B);
+    bclib::LU_decomp(NumStrata, LU_B, LU_P);
+
+    // B accumulates the sum for the current iteration
+    fill(B, B + KK, 0.0);
+    fill(Xcov, Xcov + NumStrata, 0.0);
   }
 }
 void CopyNumberAssocTest::OutputCopyNumberAssocTest(unsigned j, unsigned k,  
@@ -186,7 +186,7 @@ void CopyNumberAssocTest::Update(int locus, const double* Covariates,
     add_matrix(Score[locus], X, 2*NumStrata, 1);   // Score[locus] += X
 
     // ** compute variance of score and correction term for info **    
-    HH_solve(NumStrata, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
+    LU_solve(NumStrata, LU_B, LU_P, Xcov, BX);     // BX = inv(PrevB) * Xcov
     matrix_product(Xcov, BX, xBx, 1, NumStrata, 1);//xBx = Xcov' * BX
   }
   catch(string s){

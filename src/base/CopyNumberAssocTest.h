@@ -54,23 +54,28 @@ public:
   void Accumulate();
 
 protected:
-  bool useprevb;
   unsigned NumStrata, NumOutputStrata, L;
   bclib::RObjectWriter R;
   void OutputCopyNumberAssocTest(unsigned j, unsigned k, bclib::DelimitedFileWriter& outfile, std::string label, bool final);
+
 private:
   double **Score;
   double **Info;
   double **VarScore;
   double **InfoCorrection;
   double *B;//used to correct info
-  double *PrevB;//holds B for previous iteration while B accumulates for this iteration
   double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
   double* SumScore;
   double* SumInfo;
   double* SumVarScore;
   double* SumScore2;
+
+  /// LU factors for the B matrix of the previous iteration
+  double *LU_B;
+
+  /// Permutation matrix for the LU factorization
+  size_t *LU_P;
 
   void Accumulate(unsigned j, double *CentredScore, double *CentredInfo);
 

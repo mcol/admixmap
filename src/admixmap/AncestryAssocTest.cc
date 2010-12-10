@@ -31,7 +31,6 @@
 #include <string>
 
 AncestryAssocTest::AncestryAssocTest(){
-  useprevb = true;
   firstpoplabel = 0;
 }
 
