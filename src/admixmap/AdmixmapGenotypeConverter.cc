@@ -165,6 +165,8 @@ void convert( const Organism &		org	  ,
 
     bool haveErr = false;
 
+    GenotypeArray G;
+
     unsigned int numberOfChromosomes = loci.GetNumberOfChromosomes();
 
     // Loop over each chromosome (c counter):
@@ -177,13 +179,13 @@ void convert( const Organism &		org	  ,
       const unsigned int cSize = loci.GetSizeOfChromosome( c );
       for ( unsigned int j = 0; j < cSize; ++j ) {
 
-	GenotypeArray G;
-
 	// Loop over composite loci to store genotypes in <<something>>
 
 	const CompositeLocus &	compLocus = loci[ compLocusIdx ];
 	const int		numLoci	  = compLocus.GetNumberOfLoci();
 	bool			isMissing = true;
+
+	G.resize( numLoci );
 
 	#if COUNT_X_LOCI
 	    if ( isXchrm )
@@ -249,7 +251,7 @@ void convert( const Organism &		org	  ,
 	    else ++numDiploid;
 	  }
 	  sLocIdx++;
-	  G.push_back(g);
+	  G[locus] = g;
 
 	  // If even a single simple-locus is not missing, the whole
 	  // compound-locus is not missing; i.e. the compound locus is missing
