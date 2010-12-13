@@ -175,8 +175,10 @@ private:
   double LogPosteriorRho_LogBasis(const AdmixOptions& options, const genepi::RhoType & rho,
 				  double rhoalpha, double rhobeta)const;
 
-  void UpdateScoreTests(const AdmixOptions& options, const double* admixtureCovars, bclib::DataMatrix *Outcome,
-			Chromosome* chrm, const vector<bclib::Regression*> R, AffectedsOnlyTest& affectedsOnlyTest,
+  void UpdateScoreTests(const AdmixOptions& options,
+                        const double *admixtureCovs, bclib::DataMatrix *Outcome,
+                        Chromosome *chrm, const vector<bclib::Regression*>& R,
+                        AffectedsOnlyTest& affectedsOnlyTest,
 			CopyNumberAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options& options,
                           const AdmixtureProportions& theta,

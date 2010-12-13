@@ -130,7 +130,8 @@ void CopyNumberAssocTest::Reset(){
   }
 }
 void CopyNumberAssocTest::OutputCopyNumberAssocTest(unsigned j, unsigned k,  
-						    bclib::DelimitedFileWriter& outfile, string label, bool final){
+                                         bclib::DelimitedFileWriter& outfile,
+                                         const string& label, bool final) {
   OutputRaoBlackwellizedScoreTest(outfile, label, SumScore[ j*NumOutputStrata + k], SumScore2[ j*NumOutputStrata + k], 
 				  SumVarScore[ j*NumOutputStrata + k ],SumInfo[ j*NumOutputStrata + k ], final); 
 }

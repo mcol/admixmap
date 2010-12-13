@@ -1196,7 +1196,7 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions& options,
                                          const double* admixtureCovars,
                                          bclib::DataMatrix* Outcome,
                                          Chromosome* chrm,
-                                         const vector<bclib::Regression*> R,
+                                         const vector<bclib::Regression*>& R,
                                          AffectedsOnlyTest& affectedsOnlyTest,
                                          CopyNumberAssocTest& ancestryAssocTest) {
   bool IamAffected = false;
