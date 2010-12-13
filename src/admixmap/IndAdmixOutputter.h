@@ -45,7 +45,7 @@ class IndAdmixOutputter
 public:
   IndAdmixOutputter(const AdmixOptions& , const Genome&, const Vector_s& PopLabels);
   virtual ~IndAdmixOutputter();
-  void visitIndividual(const genepi::PedBase &, const std::vector<int>);
+  void visitIndividual(const genepi::PedBase&, const std::vector<int>&);
   void visitIndividualCollection(const AdmixIndividualCollection&);
 
 

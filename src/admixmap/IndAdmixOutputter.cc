@@ -90,18 +90,20 @@ IndAdmixOutputter::~IndAdmixOutputter(){
   _out.close(dims, dimnames);
 }
 
-void IndAdmixOutputter::visitIndividual(const PedBase & ind, const vector<int> _locusfortest)
-{
+void IndAdmixOutputter::visitIndividual(const PedBase& ind,
+                                        const vector<int>& _locusfortest) {
+
+  const int K = _options.getPopulations();
+  const double *admixtureProps = ind.getAdmixtureProps();
 
   //output individual admixture proportions
-  for( int k = 0; k < _options.getPopulations(); k++ ){
-    _out << ind.getAdmixtureProps()[k] ;
-  }
+  for (int k = 0; k < K; ++k)
+    _out << admixtureProps[k];
 
   //if random mating, output admixture proportions for second gamete
   if(_options.isRandomMatingModel())
-    for( int k = 0; k < _options.getPopulations(); k++ )
-      _out << ind.getAdmixtureProps()[ k + _options.getPopulations()] ;
+    for (int k = 0; k < K; ++k)
+      _out << admixtureProps[k + K];
 
   //output individual sumintensities
   if( !_options.isGlobalRho() ){
@@ -117,9 +119,9 @@ void IndAdmixOutputter::visitIndividual(const PedBase & ind, const vector<int> _
     int ancestry[2];
     ind.GetLocusAncestry( _locusfortest[0], _locusfortest[1], ancestry );
     //vector<vector<unsigned short> > genotype_ = ind.getGenotype(_options.getLocusForTest());
-     if(_options.getPopulations() > 1 ){
+     if (K > 1)
         _out << ancestry[0] << ancestry[1];
-     }
+
      //if(_Loci(_options.getLocusForTest() )->GetNumberOfLoci() > 1 ){
        const int* happair = ind.getSampledHapPair(_options.getLocusForTest());
 
