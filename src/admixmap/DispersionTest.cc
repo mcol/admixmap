@@ -79,7 +79,7 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
       // Generate replicate data conditional on locus ancestry
       IC->getAlleleCounts(AlleleCount, j, k);
       int sumcounts = accumulate(AlleleCount.begin(), AlleleCount.end(), 0, plus<int>());
-      rep = bclib::Rand::genmultinomial( sumcounts, popfreqs );
+      bclib::Rand::genmultinomial(sumcounts, popfreqs, rep);
 
       // Calculate likelihood of observed and replicate data
       double LogLikelihood = log(bclib::MultinomialPDF(AlleleCount, popfreqs));

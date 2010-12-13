@@ -152,10 +152,11 @@ long Rand::ignpoi( double mu )
 }
 
 /// ** Multinomial distribution **
-std::vector<int> Rand::genmultinomial(int N, const std::vector<double>& p) {
+void Rand::genmultinomial(int N, const vector<double>& p, vector<int>& n) {
 
   int K = (int)p.size();
-  std::vector<int> n( K );
+  n.resize(K);
+
   //gsl_ran_multinomial(RandomNumberGenerator, K, N, p, n);
   double norm = 0.0;
   double sum_p = 0.0;
@@ -185,7 +186,6 @@ std::vector<int> Rand::genmultinomial(int N, const std::vector<double>& p) {
       sum_p += p[k];
       sum_n += n[k];
     }
-  return( n );
 }
 
 /// ** sample from discrete probability distribution given by probs **

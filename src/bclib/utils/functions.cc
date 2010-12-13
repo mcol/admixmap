@@ -194,20 +194,17 @@ double getDirichletLogDensity_Softmax(const std::vector<double>& a, const bclib:
 double MultinomialPDF(const std::vector<int>& r,
                       const std::vector<double>& theta) {
 
-  if( r.size() != theta.size() ){
+  const unsigned K = r.size();
+  if (K != theta.size())
     throw string("Unequal lengths of vector arguments to MultinomialPDF");
-  }
+
   double f = 0.0;
-  unsigned K = (int)r.size();
   unsigned* n = new unsigned[ K ];
-  double* p = new double[ K ];
   for( unsigned i = 0; i < K; i++ ){
-    p[i] = theta[i];
     n[i] = r[i];
   }
-  f = gsl_ran_multinomial_pdf( K, p , n );
+  f = gsl_ran_multinomial_pdf( K, &(theta[0]) , n );
   delete[] n;
-  delete[] p;
   return( f );
 }
 
