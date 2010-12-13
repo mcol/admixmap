@@ -68,10 +68,6 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
   vector<double> popfreqs;
 
   vector<int> AlleleCount; 
-  vector<double> temp(NumberOfPopulations, 0.0);
-  vector<vector<double> > LogLikelihood(NumberOfCompositeLoci + 1, temp);
-  vector<vector<double> > RepLogLikelihood(LogLikelihood);
-  temp.clear();
   vector<double> sum(NumberOfPopulations, 0.0);
   vector<double> repsum(NumberOfPopulations, 0.0);
 
@@ -85,15 +81,13 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
       int sumcounts = accumulate(AlleleCount.begin(), AlleleCount.end(), 0, plus<int>());
       rep = bclib::Rand::genmultinomial( sumcounts, popfreqs );
 
-      // Calculate likelihood of observed and repliate data.
-      LogLikelihood[j][k] =
-	log( bclib::MultinomialPDF( AlleleCount, popfreqs ) );
-      RepLogLikelihood[j][k] =
-	log( bclib::MultinomialPDF( rep, popfreqs ) );
-      if(!( LogLikelihood[j][k] < RepLogLikelihood[j][k]) )
+      // Calculate likelihood of observed and replicate data
+      double LogLikelihood = log(bclib::MultinomialPDF(AlleleCount, popfreqs));
+      double RepLogLikelihood =	log(bclib::MultinomialPDF(rep, popfreqs));
+      if ( !(LogLikelihood < RepLogLikelihood) )
 	divergentallelefreqstest[j][k] ++;
-      sum[k] += LogLikelihood[j][k];
-      repsum[k] += RepLogLikelihood[j][k];
+      sum[k] += LogLikelihood;
+      repsum[k] += RepLogLikelihood;
     }
   }
 
