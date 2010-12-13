@@ -853,6 +853,7 @@ class Pedigree : public PedBase // See NOTE *4*
     double getLogLikelihoodAtPosteriorMeans( const Options & options );
     double getLogLikelihoodOnePop() const;
     void setAdmixtureProps( const AdmixType & rhs );
+    const double* getAdmixtureProps(bool isXchrom) const;
 
 
     //--------------------------------------------------------------------

@@ -1859,6 +1859,15 @@ void Pedigree::drawInitialAdmixtureProps( const AlphaType & alpha )
     }
 
 
+const double* Pedigree::getAdmixtureProps(bool isXChrom) const
+    {
+    if (isXChrom)
+	return ( &getCurTheta() )->flatXChromosome( getPsi() );
+    else
+	return ( &getCurTheta() )->flat( );
+    }
+
+
 
 void Pedigree::ResetSufficientStats()
     {
