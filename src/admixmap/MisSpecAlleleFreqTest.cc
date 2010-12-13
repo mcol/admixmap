@@ -193,6 +193,8 @@ void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const indivi
       }
     }
 
+    double *ScoreSq = new double[Populations*Populations];
+
     //accumulate over iterations
     for(int j = 0; j < NumCompLoci; j++ ){
       //SumScore[j] += Score[j];
@@ -200,12 +202,11 @@ void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const indivi
       //SumInfo[j] += Info[j];
       transform(Info[j], Info[j]+Populations*Populations, SumInfo[j], SumInfo[j], std::plus<double>());
       //SumScoreSq[j] += Score[j] * Score[j].Transpose();
-      double* ScoreSq = new double[Populations*Populations];
       bclib::matrix_product(Score[j], ScoreSq, Populations, 1);
       transform(ScoreSq, ScoreSq+Populations*Populations, SumScoreSq[j], SumScoreSq[j], std::plus<double>());
-      delete[] ScoreSq;
     }
     bclib::free_matrix(phi, Populations);
+    delete[] ScoreSq;
   }
   ++numUpdates;
 }
