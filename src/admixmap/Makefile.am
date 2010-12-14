@@ -18,16 +18,18 @@ endif
 
 
 bin_PROGRAMS = admixmap
+
+# Keep the AdmixFreqs.* files out of alphabetical order (see ticket #137).
 admixmap_SOURCES = \
 	AdmixedIndividual.h AdmixedIndividual.cc			\
 	AdmixFilenames.h						\
-	AdmixFreqs.h AdmixFreqs.cc					\
 	AdmixIndividualCollection.h AdmixIndividualCollection.cc	\
 	AdmixMapModel.h AdmixMapModel.cc				\
 	admixmap.cc							\
 	AdmixmapGenotypeConverter.h AdmixmapGenotypeConverter.cc	\
 	AdmixOptions.h AdmixOptions.cc					\
 	AdmixPedigree.cc						\
+	AdmixFreqs.h AdmixFreqs.cc					\
 	AdmixtureAssocTest.h AdmixtureAssocTest.cc			\
 	AffectedsOnlyTest.h AffectedsOnlyTest.cc			\
 	AllelicAssocSubTest.h AllelicAssocSubTest.cc			\
