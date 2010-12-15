@@ -86,6 +86,9 @@ class GenotypeParser : public GFileLexer
 	/// addition to implementing rapid search for individual
 	/// (family-ID,individual-ID) tuples, this allows us to locate all of
 	/// the members of a given pedigree.
+	/// Note: each insertion places the element according to the default
+	/// comparison function over FamIdType (that is, the order is defined
+	/// by string comparison).
 	std::multimap<FamIdType,Organism*> pmap;
 
 
