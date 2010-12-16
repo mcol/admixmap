@@ -46,7 +46,9 @@ class chib;
 class AdmixedIndividual : public Individual
 {
 public:
-  AdmixedIndividual( int number, const AdmixOptions * const options, const InputAdmixData* const Data, bool undertest);
+  AdmixedIndividual(int number, const string& indId,
+                    const AdmixOptions* const options,
+                    const InputAdmixData* const Data, bool undertest);
   ~AdmixedIndividual();
 
   static void SetStaticMembers( Genome & pLoci, const Options & options );
@@ -108,6 +110,10 @@ public:
   void WritePosteriorMeans(ostream& os, unsigned samples, bool globalrho)const;
   void WritePosteriorMeansXChr(ostream& os, unsigned samples) const;
   void WritePosteriorMeansLoci(ostream& os)const;
+
+  /// Retrieve the identifief for this individual
+  const genepi::IdType & getId() const { return id; }
+
 private:
   const bool IAmUnderTest; //true if not in Individual array
   bool AncestryProbs; // option LocusAncestryProbsIndicator
@@ -124,6 +130,9 @@ private:
   genepi::RhoType rhohat;
   genepi::RhoType sumlogrho;
   double** GenotypeProbs;///<array to hold GenotypeProbs
+
+  /// Identifier (first column of the genotype file)
+  genepi::IdType id;
 
   /// Vector to accumulate the sums of unordered hidden state probabilities
   /// (used only for LocusAncestryProbsIndicator). It's mutable so that it

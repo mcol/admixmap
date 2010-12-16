@@ -136,6 +136,8 @@ void PedBase::UpdateAlleleCounts(unsigned /*j*/, unsigned /*jj*/, unsigned /*loc
 
 void PedBase::SampleMissingOutcomes(bclib::DataMatrix * /*Outcome*/, const std::vector<bclib::Regression*>& /*R*/) { not_implemented( "SampleMissingOutcomes()", typeid(*this) ); }
 
+const IdType & PedBase::getId() const
+	{ not_implemented( "getId()", typeid(*this) ); }
 
 unsigned int PedBase::getMyNumber() const { not_implemented( "getMyNumber()", typeid(*this) ); }
 

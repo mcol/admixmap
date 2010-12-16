@@ -82,7 +82,7 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
     fill( SumEnergySq, SumEnergySq+sizeTestInd, 0.0 );
 
     for ( int i = 0; i < sizeTestInd; ++i ) {
-	TestInd[i] = new AdmixedIndividual(1, &options, &data, true);
+      TestInd[i] = new AdmixedIndividual(1, "", &options, &data, true);
     }
     ++i0;
     --size;
@@ -108,7 +108,8 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
 	else
           {
             hasUnrelateds = true;
-	    _child[i] = new AdmixedIndividual( i+i0+1, &options, &data, false );
+	    _child[i] = new AdmixedIndividual( i+i0+1, data.getFamId(i + i0),
+					       &options, &data, false );
           }
 	++NumDiploidIndividuals;
 	}
@@ -121,7 +122,8 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
       {
       for (unsigned int i = 0; i < size; i++ )
 	{
-	_child[i] = new AdmixedIndividual(i+i0+1, &options, &data, false);
+	_child[i] = new AdmixedIndividual( i+i0+1, data.getFamId(i + i0),
+					   &options, &data, false);
 	if ( ! _child[i]->isHaploidIndividual() )
 	  ++NumDiploidIndividuals;
 	}
@@ -704,6 +706,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
   meanfile.width(3);
 
   // write header
+  meanfile << "ID\t";
   for (PopIdx k = 0; k < K; ++k) {
     meanfile << PopLabels[k];
     if (isRandomMating)
@@ -722,6 +725,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
 
   const unsigned samples = options.getTotalSamples() - options.getBurnIn();
   for (unsigned int i = 0; i < size; ++i) {
+    meanfile << getElement(i).getId() << "\t";
     getElement(i).WritePosteriorMeans(meanfile, samples, options.isGlobalRho());
     meanfile << endl;
   }
@@ -740,6 +744,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
     xmeanfile.width(3);
 
     // write header
+    xmeanfile << "ID\t";
     for (PopIdx k = 0; k < K; ++k) {
       xmeanfile << PopLabels[k];
       if (isRandomMating)
@@ -753,6 +758,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
 
     // write the values
     for (unsigned int i = 0; i < size; ++i) {
+      xmeanfile << getElement(i).getId() << "\t";
       getElement(i).WritePosteriorMeansXChr(xmeanfile, samples);
       xmeanfile << endl;
     }

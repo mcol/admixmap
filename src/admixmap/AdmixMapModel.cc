@@ -463,6 +463,8 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
   else{
     if (Loci.isX_data() && options.isGlobalPsi())
       L->StoreOddsRatiosPosteriorMean(*AdmixedIndividuals);
+
+    // write the posterior means to file
     AdmixedIndividuals->WritePosteriorMeans(options, data.GetHiddenStateLabels(), Loci);
   }
   //FST

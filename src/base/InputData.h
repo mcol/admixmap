@@ -180,6 +180,11 @@ protected:
   const genepi::Pedigree &			getPed( size_t idx ) const { return peds[idx] ; }
   bool isPedFile() const { return genotypeParser->isPedFile(); }
 
+  /// Retrieve the family ID of an organism
+  const genepi::FamIdType & getFamId( size_t orgIdx ) const {
+    return genotypeParser->getFamId(orgIdx);
+  }
+
  protected:
 
   Vector_s HiddenStateLabels;

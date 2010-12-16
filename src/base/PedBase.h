@@ -60,6 +60,10 @@ namespace genepi { // ----
 
 
 
+typedef std::string IdType;
+
+
+
 //-----------------------------------------------------------------------------
 ///
 /// Base class for both Individual and AdmixPedigree.  For the moment, all
@@ -146,6 +150,7 @@ class PedBase
 
 	virtual void SampleMissingOutcomes(bclib::DataMatrix *Outcome, const std::vector<bclib::Regression*>& R);
 
+	virtual const IdType & getId    () const;
 	virtual unsigned int getMyNumber() const;
 	virtual unsigned int getIndex	() const;
 	virtual unsigned int getNumObs	() const = 0;

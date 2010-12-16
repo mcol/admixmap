@@ -68,8 +68,14 @@ using std::vector;
 //   SumLocusAncestry_X = 0;
 // }
 
-AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const options, const InputAdmixData* const Data,
-				     bool undertest=false):Individual(number),IAmUnderTest(undertest){
+AdmixedIndividual::AdmixedIndividual(int number, const string& indId,
+                                     const AdmixOptions* const options,
+                                     const InputAdmixData* const Data,
+                                     bool undertest=false) :
+  Individual(number),
+  IAmUnderTest(undertest),
+  id(indId) {
+
   GenotypesMissing = new bool*[numChromosomes];
 
   const unsigned *sizeOfChromosome = Loci->GetSizesOfChromosomes();

@@ -152,6 +152,10 @@ class GenotypeParser : public GFileLexer
 	size_t getNumOrganisms	     () const { return rows.size(); }
 	size_t getNumberOfIndividuals() const { return getNumOrganisms(); } ///< compatibility
 
+	/// Retrieve the family ID of an organism
+	const FamIdType & getFamId( size_t orgIdx ) const
+		{ return rows.at(orgIdx).famId; }
+
 
 	// Access to pedigrees as a collection of organisms:
 
