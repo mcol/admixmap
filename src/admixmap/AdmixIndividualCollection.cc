@@ -99,7 +99,7 @@ AdmixIndividualCollection::AdmixIndividualCollection( const AdmixOptions &   opt
 
       for ( unsigned int i = 0; i < size; i++ )
 	{
-	const Pedigree & ped = data.getPeds()[ i + i0 ];
+	const Pedigree & ped = data.getPed( i + i0 );
 	if ( options.getUsePedForInd() || (ped.getNMembers() > 1) )
           {
             hasPedigrees = true;

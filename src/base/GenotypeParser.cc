@@ -304,8 +304,8 @@ void GenotypeParser::buildAndCheckPedGraphs()
     //------------------------------------------------------------------
 
     std::set<const Organism*> connected;
-    const ConstPedIter limit( pmap.end() );
-    for ( ConstPedIter iter( pmap.begin() ); iter != limit ; ++iter )
+    const ConstPedIter limit = endByPed();
+    for ( ConstPedIter iter = beginByPed() ; iter != limit ; ++iter )
 	{
 	const Organism & org = **iter;
 
