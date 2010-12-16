@@ -411,7 +411,7 @@ void AdmixOptions::DefineOptions(){
   addOption("indadmixmodefile", outputfileOption, &IndAdmixModeFilename);
   addOption("testgenotypesfile", nullOption, 0);
   addOption("locusfortest", intOption, &LocusForTest);
-  addOption("locusancestryprobs", intOption, &LocusAncestryProbsIndicator);
+  addOption("locusancestryprobs", boolOption, &LocusAncestryProbsIndicator);
   // Other options
   addOption("chib", boolOption, &chibIndicator);//  Marginal likelihood by Chib algo
   addOption("testoneindiv", boolOption, &TestOneIndivIndicator);//  ML for one individual in a collection 

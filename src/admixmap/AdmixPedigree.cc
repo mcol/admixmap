@@ -403,6 +403,12 @@ void Pedigree::InitialiseAdmixedStuff( const AdmixOptions & options )
 					" Re-run with some options turned off." );
     #endif
 
+    #if ! SUM_PROBS_IS_IMPLEMENTED
+	if ( options.getLocusAncestryProbsIndicator() )
+	    throw std::runtime_error( "Pedigrees are not (yet) compatible with locusancestryprobs=1."
+					" Re-run with locusancestryprobs=0." );
+    #endif
+
 
     if ( getSLoci().size() != getSLoci().getNComposite() )
 	throw std::runtime_error( "Sorry, pedigrees are not (yet) compatible with composite loci." );
@@ -2042,6 +2048,17 @@ void Pedigree::WritePosteriorMeansXChr( ostream& os, unsigned samples ) const
     for ( ThetaType::iterator it = ThetaBarX.begin() ; it != ThetaBarX.end() ; ++it )
 	copy( it->begin(), it->end(), ostream_iterator<double>(os, "\t") );
     }
+
+
+#if SUM_PROBS_IS_IMPLEMENTED
+void Pedigree::WritePosteriorMeansLoci( ostream& os ) const
+    {
+    const unsigned int size = SumProbs.size();
+    for ( unsigned int i = 0; i < size - 1; ++i )
+	os << SumProbs[i] << ",";
+    os << SumProbs[size - 1]; // last element without following comma
+    }
+#endif
 
 
 
