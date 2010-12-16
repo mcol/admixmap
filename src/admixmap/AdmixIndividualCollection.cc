@@ -690,7 +690,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
 ///write posterior means of individual admixture params to file
 void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
                                                     const vector<string>& PopLabels,
-                                                    Genome* Loci) const {
+                                                    const Genome& Loci) const {
 
   const PopIdx K = options.getPopulations();
   const bool isRandomMating = options.isRandomMatingModel();
@@ -728,7 +728,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
   meanfile.close();
 
   // report the admixtures for the X chromosome
-  if (Loci->isX_data()) {
+  if (Loci.isX_data()) {
 
     ofstream xmeanfile((options.getResultsDir() + "/" +
                         IND_ADMIXTURE_POSTERIOR_MEANS_XCHR).c_str());
@@ -782,7 +782,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
 
     // write the dimensions and their names
     locifile << "), .Dim=c(3, " << K << ", "
-             << Loci->GetNumberOfCompositeLoci() << ", " << size << "),"
+             << Loci.GetNumberOfCompositeLoci() << ", " << size << "),"
              << " .Dimnames=list(c(\"0\",\"1\",\"2\"), c(\"";
     for (PopIdx k = 0; k < K; ++k)
       locifile << PopLabels[k] << (k != K - 1 ? "\",\"" : "\"");

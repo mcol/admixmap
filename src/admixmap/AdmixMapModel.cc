@@ -463,7 +463,7 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
   else{
     if (Loci.isX_data() && options.isGlobalPsi())
       L->StoreOddsRatiosPosteriorMean(*AdmixedIndividuals);
-    AdmixedIndividuals->WritePosteriorMeans(options, data.GetHiddenStateLabels(), &Loci);
+    AdmixedIndividuals->WritePosteriorMeans(options, data.GetHiddenStateLabels(), Loci);
   }
   //FST
 //   if( strlen( options.getHistoricalAlleleFreqFilename()) ){

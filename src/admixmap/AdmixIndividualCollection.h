@@ -96,8 +96,9 @@ public:
   double getDevianceAtPosteriorMean(const Options& options, vector<bclib::Regression *> &R, Genome* Loci,
 				    bclib::LogWriter &Log, const genepi::RhoType & SumLogRho, unsigned numChromosomes,  AlleleFreqs* A);
 
-  void WritePosteriorMeans(const AdmixOptions& options, const vector<string>& PopLabels,
-			   Genome* Loci)const;
+  void WritePosteriorMeans(const AdmixOptions& options,
+                           const vector<std::string>& PopLabels,
+                           const Genome& Loci) const;
   void OutputChibResults(bclib::LogWriter&)const;
 
   AdmixedIndividual* getIndividual(int)const;
