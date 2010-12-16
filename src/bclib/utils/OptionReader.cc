@@ -471,7 +471,8 @@ void OptionReader::PrintUserOptions(const char* filename){
 }
 ///output Options table to stream
 void OptionReader::PrintUserOptions(ostream& os){
-  for( map<string, string>::iterator p= useroptions.begin(); p!=useroptions.end(); p++) {
+  for (map<string,string>::const_iterator p = useroptions.begin();
+       p != useroptions.end(); ++p) {
     os << p->first << "=" << p->second <<endl;
   }
 }
@@ -500,8 +501,8 @@ void OptionReader::PrintAllOptions(ostream& os)const{
   for (OptionMap::const_iterator p = ProgOptions.begin();
        p != ProgOptions.end(); ++p) {
 
-    // skip deprecated options
-    if (p->second.second == oldOption)
+    // skip deprecated options and those that are essentially fixed
+    if (p->second.second == oldOption || p->second.second == nullOption)
       continue;
     os << p->first << " ( " << typesAsStrings[p->second.second] << " )" << endl;
   }

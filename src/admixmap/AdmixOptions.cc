@@ -409,7 +409,6 @@ void AdmixOptions::DefineOptions(){
   addOption("fstoutput", boolOption, &OutputFST);
 
   addOption("indadmixmodefile", outputfileOption, &IndAdmixModeFilename);
-  addOption("testgenotypesfile", nullOption, 0);
   addOption("locusfortest", intOption, &LocusForTest);
   addOption("locusancestryprobs", boolOption, &LocusAncestryProbsIndicator);
   // Other options
@@ -430,6 +429,7 @@ void AdmixOptions::DefineOptions(){
   addOption("fstoutputfile", oldOption, 0);
   addOption("hwtestfile", oldOption, 0);
   addOption("residualallelicassocscorefile", oldOption, 0);
+  addOption("testgenotypesfile", oldOption, 0);
 }
 
 bool AdmixOptions::SetOptions(){
