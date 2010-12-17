@@ -412,6 +412,8 @@ void PrintCopyrightNotice(bclib::LogWriter& Log){
   Log.setDisplayMode(bclib::Quiet);
   cout << "Copyright(c) 2002-2007 " << endl
        << "David O'Donnell, Clive Hoggart and Paul McKeigue" << endl
+       << "Portions Copyright(c) 2009-2010\n"
+       << "David D. Favro and Marco Colombo\n"
        << "-------------------------------------------------------\n"
        << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl
        << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl
