@@ -123,8 +123,9 @@ void DataReader::convertMatrix(const std::vector<std::vector<std::string> >& dat
     }
 }
 
-void DataReader::ReadHeader(const char* filename, std::vector<std::string>& labels, bool skipfirstcol)
-{
+void DataReader::ReadHeader(const char *filename,
+                            std::vector<std::string>& labels,
+                            bool skipfirstcol) {
 #ifdef HAVE_BOOST_H
   using namespace boost;
 #endif
@@ -133,9 +134,8 @@ void DataReader::ReadHeader(const char* filename, std::vector<std::string>& labe
   if(skipfirstcol) file >> header; //skip first column
   // now read rest of line
   getline(file, header);  // returns string with trailing carriage return from dos format
-  if(header.find_last_of(13)==header.size()) {
+  if (header.find_last_of(13) == header.size() - 1)
     header.resize(header.size() - 1); // strip trailing carriage return
-  }
   
   file.close();
 
