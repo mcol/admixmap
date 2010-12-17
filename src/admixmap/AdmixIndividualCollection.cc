@@ -688,6 +688,14 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(
 }
 
 
+/// Set the number of decimal places to @a prec
+static void ofstreamSettings(ofstream& ofstr, int prec) {
+  ofstr << std::setfill(' ');
+  ofstr.setf(std::ios::fixed);
+  ofstr.precision(prec);
+  ofstr.width(prec);
+}
+
 #include "AdmixFilenames.h"
 ///write posterior means of individual admixture params to file
 void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
@@ -698,12 +706,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
   const bool isRandomMating = options.isRandomMatingModel();
 
   ofstream meanfile((options.getResultsDir() + "/" + IND_ADMIXTURE_POSTERIOR_MEANS).c_str());
-
-  // set 3 decimal places
-  meanfile << std::setfill(' ');
-  meanfile.setf(std::ios::fixed);
-  meanfile.precision(3);
-  meanfile.width(3);
+  ofstreamSettings(meanfile, 3);
 
   // write header
   meanfile << "ID\t";
@@ -736,12 +739,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
 
     ofstream xmeanfile((options.getResultsDir() + "/" +
                         IND_ADMIXTURE_POSTERIOR_MEANS_XCHR).c_str());
-
-    // set 3 decimal places
-    xmeanfile << std::setfill(' ');
-    xmeanfile.setf(std::ios::fixed);
-    xmeanfile.precision(3);
-    xmeanfile.width(3);
+    ofstreamSettings(xmeanfile, 3);
 
     // write header
     xmeanfile << "ID\t";
@@ -770,12 +768,7 @@ void AdmixIndividualCollection::WritePosteriorMeans(const AdmixOptions& options,
     // write posterior probs locus ancestry to file
     ofstream locifile((options.getResultsDir() + "/" +
                        LOCUS_ANCESTRY_POSTERIOR_PROBS).c_str());
-
-    // set 3 decimal places
-    locifile << std::setfill(' ');
-    locifile.setf(std::ios::fixed);
-    locifile.precision(3);
-    locifile.width(3);
+    ofstreamSettings(locifile, 3);
 
     // write the values as an R object
     locifile << "structure(c(";
