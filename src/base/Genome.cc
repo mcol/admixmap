@@ -345,7 +345,7 @@ int Genome::GetNumberOfStates()const{
 }
 
 /// Get a chromosome number by absolute locus number
-unsigned Genome::GetChrNumOfLocus(unsigned locus){
+unsigned Genome::GetChrNumOfLocus(unsigned locus) const {
   return LocusTable[locus][0];
 }
 

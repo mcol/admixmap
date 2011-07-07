@@ -123,7 +123,7 @@ public:
   void PrintLocusTable(const char *filename,
                        const SimpleLocusArray& simpleLoci) const;
 
-  unsigned GetChrNumOfLocus(unsigned locus); 
+  unsigned GetChrNumOfLocus(unsigned locus) const; 
   int GetNumberOfStates()const;
 
   /// Return the number of states of a composite locus
