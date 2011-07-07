@@ -69,7 +69,8 @@ private:
 
   std::vector<HaplotypeTest*> HaplotypeAssocTests; 
 
-  int *locusObsIndicator;
+  /// Whether a locus is observed (true) or completely untyped (false)
+  bool *locusObsIndicator;
 
   bclib::RObjectWriter AllelicAssocRObject;
   bclib::RObjectWriter HaplotypeAssocRObject;

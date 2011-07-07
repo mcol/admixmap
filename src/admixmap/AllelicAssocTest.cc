@@ -61,8 +61,8 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
 
   AllelicAssocRObject.open((options->getResultsDir() + "/" + ALLELICASSOCTEST_PVALUES).c_str());      
 
-  locusObsIndicator = new int[L];
-  
+  locusObsIndicator = new bool[L];
+
   //search for loci with no observed genotypes
   for(int j = 0; j < L; ++j){
     locusObsIndicator[j] = false;
