@@ -191,6 +191,11 @@ void AllelicAssocTest::Update( const PedBase * const ind, double YMinusEY, doubl
 void AllelicAssocTest::Accumulate(){
   try{
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+
+      // skip the untyped loci
+      if (!locusObsIndicator[j])
+        continue;
+
       if( test ){
 	SubTests[j]->Accumulate();	
 
