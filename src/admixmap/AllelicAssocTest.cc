@@ -110,7 +110,9 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
     }
     else {
       op->setTestForHaplotypeAssociation(false);
-      Log << "ERROR: Cannot test for haplotype associations if all loci are simple\n" << "This option will be ignored\n";
+      Log << "WARNING: cannot test for haplotype associations if all loci "
+          << "are simple.\n"
+          << "         This option will be ignored.\n";
     }
   }
 }

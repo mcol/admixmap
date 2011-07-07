@@ -731,7 +731,7 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
   if( TestForAffectedsOnly )
     if( RegType == Linear || RegType == Mlinear){
       Log << "WARNING: affectedsonly score test is not valid "
-          << "with a linear regression only."
+          << "with a linear regression only.\n"
           << "         This option will be ignored.\n";
       setTestForAffectedsOnly(false);
     }
@@ -739,7 +739,7 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
   if( TestForLinkageWithAncestry ){
     if(NumberOfOutcomes < 1){
       Log << "WARNING: ancestryassociation score test is not valid "
-          << "without a regression model."
+          << "without a regression model.\n"
           << "         This option will be ignored.\n";
       setTestForLinkageWithAncestry(false);
     }
@@ -747,14 +747,14 @@ bool AdmixOptions::checkOptions(bclib::LogWriter& Log, int NumberOfIndividuals){
   if( TestForAllelicAssociation ){
     if( NumberOfOutcomes < 1 ){
       Log << "WARNING: allelic association score test is not valid "
-          << "without a regression model."
+          << "without a regression model.\n"
           << "         This option will be ignored.\n";
       setTestForAllelicAssociation(false);
     }
   }
   if( TestForHaplotypeAssociation && !TestForAllelicAssociation ){
-    Log << "WARNING: Can't test for haplotype associations if "
-        << "allelicassociationscorefile is not specified"
+    Log << "WARNING: cannot test for haplotype associations if "
+        << "allelicassociationscorefile is not specified.\n"
         << "         This option will be ignored.\n";
     setTestForHaplotypeAssociation(false);
     }
