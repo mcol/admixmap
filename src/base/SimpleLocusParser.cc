@@ -126,6 +126,11 @@ void SimpleLocusParser::parse()
 	    }
 	catch ( std::runtime_error & e )
 	    {
+	    #if STATUS_TO_COUT
+		std::cout << "\nWARNING: " << e.what() << " in "
+			  << getFileName() << ".\n"
+			  << "         Setting genetic distance unit to Morgans.\n";
+	    #endif
 	    loci.gdu = Morgans; // Default, usual for admixture mapping
 	    }
 

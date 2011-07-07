@@ -72,5 +72,5 @@ GeneticDistanceUnit gduFromString( const char * desc )
 	if ( strcasecmp( desc, descs[idx] ) == 0 )
 	    return static_cast<GeneticDistanceUnit>( idx );
 
-    throw std::runtime_error( std::string("invalid genetic-distance-unit: \"") + desc + '"' );
+    throw std::runtime_error( std::string("invalid genetic distance unit: \"") + desc + '"' );
     }
