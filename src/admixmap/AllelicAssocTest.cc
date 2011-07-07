@@ -61,18 +61,19 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
 
   AllelicAssocRObject.open((options->getResultsDir() + "/" + ALLELICASSOCTEST_PVALUES).c_str());      
 
+  // search for loci with no observed genotypes
   locusObsIndicator = new bool[L];
-
-  //search for loci with no observed genotypes
-  for(int j = 0; j < L; ++j){
+  for (int j = 0; j < L; ++j) {
     locusObsIndicator[j] = false;
-	for(int i = indiv->getFirstScoreTestIndividualNumber(); i < indiv->getNumberOfIndividualsForScoreTests(); i++){
-	  if ( ! indiv->getElement(i).GenotypeIsMissing(j) ) {
-	    locusObsIndicator[j] = true;
-	  }
-	}
+    for (int i = indiv->getFirstScoreTestIndividualNumber();
+         i < indiv->getNumberOfIndividualsForScoreTests(); ++i) {
+      if ( ! indiv->getElement(i).GenotypeIsMissing(j) ) {
+        locusObsIndicator[j] = true;
+        continue;
+      }
+    }
   }
-  
+
   unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
   AllelicAssocSubTest::SetNumCovars(NumCovars);
   
@@ -87,8 +88,6 @@ void AllelicAssocTest::Initialise(AdmixOptions* op, const IndividualCollection* 
       SubTests.push_back(new SNPTest());
     else//simple multiallelic locus
       SubTests.push_back(new MultiAllelicLocusTest(NumberOfStates));
-    
-    
   }//end loop over loci
   
   /*----------------------

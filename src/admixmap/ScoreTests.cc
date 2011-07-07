@@ -121,7 +121,7 @@ void ScoreTests::Update(const vector<bclib::Regression* >& R)
       //note that it is the first regression that is used
       DInvLink = R[0]->DerivativeInverseLinkFunction(i);
       bool missingOutcome = individuals->isMissingOutcome(0,i); 
-     
+
       //admixture association
       if( options->getTestForAdmixtureAssociation() && (options->getNumberOfOutcomes() == 1) ){
 	AdmixtureAssocScoreTest.UpdateIndividualScore(ind.getAdmixtureProps(), YMinusEY, dispersion, 
@@ -129,7 +129,8 @@ void ScoreTests::Update(const vector<bclib::Regression* >& R)
       }
       //allelic association
       if( options->getTestForAllelicAssociation() )
-	AllelicAssociationTest.Update( &ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
+        AllelicAssociationTest.Update(&ind, YMinusEY, dispersion,
+                                      DInvLink, missingOutcome);
     }
   }
   
