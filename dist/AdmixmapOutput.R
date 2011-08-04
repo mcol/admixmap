@@ -598,13 +598,14 @@ plotScoreMap <- function(loci.compound, zscores, K, testname){
   outputfile <- paste(outputfile, "ScoreMap", sep="")
   openPlotDevice(outputfile)
   par(mfrow=c(K, 3), mar=0.1+c(4,4,2,2), oma=c(2,6,2,2))
+  pop.labels <- if (K == 1) population.labels[-1] else population.labels
   for(chr in chr.labels) {
     for(pop in 1:K) {
       plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
            zscores[pop, loci.compound$Chromosome==chr], 
            type="l", ylim=c(-5,5),
            xlab="Map position (cM) from first locus", ylab="z-score",
-           main=paste("z-scores for chr", chr, "-", population.labels[pop])
+           main=paste("z-scores for chr", chr, "-", pop.labels[pop])
            )
       lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.975),qnorm(0.975)))
       lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.995),qnorm(0.995)), lty=2)
