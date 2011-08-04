@@ -175,12 +175,9 @@ void InputData::CheckOutcomeVarFile(unsigned N, Options* const options, LogWrite
 	isContinuous = true;
       }
     }
-    if(isContinuous)
-      OutcomeType.push_back( Continuous );
-    else
-      OutcomeType.push_back( Binary );
     Log << "Regressing on ";
     if( !isContinuous ){
+      OutcomeType.push_back( Binary );
       Log << "Binary variable: ";
       if(ColsInUse.size()==1)RegType = Logistic;//one logistic regression
       else {
@@ -189,6 +186,7 @@ void InputData::CheckOutcomeVarFile(unsigned N, Options* const options, LogWrite
       }
     }
     else {
+      OutcomeType.push_back( Continuous );
       Log << "Continuous variable: ";
       if(ColsInUse.size()==1)RegType = Linear;//one linear regression
       else {
