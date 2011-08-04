@@ -440,7 +440,7 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
   ## set up plot for first population and first locus
   par(oma=c(2,6,4,4))
   for(pop in 1:dim(log10pvalues)[1]) {
-    header <- paste(header1,"population", pop, sep="");
+    header <- paste(header1, "population", pop, sep=" ")
     plot(10*thinning*seq(1:dim(log10pvalues)[3]), log10pvalues[1,1,], type="l", ylim=c(0,5),
          main=header, 
          xlab="Iterations", ylab="-log10(p-value)")
