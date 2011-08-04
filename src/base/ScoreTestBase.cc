@@ -77,7 +77,6 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, bclib::DelimitedFileW
       else//1 NA in cumulative output (log p-value)
 	outputstream << "NA";
     }
-
   }
 
   // negative CompleteInfo or MissingInfo > CompleteInfo

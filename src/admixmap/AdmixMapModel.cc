@@ -607,9 +607,8 @@ void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, Lo
   if( options.getHWTestIndicator() )
     HWtest.Initialise(Loci.GetTotalNumberOfLoci());
   //InitializeErgodicAvgFile(&options, Log, data.GetHiddenStateLabels(), data.getCovariateLabels());
-
-
 }
+
 //this function is here because three different objects have to write to avgstream
 void AdmixMapModel::InitializeErgodicAvgFile(const Options& _options, LogWriter &Log,
 				     const Vector_s& PopulationLabels, const Vector_s& CovariateLabels){

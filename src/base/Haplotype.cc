@@ -378,4 +378,3 @@ void Haplotype::permuteMissingLoci(const vector<bool>& isMissing,
     missingLocusOffset += isMissing[locus]; 
   } 
 }
-
