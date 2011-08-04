@@ -32,7 +32,6 @@
 
 #include "Genome.h"
 #include "bclib/DataMatrix.h"
-#include "PedBase.h"
 #include "bclib/exceptions.h" // gp_assert()
 #include <vector>
 
