@@ -41,6 +41,8 @@ void PrintUsage(const char* ProgName) {
        << "   " << ProgName << " <options-file>" << endl
        << "or " << ProgName << " -f<optionsfile> [extra options]" << endl
     //       << "or " << ProgName << "<options> (deprecated)" << endl
+       << "or " << ProgName << " --help      Display this help" << endl
+       << "or " << ProgName << " --options   Show the option names" << endl
        << endl << "Consult the manual for details of user options." << endl;
 }
 
