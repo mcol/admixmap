@@ -525,6 +525,9 @@ void PopAdmix::UpdateOddsRatios(const AdmixIndividualCollection& IC,
 /// This must be called before computing any other posterior means, otherwise
 /// we end up using the psi set at the last iteration.
 void PopAdmix::StoreOddsRatiosPosteriorMean(const AdmixIndividualCollection& IC) {
+  // nothing to be done for only one population
+  if (K == 1)
+    return;
 
   // compute the posterior mean
   for (int i = 0; i < K; ++i)
